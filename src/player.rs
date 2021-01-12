@@ -4,6 +4,7 @@ use crate::{
     level::UpdateContext,
     message::Message,
 };
+use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
@@ -60,6 +61,25 @@ pub struct UpperBodyMachine {
     pub toss_grenade_animation: Handle<Animation>,
     pub put_back_animation: Handle<Animation>,
     pub grab_animation: Handle<Animation>,
+}
+
+impl Visit for UpperBodyMachine {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.machine.visit("Machine", visitor)?;
+        self.aim_state.visit("AimState", visitor)?;
+        self.toss_grenade_animation
+            .visit("TossGrenadeAnimation", visitor)?;
+        self.jump_animation.visit("JumpAnimation", visitor)?;
+        self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.land_animation.visit("LandAnimation", visitor)?;
+        self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
+        self.put_back_animation.visit("PutBackAnimation", visitor)?;
+        self.grab_animation.visit("GrabAnimation", visitor)?;
+
+        visitor.leave_region()
+    }
 }
 
 fn disable_leg_tracks(
@@ -637,6 +657,25 @@ pub struct LowerBodyMachine {
     pub idle_to_jump: Handle<Transition>,
 }
 
+impl Visit for LowerBodyMachine {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.machine.visit("Machine", visitor)?;
+        self.jump_animation.visit("JumpAnimation", visitor)?;
+        self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.land_animation.visit("LandAnimation", visitor)?;
+        self.walk_state.visit("WalkState", visitor)?;
+        self.jump_state.visit("JumpState", visitor)?;
+        self.fall_state.visit("FallState", visitor)?;
+        self.land_state.visit("LandState", visitor)?;
+        self.walk_to_jump.visit("WalkToJump", visitor)?;
+        self.idle_to_jump.visit("IdleToJump", visitor)?;
+
+        visitor.leave_region()
+    }
+}
+
 pub struct LowerBodyMachineInput {
     is_walking: bool,
     is_jumping: bool,
@@ -892,10 +931,22 @@ impl DerefMut for Player {
 }
 
 #[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord)]
+#[repr(u32)]
 enum Direction {
     None,
     Next,
     Previous,
+}
+
+impl Direction {
+    fn from_id(id: u32) -> Result<Self, String> {
+        match id {
+            0 => Ok(Self::None),
+            1 => Ok(Self::Next),
+            2 => Ok(Self::Previous),
+            _ => Err(format!("Invalid Direction id {}!", id)),
+        }
+    }
 }
 
 impl Default for Direction {
@@ -907,7 +958,6 @@ impl Default for Direction {
 #[derive(Default)]
 pub struct Player {
     character: Character,
-    pivot: Handle<Node>,
     camera_pivot: Handle<Node>,
     camera_hinge: Handle<Node>,
     camera: Handle<Node>,
@@ -924,6 +974,35 @@ pub struct Player {
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: Direction,
+}
+
+impl Visit for Player {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.character.visit("Character", visitor)?;
+        self.camera_pivot.visit("CameraPivot", visitor)?;
+        self.camera_hinge.visit("CameraHinge", visitor)?;
+        self.camera.visit("Camera", visitor)?;
+        self.model.visit("Model", visitor)?;
+        self.lower_body_machine.visit("LowerBodyMachine", visitor)?;
+        self.upper_body_machine.visit("UpperBodyMachine", visitor)?;
+        self.model_yaw.visit("ModelYaw", visitor)?;
+        self.spine_pitch.visit("SpinePitch", visitor)?;
+        self.hips.visit("Hips", visitor)?;
+        self.spine.visit("Spine", visitor)?;
+        self.move_speed.visit("MoveSpeed", visitor)?;
+        self.camera_offset.visit("CameraOffset", visitor)?;
+        self.collider.visit("Collider", visitor)?;
+
+        let mut direction = self.weapon_change_direction as u32;
+        direction.visit("WeaponChangeDirection", visitor)?;
+        if visitor.is_reading() {
+            self.weapon_change_direction = Direction::from_id(direction)?;
+        }
+
+        visitor.leave_region()
+    }
 }
 
 impl Player {
@@ -1034,7 +1113,6 @@ impl Player {
                 sender: Some(sender),
                 ..Default::default()
             },
-            pivot,
             model: model_handle,
             camera_pivot,
             controller: Default::default(),

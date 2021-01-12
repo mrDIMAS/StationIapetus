@@ -170,7 +170,7 @@ impl Game {
         let inner_size = monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor());
 
         let window_builder = rg3d::window::WindowBuilder::new()
-            .with_title("Rusty Shooter")
+            .with_title("Station Iapetus")
             .with_inner_size(inner_size)
             .with_resizable(true);
 
