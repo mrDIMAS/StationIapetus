@@ -1500,7 +1500,7 @@ impl Player {
                 .get(self.character.body.into())
                 .unwrap()
                 .linvel();
-            if self.controller.shoot {
+            if self.controller.shoot && self.controller.aim {
                 self.character
                     .sender
                     .as_ref()
