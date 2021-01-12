@@ -1,0 +1,19 @@
+data/sounds/footsteps/FootStep_shoe_grass_step1.wav Grass
+data/sounds/footsteps/FootStep_shoe_grass_step2.wav Grass
+data/sounds/footsteps/FootStep_shoe_grass_step3.wav Grass
+data/sounds/footsteps/FootStep_shoe_grass_step4.wav Grass
+
+data/sounds/footsteps/FootStep_shoe_metal_step1.wav Metal
+data/sounds/footsteps/FootStep_shoe_metal_step2.wav Metal
+data/sounds/footsteps/FootStep_shoe_metal_step3.wav Metal
+data/sounds/footsteps/FootStep_shoe_metal_step4.wav Metal
+
+data/sounds/footsteps/FootStep_shoe_stone_step1.wav Stone
+data/sounds/footsteps/FootStep_shoe_stone_step2.wav Stone
+data/sounds/footsteps/FootStep_shoe_stone_step3.wav Stone
+data/sounds/footsteps/FootStep_shoe_stone_step4.wav Stone
+
+data/sounds/footsteps/FootStep_shoe_wood_step1.wav Wood
+data/sounds/footsteps/FootStep_shoe_wood_step2.wav Wood
+data/sounds/footsteps/FootStep_shoe_wood_step3.wav Wood
+data/sounds/footsteps/FootStep_shoe_wood_step4.wav Wood

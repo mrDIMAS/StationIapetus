@@ -1,0 +1,44 @@
+data/textures/blocks9.tga Stone
+data/textures/blocks10.tga Stone
+data/textures/blocks11b.tga Stone
+data/textures/blocks15.tga Stone
+data/textures/brick.tga Stone
+data/textures/brick2.tga Stone
+data/textures/brick3.tga Stone
+data/textures/brick4.tga Stone
+data/textures/column.tga Stone
+data/textures/concrete.tga Stone
+data/textures/concrete2.tga Stone
+data/textures/concretefloor1.tga Stone
+data/textures/floor.tga Stone
+data/textures/largeblockfloor3.tga Stone
+data/textures/largeblockfloor4.tga Stone
+data/textures/rock.tga Stone
+data/textures/rock2.tga Stone
+data/textures/rock3.tga Stone
+
+data/textures/blocks17floor.tga Metal
+data/textures/blocks17floor2.tga Metal
+data/textures/clang_floor.tga Metal
+data/textures/clang_floor2.tga Metal
+data/textures/clang_floor3b.tga Metal
+data/textures/cube.tga Metal
+data/textures/lamp.tga Metal
+data/textures/mesh.tga Metal
+data/textures/metal.tga Metal
+data/textures/metal1_1.tga Metal
+data/textures/metal2.tga Metal
+data/textures/metal3.tga Metal
+data/textures/metal3_3.tga Metal
+data/textures/metal4.tga Metal
+data/textures/metal5.tga Metal
+
+data/textures/box.tga Wood
+data/textures/barell.tga Wood
+data/textures/wood.tga Wood
+data/textures/wood1.tga Wood
+data/textures/wood2.tga Wood
+
+data/textures/grass.tga Grass
+data/textures/moss.tga Grass
+data/textures/plants.tga Grass
