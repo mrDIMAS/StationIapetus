@@ -1004,6 +1004,9 @@ pub struct Player {
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: Direction,
+    weapon_yaw_correction: SmoothAngle,
+    weapon_pitch_correction: SmoothAngle,
+    weapon_origin: Handle<Node>,
 }
 
 impl Visit for Player {
@@ -1024,6 +1027,11 @@ impl Visit for Player {
         self.move_speed.visit("MoveSpeed", visitor)?;
         self.camera_offset.visit("CameraOffset", visitor)?;
         self.collider.visit("Collider", visitor)?;
+        self.weapon_origin.visit("WeaponOrigin", visitor)?;
+        self.weapon_yaw_correction
+            .visit("WeaponYawCorrection", visitor)?;
+        self.weapon_pitch_correction
+            .visit("WeaponPitchCorrection", visitor)?;
 
         let mut direction = self.weapon_change_direction as u32;
         direction.visit("WeaponChangeDirection", visitor)?;
@@ -1114,7 +1122,8 @@ impl Player {
 
         let hand_scale = scene.graph.global_scale(hand);
 
-        let weapon_pivot = BaseBuilder::new()
+        let weapon_pivot;
+        let weapon_origin = BaseBuilder::new()
             .with_local_transform(
                 TransformBuilder::new()
                     .with_local_scale(Vector3::new(
@@ -1131,9 +1140,13 @@ impl Player {
                     )
                     .build(),
             )
+            .with_children(&[{
+                weapon_pivot = BaseBuilder::new().build(&mut scene.graph);
+                weapon_pivot
+            }])
             .build(&mut scene.graph);
 
-        scene.graph.link_nodes(weapon_pivot, hand);
+        scene.graph.link_nodes(weapon_origin, hand);
 
         Self {
             character: Character {
@@ -1143,6 +1156,7 @@ impl Player {
                 sender: Some(sender),
                 ..Default::default()
             },
+            weapon_origin,
             model: model_handle,
             camera_pivot,
             controller: Default::default(),
@@ -1167,6 +1181,16 @@ impl Player {
             collider,
             control_scheme: Some(control_scheme),
             weapon_change_direction: Direction::None,
+            weapon_yaw_correction: SmoothAngle {
+                angle: 0.0,
+                target: 30.0f32.to_radians(),
+                speed: 10.00,
+            },
+            weapon_pitch_correction: SmoothAngle {
+                angle: 0.0,
+                target: 10.0f32.to_radians(),
+                speed: 10.00,
+            },
         }
     }
 
@@ -1480,6 +1504,24 @@ impl Player {
                 .get_mut(self.lower_body_machine.walk_animation)
                 .set_speed(walk_dir);
         }
+
+        if self.controller.aim {
+            self.weapon_yaw_correction.set_target(-4.0f32.to_radians());
+            self.weapon_pitch_correction
+                .set_target(-12.0f32.to_radians());
+        } else {
+            self.weapon_yaw_correction.set_target(30.0f32.to_radians());
+            self.weapon_pitch_correction.set_target(8.0f32.to_radians());
+        }
+
+        let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
+        let pitch_correction_angle = self.weapon_pitch_correction.update(time.delta).angle();
+        scene.graph[self.weapon_pivot]
+            .local_transform_mut()
+            .set_rotation(
+                UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
+                    * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch_correction_angle),
+            );
 
         let ray_origin = scene.graph[self.camera_pivot].global_position();
         let ray_end = scene.graph[self.camera].global_position();
