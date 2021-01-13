@@ -1554,7 +1554,10 @@ impl Player {
                 .get(self.character.body.into())
                 .unwrap()
                 .linvel();
-            if self.controller.shoot && self.controller.aim {
+            if self.controller.shoot
+                && self.upper_body_machine.machine.active_state()
+                    == self.upper_body_machine.aim_state
+            {
                 self.character
                     .sender
                     .as_ref()
