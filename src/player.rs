@@ -4,6 +4,7 @@ use crate::{
     level::UpdateContext,
     message::Message,
 };
+use rg3d::animation::machine;
 use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 use rg3d::{
     animation::{
@@ -52,15 +53,16 @@ pub fn create_play_animation_state(
 
 #[derive(Default)]
 pub struct UpperBodyMachine {
-    pub machine: Machine,
-    pub aim_state: Handle<State>,
-    pub toss_grenade_state: Handle<State>,
-    pub jump_animation: Handle<Animation>,
-    pub walk_animation: Handle<Animation>,
-    pub land_animation: Handle<Animation>,
-    pub toss_grenade_animation: Handle<Animation>,
-    pub put_back_animation: Handle<Animation>,
-    pub grab_animation: Handle<Animation>,
+    machine: Machine,
+    aim_state: Handle<State>,
+    toss_grenade_state: Handle<State>,
+    put_back_state: Handle<State>,
+    jump_animation: Handle<Animation>,
+    walk_animation: Handle<Animation>,
+    land_animation: Handle<Animation>,
+    toss_grenade_animation: Handle<Animation>,
+    put_back_animation: Handle<Animation>,
+    grab_animation: Handle<Animation>,
 }
 
 impl Visit for UpperBodyMachine {
@@ -73,6 +75,7 @@ impl Visit for UpperBodyMachine {
             .visit("TossGrenadeAnimation", visitor)?;
         self.jump_animation.visit("JumpAnimation", visitor)?;
         self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.put_back_state.visit("WalkAnimation", visitor)?;
         self.land_animation.visit("LandAnimation", visitor)?;
         self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
         self.put_back_animation.visit("PutBackAnimation", visitor)?;
@@ -160,8 +163,7 @@ pub struct UpperBodyMachineInput {
     is_aiming: bool,
     toss_grenade: bool,
     weapon: CombatMachineWeapon,
-    put_back_weapon: bool,
-    grab_new_weapon: bool,
+    change_weapon: bool,
 }
 
 impl UpperBodyMachine {
@@ -197,6 +199,7 @@ impl UpperBodyMachine {
     const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
 
     pub const GRAB_WEAPON_SIGNAL: u64 = 1;
+    pub const PUT_BACK_WEAPON_END_SIGNAL: u64 = 1;
 
     pub async fn new(
         scene: &mut Scene,
@@ -328,11 +331,23 @@ impl UpperBodyMachine {
             .animations
             .get_mut(grab_animation)
             .set_loop(false)
-            .add_signal(AnimationSignal::new(Self::GRAB_WEAPON_SIGNAL, 0.1));
-        scene.animations.get_mut(put_back_animation).set_loop(false);
+            .set_speed(4.0)
+            .set_enabled(false)
+            .add_signal(AnimationSignal::new(Self::GRAB_WEAPON_SIGNAL, 0.3));
+        let put_back_duration = scene.animations.get(put_back_animation).length();
+        scene
+            .animations
+            .get_mut(put_back_animation)
+            .set_speed(4.0)
+            .add_signal(AnimationSignal::new(
+                Self::PUT_BACK_WEAPON_END_SIGNAL,
+                put_back_duration,
+            ))
+            .set_loop(false);
         scene
             .animations
             .get_mut(toss_grenade_animation)
+            .set_speed(1.5)
             .set_loop(false);
 
         machine.add_transition(Transition::new(
@@ -447,21 +462,21 @@ impl UpperBodyMachine {
             "Aim->PutBack",
             aim_state,
             put_back_state,
-            0.20,
+            0.10,
             Self::AIM_TO_PUT_BACK,
         ));
         machine.add_transition(Transition::new(
             "Walk->PutBack",
             walk_state,
             put_back_state,
-            0.20,
+            0.10,
             Self::WALK_TO_PUT_BACK,
         ));
         machine.add_transition(Transition::new(
             "Idle->PutBack",
             idle_state,
             put_back_state,
-            0.20,
+            0.10,
             Self::IDLE_TO_PUT_BACK,
         ));
 
@@ -483,7 +498,7 @@ impl UpperBodyMachine {
             "PutBack->Grab",
             put_back_state,
             grab_state,
-            0.20,
+            0.10,
             Self::PUT_BACK_TO_GRAB,
         ));
         machine.add_transition(Transition::new(
@@ -524,6 +539,7 @@ impl UpperBodyMachine {
             machine,
             aim_state,
             toss_grenade_state,
+            put_back_state,
             jump_animation,
             walk_animation,
             land_animation,
@@ -578,35 +594,45 @@ impl UpperBodyMachine {
             )
             .set_parameter(
                 Self::AIM_TO_PUT_BACK,
-                Parameter::Rule(input.is_aiming && input.put_back_weapon),
+                Parameter::Rule(input.is_aiming && input.change_weapon),
             )
-            .set_parameter(
-                Self::WALK_TO_PUT_BACK,
-                Parameter::Rule(input.put_back_weapon),
-            )
-            .set_parameter(
-                Self::IDLE_TO_PUT_BACK,
-                Parameter::Rule(input.put_back_weapon),
-            )
+            .set_parameter(Self::WALK_TO_PUT_BACK, Parameter::Rule(input.change_weapon))
+            .set_parameter(Self::IDLE_TO_PUT_BACK, Parameter::Rule(input.change_weapon))
             .set_parameter(
                 Self::PUT_BACK_TO_IDLE,
-                Parameter::Rule(!input.put_back_weapon),
+                Parameter::Rule(
+                    !input.change_weapon
+                        && scene.animations.get(self.put_back_animation).has_ended(),
+                ),
             )
             .set_parameter(
                 Self::PUT_BACK_TO_WALK,
-                Parameter::Rule(!input.put_back_weapon && input.is_walking),
+                Parameter::Rule(
+                    !input.change_weapon
+                        && input.is_walking
+                        && scene.animations.get(self.put_back_animation).has_ended(),
+                ),
             )
             .set_parameter(
                 Self::PUT_BACK_TO_GRAB,
                 Parameter::Rule(
-                    input.grab_new_weapon
+                    input.change_weapon
                         && scene.animations.get(self.put_back_animation).has_ended(),
                 ),
             )
-            .set_parameter(Self::GRAB_TO_IDLE, Parameter::Rule(!input.grab_new_weapon))
+            .set_parameter(
+                Self::GRAB_TO_IDLE,
+                Parameter::Rule(
+                    !input.change_weapon && scene.animations.get(self.grab_animation).has_ended(),
+                ),
+            )
             .set_parameter(
                 Self::GRAB_TO_WALK,
-                Parameter::Rule(!input.grab_new_weapon && input.is_walking),
+                Parameter::Rule(
+                    !input.change_weapon
+                        && input.is_walking
+                        && scene.animations.get(self.grab_animation).has_ended(),
+                ),
             )
             .set_parameter(
                 Self::PISTOL_AIM_FACTOR,
@@ -1154,14 +1180,30 @@ impl Player {
 
     pub fn update(&mut self, context: &mut UpdateContext) {
         let UpdateContext { time, scene, .. } = context;
+        /*
+        let active_state = self.upper_body_machine.machine.active_state();
+        if active_state.is_some() {
+            dbg!(self
+                .upper_body_machine
+                .machine
+                .get_state(active_state)
+                .name());
+        }*/
 
-        let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
+        let active_transition = self.upper_body_machine.machine.active_transition();
+        if active_transition.is_some() {
+            dbg!(self
+                .upper_body_machine
+                .machine
+                .get_transition(active_transition)
+                .name());
+        }
 
         let mut has_ground_contact = false;
         if let Some(iterator) = scene
             .physics
             .narrow_phase
-            .contacts_with(body.colliders()[0])
+            .contacts_with(self.collider.into())
         {
             'outer_loop: for (_, _, contact) in iterator {
                 for manifold in contact.manifolds.iter() {
@@ -1199,8 +1241,7 @@ impl Player {
                 is_aiming: self.controller.aim,
                 toss_grenade: self.controller.toss_grenade,
                 weapon: CombatMachineWeapon::Rifle,
-                put_back_weapon: self.weapon_change_direction != Direction::None,
-                grab_new_weapon: self.weapon_change_direction != Direction::None,
+                change_weapon: self.weapon_change_direction != Direction::None,
             },
         );
 
@@ -1282,6 +1323,19 @@ impl Player {
                 }
 
                 self.weapon_change_direction = Direction::None;
+            }
+        }
+
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.upper_body_machine.put_back_animation)
+            .pop_event()
+        {
+            if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
+                scene
+                    .animations
+                    .get_mut(self.upper_body_machine.grab_animation)
+                    .set_enabled(true);
             }
         }
 
@@ -1576,7 +1630,9 @@ impl Player {
             } else if button == scheme.jump.button {
                 self.controller.jump = state == ElementState::Pressed;
             } else if button == scheme.next_weapon.button {
-                if state == ElementState::Pressed {
+                if state == ElementState::Pressed
+                    && self.current_weapon < self.weapons.len() as u32 - 1
+                {
                     self.weapon_change_direction = Direction::Next;
 
                     scene
@@ -1587,10 +1643,11 @@ impl Player {
                     scene
                         .animations
                         .get_mut(self.upper_body_machine.grab_animation)
+                        .set_enabled(false)
                         .rewind();
                 }
             } else if button == scheme.prev_weapon.button {
-                if state == ElementState::Pressed {
+                if state == ElementState::Pressed && self.current_weapon > 0 {
                     self.weapon_change_direction = Direction::Previous;
 
                     scene
@@ -1601,6 +1658,7 @@ impl Player {
                     scene
                         .animations
                         .get_mut(self.upper_body_machine.grab_animation)
+                        .set_enabled(false)
                         .rewind();
                 }
             } else if button == scheme.toss_grenade.button {
