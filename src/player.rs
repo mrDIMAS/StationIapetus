@@ -1,11 +1,11 @@
+use crate::projectile::ProjectileKind;
 use crate::{
     character::Character,
     control_scheme::{ControlButton, ControlScheme},
     level::UpdateContext,
     message::Message,
 };
-use rg3d::animation::machine;
-use rg3d::core::visitor::{Visit, VisitResult, Visitor};
+use rg3d::core::algebra::Matrix3;
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
@@ -15,6 +15,7 @@ use rg3d::{
         algebra::{Isometry3, UnitQuaternion, Vector3},
         math::{ray::Ray, SmoothAngle},
         pool::Handle,
+        visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
@@ -198,8 +199,10 @@ impl UpperBodyMachine {
     const RIFLE_AIM_FACTOR: &'static str = "RifleAimFactor";
     const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
 
+    // Signals unique per animation so there can be equal numbers across multiple animations.
     pub const GRAB_WEAPON_SIGNAL: u64 = 1;
     pub const PUT_BACK_WEAPON_END_SIGNAL: u64 = 1;
+    pub const TOSS_GRENADE_SIGNAL: u64 = 1;
 
     pub async fn new(
         scene: &mut Scene,
@@ -348,6 +351,7 @@ impl UpperBodyMachine {
             .animations
             .get_mut(toss_grenade_animation)
             .set_speed(1.5)
+            .add_signal(AnimationSignal::new(Self::TOSS_GRENADE_SIGNAL, 1.7))
             .set_loop(false);
 
         machine.add_transition(Transition::new(
@@ -1180,24 +1184,6 @@ impl Player {
 
     pub fn update(&mut self, context: &mut UpdateContext) {
         let UpdateContext { time, scene, .. } = context;
-        /*
-        let active_state = self.upper_body_machine.machine.active_state();
-        if active_state.is_some() {
-            dbg!(self
-                .upper_body_machine
-                .machine
-                .get_state(active_state)
-                .name());
-        }*/
-
-        let active_transition = self.upper_body_machine.machine.active_transition();
-        if active_transition.is_some() {
-            dbg!(self
-                .upper_body_machine
-                .machine
-                .get_transition(active_transition)
-                .name());
-        }
 
         let mut has_ground_contact = false;
         if let Some(iterator) = scene
@@ -1336,6 +1322,30 @@ impl Player {
                     .animations
                     .get_mut(self.upper_body_machine.grab_animation)
                     .set_enabled(true);
+            }
+        }
+
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.upper_body_machine.toss_grenade_animation)
+            .pop_event()
+        {
+            if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
+                let position = scene.graph[self.weapon_pivot].global_position();
+                let direction = scene.graph[self.camera].look_vector();
+
+                self.sender
+                    .as_ref()
+                    .unwrap()
+                    .send(Message::CreateProjectile {
+                        kind: ProjectileKind::Grenade,
+                        position,
+                        direction,
+                        initial_velocity: direction.scale(15.0),
+                        owner: Default::default(),
+                        basis: Matrix3::identity(),
+                    })
+                    .unwrap();
             }
         }
 

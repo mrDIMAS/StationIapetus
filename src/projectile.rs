@@ -39,6 +39,7 @@ pub enum ProjectileKind {
     Plasma,
     Bullet,
     Rocket,
+    Grenade,
 }
 
 impl ProjectileKind {
@@ -47,6 +48,7 @@ impl ProjectileKind {
             0 => Ok(ProjectileKind::Plasma),
             1 => Ok(ProjectileKind::Bullet),
             2 => Ok(ProjectileKind::Rocket),
+            3 => Ok(ProjectileKind::Grenade),
             _ => Err(format!("Invalid projectile kind id {}", id)),
         }
     }
@@ -56,6 +58,7 @@ impl ProjectileKind {
             ProjectileKind::Plasma => 0,
             ProjectileKind::Bullet => 1,
             ProjectileKind::Rocket => 2,
+            ProjectileKind::Grenade => 3,
         }
     }
 }
@@ -136,10 +139,20 @@ impl Projectile {
             }
             ProjectileKind::Rocket => {
                 static DEFINITION: ProjectileDefinition = ProjectileDefinition {
-                    damage: 30.0,
+                    damage: 60.0,
                     speed: 0.5,
                     lifetime: 10.0,
                     is_kinematic: true,
+                    impact_sound: "data/sounds/explosion.ogg",
+                };
+                &DEFINITION
+            }
+            ProjectileKind::Grenade => {
+                static DEFINITION: ProjectileDefinition = ProjectileDefinition {
+                    damage: 60.0,
+                    speed: 0.0,
+                    lifetime: 10.0,
+                    is_kinematic: false,
                     impact_sound: "data/sounds/explosion.ogg",
                 };
                 &DEFINITION
@@ -221,6 +234,23 @@ impl Projectile {
                     .build(&mut scene.graph);
                     scene.graph.link_nodes(light, model);
                     (model, Default::default())
+                }
+                ProjectileKind::Grenade => {
+                    let resource = resource_manager
+                        .request_model("data/models/grenade.rgs")
+                        .await
+                        .unwrap();
+                    let model = resource.instantiate_geometry(scene);
+                    let body = scene.graph.find_by_name(model, "Body");
+                    let body_handle = scene.physics_binder.body_of(body).unwrap();
+                    let phys_body = scene.physics.bodies.get_mut(body_handle.into()).unwrap();
+                    phys_body.set_position(
+                        Isometry3::translation(position.x, position.y, position.z),
+                        true,
+                    );
+                    phys_body.set_linvel(initial_velocity, true);
+
+                    (model, body_handle)
                 }
             }
         };
