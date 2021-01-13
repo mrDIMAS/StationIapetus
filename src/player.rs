@@ -76,7 +76,7 @@ impl Visit for UpperBodyMachine {
             .visit("TossGrenadeAnimation", visitor)?;
         self.jump_animation.visit("JumpAnimation", visitor)?;
         self.walk_animation.visit("WalkAnimation", visitor)?;
-        self.put_back_state.visit("WalkAnimation", visitor)?;
+        self.put_back_state.visit("PutBackState", visitor)?;
         self.land_animation.visit("LandAnimation", visitor)?;
         self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
         self.put_back_animation.visit("PutBackAnimation", visitor)?;

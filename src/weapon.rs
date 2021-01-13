@@ -1,25 +1,14 @@
-use crate::{
-    actor::Actor, actor::ActorContainer, message::Message, projectile::ProjectileKind, GameTime,
-};
-use rg3d::utils::log::{Log, MessageKind};
+use crate::{actor::Actor, message::Message, projectile::ProjectileKind, GameTime};
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
-        color::Color,
-        math::{ray::Ray, Matrix4Ext, Vector3Ext},
+        math::{Matrix4Ext, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    physics::geometry::InteractionGroups,
-    scene::{
-        base::BaseBuilder,
-        graph::Graph,
-        light::{BaseLightBuilder, PointLightBuilder},
-        node::Node,
-        physics::{Physics, RayCastOptions},
-        Scene,
-    },
+    scene::{graph::Graph, node::Node, Scene},
+    utils::log::{Log, MessageKind},
 };
 use std::{
     ops::{Index, IndexMut},
@@ -56,7 +45,6 @@ impl WeaponKind {
 pub struct Weapon {
     kind: WeaponKind,
     model: Handle<Node>,
-    laser_dot: Handle<Node>,
     shot_point: Handle<Node>,
     offset: Vector3<f32>,
     dest_offset: Vector3<f32>,
@@ -80,7 +68,6 @@ impl Default for Weapon {
     fn default() -> Self {
         Self {
             kind: WeaponKind::M4,
-            laser_dot: Handle::NONE,
             model: Handle::NONE,
             offset: Vector3::default(),
             shot_point: Handle::NONE,
@@ -107,7 +94,6 @@ impl Visit for Weapon {
 
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
-        self.laser_dot.visit("LaserDot", visitor)?;
         self.offset.visit("Offset", visitor)?;
         self.dest_offset.visit("DestOffset", visitor)?;
         self.last_shot_time.visit("LastShotTime", visitor)?;
@@ -168,15 +154,6 @@ impl Weapon {
             .unwrap()
             .instantiate_geometry(scene);
 
-        let laser_dot = PointLightBuilder::new(
-            BaseLightBuilder::new(BaseBuilder::new())
-                .with_color(Color::opaque(255, 0, 0))
-                .with_scatter_enabled(false)
-                .cast_shadows(false),
-        )
-        .with_radius(0.5)
-        .build(&mut scene.graph);
-
         let shot_point = scene.graph.find_by_name(model, "Weapon:ShotPoint");
 
         if shot_point.is_none() {
@@ -185,7 +162,6 @@ impl Weapon {
 
         Weapon {
             kind,
-            laser_dot,
             model,
             shot_point,
             definition,
@@ -197,17 +173,14 @@ impl Weapon {
 
     pub fn set_visibility(&self, visibility: bool, graph: &mut Graph) {
         graph[self.model].set_visibility(visibility);
-        graph[self.laser_dot].set_visibility(visibility);
     }
 
     pub fn get_model(&self) -> Handle<Node> {
         self.model
     }
 
-    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer) {
+    pub fn update(&mut self, scene: &mut Scene) {
         self.offset.follow(&self.dest_offset, 0.2);
-
-        self.update_laser_sight(&mut scene.graph, &mut scene.physics, actors);
 
         let node = &mut scene.graph[self.model];
         node.local_transform_mut().set_position(self.offset);
@@ -237,51 +210,6 @@ impl Weapon {
 
     pub fn add_ammo(&mut self, amount: u32) {
         self.ammo += amount;
-    }
-
-    fn update_laser_sight(
-        &self,
-        graph: &mut Graph,
-        physics: &mut Physics,
-        actors: &ActorContainer,
-    ) {
-        let mut laser_dot_position = Vector3::default();
-        let model = &graph[self.model];
-        let begin = model.global_position();
-        let end = begin + model.look_vector().scale(100.0);
-        if let Some(ray) = Ray::from_two_points(&begin, &end) {
-            let mut query_buffer = Vec::default();
-            physics.cast_ray(
-                RayCastOptions {
-                    ray,
-                    max_len: std::f32::MAX,
-                    groups: InteractionGroups::all(),
-                    sort_results: true,
-                },
-                &mut query_buffer,
-            );
-            'hit_loop: for hit in query_buffer.iter() {
-                // Filter hit with owner capsule
-                let body = physics.colliders.get(hit.collider.into()).unwrap().parent();
-                for (handle, actor) in actors.pair_iter() {
-                    if self.owner == handle && actor.body == body.into() {
-                        continue 'hit_loop;
-                    }
-                }
-
-                let offset = hit
-                    .normal
-                    .try_normalize(std::f32::EPSILON)
-                    .unwrap_or_default()
-                    .scale(0.2);
-                laser_dot_position = hit.position.coords + offset;
-                break 'hit_loop;
-            }
-        }
-
-        graph[self.laser_dot]
-            .local_transform_mut()
-            .set_position(laser_dot_position);
     }
 
     pub fn ammo(&self) -> u32 {
@@ -325,7 +253,6 @@ impl Weapon {
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
         scene.graph.remove_node(self.model);
-        scene.graph.remove_node(self.laser_dot);
     }
 }
 
@@ -355,9 +282,9 @@ impl WeaponContainer {
         self.pool.iter_mut()
     }
 
-    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer) {
+    pub fn update(&mut self, scene: &mut Scene) {
         for weapon in self.pool.iter_mut() {
-            weapon.update(scene, actors)
+            weapon.update(scene)
         }
     }
 }

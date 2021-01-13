@@ -905,7 +905,7 @@ impl Level {
             }
         }
         self.update_death_zones(scene);
-        self.weapons.update(scene, &self.actors);
+        self.weapons.update(scene);
         self.projectiles
             .update(scene, &self.actors, &self.weapons, time);
         self.items.update(scene, time);
