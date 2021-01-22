@@ -1,18 +1,18 @@
-use crate::projectile::ProjectileKind;
 use crate::{
     character::Character,
     control_scheme::{ControlButton, ControlScheme},
     level::UpdateContext,
     message::Message,
+    projectile::ProjectileKind,
 };
-use rg3d::core::algebra::Matrix3;
+use rg3d::core::math;
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
         Animation, AnimationSignal,
     },
     core::{
-        algebra::{Isometry3, UnitQuaternion, Vector3},
+        algebra::{Isometry3, Matrix3, UnitQuaternion, Vector3},
         math::{ray::Ray, SmoothAngle},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -60,6 +60,7 @@ pub struct UpperBodyMachine {
     put_back_state: Handle<State>,
     jump_animation: Handle<Animation>,
     walk_animation: Handle<Animation>,
+    run_animation: Handle<Animation>,
     land_animation: Handle<Animation>,
     toss_grenade_animation: Handle<Animation>,
     put_back_animation: Handle<Animation>,
@@ -76,6 +77,7 @@ impl Visit for UpperBodyMachine {
             .visit("TossGrenadeAnimation", visitor)?;
         self.jump_animation.visit("JumpAnimation", visitor)?;
         self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.run_animation.visit("RunAnimation", visitor)?;
         self.put_back_state.visit("PutBackState", visitor)?;
         self.land_animation.visit("LandAnimation", visitor)?;
         self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
@@ -160,11 +162,51 @@ pub enum CombatMachineWeapon {
 pub struct UpperBodyMachineInput {
     is_walking: bool,
     is_jumping: bool,
+    run_factor: f32,
     has_ground_contact: bool,
     is_aiming: bool,
     toss_grenade: bool,
     weapon: CombatMachineWeapon,
     change_weapon: bool,
+}
+
+struct WalkStateDefinition {
+    state: Handle<State>,
+    walk_animation: Handle<Animation>,
+    run_animation: Handle<Animation>,
+}
+
+fn make_walk_state(
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+    walk_animation_resource: Model,
+    run_animation_resource: Model,
+    walk_factor: String,
+    run_factor: String,
+) -> WalkStateDefinition {
+    let walk_animation = *walk_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
+
+    let run_animation = *run_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
+
+    let walk_node = machine.add_node(PoseNode::make_blend_animations(vec![
+        BlendPose::new(PoseWeight::Parameter(walk_factor), walk_animation_node),
+        BlendPose::new(PoseWeight::Parameter(run_factor), run_animation_node),
+    ]));
+
+    WalkStateDefinition {
+        state: machine.add_state(State::new("Walk", walk_node)),
+        walk_animation,
+        run_animation,
+    }
 }
 
 impl UpperBodyMachine {
@@ -199,6 +241,9 @@ impl UpperBodyMachine {
     const RIFLE_AIM_FACTOR: &'static str = "RifleAimFactor";
     const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
 
+    const RUN_FACTOR: &'static str = "RunFactor";
+    const WALK_FACTOR: &'static str = "WalkFactor";
+
     // Signals unique per animation so there can be equal numbers across multiple animations.
     pub const GRAB_WEAPON_SIGNAL: u64 = 1;
     pub const PUT_BACK_WEAPON_END_SIGNAL: u64 = 1;
@@ -222,6 +267,7 @@ impl UpperBodyMachine {
             toss_grenade_animation_resource,
             put_back_animation_resource,
             grab_animation_resource,
+            run_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
@@ -233,6 +279,7 @@ impl UpperBodyMachine {
             resource_manager.request_model("data/animations/agent_toss_grenade.fbx"),
             resource_manager.request_model("data/animations/agent_put_back.fbx"),
             resource_manager.request_model("data/animations/agent_grab.fbx"),
+            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
         );
 
         let aim_rifle_animation = *aim_rifle_animation_resource
@@ -266,14 +313,6 @@ impl UpperBodyMachine {
         let (toss_grenade_animation, toss_grenade_state) = create_play_animation_state(
             toss_grenade_animation_resource.unwrap(),
             "TossGrenade",
-            &mut machine,
-            scene,
-            model,
-        );
-
-        let (walk_animation, walk_state) = create_play_animation_state(
-            walk_animation_resource.unwrap(),
-            "Walk",
             &mut machine,
             scene,
             model,
@@ -325,6 +364,20 @@ impl UpperBodyMachine {
             &mut machine,
             scene,
             model,
+        );
+
+        let WalkStateDefinition {
+            walk_animation,
+            state: walk_state,
+            run_animation,
+        } = make_walk_state(
+            &mut machine,
+            scene,
+            model,
+            walk_animation_resource.unwrap(),
+            run_animation_resource.unwrap(),
+            Self::WALK_FACTOR.to_owned(),
+            Self::RUN_FACTOR.to_owned(),
         );
 
         // Some animations must not be looped.
@@ -532,6 +585,7 @@ impl UpperBodyMachine {
                 land_animation,
                 grab_animation,
                 put_back_animation,
+                run_animation,
             ] {
                 disable_leg_tracks(animation, model, leg, scene);
             }
@@ -546,6 +600,7 @@ impl UpperBodyMachine {
             put_back_state,
             jump_animation,
             walk_animation,
+            run_animation,
             land_animation,
             toss_grenade_animation,
             put_back_animation,
@@ -654,6 +709,8 @@ impl UpperBodyMachine {
                     0.0
                 }),
             )
+            .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
+            .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .set_parameter(
                 Self::TOSS_GRENADE_TO_AIM,
                 Parameter::Rule(
@@ -675,16 +732,17 @@ impl UpperBodyMachine {
 
 #[derive(Default)]
 pub struct LowerBodyMachine {
-    pub machine: Machine,
-    pub jump_animation: Handle<Animation>,
-    pub walk_animation: Handle<Animation>,
-    pub land_animation: Handle<Animation>,
-    pub walk_state: Handle<State>,
-    pub jump_state: Handle<State>,
-    pub fall_state: Handle<State>,
-    pub land_state: Handle<State>,
-    pub walk_to_jump: Handle<Transition>,
-    pub idle_to_jump: Handle<Transition>,
+    machine: Machine,
+    jump_animation: Handle<Animation>,
+    walk_animation: Handle<Animation>,
+    run_animation: Handle<Animation>,
+    land_animation: Handle<Animation>,
+    walk_state: Handle<State>,
+    jump_state: Handle<State>,
+    fall_state: Handle<State>,
+    land_state: Handle<State>,
+    walk_to_jump: Handle<Transition>,
+    idle_to_jump: Handle<Transition>,
 }
 
 impl Visit for LowerBodyMachine {
@@ -694,6 +752,7 @@ impl Visit for LowerBodyMachine {
         self.machine.visit("Machine", visitor)?;
         self.jump_animation.visit("JumpAnimation", visitor)?;
         self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.run_animation.visit("RunAnimation", visitor)?;
         self.land_animation.visit("LandAnimation", visitor)?;
         self.walk_state.visit("WalkState", visitor)?;
         self.jump_state.visit("JumpState", visitor)?;
@@ -709,6 +768,7 @@ impl Visit for LowerBodyMachine {
 pub struct LowerBodyMachineInput {
     is_walking: bool,
     is_jumping: bool,
+    run_factor: f32,
     has_ground_contact: bool,
 }
 
@@ -726,6 +786,9 @@ impl LowerBodyMachine {
     pub const JUMP_SIGNAL: u64 = 1;
     pub const LANDING_SIGNAL: u64 = 2;
 
+    const RUN_FACTOR: &'static str = "RunFactor";
+    const WALK_FACTOR: &'static str = "WalkFactor";
+
     pub async fn new(
         scene: &mut Scene,
         model: Handle<Node>,
@@ -740,20 +803,14 @@ impl LowerBodyMachine {
             jump_animation_resource,
             falling_animation_resource,
             landing_animation_resource,
+            run_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
             resource_manager.request_model("data/animations/agent_jump.fbx"),
             resource_manager.request_model("data/animations/agent_falling.fbx"),
             resource_manager.request_model("data/animations/agent_landing.fbx"),
-        );
-
-        let (walk_animation, walk_state) = create_play_animation_state(
-            walk_animation_resource.unwrap(),
-            "Walk",
-            &mut machine,
-            scene,
-            model,
+            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
         );
 
         let (_, idle_state) = create_play_animation_state(
@@ -786,6 +843,20 @@ impl LowerBodyMachine {
             &mut machine,
             scene,
             model,
+        );
+
+        let WalkStateDefinition {
+            walk_animation,
+            state: walk_state,
+            run_animation,
+        } = make_walk_state(
+            &mut machine,
+            scene,
+            model,
+            walk_animation_resource.unwrap(),
+            run_animation_resource.unwrap(),
+            Self::WALK_FACTOR.to_owned(),
+            Self::RUN_FACTOR.to_owned(),
         );
 
         scene
@@ -883,6 +954,7 @@ impl LowerBodyMachine {
             land_animation,
             fall_state,
             land_state,
+            run_animation,
         }
     }
 
@@ -913,6 +985,8 @@ impl LowerBodyMachine {
                 Self::LAND_TO_IDLE,
                 Parameter::Rule(scene.animations.get(self.land_animation).has_ended()),
             )
+            .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
+            .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
     }
@@ -930,6 +1004,7 @@ pub struct InputController {
     aim: bool,
     toss_grenade: bool,
     shoot: bool,
+    run: bool,
 }
 
 impl Deref for Player {
@@ -993,6 +1068,8 @@ pub struct Player {
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
     weapon_origin: Handle<Node>,
+    run_factor: f32,
+    target_run_factor: f32,
 }
 
 impl Visit for Player {
@@ -1018,6 +1095,8 @@ impl Visit for Player {
             .visit("WeaponYawCorrection", visitor)?;
         self.weapon_pitch_correction
             .visit("WeaponPitchCorrection", visitor)?;
+        self.run_factor.visit("RunFactor", visitor)?;
+        self.target_run_factor.visit("TargetRunFactor", visitor)?;
 
         let mut direction = self.weapon_change_direction as u32;
         direction.visit("WeaponChangeDirection", visitor)?;
@@ -1157,7 +1236,7 @@ impl Player {
                 target: 0.0,
                 speed: 10.0,
             },
-            move_speed: 1.0,
+            move_speed: 0.65,
             spine_pitch: SmoothAngle {
                 angle: 0.0,
                 target: 0.0,
@@ -1177,6 +1256,8 @@ impl Player {
                 target: 10.0f32.to_radians(),
                 speed: 10.00,
             },
+            run_factor: 0.0,
+            target_run_factor: 0.0,
         }
     }
 
@@ -1224,6 +1305,7 @@ impl Player {
                 is_walking,
                 is_jumping,
                 has_ground_contact,
+                run_factor: self.run_factor,
             },
         );
 
@@ -1238,8 +1320,15 @@ impl Player {
                 toss_grenade: self.controller.toss_grenade,
                 weapon: CombatMachineWeapon::Rifle,
                 change_weapon: self.weapon_change_direction != Direction::None,
+                run_factor: self.run_factor,
             },
         );
+        if self.controller.run {
+            self.target_run_factor = 1.0;
+        } else {
+            self.target_run_factor = 0.0;
+        }
+        self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
         let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
 
@@ -1277,7 +1366,7 @@ impl Player {
             && self.lower_body_machine.machine.active_state() != self.lower_body_machine.land_state;
 
         let speed = if can_move {
-            self.move_speed * time.delta
+            math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta
         } else {
             0.0
         };
@@ -1445,6 +1534,7 @@ impl Player {
                 .set_target(angle.to_radians())
                 .update(time.delta);
 
+            let mut additional_hips_rotation = Default::default();
             if self.controller.aim {
                 scene.graph[self.model]
                     .local_transform_mut()
@@ -1462,9 +1552,8 @@ impl Player {
                             -(self.model_yaw.angle + 37.5f32.to_radians()),
                         ),
                 );
-                scene.graph[self.hips].local_transform_mut().set_rotation(
-                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle),
-                );
+                additional_hips_rotation =
+                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle);
             } else {
                 scene.graph[self.model].local_transform_mut().set_rotation(
                     UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle),
@@ -1474,10 +1563,15 @@ impl Player {
                     UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.spine_pitch.angle)
                         * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
                 );
-                scene.graph[self.hips]
-                    .local_transform_mut()
-                    .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
             }
+
+            scene.graph[self.hips].local_transform_mut().set_rotation(
+                additional_hips_rotation
+                    * UnitQuaternion::from_axis_angle(
+                        &Vector3::x_axis(),
+                        math::lerpf(0.0, 17.0f32.to_radians(), self.run_factor),
+                    ),
+            );
 
             let walk_dir = if self.controller.aim && self.controller.walk_backward {
                 -1.0
@@ -1485,10 +1579,14 @@ impl Player {
                 1.0
             };
 
-            scene
-                .animations
-                .get_mut(self.lower_body_machine.walk_animation)
-                .set_speed(walk_dir);
+            for &animation in &[
+                self.lower_body_machine.walk_animation,
+                self.upper_body_machine.walk_animation,
+                self.lower_body_machine.run_animation,
+                self.upper_body_machine.run_animation,
+            ] {
+                scene.animations.get_mut(animation).set_speed(walk_dir);
+            }
         }
 
         if self.controller.aim {
@@ -1670,6 +1768,8 @@ impl Player {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == scheme.jump.button {
                 self.controller.jump = state == ElementState::Pressed;
+            } else if button == scheme.run.button {
+                self.controller.run = state == ElementState::Pressed;
             } else if button == scheme.next_weapon.button {
                 if state == ElementState::Pressed
                     && self.current_weapon < self.weapons.len() as u32 - 1
