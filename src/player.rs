@@ -756,7 +756,7 @@ impl LowerBodyMachine {
             model,
         );
 
-        let (idle_animation, idle_state) = create_play_animation_state(
+        let (_, idle_state) = create_play_animation_state(
             idle_animation_resource.unwrap(),
             "Idle",
             &mut machine,
@@ -772,7 +772,7 @@ impl LowerBodyMachine {
             model,
         );
 
-        let (fall_animation, fall_state) = create_play_animation_state(
+        let (_, fall_state) = create_play_animation_state(
             falling_animation_resource.unwrap(),
             "Fall",
             &mut machine,
@@ -871,20 +871,6 @@ impl LowerBodyMachine {
             0.20,
             Self::IDLE_TO_FALL,
         ));
-
-        for &animation in &[
-            walk_animation,
-            idle_animation,
-            jump_animation,
-            fall_animation,
-            land_animation,
-        ] {
-            scene.animations.get_mut(animation).set_tracks_enabled_from(
-                scene.graph.find_by_name(model, "mixamorig:Spine"),
-                false,
-                &scene.graph,
-            );
-        }
 
         Self {
             machine,

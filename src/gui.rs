@@ -66,34 +66,5 @@ pub fn create_check_box(
 }
 
 pub fn create_scroll_viewer(ctx: &mut BuildContext) -> Handle<UiNode> {
-    ScrollViewerBuilder::new(WidgetBuilder::new())
-        .with_horizontal_scroll_bar(create_scroll_bar(
-            ctx,
-            ScrollBarData {
-                min: 0.0,
-                max: 0.0,
-                value: 0.0,
-                step: 0.0,
-                row: 0,
-                column: 0,
-                margin: Default::default(),
-                show_value: false,
-                orientation: Orientation::Horizontal,
-            },
-        ))
-        .with_vertical_scroll_bar(create_scroll_bar(
-            ctx,
-            ScrollBarData {
-                min: 0.0,
-                max: 0.0,
-                value: 0.0,
-                step: 0.0,
-                row: 0,
-                column: 0,
-                margin: Default::default(),
-                show_value: false,
-                orientation: Orientation::Vertical,
-            },
-        ))
-        .build(ctx)
+    ScrollViewerBuilder::new(WidgetBuilder::new()).build(ctx)
 }

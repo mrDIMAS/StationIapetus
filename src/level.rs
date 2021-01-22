@@ -451,7 +451,7 @@ impl Level {
         ));
 
         let map_model = resource_manager
-            .request_model(Path::new("data/levels/testbed.rgs"))
+            .request_model(Path::new("data/levels/arrival.rgs"))
             .await
             .unwrap();
 

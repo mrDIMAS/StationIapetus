@@ -20,6 +20,7 @@ use crate::{
     actor::Actor, control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu,
     message::Message,
 };
+use rg3d::renderer::ShadowMapPrecision;
 use rg3d::{
     core::{
         color::Color,
@@ -176,6 +177,11 @@ impl Game {
 
         let mut engine = GameEngine::new(window_builder, &events_loop, false).unwrap();
 
+        let mut settings = engine.renderer.get_quality_settings();
+        settings.point_shadow_map_precision = ShadowMapPrecision::Full;
+        settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
+        settings.spot_shadows_distance = 20.0;
+        engine.renderer.set_quality_settings(&settings).unwrap();
         engine.renderer.set_ambient_color(Color::opaque(60, 60, 60));
 
         let control_scheme = Arc::new(RwLock::new(ControlScheme::default()));
