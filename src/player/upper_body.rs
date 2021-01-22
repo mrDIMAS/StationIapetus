@@ -1,0 +1,602 @@
+use crate::player::{create_play_animation_state, make_walk_state, WalkStateDefinition};
+use rg3d::animation::machine::{BlendPose, PoseNode, PoseWeight};
+use rg3d::{
+    animation::{
+        machine::{Machine, Parameter, State, Transition},
+        Animation, AnimationSignal,
+    },
+    core::{
+        pool::Handle,
+        visitor::{Visit, VisitResult, Visitor},
+    },
+    engine::resource_manager::ResourceManager,
+    scene::{node::Node, Scene},
+};
+
+#[derive(Default)]
+pub struct UpperBodyMachine {
+    pub machine: Machine,
+    pub aim_state: Handle<State>,
+    pub toss_grenade_state: Handle<State>,
+    pub put_back_state: Handle<State>,
+    pub jump_animation: Handle<Animation>,
+    pub walk_animation: Handle<Animation>,
+    pub run_animation: Handle<Animation>,
+    pub land_animation: Handle<Animation>,
+    pub toss_grenade_animation: Handle<Animation>,
+    pub put_back_animation: Handle<Animation>,
+    pub grab_animation: Handle<Animation>,
+}
+
+fn disable_leg_tracks(
+    animation: Handle<Animation>,
+    root: Handle<Node>,
+    leg_name: &str,
+    scene: &mut Scene,
+) {
+    let animation = scene.animations.get_mut(animation);
+    animation.set_tracks_enabled_from(
+        scene.graph.find_by_name(root, leg_name),
+        false,
+        &scene.graph,
+    )
+}
+
+impl Visit for UpperBodyMachine {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.machine.visit("Machine", visitor)?;
+        self.aim_state.visit("AimState", visitor)?;
+        self.toss_grenade_animation
+            .visit("TossGrenadeAnimation", visitor)?;
+        self.jump_animation.visit("JumpAnimation", visitor)?;
+        self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.run_animation.visit("RunAnimation", visitor)?;
+        self.put_back_state.visit("PutBackState", visitor)?;
+        self.land_animation.visit("LandAnimation", visitor)?;
+        self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
+        self.put_back_animation.visit("PutBackAnimation", visitor)?;
+        self.grab_animation.visit("GrabAnimation", visitor)?;
+
+        visitor.leave_region()
+    }
+}
+
+#[derive(Eq, PartialEq, Copy, Clone)]
+pub enum CombatWeaponKind {
+    Pistol,
+    Rifle,
+}
+
+pub struct UpperBodyMachineInput {
+    pub is_walking: bool,
+    pub is_jumping: bool,
+    pub run_factor: f32,
+    pub has_ground_contact: bool,
+    pub is_aiming: bool,
+    pub toss_grenade: bool,
+    pub weapon: CombatWeaponKind,
+    pub change_weapon: bool,
+}
+
+impl UpperBodyMachine {
+    const WALK_TO_AIM: &'static str = "WalkToAim";
+    const IDLE_TO_AIM: &'static str = "IdleToAim";
+    const AIM_TO_IDLE: &'static str = "AimToIdle";
+    const AIM_TO_WALK: &'static str = "AimToWalk";
+
+    const WALK_TO_IDLE: &'static str = "WalkToIdle";
+    const WALK_TO_JUMP: &'static str = "WalkToJump";
+    const IDLE_TO_WALK: &'static str = "IdleToWalk";
+    const IDLE_TO_JUMP: &'static str = "IdleToJump";
+    const JUMP_TO_FALL: &'static str = "JumpToFall";
+    const WALK_TO_FALL: &'static str = "WalkToFall";
+    const IDLE_TO_FALL: &'static str = "IdleToFall";
+    const FALL_TO_LAND: &'static str = "FallToLand";
+    const LAND_TO_IDLE: &'static str = "LandToIdle";
+    const TOSS_GRENADE_TO_AIM: &'static str = "TossGrenadeToAim";
+    const AIM_TO_TOSS_GRENADE: &'static str = "AimToTossGrenade";
+
+    const AIM_TO_PUT_BACK: &'static str = "AimToPutBack";
+    const WALK_TO_PUT_BACK: &'static str = "WalkToPutBack";
+    const IDLE_TO_PUT_BACK: &'static str = "IdleToPutBack";
+
+    const PUT_BACK_TO_IDLE: &'static str = "PutBackToIdle";
+    const PUT_BACK_TO_WALK: &'static str = "PutBackToWalk";
+
+    const PUT_BACK_TO_GRAB: &'static str = "PutBackToGrab";
+    const GRAB_TO_IDLE: &'static str = "GrabToIdle";
+    const GRAB_TO_WALK: &'static str = "GrabToWalk";
+
+    const RIFLE_AIM_FACTOR: &'static str = "RifleAimFactor";
+    const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
+
+    const RUN_FACTOR: &'static str = "RunFactor";
+    const WALK_FACTOR: &'static str = "WalkFactor";
+
+    // Signals unique per animation so there can be equal numbers across multiple animations.
+    pub const GRAB_WEAPON_SIGNAL: u64 = 1;
+    pub const PUT_BACK_WEAPON_END_SIGNAL: u64 = 1;
+    pub const TOSS_GRENADE_SIGNAL: u64 = 1;
+
+    pub async fn new(
+        scene: &mut Scene,
+        model: Handle<Node>,
+        resource_manager: ResourceManager,
+    ) -> Self {
+        let mut machine = Machine::new();
+
+        let (
+            walk_animation_resource,
+            idle_animation_resource,
+            jump_animation_resource,
+            falling_animation_resource,
+            landing_animation_resource,
+            aim_rifle_animation_resource,
+            aim_pistol_animation_resource,
+            toss_grenade_animation_resource,
+            put_back_animation_resource,
+            grab_animation_resource,
+            run_animation_resource,
+        ) = rg3d::futures::join!(
+            resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_idle.fbx"),
+            resource_manager.request_model("data/animations/agent_jump.fbx"),
+            resource_manager.request_model("data/animations/agent_falling.fbx"),
+            resource_manager.request_model("data/animations/agent_landing.fbx"),
+            resource_manager.request_model("data/animations/agent_aim_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_aim_pistol.fbx"),
+            resource_manager.request_model("data/animations/agent_toss_grenade.fbx"),
+            resource_manager.request_model("data/animations/agent_put_back.fbx"),
+            resource_manager.request_model("data/animations/agent_grab.fbx"),
+            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
+        );
+
+        let aim_rifle_animation = *aim_rifle_animation_resource
+            .unwrap()
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let aim_rifle_animation_node =
+            machine.add_node(PoseNode::make_play_animation(aim_rifle_animation));
+
+        let aim_pistol_animation = *aim_pistol_animation_resource
+            .unwrap()
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let aim_pistol_animation_node =
+            machine.add_node(PoseNode::make_play_animation(aim_pistol_animation));
+
+        let aim_node = machine.add_node(PoseNode::make_blend_animations(vec![
+            BlendPose::new(
+                PoseWeight::Parameter(Self::RIFLE_AIM_FACTOR.to_owned()),
+                aim_rifle_animation_node,
+            ),
+            BlendPose::new(
+                PoseWeight::Parameter(Self::PISTOL_AIM_FACTOR.to_owned()),
+                aim_pistol_animation_node,
+            ),
+        ]));
+        let aim_state = machine.add_state(State::new("Aim", aim_node));
+
+        let (toss_grenade_animation, toss_grenade_state) = create_play_animation_state(
+            toss_grenade_animation_resource.unwrap(),
+            "TossGrenade",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (idle_animation, idle_state) = create_play_animation_state(
+            idle_animation_resource.unwrap(),
+            "Idle",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (jump_animation, jump_state) = create_play_animation_state(
+            jump_animation_resource.unwrap(),
+            "Jump",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (fall_animation, fall_state) = create_play_animation_state(
+            falling_animation_resource.unwrap(),
+            "Fall",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (land_animation, land_state) = create_play_animation_state(
+            landing_animation_resource.unwrap(),
+            "Land",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (put_back_animation, put_back_state) = create_play_animation_state(
+            put_back_animation_resource.unwrap(),
+            "PutBack",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (grab_animation, grab_state) = create_play_animation_state(
+            grab_animation_resource.unwrap(),
+            "Grab",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let WalkStateDefinition {
+            walk_animation,
+            state: walk_state,
+            run_animation,
+        } = make_walk_state(
+            &mut machine,
+            scene,
+            model,
+            walk_animation_resource.unwrap(),
+            run_animation_resource.unwrap(),
+            Self::WALK_FACTOR.to_owned(),
+            Self::RUN_FACTOR.to_owned(),
+        );
+
+        // Some animations must not be looped.
+        scene.animations.get_mut(jump_animation).set_loop(false);
+        scene.animations.get_mut(land_animation).set_loop(false);
+        scene
+            .animations
+            .get_mut(grab_animation)
+            .set_loop(false)
+            .set_speed(4.0)
+            .set_enabled(false)
+            .add_signal(AnimationSignal::new(Self::GRAB_WEAPON_SIGNAL, 0.3));
+        let put_back_duration = scene.animations.get(put_back_animation).length();
+        scene
+            .animations
+            .get_mut(put_back_animation)
+            .set_speed(4.0)
+            .add_signal(AnimationSignal::new(
+                Self::PUT_BACK_WEAPON_END_SIGNAL,
+                put_back_duration,
+            ))
+            .set_loop(false);
+        scene
+            .animations
+            .get_mut(toss_grenade_animation)
+            .set_speed(1.5)
+            .add_signal(AnimationSignal::new(Self::TOSS_GRENADE_SIGNAL, 1.7))
+            .set_loop(false);
+
+        machine.add_transition(Transition::new(
+            "Walk->Idle",
+            walk_state,
+            idle_state,
+            0.30,
+            Self::WALK_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Jump",
+            walk_state,
+            jump_state,
+            0.20,
+            Self::WALK_TO_JUMP,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Walk",
+            idle_state,
+            walk_state,
+            0.30,
+            Self::IDLE_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Jump",
+            idle_state,
+            jump_state,
+            0.25,
+            Self::IDLE_TO_JUMP,
+        ));
+        machine.add_transition(Transition::new(
+            "Falling->Landing",
+            fall_state,
+            land_state,
+            0.20,
+            Self::FALL_TO_LAND,
+        ));
+        machine.add_transition(Transition::new(
+            "Landing->Idle",
+            land_state,
+            idle_state,
+            0.20,
+            Self::LAND_TO_IDLE,
+        ));
+
+        // Falling state can be entered from: Jump, Walk, Idle states.
+        machine.add_transition(Transition::new(
+            "Jump->Falling",
+            jump_state,
+            fall_state,
+            0.30,
+            Self::JUMP_TO_FALL,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Falling",
+            walk_state,
+            fall_state,
+            0.30,
+            Self::WALK_TO_FALL,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Falling",
+            idle_state,
+            fall_state,
+            0.20,
+            Self::IDLE_TO_FALL,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Aim",
+            idle_state,
+            aim_state,
+            0.20,
+            Self::IDLE_TO_AIM,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Aim",
+            walk_state,
+            aim_state,
+            0.20,
+            Self::WALK_TO_AIM,
+        ));
+        machine.add_transition(Transition::new(
+            "Aim->Idle",
+            aim_state,
+            idle_state,
+            0.20,
+            Self::AIM_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Aim",
+            aim_state,
+            walk_state,
+            0.20,
+            Self::AIM_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "Aim->TossGrenade",
+            aim_state,
+            toss_grenade_state,
+            0.20,
+            Self::AIM_TO_TOSS_GRENADE,
+        ));
+        machine.add_transition(Transition::new(
+            "TossGrenade->Aim",
+            toss_grenade_state,
+            aim_state,
+            0.20,
+            Self::TOSS_GRENADE_TO_AIM,
+        ));
+
+        machine.add_transition(Transition::new(
+            "Aim->PutBack",
+            aim_state,
+            put_back_state,
+            0.10,
+            Self::AIM_TO_PUT_BACK,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->PutBack",
+            walk_state,
+            put_back_state,
+            0.10,
+            Self::WALK_TO_PUT_BACK,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->PutBack",
+            idle_state,
+            put_back_state,
+            0.10,
+            Self::IDLE_TO_PUT_BACK,
+        ));
+
+        machine.add_transition(Transition::new(
+            "PutBack->Idle",
+            put_back_state,
+            idle_state,
+            0.20,
+            Self::PUT_BACK_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "PutBack->Walk",
+            put_back_state,
+            walk_state,
+            0.20,
+            Self::PUT_BACK_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "PutBack->Grab",
+            put_back_state,
+            grab_state,
+            0.10,
+            Self::PUT_BACK_TO_GRAB,
+        ));
+        machine.add_transition(Transition::new(
+            "Grab->Idle",
+            grab_state,
+            idle_state,
+            0.20,
+            Self::GRAB_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "Grab->Walk",
+            grab_state,
+            walk_state,
+            0.20,
+            Self::GRAB_TO_WALK,
+        ));
+
+        for leg in &["mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"] {
+            for &animation in &[
+                aim_pistol_animation,
+                aim_rifle_animation,
+                toss_grenade_animation,
+                walk_animation,
+                idle_animation,
+                jump_animation,
+                fall_animation,
+                land_animation,
+                grab_animation,
+                put_back_animation,
+                run_animation,
+            ] {
+                disable_leg_tracks(animation, model, leg, scene);
+            }
+        }
+
+        machine.set_entry_state(idle_state);
+
+        Self {
+            machine,
+            aim_state,
+            toss_grenade_state,
+            put_back_state,
+            jump_animation,
+            walk_animation,
+            run_animation,
+            land_animation,
+            toss_grenade_animation,
+            put_back_animation,
+            grab_animation,
+        }
+    }
+
+    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: UpperBodyMachineInput) {
+        self.machine
+            // Update parameters which will be used by transitions.
+            .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.is_walking))
+            .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.is_walking))
+            .set_parameter(Self::WALK_TO_JUMP, Parameter::Rule(input.is_jumping))
+            .set_parameter(Self::IDLE_TO_JUMP, Parameter::Rule(input.is_jumping))
+            .set_parameter(
+                Self::JUMP_TO_FALL,
+                Parameter::Rule(scene.animations.get(self.jump_animation).has_ended()),
+            )
+            .set_parameter(
+                Self::WALK_TO_FALL,
+                Parameter::Rule(!input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::IDLE_TO_FALL,
+                Parameter::Rule(!input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::FALL_TO_LAND,
+                Parameter::Rule(input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::LAND_TO_IDLE,
+                Parameter::Rule(scene.animations.get(self.land_animation).has_ended()),
+            )
+            .set_parameter(
+                Self::IDLE_TO_AIM,
+                Parameter::Rule(input.is_aiming && input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::WALK_TO_AIM,
+                Parameter::Rule(input.is_aiming && input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::AIM_TO_IDLE,
+                Parameter::Rule(!input.is_aiming || !input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::AIM_TO_WALK,
+                Parameter::Rule(!input.is_aiming || !input.has_ground_contact),
+            )
+            .set_parameter(
+                Self::AIM_TO_PUT_BACK,
+                Parameter::Rule(input.is_aiming && input.change_weapon),
+            )
+            .set_parameter(Self::WALK_TO_PUT_BACK, Parameter::Rule(input.change_weapon))
+            .set_parameter(Self::IDLE_TO_PUT_BACK, Parameter::Rule(input.change_weapon))
+            .set_parameter(
+                Self::PUT_BACK_TO_IDLE,
+                Parameter::Rule(
+                    !input.change_weapon
+                        && scene.animations.get(self.put_back_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::PUT_BACK_TO_WALK,
+                Parameter::Rule(
+                    !input.change_weapon
+                        && input.is_walking
+                        && scene.animations.get(self.put_back_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::PUT_BACK_TO_GRAB,
+                Parameter::Rule(
+                    input.change_weapon
+                        && scene.animations.get(self.put_back_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::GRAB_TO_IDLE,
+                Parameter::Rule(
+                    !input.change_weapon && scene.animations.get(self.grab_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::GRAB_TO_WALK,
+                Parameter::Rule(
+                    !input.change_weapon
+                        && input.is_walking
+                        && scene.animations.get(self.grab_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::PISTOL_AIM_FACTOR,
+                Parameter::Weight(if input.weapon == CombatWeaponKind::Pistol {
+                    1.0
+                } else {
+                    0.0
+                }),
+            )
+            .set_parameter(
+                Self::RIFLE_AIM_FACTOR,
+                Parameter::Weight(if input.weapon == CombatWeaponKind::Rifle {
+                    1.0
+                } else {
+                    0.0
+                }),
+            )
+            .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
+            .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
+            .set_parameter(
+                Self::TOSS_GRENADE_TO_AIM,
+                Parameter::Rule(
+                    !input.toss_grenade
+                        && scene
+                            .animations
+                            .get(self.toss_grenade_animation)
+                            .has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::AIM_TO_TOSS_GRENADE,
+                Parameter::Rule(input.toss_grenade && input.is_aiming),
+            )
+            .evaluate_pose(&scene.animations, dt)
+            .apply(&mut scene.graph);
+    }
+}
