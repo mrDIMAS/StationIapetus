@@ -725,7 +725,7 @@ impl Player {
                 additional_hips_rotation
                     * UnitQuaternion::from_axis_angle(
                         &Vector3::x_axis(),
-                        math::lerpf(0.0, 17.0f32.to_radians(), self.run_factor),
+                        math::lerpf(5.0f32.to_radians(), 17.0f32.to_radians(), self.run_factor),
                     ),
             );
 
@@ -857,7 +857,7 @@ impl Player {
                     .send(Message::ShootWeapon {
                         weapon: *current_weapon_handle,
                         initial_velocity,
-                        direction: None,
+                        direction: Some(context.scene.graph[self.camera].look_vector()),
                     })
                     .unwrap();
             }

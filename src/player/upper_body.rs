@@ -1,8 +1,7 @@
 use crate::player::{create_play_animation_state, make_walk_state, WalkStateDefinition};
-use rg3d::animation::machine::{BlendPose, PoseNode, PoseWeight};
 use rg3d::{
     animation::{
-        machine::{Machine, Parameter, State, Transition},
+        machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
         Animation, AnimationSignal,
     },
     core::{
@@ -597,6 +596,17 @@ impl UpperBodyMachine {
                 Parameter::Rule(input.toss_grenade && input.is_aiming),
             )
             .evaluate_pose(&scene.animations, dt)
-            .apply(&mut scene.graph);
+            .apply_with(&mut scene.graph, |node, pose| {
+                if node.name() == "mixamorig:Hips" {
+                    // Ignore position and rotation for hips. Some animations has unwanted shifts
+                    // and we want to ignore them.
+                    node.local_transform_mut().set_scale(pose.scale());
+                } else {
+                    node.local_transform_mut()
+                        .set_position(pose.position())
+                        .set_rotation(pose.rotation())
+                        .set_scale(pose.scale());
+                }
+            });
     }
 }
