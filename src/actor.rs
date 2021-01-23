@@ -50,8 +50,8 @@ impl Actor {
         }
     }
 
-    pub fn can_be_removed(&self) -> bool {
-        static_dispatch!(self, can_be_removed,)
+    pub fn can_be_removed(&self, scene: &Scene) -> bool {
+        static_dispatch!(self, can_be_removed, scene)
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {

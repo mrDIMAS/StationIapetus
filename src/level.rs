@@ -466,8 +466,7 @@ impl Level {
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
 
-        /*
-        for &kind in &[BotKind::Mutant] {
+        for &kind in &[BotKind::Zombie, BotKind::Zombie] {
             spawn_bot(
                 kind,
                 &spawn_points,
@@ -478,7 +477,7 @@ impl Level {
                 &mut scene,
             )
             .await;
-        }*/
+        }
 
         let level = Level {
             player: spawn_player(
@@ -814,12 +813,11 @@ impl Level {
     fn damage_actor(
         &mut self,
         engine: &GameEngine,
-        actor: Handle<Actor>,
+        actor_handle: Handle<Actor>,
         who: Handle<Actor>,
         amount: f32,
-        time: GameTime,
     ) {
-        if self.actors.contains(actor)
+        if self.actors.contains(actor_handle)
             && (who.is_none() || who.is_some() && self.actors.contains(who))
         {
             let who_position = if who.is_some() {
@@ -828,10 +826,10 @@ impl Level {
             } else {
                 None
             };
-            let actor = self.actors.get_mut(actor);
+            let actor = self.actors.get_mut(actor_handle);
             if let Actor::Bot(bot) = actor {
                 if let Some(who_position) = who_position {
-                    bot.set_point_of_interest(who_position, time);
+                    bot.set_target(actor_handle, who_position);
                 }
             }
             actor.damage(amount);
@@ -976,7 +974,7 @@ impl Level {
                 self.spawn_bot(engine, *kind).await;
             }
             &Message::DamageActor { actor, who, amount } => {
-                self.damage_actor(engine, actor, who, amount, time);
+                self.damage_actor(engine, actor, who, amount);
             }
             &Message::CreateEffect { kind, position } => {
                 effects::create(

@@ -20,8 +20,11 @@ use crate::{
     actor::Actor, control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu,
     message::Message,
 };
-use rg3d::renderer::ShadowMapPrecision;
 use rg3d::{
+    animation::{
+        machine::{Machine, PoseNode, State},
+        Animation,
+    },
     core::{
         color::Color,
         pool::Handle,
@@ -32,15 +35,16 @@ use rg3d::{
     event_loop::{ControlFlow, EventLoop},
     gui::{
         grid::{Column, GridBuilder, Row},
-        message::ProgressBarMessage,
-        message::{MessageDirection, TextMessage, UiMessage, WidgetMessage},
+        message::{MessageDirection, ProgressBarMessage, TextMessage, UiMessage, WidgetMessage},
         node::{StubNode, UINode},
         progress_bar::ProgressBarBuilder,
         text::TextBuilder,
         widget::WidgetBuilder,
         HorizontalAlignment, UserInterface, VerticalAlignment,
     },
-    scene::Scene,
+    renderer::ShadowMapPrecision,
+    resource::model::Model,
+    scene::{node::Node, Scene},
     sound::{
         context::Context,
         source::{generic::GenericSourceBuilder, SoundSource, Status},
@@ -71,6 +75,22 @@ pub type GameEngine = Engine<(), StubNode>;
 pub type Gui = UserInterface<(), StubNode>;
 pub type GuiMessage = UiMessage<(), StubNode>;
 pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, (), StubNode>;
+
+pub fn create_play_animation_state(
+    animation_resource: Model,
+    name: &str,
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+) -> (Handle<Animation>, Handle<State>) {
+    let animation = *animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let node = machine.add_node(PoseNode::make_play_animation(animation));
+    let state = machine.add_state(State::new(name, node));
+    (animation, state)
+}
 
 pub struct Game {
     menu: Menu,

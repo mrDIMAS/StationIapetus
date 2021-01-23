@@ -42,22 +42,6 @@ use std::{
 mod lower_body;
 mod upper_body;
 
-pub fn create_play_animation_state(
-    animation_resource: Model,
-    name: &str,
-    machine: &mut Machine,
-    scene: &mut Scene,
-    model: Handle<Node>,
-) -> (Handle<Animation>, Handle<State>) {
-    let animation = *animation_resource
-        .retarget_animations(model, scene)
-        .get(0)
-        .unwrap();
-    let node = machine.add_node(PoseNode::make_play_animation(animation));
-    let state = machine.add_state(State::new(name, node));
-    (animation, state)
-}
-
 /// Creates a camera at given position with a skybox.
 pub async fn create_camera(
     resource_manager: ResourceManager,
@@ -429,7 +413,7 @@ impl Player {
         self.camera
     }
 
-    pub fn can_be_removed(&self) -> bool {
+    pub fn can_be_removed(&self, _scene: &Scene) -> bool {
         self.health <= 0.0
     }
 

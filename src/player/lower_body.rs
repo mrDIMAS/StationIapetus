@@ -1,4 +1,7 @@
-use crate::player::{create_play_animation_state, make_walk_state, WalkStateDefinition};
+use crate::{
+    create_play_animation_state,
+    player::{make_walk_state, WalkStateDefinition},
+};
 use rg3d::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
