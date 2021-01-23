@@ -226,6 +226,7 @@ pub struct Player {
     weapon_origin: Handle<Node>,
     run_factor: f32,
     target_run_factor: f32,
+    in_air_time: f32,
 }
 
 impl Visit for Player {
@@ -253,6 +254,7 @@ impl Visit for Player {
             .visit("WeaponPitchCorrection", visitor)?;
         self.run_factor.visit("RunFactor", visitor)?;
         self.target_run_factor.visit("TargetRunFactor", visitor)?;
+        self.in_air_time.visit("InAirTime", visitor)?;
 
         let mut direction = self.weapon_change_direction as u32;
         direction.visit("WeaponChangeDirection", visitor)?;
@@ -412,6 +414,7 @@ impl Player {
                 target: 10.0f32.to_radians(),
                 speed: 10.00,
             },
+            in_air_time: 0.0,
             run_factor: 0.0,
             target_run_factor: 0.0,
         }
@@ -460,7 +463,7 @@ impl Player {
             LowerBodyMachineInput {
                 is_walking,
                 is_jumping,
-                has_ground_contact,
+                has_ground_contact: self.in_air_time <= 0.3,
                 run_factor: self.run_factor,
             },
         );
@@ -471,7 +474,7 @@ impl Player {
             UpperBodyMachineInput {
                 is_walking,
                 is_jumping,
-                has_ground_contact,
+                has_ground_contact: self.in_air_time <= 0.3,
                 is_aiming: self.controller.aim,
                 toss_grenade: self.controller.toss_grenade,
                 weapon: CombatWeaponKind::Rifle,
@@ -810,6 +813,12 @@ impl Player {
                 &Vector3::x_axis(),
                 self.controller.pitch,
             ));
+
+        if has_ground_contact {
+            self.in_air_time = 0.0;
+        } else {
+            self.in_air_time += context.time.delta;
+        }
 
         if has_ground_contact && self.controller.jump {
             // Rewind jump animation to beginning before jump.
