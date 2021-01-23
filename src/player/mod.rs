@@ -324,6 +324,7 @@ impl Player {
             .build();
         let body = scene.physics.add_body(
             RigidBodyBuilder::new_dynamic()
+                .lock_rotations()
                 .position(Isometry3::new(position, Default::default()))
                 .build(),
         );
