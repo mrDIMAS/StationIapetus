@@ -751,7 +751,7 @@ impl Player {
                     * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch_correction_angle),
             );
 
-        let ray_origin = scene.graph[self.camera_pivot].global_position();
+        let ray_origin = scene.graph[self.camera_hinge].global_position();
         let ray_end = scene.graph[self.camera].global_position();
         let dir = (ray_end - ray_origin)
             .try_normalize(std::f32::EPSILON)
@@ -776,7 +776,7 @@ impl Player {
 
         for result in results {
             if result.collider != self.collider {
-                self.camera_offset = result.toi.min(0.8);
+                self.camera_offset = (result.toi.min(0.8) - 0.2).max(0.1);
                 break;
             }
         }
