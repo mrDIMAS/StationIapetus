@@ -220,7 +220,7 @@ impl Bot {
                     left_leg_name: "Mutant:LeftUpLeg",
                     right_leg_name: "Mutant:RightUpLeg",
                     spine: "", // Empty because cannot use weapons.
-                    walk_speed: 4.0,
+                    walk_speed: 1.0,
                     scale: 0.0045,
                     weapon_scale: 1.0,
                     health: 800.0,
@@ -243,7 +243,7 @@ impl Bot {
                     left_leg_name: "LeftUpLeg",
                     right_leg_name: "RightUpLeg",
                     spine: "", // Empty because cannot use weapons.
-                    walk_speed: 4.0,
+                    walk_speed: 1.0,
                     scale: 0.0045,
                     weapon_scale: 1.0,
                     health: 300.0,
@@ -266,7 +266,7 @@ impl Bot {
                     left_leg_name: "mixamorig5:LeftUpLeg",
                     right_leg_name: "mixamorig5:RightUpLeg",
                     spine: "Spine",
-                    walk_speed: 1.0,
+                    walk_speed: 1.2,
                     scale: 0.0055,
                     weapon_scale: 1.0,
                     health: 100.0,
@@ -560,7 +560,7 @@ impl Bot {
             None => (false, Vector3::z()),
             Some(target) => {
                 let d = target.position - body.position().translation.vector;
-                let close_combat_threshold = 1.5;
+                let close_combat_threshold = 0.75;
                 (d.norm() <= close_combat_threshold, d)
             }
         };
@@ -585,8 +585,21 @@ impl Bot {
         let can_aim = self.restoration_time <= 0.0;
         self.last_health = self.character.health;
 
+        if self.is_dead() {
+            for &animation in &[
+                self.upper_body_machine.dying_animation,
+                self.lower_body_machine.dying_animation,
+            ] {
+                context
+                    .scene
+                    .animations
+                    .get_mut(animation)
+                    .set_enabled(true);
+            }
+        }
+
         let mut is_moving = false;
-        if !self.is_dead() && !in_close_combat {
+        if !self.is_dead() && !in_close_combat && self.target.is_some() {
             if let Some(move_dir) = (self.move_target - position).try_normalize(std::f32::EPSILON) {
                 let mut vel = move_dir.scale(self.definition.walk_speed);
                 vel.y = body.linvel().y;
@@ -716,9 +729,11 @@ impl Bot {
         self.attack_timeout -= context.time.delta;
 
         // Aim overrides result of machines for spine bone.
-        if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
-            self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
-            self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+        if !self.is_dead() {
+            if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
+                self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
+                self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+            }
         }
     }
 

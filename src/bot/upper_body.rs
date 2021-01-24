@@ -132,7 +132,7 @@ impl UpperBodyMachine {
         scene
             .animations
             .get_mut(attack_animation)
-            .add_signal(AnimationSignal::new(Self::HIT_SIGNAL, 1.8));
+            .add_signal(AnimationSignal::new(Self::HIT_SIGNAL, 1.6));
 
         scene
             .animations

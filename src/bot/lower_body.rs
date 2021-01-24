@@ -13,9 +13,11 @@ use rg3d::{
     scene::{node::Node, Scene},
 };
 
+#[derive(Default)]
 pub struct LowerBodyMachine {
     pub machine: Machine,
     pub walk_animation: Handle<Animation>,
+    pub dying_animation: Handle<Animation>,
     pub walk_state: Handle<State>,
 }
 
@@ -26,22 +28,13 @@ pub struct LowerBodyMachineInput {
     pub dead: bool,
 }
 
-impl Default for LowerBodyMachine {
-    fn default() -> Self {
-        Self {
-            machine: Default::default(),
-            walk_animation: Default::default(),
-            walk_state: Default::default(),
-        }
-    }
-}
-
 impl Visit for LowerBodyMachine {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
         self.machine.visit("Machine", visitor)?;
         self.walk_animation.visit("WalkAnimation", visitor)?;
+        self.dying_animation.visit("DyingAnimation", visitor)?;
         self.walk_state.visit("WalkState", visitor)?;
 
         visitor.leave_region()
@@ -174,6 +167,7 @@ impl LowerBodyMachine {
             machine,
             walk_state,
             walk_animation,
+            dying_animation,
         }
     }
 
