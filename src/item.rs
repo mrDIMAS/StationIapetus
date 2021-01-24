@@ -1,4 +1,4 @@
-use crate::{effects::EffectKind, message::Message, rg3d::core::math::Vector3Ext, GameTime};
+use crate::message::Message;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -60,14 +60,8 @@ pub struct Item {
     kind: ItemKind,
     pivot: Handle<Node>,
     model: Handle<Node>,
-    offset: Vector3<f32>,
-    dest_offset: Vector3<f32>,
-    offset_factor: f32,
-    reactivation_timer: f32,
-    active: bool,
     definition: &'static ItemDefinition,
     pub sender: Option<Sender<Message>>,
-    lifetime: Option<f32>,
 }
 
 impl Default for Item {
@@ -76,14 +70,8 @@ impl Default for Item {
             kind: ItemKind::Medkit,
             pivot: Default::default(),
             model: Default::default(),
-            offset: Default::default(),
-            dest_offset: Default::default(),
-            offset_factor: 0.0,
-            reactivation_timer: 0.0,
-            active: true,
             definition: Self::get_definition(ItemKind::Medkit),
             sender: None,
-            lifetime: None,
         }
     }
 }
@@ -91,7 +79,6 @@ impl Default for Item {
 pub struct ItemDefinition {
     model: &'static str,
     scale: f32,
-    reactivation_interval: f32,
 }
 
 impl Item {
@@ -101,7 +88,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/medkit.fbx",
                     scale: 1.0,
-                    reactivation_interval: 20.0,
                 };
                 &DEFINITION
             }
@@ -109,7 +95,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/yellow_box.FBX",
                     scale: 0.25,
-                    reactivation_interval: 15.0,
                 };
                 &DEFINITION
             }
@@ -117,7 +102,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/box_medium.FBX",
                     scale: 0.30,
-                    reactivation_interval: 14.0,
                 };
                 &DEFINITION
             }
@@ -125,7 +109,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/box_small.FBX",
                     scale: 0.30,
-                    reactivation_interval: 13.0,
                 };
                 &DEFINITION
             }
@@ -133,7 +116,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/plasma_rifle.FBX",
                     scale: 3.0,
-                    reactivation_interval: 30.0,
                 };
                 &DEFINITION
             }
@@ -141,7 +123,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/ak47.FBX",
                     scale: 3.0,
-                    reactivation_interval: 30.0,
                 };
                 &DEFINITION
             }
@@ -149,7 +130,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/m4.FBX",
                     scale: 3.0,
-                    reactivation_interval: 30.0,
                 };
                 &DEFINITION
             }
@@ -157,7 +137,6 @@ impl Item {
                 static DEFINITION: ItemDefinition = ItemDefinition {
                     model: "data/models/Rpg7.FBX",
                     scale: 3.0,
-                    reactivation_interval: 30.0,
                 };
                 &DEFINITION
             }
@@ -211,63 +190,12 @@ impl Item {
         graph[self.pivot].global_position()
     }
 
-    pub fn update(&mut self, graph: &mut Graph, time: GameTime) {
-        self.offset_factor += 1.2 * time.delta;
-
-        let amp = 0.085;
-        self.dest_offset = Vector3::new(0.0, amp + amp * self.offset_factor.sin(), 0.0);
-        self.offset.follow(&self.dest_offset, 0.2);
-
-        let position = graph[self.pivot].global_position();
-
-        graph[self.model]
-            .set_visibility(!self.is_picked_up())
-            .local_transform_mut()
-            .set_position(self.offset);
-
-        if !self.active {
-            self.reactivation_timer -= time.delta;
-            if self.reactivation_timer <= 0.0 {
-                self.active = true;
-
-                self.sender
-                    .as_ref()
-                    .unwrap()
-                    .send(Message::CreateEffect {
-                        kind: EffectKind::ItemAppear,
-                        position,
-                    })
-                    .unwrap();
-            }
-        }
-    }
-
     pub fn get_kind(&self) -> ItemKind {
         self.kind
     }
 
-    pub fn pick_up(&mut self) {
-        self.reactivation_timer = self.definition.reactivation_interval;
-        self.active = false;
-    }
-
-    pub fn is_picked_up(&self) -> bool {
-        !self.active
-    }
-
     fn cleanup(&self, graph: &mut Graph) {
         graph.remove_node(self.pivot)
-    }
-
-    fn can_be_removed(&self) -> bool {
-        match self.lifetime {
-            None => false,
-            Some(time) => time <= 0.0 || !self.active,
-        }
-    }
-
-    pub fn set_lifetime(&mut self, lifetime: Option<f32>) {
-        self.lifetime = lifetime;
     }
 }
 
@@ -284,13 +212,6 @@ impl Visit for Item {
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
         self.pivot.visit("Pivot", visitor)?;
-        self.offset.visit("Offset", visitor)?;
-        self.offset_factor.visit("OffsetFactor", visitor)?;
-        self.dest_offset.visit("DestOffset", visitor)?;
-        self.reactivation_timer
-            .visit("ReactivationTimer", visitor)?;
-        self.active.visit("Active", visitor)?;
-        self.lifetime.visit("Lifetime", visitor)?;
 
         visitor.leave_region()
     }
@@ -343,19 +264,5 @@ impl ItemContainer {
 
     pub fn iter_mut(&mut self) -> PoolIteratorMut<Item> {
         self.pool.iter_mut()
-    }
-
-    pub fn update(&mut self, scene: &mut Scene, time: GameTime) {
-        for item in self.pool.iter_mut() {
-            item.update(&mut scene.graph, time);
-        }
-
-        // Remove temporary items.
-        for item in self.pool.iter() {
-            if item.can_be_removed() {
-                item.cleanup(&mut scene.graph);
-            }
-        }
-        self.pool.retain(|i| !i.can_be_removed())
     }
 }

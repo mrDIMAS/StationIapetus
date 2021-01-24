@@ -1,11 +1,10 @@
-use crate::level::Level;
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, create_scroll_viewer, ScrollBarData},
+    level::Level,
     message::Message,
     GameEngine, GuiMessage, UiNode,
 };
-use rg3d::scene::Scene;
 use rg3d::{
     core::pool::Handle,
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
@@ -27,6 +26,7 @@ use rg3d::{
         HorizontalAlignment, Orientation, Thickness, VerticalAlignment,
     },
     monitor::VideoMode,
+    scene::Scene,
     utils::log::{Log, MessageKind},
     window::Fullscreen,
 };

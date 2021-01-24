@@ -1,8 +1,9 @@
-use crate::level::Level;
-use crate::{control_scheme::ControlScheme, message::Message, options_menu::OptionsMenu};
-use crate::{GameEngine, Gui, GuiMessage, UiNode};
-use rg3d::core::pool::Handle;
+use crate::{
+    control_scheme::ControlScheme, level::Level, message::Message, options_menu::OptionsMenu,
+    GameEngine, Gui, GuiMessage, UiNode,
+};
 use rg3d::{
+    core::pool::Handle,
     event::{Event, WindowEvent},
     gui::{
         button::ButtonBuilder,

@@ -322,7 +322,7 @@ impl Projectile {
 
                 if collider.shape().as_trimesh().is_some() {
                     self.kill();
-                    effect_position = Some(hit.position.coords);
+                    effect_position = Some((hit.position.coords, hit.normal));
                     break 'hit_loop;
                 } else {
                     for (actor_handle, actor) in actors.pair_iter() {
@@ -336,7 +336,7 @@ impl Projectile {
                                 });
 
                                 self.kill();
-                                effect_position = Some(hit.position.coords);
+                                effect_position = Some((hit.position.coords, hit.normal));
                                 break 'hit_loop;
                             }
                         }
@@ -380,7 +380,8 @@ impl Projectile {
         self.lifetime -= time.delta;
 
         if self.lifetime <= 0.0 {
-            let pos = effect_position.unwrap_or_else(|| self.get_position(&scene.graph));
+            let (pos, normal) =
+                effect_position.unwrap_or_else(|| (self.get_position(&scene.graph), Vector3::y()));
 
             self.sender
                 .as_ref()
@@ -388,6 +389,7 @@ impl Projectile {
                 .send(Message::CreateEffect {
                     kind: EffectKind::BulletImpact,
                     position: pos,
+                    orientation: UnitQuaternion::new(normal),
                 })
                 .unwrap();
 

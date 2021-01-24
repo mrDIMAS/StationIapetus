@@ -18,7 +18,7 @@ use crate::{
     weapon::{Weapon, WeaponKind},
 };
 use rg3d::core::{
-    algebra::{Matrix3, Vector3},
+    algebra::{Matrix3, UnitQuaternion, Vector3},
     pool::Handle,
 };
 use std::path::PathBuf;
@@ -94,6 +94,7 @@ pub enum Message {
     CreateEffect {
         kind: EffectKind,
         position: Vector3<f32>,
+        orientation: UnitQuaternion<f32>,
     },
     SpawnPlayer,
     /// Save game state to a file. TODO: Add filename field.

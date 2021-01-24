@@ -180,7 +180,7 @@ impl ActorContainer {
                     let distance = (context.scene.graph[item.get_pivot()].global_position()
                         - body.position().translation.vector)
                         .norm();
-                    if distance < 1.25 && !item.is_picked_up() {
+                    if distance < 0.75 {
                         actor
                             .sender
                             .as_ref()

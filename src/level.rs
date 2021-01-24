@@ -642,7 +642,7 @@ impl Level {
                     WeaponKind::Ak47 => ItemKind::Ak47,
                     WeaponKind::PlasmaRifle => ItemKind::PlasmaGun,
                 };
-                self.spawn_item(engine, item_kind, drop_position, true, Some(20.0))
+                self.spawn_item(engine, item_kind, drop_position, true)
                     .await;
                 self.remove_weapon(engine, weapon);
             }
@@ -715,7 +715,6 @@ impl Level {
 
             let scene = &mut engine.scenes[self.scene];
             let position = item.position(&scene.graph);
-            item.pick_up();
             let kind = item.get_kind();
             self.sender
                 .as_ref()
@@ -842,7 +841,6 @@ impl Level {
         kind: ItemKind,
         position: Vector3<f32>,
         adjust_height: bool,
-        lifetime: Option<f32>,
     ) {
         let position = if adjust_height {
             self.pick(engine, position, position - Vector3::new(0.0, 1000.0, 0.0))
@@ -858,7 +856,6 @@ impl Level {
             self.sender.as_ref().unwrap().clone(),
         )
         .await;
-        item.set_lifetime(lifetime);
         self.items.add(item);
     }
 
@@ -906,7 +903,6 @@ impl Level {
         self.weapons.update(scene);
         self.projectiles
             .update(scene, &self.actors, &self.weapons, time);
-        self.items.update(scene, time);
         let mut ctx = UpdateContext {
             time,
             scene,
@@ -976,12 +972,17 @@ impl Level {
             &Message::DamageActor { actor, who, amount } => {
                 self.damage_actor(engine, actor, who, amount);
             }
-            &Message::CreateEffect { kind, position } => {
+            &Message::CreateEffect {
+                kind,
+                position,
+                orientation,
+            } => {
                 effects::create(
                     kind,
                     &mut engine.scenes[self.scene].graph,
                     engine.resource_manager.clone(),
                     position,
+                    orientation,
                 );
             }
             Message::SpawnPlayer => {
@@ -992,10 +993,7 @@ impl Level {
                 position,
                 adjust_height,
                 lifetime,
-            } => {
-                self.spawn_item(engine, kind, position, adjust_height, lifetime)
-                    .await
-            }
+            } => self.spawn_item(engine, kind, position, adjust_height).await,
             _ => (),
         }
     }
