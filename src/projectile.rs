@@ -387,7 +387,11 @@ impl Projectile {
                 .as_ref()
                 .unwrap()
                 .send(Message::CreateEffect {
-                    kind: EffectKind::BulletImpact,
+                    kind: if self.hits.is_empty() {
+                        EffectKind::BulletImpact
+                    } else {
+                        EffectKind::BloodSpray
+                    },
                     position: pos,
                     orientation: UnitQuaternion::new(normal),
                 })
