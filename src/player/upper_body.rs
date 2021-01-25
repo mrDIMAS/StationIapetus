@@ -260,14 +260,14 @@ impl UpperBodyMachine {
             .animations
             .get_mut(grab_animation)
             .set_loop(false)
-            .set_speed(4.0)
+            .set_speed(3.0)
             .set_enabled(false)
             .add_signal(AnimationSignal::new(Self::GRAB_WEAPON_SIGNAL, 0.3));
         let put_back_duration = scene.animations.get(put_back_animation).length();
         scene
             .animations
             .get_mut(put_back_animation)
-            .set_speed(4.0)
+            .set_speed(3.0)
             .add_signal(AnimationSignal::new(
                 Self::PUT_BACK_WEAPON_END_SIGNAL,
                 put_back_duration,
