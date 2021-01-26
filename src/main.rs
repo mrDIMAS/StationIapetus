@@ -200,7 +200,7 @@ impl Game {
         let mut settings = engine.renderer.get_quality_settings();
         settings.point_shadow_map_precision = ShadowMapPrecision::Full;
         settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
-        settings.spot_shadows_distance = 20.0;
+        settings.spot_shadows_distance = 200.0;
         engine.renderer.set_quality_settings(&settings).unwrap();
         engine.renderer.set_ambient_color(Color::opaque(60, 60, 60));
 

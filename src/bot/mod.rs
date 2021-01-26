@@ -220,10 +220,10 @@ impl Bot {
                     left_leg_name: "Mutant:LeftUpLeg",
                     right_leg_name: "Mutant:RightUpLeg",
                     spine: "", // Empty because cannot use weapons.
-                    walk_speed: 1.0,
-                    scale: 0.0045,
+                    walk_speed: 0.7,
+                    scale: 0.0065,
                     weapon_scale: 1.0,
-                    health: 800.0,
+                    health: 1000.0,
                     v_aim_angle_hack: 0.0,
                     can_use_weapons: false,
                 };
@@ -244,7 +244,7 @@ impl Bot {
                     right_leg_name: "RightUpLeg",
                     spine: "", // Empty because cannot use weapons.
                     walk_speed: 1.0,
-                    scale: 0.0045,
+                    scale: 0.0055,
                     weapon_scale: 1.0,
                     health: 300.0,
                     v_aim_angle_hack: 0.0,

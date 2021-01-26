@@ -221,6 +221,7 @@ pub struct AnalysisResult {
     items: ItemContainer,
     death_zones: Vec<DeathZone>,
     spawn_points: Vec<SpawnPoint>,
+    player_spawn_position: Vector3<f32>,
 }
 
 pub async fn analyze(
@@ -233,6 +234,8 @@ pub async fn analyze(
     let mut items = Vec::new();
     let mut spawn_points = Vec::new();
     let mut death_zones = Vec::new();
+    let mut player_spawn_position = Default::default();
+
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
         let name = node.name();
@@ -244,8 +247,26 @@ pub async fn analyze(
             items.push((ItemKind::M4Ammo, position));
         } else if name.starts_with("Ammo_Plasma") {
             items.push((ItemKind::Plasma, position));
-        } else if name.starts_with("SpawnPoint") {
-            spawn_points.push(node.global_position())
+        } else if name.starts_with("Zombie") {
+            spawn_points.push(SpawnPoint {
+                position: node.global_position(),
+                bot_kind: BotKind::Zombie,
+                spawned: false,
+            })
+        } else if name.starts_with("Mutant") {
+            spawn_points.push(SpawnPoint {
+                position: node.global_position(),
+                bot_kind: BotKind::Mutant,
+                spawned: false,
+            })
+        } else if name.starts_with("Parasite") {
+            spawn_points.push(SpawnPoint {
+                position: node.global_position(),
+                bot_kind: BotKind::Parasite,
+                spawned: false,
+            })
+        } else if name.starts_with("PlayerSpawnPoint") {
+            player_spawn_position = node.global_position();
         } else if name.starts_with("DeathZone") {
             if let Node::Mesh(_) = node {
                 death_zones.push(handle);
@@ -272,16 +293,13 @@ pub async fn analyze(
             bounds: node.as_mesh().world_bounding_box(),
         });
     }
-    result.spawn_points = spawn_points
-        .into_iter()
-        .map(|p| SpawnPoint { position: p })
-        .collect();
+    result.spawn_points = spawn_points;
 
     result
 }
 
 async fn spawn_player(
-    spawn_points: &[SpawnPoint],
+    spawn_position: Vector3<f32>,
     actors: &mut ActorContainer,
     weapons: &mut WeaponContainer,
     sender: Sender<Message>,
@@ -289,10 +307,6 @@ async fn spawn_player(
     control_scheme: Arc<RwLock<ControlScheme>>,
     scene: &mut Scene,
 ) -> Handle<Actor> {
-    let index = find_suitable_spawn_point(spawn_points, actors, scene);
-    let spawn_position = spawn_points.get(index).map_or(Vector3::default(), |pt| {
-        pt.position + Vector3::new(0.0, 1.5, 0.0)
-    });
     let player = Player::new(
         scene,
         resource_manager.clone(),
@@ -346,49 +360,19 @@ async fn give_new_weapon(
     }
 }
 
-fn find_suitable_spawn_point(
-    spawn_points: &[SpawnPoint],
-    actors: &ActorContainer,
-    scene: &Scene,
-) -> usize {
-    if spawn_points.is_empty() {
-        usize::MAX
-    } else {
-        // Find spawn point with least amount of enemies nearby.
-        let mut index = rand::thread_rng().gen_range(0..spawn_points.len());
-        let mut max_distance = -std::f32::MAX;
-        for (i, pt) in spawn_points.iter().enumerate() {
-            let mut sum_distance = 0.0;
-            for actor in actors.iter() {
-                let position = actor.position(&scene.physics);
-                sum_distance += pt.position.metric_distance(&position);
-            }
-            if sum_distance > max_distance {
-                max_distance = sum_distance;
-                index = i;
-            }
-        }
-        index
-    }
-}
-
 async fn spawn_bot(
-    kind: BotKind,
-    spawn_points: &[SpawnPoint],
+    spawn_point: &mut SpawnPoint,
     actors: &mut ActorContainer,
     weapons: &mut WeaponContainer,
     resource_manager: ResourceManager,
     sender: Sender<Message>,
     scene: &mut Scene,
 ) -> Handle<Actor> {
-    let index = find_suitable_spawn_point(spawn_points, actors, scene);
-    let spawn_position = spawn_points
-        .get(index)
-        .map_or(Vector3::default(), |pt| pt.position);
+    spawn_point.spawned = true;
 
     let bot = add_bot(
-        kind,
-        spawn_position,
+        spawn_point.bot_kind,
+        spawn_point.position,
         actors,
         weapons,
         resource_manager,
@@ -461,15 +445,15 @@ impl Level {
         let AnalysisResult {
             items,
             death_zones,
-            spawn_points,
+            mut spawn_points,
+            player_spawn_position,
         } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
 
-        for &kind in &[BotKind::Zombie, BotKind::Zombie] {
+        for pt in spawn_points.iter_mut() {
             spawn_bot(
-                kind,
-                &spawn_points,
+                pt,
                 &mut actors,
                 &mut weapons,
                 resource_manager.clone(),
@@ -481,7 +465,7 @@ impl Level {
 
         let level = Level {
             player: spawn_player(
-                &spawn_points,
+                player_spawn_position,
                 &mut actors,
                 &mut weapons,
                 sender.clone(),
@@ -531,23 +515,6 @@ impl Level {
             &mut engine.scenes[self.scene],
         )
         .await;
-    }
-
-    async fn spawn_player(&mut self, engine: &mut GameEngine) -> Handle<Actor> {
-        let scene = &mut engine.scenes[self.scene];
-
-        let player = spawn_player(
-            &self.spawn_points,
-            &mut self.actors,
-            &mut self.weapons,
-            self.sender.clone().unwrap(),
-            engine.resource_manager.clone(),
-            self.control_scheme.clone().unwrap(),
-            scene,
-        )
-        .await;
-
-        player
     }
 
     pub fn get_player(&self) -> Handle<Actor> {
@@ -794,21 +761,6 @@ impl Level {
         self.weapons[weapon_handle].set_visibility(state, &mut engine.scenes[self.scene].graph)
     }
 
-    async fn spawn_bot(&mut self, engine: &mut GameEngine, kind: BotKind) -> Handle<Actor> {
-        let bot = spawn_bot(
-            kind,
-            &self.spawn_points,
-            &mut self.actors,
-            &mut self.weapons,
-            engine.resource_manager.clone(),
-            self.sender.clone().unwrap(),
-            &mut engine.scenes[self.scene],
-        )
-        .await;
-
-        bot
-    }
-
     fn damage_actor(
         &mut self,
         engine: &GameEngine,
@@ -966,8 +918,18 @@ impl Level {
                 .await
             }
             &Message::ShowWeapon { weapon, state } => self.show_weapon(engine, weapon, state),
-            Message::SpawnBot { kind } => {
-                self.spawn_bot(engine, *kind).await;
+            &Message::SpawnBot { spawn_point_id } => {
+                if let Some(spawn_point) = self.spawn_points.get_mut(spawn_point_id) {
+                    spawn_bot(
+                        spawn_point,
+                        &mut self.actors,
+                        &mut self.weapons,
+                        engine.resource_manager.clone(),
+                        self.sender.clone().unwrap(),
+                        &mut engine.scenes[self.scene],
+                    )
+                    .await;
+                }
             }
             &Message::DamageActor { actor, who, amount } => {
                 self.damage_actor(engine, actor, who, amount);
@@ -984,9 +946,6 @@ impl Level {
                     position,
                     orientation,
                 );
-            }
-            Message::SpawnPlayer => {
-                self.player = self.spawn_player(engine).await;
             }
             &Message::SpawnItem {
                 kind,
@@ -1064,12 +1023,16 @@ impl Level {
 
 pub struct SpawnPoint {
     position: Vector3<f32>,
+    bot_kind: BotKind,
+    spawned: bool,
 }
 
 impl Default for SpawnPoint {
     fn default() -> Self {
         Self {
             position: Default::default(),
+            bot_kind: BotKind::Zombie,
+            spawned: false,
         }
     }
 }
@@ -1079,6 +1042,13 @@ impl Visit for SpawnPoint {
         visitor.enter_region(name)?;
 
         self.position.visit("Position", visitor)?;
+        self.spawned.visit("Spawned", visitor)?;
+
+        let mut kind_id = self.bot_kind.id();
+        kind_id.visit("BotKind", visitor)?;
+        if visitor.is_reading() {
+            self.bot_kind = BotKind::from_id(kind_id)?;
+        }
 
         visitor.leave_region()
     }

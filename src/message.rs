@@ -36,11 +36,8 @@ pub enum Message {
     RemoveActor {
         actor: Handle<Actor>,
     },
-    /// Spawns new bot at random spawn point. Selection of spawn point can be based on some
-    /// particular heuristic, leading to good selection (like do spawn at a point with least
-    /// enemies nearby, which will increase survival probability)
     SpawnBot {
-        kind: BotKind,
+        spawn_point_id: usize,
     },
     /// Gives item of specified kind to a given actor. Basically it means that actor will take
     /// item and consume it immediately (heal itself, add ammo, etc.)
@@ -96,7 +93,6 @@ pub enum Message {
         position: Vector3<f32>,
         orientation: UnitQuaternion<f32>,
     },
-    SpawnPlayer,
     /// Save game state to a file. TODO: Add filename field.
     SaveGame,
     /// Loads game state from a file. TODO: Add filename field.
