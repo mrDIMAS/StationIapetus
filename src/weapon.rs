@@ -1,4 +1,8 @@
 use crate::{actor::Actor, message::Message, projectile::ProjectileKind, GameTime};
+use rg3d::core::color::Color;
+use rg3d::rand::seq::SliceRandom;
+use rg3d::scene::base::BaseBuilder;
+use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -46,12 +50,15 @@ pub struct Weapon {
     kind: WeaponKind,
     model: Handle<Node>,
     shot_point: Handle<Node>,
+    muzzle_flash: Handle<Node>,
+    shot_light: Handle<Node>,
     offset: Vector3<f32>,
     dest_offset: Vector3<f32>,
     last_shot_time: f64,
     shot_position: Vector3<f32>,
     owner: Handle<Actor>,
     ammo: u32,
+    muzzle_flash_timer: f32,
     pub definition: &'static WeaponDefinition,
     pub sender: Option<Sender<Message>>,
 }
@@ -76,8 +83,11 @@ impl Default for Weapon {
             shot_position: Vector3::default(),
             owner: Handle::NONE,
             ammo: 250,
+            muzzle_flash_timer: 0.0,
             definition: Self::get_definition(WeaponKind::M4),
             sender: None,
+            muzzle_flash: Default::default(),
+            shot_light: Default::default(),
         }
     }
 }
@@ -99,6 +109,10 @@ impl Visit for Weapon {
         self.last_shot_time.visit("LastShotTime", visitor)?;
         self.owner.visit("Owner", visitor)?;
         self.ammo.visit("Ammo", visitor)?;
+        self.shot_point.visit("ShotPoint", visitor)?;
+        self.muzzle_flash.visit("MuzzleFlash", visitor)?;
+        self.muzzle_flash_timer.visit("MuzzleFlashTimer", visitor)?;
+        self.shot_light.visit("ShotLight", visitor)?;
 
         visitor.leave_region()
     }
@@ -157,14 +171,41 @@ impl Weapon {
         let shot_point = scene.graph.find_by_name(model, "Weapon:ShotPoint");
 
         if shot_point.is_none() {
-            Log::writeln(MessageKind::Warning, "Shot point not found!".to_owned());
+            Log::writeln(
+                MessageKind::Warning,
+                format!("Shot point not found for {:?} weapon!", kind),
+            );
         }
+
+        let muzzle_flash = scene.graph.find_by_name(model, "MuzzleFlash");
+
+        let shot_light = if muzzle_flash.is_none() {
+            Log::writeln(
+                MessageKind::Warning,
+                format!("Muzzle flash not found for {:?} weapon!", kind),
+            );
+            Default::default()
+        } else {
+            let light = PointLightBuilder::new(
+                BaseLightBuilder::new(BaseBuilder::new().with_visibility(false))
+                    .with_scatter_enabled(false)
+                    .with_color(Color::opaque(255, 127, 40)),
+            )
+            .with_radius(2.0)
+            .build(&mut scene.graph);
+
+            scene.graph.link_nodes(light, muzzle_flash);
+
+            light
+        };
 
         Weapon {
             kind,
             model,
             shot_point,
             definition,
+            muzzle_flash,
+            shot_light,
             ammo: definition.ammo,
             sender: Some(sender),
             ..Default::default()
@@ -179,12 +220,18 @@ impl Weapon {
         self.model
     }
 
-    pub fn update(&mut self, scene: &mut Scene) {
+    pub fn update(&mut self, scene: &mut Scene, dt: f32) {
         self.offset.follow(&self.dest_offset, 0.2);
 
         let node = &mut scene.graph[self.model];
         node.local_transform_mut().set_position(self.offset);
         self.shot_position = node.global_position();
+
+        self.muzzle_flash_timer -= dt;
+        if self.muzzle_flash_timer <= 0.0 && self.muzzle_flash.is_some() {
+            scene.graph[self.muzzle_flash].set_visibility(false);
+            scene.graph[self.shot_light].set_visibility(false);
+        }
     }
 
     pub fn get_shot_position(&self, graph: &Graph) -> Vector3<f32> {
@@ -224,7 +271,12 @@ impl Weapon {
         self.owner = owner;
     }
 
-    pub fn try_shoot(&mut self, scene: &mut Scene, time: GameTime) -> bool {
+    pub fn try_shoot(
+        &mut self,
+        scene: &mut Scene,
+        time: GameTime,
+        resource_manager: ResourceManager,
+    ) -> bool {
         if self.ammo != 0 && time.elapsed - self.last_shot_time >= self.definition.shoot_interval {
             self.ammo -= 1;
 
@@ -243,6 +295,27 @@ impl Weapon {
                         radius: 3.0,
                     })
                     .unwrap();
+            }
+
+            if self.muzzle_flash.is_some() {
+                let muzzle_flash = &mut scene.graph[self.muzzle_flash];
+                muzzle_flash.set_visibility(true);
+                for surface in muzzle_flash.as_mesh_mut().surfaces_mut() {
+                    let textures = [
+                        "data/particles/muzzle_01.png",
+                        "data/particles/muzzle_02.png",
+                        "data/particles/muzzle_03.png",
+                        "data/particles/muzzle_04.png",
+                        "data/particles/muzzle_05.png",
+                    ];
+                    surface.set_diffuse_texture(Some(
+                        resource_manager.request_texture(
+                            textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
+                        ),
+                    ))
+                }
+                scene.graph[self.shot_light].set_visibility(true);
+                self.muzzle_flash_timer = 0.075;
             }
 
             true
@@ -282,9 +355,9 @@ impl WeaponContainer {
         self.pool.iter_mut()
     }
 
-    pub fn update(&mut self, scene: &mut Scene) {
+    pub fn update(&mut self, scene: &mut Scene, dt: f32) {
         for weapon in self.pool.iter_mut() {
-            weapon.update(scene)
+            weapon.update(scene, dt)
         }
     }
 }

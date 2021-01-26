@@ -768,7 +768,7 @@ impl Level {
         if self.weapons.contains(weapon_handle) {
             let scene = &mut engine.scenes[self.scene];
             let weapon = &mut self.weapons[weapon_handle];
-            if weapon.try_shoot(scene, time) {
+            if weapon.try_shoot(scene, time, engine.resource_manager.clone()) {
                 let kind = weapon.definition.projectile;
                 let position = weapon.get_shot_position(&scene.graph);
                 let direction = direction
@@ -900,7 +900,7 @@ impl Level {
             }
         }
         self.update_death_zones(scene);
-        self.weapons.update(scene);
+        self.weapons.update(scene, time.delta);
         self.projectiles
             .update(scene, &self.actors, &self.weapons, time);
         let mut ctx = UpdateContext {
