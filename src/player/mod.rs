@@ -202,6 +202,7 @@ pub struct Player {
     hips: Handle<Node>,
     move_speed: f32,
     camera_offset: f32,
+    target_camera_offset: f32,
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: Direction,
@@ -230,6 +231,8 @@ impl Visit for Player {
         self.spine.visit("Spine", visitor)?;
         self.move_speed.visit("MoveSpeed", visitor)?;
         self.camera_offset.visit("CameraOffset", visitor)?;
+        self.target_camera_offset
+            .visit("TargetCameraOffset", visitor)?;
         self.collider.visit("Collider", visitor)?;
         self.weapon_origin.visit("WeaponOrigin", visitor)?;
         self.weapon_yaw_correction
@@ -386,6 +389,7 @@ impl Player {
                 speed: 10.0,
             },
             camera_offset,
+            target_camera_offset: camera_offset,
             collider,
             control_scheme: Some(control_scheme),
             weapon_change_direction: Direction::None,
@@ -772,14 +776,19 @@ impl Player {
             &mut results,
         );
 
-        self.camera_offset = 0.8;
+        self.target_camera_offset = if self.controller.aim { 0.2 } else { 0.8 };
 
         for result in results {
             if result.collider != self.collider {
-                self.camera_offset = (result.toi.min(0.8) - 0.2).max(0.1);
+                let new_offset = (result.toi.min(0.8) - 0.2).max(0.1);
+                if new_offset < self.target_camera_offset {
+                    self.target_camera_offset = new_offset;
+                }
                 break;
             }
         }
+
+        self.camera_offset += (self.target_camera_offset - self.camera_offset) * 0.2;
 
         scene.graph[self.camera]
             .local_transform_mut()
