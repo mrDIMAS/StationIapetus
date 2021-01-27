@@ -16,7 +16,7 @@ use rg3d::{
     },
     core::{
         algebra::{Isometry3, Matrix3, UnitQuaternion, Vector3},
-        math::{self, ray::Ray, SmoothAngle},
+        math::{self, ray::Ray, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -212,6 +212,8 @@ pub struct Player {
     run_factor: f32,
     target_run_factor: f32,
     in_air_time: f32,
+    velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
+    target_velocity: Vector3<f32>,
 }
 
 impl Visit for Player {
@@ -242,6 +244,8 @@ impl Visit for Player {
         self.run_factor.visit("RunFactor", visitor)?;
         self.target_run_factor.visit("TargetRunFactor", visitor)?;
         self.in_air_time.visit("InAirTime", visitor)?;
+        self.velocity.visit("Velocity", visitor)?;
+        self.target_velocity.visit("TargetVelocity", visitor)?;
 
         let mut direction = self.weapon_change_direction as u32;
         direction.visit("WeaponChangeDirection", visitor)?;
@@ -404,8 +408,10 @@ impl Player {
                 speed: 10.00,
             },
             in_air_time: 0.0,
+            velocity: Default::default(),
             run_factor: 0.0,
             target_run_factor: 0.0,
+            target_velocity: Default::default(),
         }
     }
 
@@ -494,19 +500,19 @@ impl Player {
 
         let position = pivot.local_transform().position();
 
-        let mut velocity = Vector3::default();
+        self.target_velocity = Vector3::default();
 
         if self.controller.walk_right {
-            velocity -= side_vector;
+            self.target_velocity -= side_vector;
         }
         if self.controller.walk_left {
-            velocity += side_vector;
+            self.target_velocity += side_vector;
         }
         if self.controller.walk_forward {
-            velocity += look_vector;
+            self.target_velocity += look_vector;
         }
         if self.controller.walk_backward {
-            velocity -= look_vector;
+            self.target_velocity -= look_vector;
         }
 
         let can_move = self.lower_body_machine.machine.active_state()
@@ -518,12 +524,16 @@ impl Player {
         } else {
             0.0
         };
-        let velocity = velocity
+
+        self.target_velocity = self
+            .target_velocity
             .try_normalize(std::f32::EPSILON)
             .and_then(|v| Some(v.scale(speed)))
             .unwrap_or(Vector3::default());
 
-        let is_moving = velocity.norm_squared() > 0.0;
+        self.velocity.follow(&self.target_velocity, 0.15);
+
+        let is_moving = self.velocity.norm_squared() > 0.0;
 
         let mut new_y_vel = None;
         while let Some(event) = scene
@@ -603,18 +613,18 @@ impl Player {
         if let Some(new_y_vel) = new_y_vel {
             body.set_linvel(
                 Vector3::new(
-                    velocity.x / time.delta,
+                    self.velocity.x / time.delta,
                     new_y_vel / time.delta,
-                    velocity.z / time.delta,
+                    self.velocity.z / time.delta,
                 ),
                 true,
             );
         } else {
             body.set_linvel(
                 Vector3::new(
-                    velocity.x / time.delta,
+                    self.velocity.x / time.delta,
                     body.linvel().y,
-                    velocity.z / time.delta,
+                    self.velocity.z / time.delta,
                 ),
                 true,
             );
@@ -797,7 +807,7 @@ impl Player {
         scene.graph[self.camera_pivot]
             .local_transform_mut()
             .set_rotation(quat_yaw)
-            .set_position(position + velocity);
+            .set_position(position + self.velocity);
 
         // Rotate camera hinge - this will make camera move up and down while look at character
         // (well not exactly on character - on characters head)
