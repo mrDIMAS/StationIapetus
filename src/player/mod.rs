@@ -201,8 +201,8 @@ pub struct Player {
     spine: Handle<Node>,
     hips: Handle<Node>,
     move_speed: f32,
-    camera_offset: f32,
-    target_camera_offset: f32,
+    camera_offset: Vector3<f32>,
+    target_camera_offset: Vector3<f32>,
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: Direction,
@@ -392,8 +392,8 @@ impl Player {
                 target: 0.0,
                 speed: 10.0,
             },
-            camera_offset,
-            target_camera_offset: camera_offset,
+            camera_offset: Vector3::new(0.0, 0.0, camera_offset),
+            target_camera_offset: Vector3::new(0.0, 0.0, camera_offset),
             collider,
             control_scheme: Some(control_scheme),
             weapon_change_direction: Direction::None,
@@ -533,8 +533,6 @@ impl Player {
 
         self.velocity.follow(&self.target_velocity, 0.15);
 
-        let is_moving = self.velocity.norm_squared() > 0.0;
-
         let mut new_y_vel = None;
         while let Some(event) = scene
             .animations
@@ -638,7 +636,7 @@ impl Player {
 
         self.spine_pitch.update(time.delta);
 
-        if is_moving || self.controller.aim {
+        if is_walking || self.controller.aim {
             // Since we have free camera while not moving, we have to sync rotation of pivot
             // with rotation of camera so character will start moving in look direction.
             let mut current_position = *body.position();
@@ -786,23 +784,41 @@ impl Player {
             &mut results,
         );
 
-        self.target_camera_offset = if self.controller.aim { 0.2 } else { 0.8 };
+        if is_walking {
+            let (kx, ky) = if self.controller.run {
+                (8.0, 13.0)
+            } else {
+                (5.0, 10.0)
+            };
+
+            self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
+            self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();
+        } else {
+            self.target_camera_offset.x = 0.0;
+            self.target_camera_offset.y = 0.0;
+        }
+
+        self.target_camera_offset.z = if self.controller.aim { 0.2 } else { 0.8 };
 
         for result in results {
             if result.collider != self.collider {
                 let new_offset = (result.toi.min(0.8) - 0.2).max(0.1);
-                if new_offset < self.target_camera_offset {
-                    self.target_camera_offset = new_offset;
+                if new_offset < self.target_camera_offset.z {
+                    self.target_camera_offset.z = new_offset;
                 }
                 break;
             }
         }
 
-        self.camera_offset += (self.target_camera_offset - self.camera_offset) * 0.2;
+        self.camera_offset.follow(&self.target_camera_offset, 0.2);
 
         scene.graph[self.camera]
             .local_transform_mut()
-            .set_position(Vector3::new(0.0, 0.0, -self.camera_offset));
+            .set_position(Vector3::new(
+                self.camera_offset.x,
+                self.camera_offset.y,
+                -self.camera_offset.z,
+            ));
 
         scene.graph[self.camera_pivot]
             .local_transform_mut()
