@@ -54,6 +54,7 @@ impl UpperBodyMachine {
         definition: &BotDefinition,
         model: Handle<Node>,
         scene: &mut Scene,
+        attack_timestamp: f32,
     ) -> Self {
         let (
             idle_animation_resource,
@@ -132,7 +133,7 @@ impl UpperBodyMachine {
         scene
             .animations
             .get_mut(attack_animation)
-            .add_signal(AnimationSignal::new(Self::HIT_SIGNAL, 1.6));
+            .add_signal(AnimationSignal::new(Self::HIT_SIGNAL, attack_timestamp));
 
         scene
             .animations

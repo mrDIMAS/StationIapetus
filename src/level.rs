@@ -294,6 +294,7 @@ pub async fn analyze(
         });
     }
     result.spawn_points = spawn_points;
+    result.player_spawn_position = player_spawn_position;
 
     result
 }
@@ -402,17 +403,7 @@ async fn add_bot(
     )
     .await;
     let bot = actors.add(Actor::Bot(bot));
-    give_new_weapon(
-        WeaponKind::Ak47,
-        bot,
-        sender.clone(),
-        resource_manager,
-        true,
-        weapons,
-        actors,
-        scene,
-    )
-    .await;
+
     bot
 }
 

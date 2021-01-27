@@ -193,6 +193,8 @@ pub struct BotDefinition {
     pub spine: &'static str,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
+    pub attack_damage: f32,
+    pub attack_timestamp: f32,
 
     // Animations.
     pub idle_animation: &'static str,
@@ -226,6 +228,8 @@ impl Bot {
                     health: 1000.0,
                     v_aim_angle_hack: 0.0,
                     can_use_weapons: false,
+                    attack_damage: 120.0,
+                    attack_timestamp: 1.1,
                 };
                 &DEFINITION
             }
@@ -249,6 +253,8 @@ impl Bot {
                     health: 300.0,
                     v_aim_angle_hack: 0.0,
                     can_use_weapons: false,
+                    attack_damage: 40.0,
+                    attack_timestamp: 1.1,
                 };
                 &DEFINITION
             }
@@ -272,6 +278,8 @@ impl Bot {
                     health: 100.0,
                     v_aim_angle_hack: 12.0,
                     can_use_weapons: false,
+                    attack_damage: 40.0,
+                    attack_timestamp: 1.6,
                 };
                 &DEFINITION
             }
@@ -353,8 +361,14 @@ impl Bot {
 
         let locomotion_machine =
             LowerBodyMachine::new(resource_manager.clone(), &definition, model, scene).await;
-        let combat_machine =
-            UpperBodyMachine::new(resource_manager.clone(), definition, model, scene).await;
+        let combat_machine = UpperBodyMachine::new(
+            resource_manager.clone(),
+            definition,
+            model,
+            scene,
+            definition.attack_timestamp,
+        )
+        .await;
 
         Self {
             character: Character {
@@ -596,6 +610,14 @@ impl Bot {
                     .get_mut(animation)
                     .set_enabled(true);
             }
+
+            for &animation in &[self.upper_body_machine.attack_animation] {
+                context
+                    .scene
+                    .animations
+                    .get_mut(animation)
+                    .set_enabled(false);
+            }
         }
 
         let mut is_moving = false;
@@ -642,7 +664,7 @@ impl Bot {
                         .send(Message::DamageActor {
                             actor: target.handle,
                             who: Default::default(),
-                            amount: 20.0,
+                            amount: self.definition.attack_damage,
                         })
                         .unwrap();
                 }
