@@ -3,6 +3,7 @@ use rg3d::core::color::Color;
 use rg3d::rand::seq::SliceRandom;
 use rg3d::scene::base::BaseBuilder;
 use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
+use rg3d::scene::mesh::RenderPath;
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -195,6 +196,11 @@ impl Weapon {
             .build(&mut scene.graph);
 
             scene.graph.link_nodes(light, muzzle_flash);
+
+            // Explicitly define render path to be able to render transparent muzzle flash.
+            scene.graph[muzzle_flash]
+                .as_mesh_mut()
+                .set_render_path(RenderPath::Forward);
 
             light
         };
