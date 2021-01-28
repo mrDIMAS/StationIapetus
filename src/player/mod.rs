@@ -7,7 +7,7 @@ use crate::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
-    projectile::ProjectileKind,
+    weapon::projectile::ProjectileKind,
 };
 use rg3d::{
     animation::{
@@ -15,7 +15,7 @@ use rg3d::{
         Animation,
     },
     core::{
-        algebra::{Isometry3, Matrix3, UnitQuaternion, Vector3},
+        algebra::{Isometry3, UnitQuaternion, Vector3},
         math::{self, ray::Ray, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -598,7 +598,6 @@ impl Player {
                         direction,
                         initial_velocity: direction.scale(15.0),
                         owner: Default::default(),
-                        basis: Matrix3::identity(),
                     })
                     .unwrap();
             }
@@ -868,13 +867,6 @@ impl Player {
             .weapons
             .get(self.character.current_weapon as usize)
         {
-            let initial_velocity = *context
-                .scene
-                .physics
-                .bodies
-                .get(self.character.body.into())
-                .unwrap()
-                .linvel();
             if self.controller.shoot
                 && self.upper_body_machine.machine.active_state()
                     == self.upper_body_machine.aim_state
@@ -885,7 +877,6 @@ impl Player {
                     .unwrap()
                     .send(Message::ShootWeapon {
                         weapon: *current_weapon_handle,
-                        initial_velocity,
                         direction: Some(context.scene.graph[self.camera].look_vector()),
                     })
                     .unwrap();

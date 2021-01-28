@@ -2,21 +2,22 @@ use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
     control_scheme::ControlScheme,
-    effects,
+    effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
     message::Message,
     player::Player,
-    projectile::{Projectile, ProjectileContainer, ProjectileKind},
-    weapon::{Weapon, WeaponContainer, WeaponKind},
+    weapon::{
+        projectile::{Projectile, ProjectileContainer, ProjectileKind},
+        ray_hit, Weapon, WeaponContainer, WeaponKind,
+    },
     GameEngine, GameTime,
 };
 use rg3d::{
     core::{
-        algebra::{Matrix3, Vector3},
+        algebra::{UnitQuaternion, Vector3},
         color::Color,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, PositionProvider},
         pool::Handle,
-        rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -26,8 +27,16 @@ use rg3d::{
         geometry::{ContactEvent, InteractionGroups, ProximityEvent},
         pipeline::ChannelEventCollector,
     },
-    rand,
-    scene::{self, node::Node, physics::RayCastOptions, Scene},
+    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
+    scene::{
+        self,
+        base::BaseBuilder,
+        mesh::{MeshBuilder, RenderPath},
+        node::Node,
+        physics::RayCastOptions,
+        transform::TransformBuilder,
+        Scene,
+    },
     sound::{
         context::{self, Context},
         effects::{BaseEffect, Effect, EffectInput},
@@ -364,7 +373,6 @@ async fn give_new_weapon(
 async fn spawn_bot(
     spawn_point: &mut SpawnPoint,
     actors: &mut ActorContainer,
-    weapons: &mut WeaponContainer,
     resource_manager: ResourceManager,
     sender: Sender<Message>,
     scene: &mut Scene,
@@ -375,7 +383,6 @@ async fn spawn_bot(
         spawn_point.bot_kind,
         spawn_point.position,
         actors,
-        weapons,
         resource_manager,
         sender,
         scene,
@@ -389,7 +396,6 @@ async fn add_bot(
     kind: BotKind,
     position: Vector3<f32>,
     actors: &mut ActorContainer,
-    weapons: &mut WeaponContainer,
     resource_manager: ResourceManager,
     sender: Sender<Message>,
     scene: &mut Scene,
@@ -446,7 +452,6 @@ impl Level {
             spawn_bot(
                 pt,
                 &mut actors,
-                &mut weapons,
                 resource_manager.clone(),
                 sender.clone(),
                 &mut scene,
@@ -574,7 +579,6 @@ impl Level {
             kind,
             position,
             &mut self.actors,
-            &mut self.weapons,
             engine.resource_manager.clone(),
             self.sender.clone().unwrap(),
             &mut engine.scenes[self.scene],
@@ -697,7 +701,6 @@ impl Level {
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
         owner: Handle<Weapon>,
-        basis: Matrix3<f32>,
     ) {
         let scene = &mut engine.scenes[self.scene];
         let projectile = Projectile::new(
@@ -709,7 +712,6 @@ impl Level {
             owner,
             initial_velocity,
             self.sender.as_ref().unwrap().clone(),
-            basis,
         )
         .await;
         self.projectiles.add(projectile);
@@ -719,32 +721,19 @@ impl Level {
         &mut self,
         engine: &mut GameEngine,
         weapon_handle: Handle<Weapon>,
-        initial_velocity: Vector3<f32>,
         time: GameTime,
         direction: Option<Vector3<f32>>,
     ) {
         if self.weapons.contains(weapon_handle) {
             let scene = &mut engine.scenes[self.scene];
             let weapon = &mut self.weapons[weapon_handle];
-            if weapon.try_shoot(scene, time, engine.resource_manager.clone()) {
-                let kind = weapon.definition.projectile;
-                let position = weapon.get_shot_position(&scene.graph);
-                let direction = direction
-                    .unwrap_or_else(|| weapon.get_shot_direction(&scene.graph))
-                    .try_normalize(std::f32::EPSILON)
-                    .unwrap_or_else(|| Vector3::z());
-                let basis = weapon.world_basis(&scene.graph);
-                self.create_projectile(
-                    engine,
-                    kind,
-                    position,
-                    direction,
-                    initial_velocity,
-                    weapon_handle,
-                    basis,
-                )
-                .await;
-            }
+            weapon.try_shoot(
+                weapon_handle,
+                scene,
+                time,
+                engine.resource_manager.clone(),
+                direction,
+            );
         }
     }
 
@@ -791,7 +780,7 @@ impl Level {
             position
         };
         let scene = &mut engine.scenes[self.scene];
-        let mut item = Item::new(
+        let item = Item::new(
             kind,
             position,
             scene,
@@ -881,13 +870,8 @@ impl Level {
             &Message::PickUpItem { actor, item } => {
                 self.pickup_item(engine, actor, item).await;
             }
-            &Message::ShootWeapon {
-                weapon,
-                initial_velocity,
-                direction,
-            } => {
-                self.shoot_weapon(engine, weapon, initial_velocity, time, direction)
-                    .await
+            &Message::ShootWeapon { weapon, direction } => {
+                self.shoot_weapon(engine, weapon, time, direction).await
             }
             &Message::CreateProjectile {
                 kind,
@@ -895,18 +879,9 @@ impl Level {
                 direction,
                 initial_velocity,
                 owner,
-                basis,
             } => {
-                self.create_projectile(
-                    engine,
-                    kind,
-                    position,
-                    direction,
-                    initial_velocity,
-                    owner,
-                    basis,
-                )
-                .await
+                self.create_projectile(engine, kind, position, direction, initial_velocity, owner)
+                    .await
             }
             &Message::ShowWeapon { weapon, state } => self.show_weapon(engine, weapon, state),
             &Message::SpawnBot { spawn_point_id } => {
@@ -914,7 +889,6 @@ impl Level {
                     spawn_bot(
                         spawn_point,
                         &mut self.actors,
-                        &mut self.weapons,
                         engine.resource_manager.clone(),
                         self.sender.clone().unwrap(),
                         &mut engine.scenes[self.scene],
@@ -942,8 +916,91 @@ impl Level {
                 kind,
                 position,
                 adjust_height,
-                lifetime,
             } => self.spawn_item(engine, kind, position, adjust_height).await,
+            Message::ShootRay {
+                weapon,
+                begin,
+                end,
+                damage,
+                impact_sound,
+            } => {
+                let scene = &mut engine.scenes[self.scene];
+
+                MeshBuilder::new(
+                    BaseBuilder::new().with_lifetime(0.7).with_local_transform(
+                        TransformBuilder::new()
+                            .with_local_position(*begin)
+                            .with_local_rotation(UnitQuaternion::face_towards(
+                                &(end - begin),
+                                &Vector3::y(),
+                            ))
+                            .build(),
+                    ),
+                )
+                .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+                    SurfaceSharedData::make_cylinder(
+                        6,
+                        0.001,
+                        100.0,
+                        false,
+                        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
+                            .to_homogeneous(),
+                    ),
+                )))
+                .with_color(Color::from_rgba(255, 127, 40, 120))
+                .build()])
+                .with_cast_shadows(false)
+                .with_render_path(RenderPath::Forward)
+                .build(&mut scene.graph);
+
+                // Do immediate intersection test and solve it.
+                if let Some(hit) = ray_hit(
+                    *begin,
+                    *end,
+                    *weapon,
+                    &self.weapons,
+                    &self.actors,
+                    &mut scene.physics,
+                    Default::default(),
+                ) {
+                    // Just send new messages, instead of doing everything manually here.
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::CreateEffect {
+                            kind: if hit.actor.is_some() {
+                                EffectKind::BloodSpray
+                            } else {
+                                EffectKind::BulletImpact
+                            },
+                            position: hit.position,
+                            orientation: UnitQuaternion::face_towards(&hit.normal, &Vector3::y()),
+                        })
+                        .unwrap();
+
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::PlaySound {
+                            path: impact_sound.clone(),
+                            position: hit.position,
+                            gain: 1.0,
+                            rolloff_factor: 4.0,
+                            radius: 3.0,
+                        })
+                        .unwrap();
+
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::DamageActor {
+                            actor: hit.actor,
+                            who: hit.who,
+                            amount: *damage,
+                        })
+                        .unwrap();
+                }
+            }
             _ => (),
         }
     }

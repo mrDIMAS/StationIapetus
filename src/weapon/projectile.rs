@@ -1,23 +1,24 @@
 use crate::{
-    actor::{Actor, ActorContainer},
+    actor::ActorContainer,
     effects::EffectKind,
     message::Message,
-    weapon::{Weapon, WeaponContainer},
+    weapon::{ray_hit, Hit, Weapon, WeaponContainer},
     GameTime,
 };
+use rg3d::scene::ColliderHandle;
 use rg3d::{
-    core::rand::Rng,
     core::{
-        algebra::{Matrix3, UnitQuaternion, Vector3},
+        algebra::{UnitQuaternion, Vector3},
         color::Color,
-        math::{ray::Ray, Vector3Ext},
+        math::Vector3Ext,
         pool::{Handle, Pool, PoolIteratorMut},
+        rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
     physics::{
         dynamics::{BodyStatus, RigidBodyBuilder},
-        geometry::{ColliderBuilder, InteractionGroups, Proximity, ProximityEvent},
+        geometry::{ColliderBuilder, Proximity, ProximityEvent},
         na::{Isometry3, Translation3},
     },
     rand,
@@ -26,9 +27,7 @@ use rg3d::{
         graph::Graph,
         light::{BaseLightBuilder, PointLightBuilder},
         node::Node,
-        physics::RayCastOptions,
         sprite::SpriteBuilder,
-        transform::TransformBuilder,
         RigidBodyHandle, Scene,
     },
 };
@@ -37,8 +36,6 @@ use std::{collections::HashSet, path::PathBuf, sync::mpsc::Sender};
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum ProjectileKind {
     Plasma,
-    Bullet,
-    Rocket,
     Grenade,
 }
 
@@ -46,9 +43,7 @@ impl ProjectileKind {
     pub fn new(id: u32) -> Result<Self, String> {
         match id {
             0 => Ok(ProjectileKind::Plasma),
-            1 => Ok(ProjectileKind::Bullet),
-            2 => Ok(ProjectileKind::Rocket),
-            3 => Ok(ProjectileKind::Grenade),
+            1 => Ok(ProjectileKind::Grenade),
             _ => Err(format!("Invalid projectile kind id {}", id)),
         }
     }
@@ -56,9 +51,7 @@ impl ProjectileKind {
     pub fn id(self) -> u32 {
         match self {
             ProjectileKind::Plasma => 0,
-            ProjectileKind::Bullet => 1,
-            ProjectileKind::Rocket => 2,
-            ProjectileKind::Grenade => 3,
+            ProjectileKind::Grenade => 1,
         }
     }
 }
@@ -127,26 +120,6 @@ impl Projectile {
                 };
                 &DEFINITION
             }
-            ProjectileKind::Bullet => {
-                static DEFINITION: ProjectileDefinition = ProjectileDefinition {
-                    damage: 15.0,
-                    speed: 0.75,
-                    lifetime: 10.0,
-                    is_kinematic: true,
-                    impact_sound: "data/sounds/bullet_impact_concrete.ogg",
-                };
-                &DEFINITION
-            }
-            ProjectileKind::Rocket => {
-                static DEFINITION: ProjectileDefinition = ProjectileDefinition {
-                    damage: 60.0,
-                    speed: 0.5,
-                    lifetime: 10.0,
-                    is_kinematic: true,
-                    impact_sound: "data/sounds/explosion.ogg",
-                };
-                &DEFINITION
-            }
             ProjectileKind::Grenade => {
                 static DEFINITION: ProjectileDefinition = ProjectileDefinition {
                     damage: 60.0,
@@ -170,7 +143,6 @@ impl Projectile {
         owner: Handle<Weapon>,
         initial_velocity: Vector3<f32>,
         sender: Sender<Message>,
-        basis: Matrix3<f32>,
     ) -> Self {
         let definition = Self::get_definition(kind);
 
@@ -201,39 +173,6 @@ impl Projectile {
                     scene.physics_binder.bind(model, body_handle);
 
                     (model, body_handle)
-                }
-                ProjectileKind::Bullet => {
-                    let model = SpriteBuilder::new(
-                        BaseBuilder::new().with_local_transform(
-                            TransformBuilder::new()
-                                .with_local_position(position)
-                                .build(),
-                        ),
-                    )
-                    .with_size(0.05)
-                    .with_texture(resource_manager.request_texture("data/particles/light_01.png"))
-                    .build(&mut scene.graph);
-
-                    (model, Default::default())
-                }
-                ProjectileKind::Rocket => {
-                    let resource = resource_manager
-                        .request_model("data/models/rocket.FBX")
-                        .await
-                        .unwrap();
-                    let model = resource.instantiate_geometry(scene);
-                    scene.graph[model]
-                        .local_transform_mut()
-                        .set_rotation(UnitQuaternion::from_matrix(&basis))
-                        .set_position(position);
-                    let light = PointLightBuilder::new(
-                        BaseLightBuilder::new(BaseBuilder::new())
-                            .with_color(Color::opaque(255, 127, 0)),
-                    )
-                    .with_radius(1.5)
-                    .build(&mut scene.graph);
-                    scene.graph.link_nodes(light, model);
-                    (model, Default::default())
                 }
                 ProjectileKind::Grenade => {
                     let resource = resource_manager
@@ -286,63 +225,30 @@ impl Projectile {
         time: GameTime,
     ) {
         // Fetch current position of projectile.
-        let position = if self.body.is_some() {
-            scene
-                .physics
-                .bodies
-                .get(self.body.into())
-                .unwrap()
-                .position()
-                .translation
-                .vector
+        let (position, collider) = if self.body.is_some() {
+            let body = scene.physics.bodies.get(self.body.into()).unwrap();
+            let collider: ColliderHandle = (*body.colliders().first().unwrap()).into();
+            (body.position().translation.vector, collider)
         } else {
-            scene.graph[self.model].global_position()
+            (
+                scene.graph[self.model].global_position(),
+                ColliderHandle::default(),
+            )
         };
 
-        let mut effect_position = None;
+        let ray_hit = ray_hit(
+            self.last_position,
+            position,
+            self.owner,
+            weapons,
+            actors,
+            &mut scene.physics,
+            collider,
+        );
 
-        // Do ray based intersection tests for every kind of projectiles. This will help to handle
-        // fast moving projectiles.
-        if let Some(ray) = Ray::from_two_points(&self.last_position, &position) {
-            let mut query_buffer = Vec::default();
-            scene.physics.cast_ray(
-                RayCastOptions {
-                    ray,
-                    max_len: ray.dir.norm(),
-                    groups: InteractionGroups::all(),
-                    sort_results: true,
-                },
-                &mut query_buffer,
-            );
-
-            // List of hits sorted by distance from ray origin.
-            'hit_loop: for hit in query_buffer.iter() {
-                let collider = scene.physics.colliders.get(hit.collider.into()).unwrap();
-                let body = collider.parent();
-
-                if collider.shape().as_trimesh().is_some() {
-                    self.kill();
-                    effect_position = Some((hit.position.coords, hit.normal));
-                    break 'hit_loop;
-                } else {
-                    for (actor_handle, actor) in actors.pair_iter() {
-                        if actor.get_body() == body.into() && self.owner.is_some() {
-                            let weapon = &weapons[self.owner];
-                            // Ignore intersections with owners of weapon.
-                            if weapon.owner() != actor_handle {
-                                self.hits.insert(Hit {
-                                    actor: actor_handle,
-                                    who: weapon.owner(),
-                                });
-
-                                self.kill();
-                                effect_position = Some((hit.position.coords, hit.normal));
-                                break 'hit_loop;
-                            }
-                        }
-                    }
-                }
-            }
+        if let Some(hit) = ray_hit {
+            self.hits.insert(hit);
+            self.kill();
         }
 
         // Movement of kinematic projectiles are controlled explicitly.
@@ -380,20 +286,34 @@ impl Projectile {
         self.lifetime -= time.delta;
 
         if self.lifetime <= 0.0 {
-            let (pos, normal) =
-                effect_position.unwrap_or_else(|| (self.get_position(&scene.graph), Vector3::y()));
+            let (pos, normal, effect_kind) = ray_hit.map_or_else(
+                || {
+                    (
+                        self.get_position(&scene.graph),
+                        Vector3::y(),
+                        EffectKind::BulletImpact,
+                    )
+                },
+                |h| {
+                    (
+                        h.position,
+                        h.normal,
+                        if h.actor.is_some() {
+                            EffectKind::BloodSpray
+                        } else {
+                            EffectKind::BulletImpact
+                        },
+                    )
+                },
+            );
 
             self.sender
                 .as_ref()
                 .unwrap()
                 .send(Message::CreateEffect {
-                    kind: if self.hits.is_empty() {
-                        EffectKind::BulletImpact
-                    } else {
-                        EffectKind::BloodSpray
-                    },
+                    kind: effect_kind,
                     position: pos,
-                    orientation: UnitQuaternion::new(normal),
+                    orientation: UnitQuaternion::face_towards(&normal, &Vector3::y()),
                 })
                 .unwrap();
 
@@ -464,6 +384,15 @@ impl Projectile {
                         self.hits.insert(Hit {
                             actor: actor_handle,
                             who: weapon.owner(),
+                            position: scene
+                                .physics
+                                .bodies
+                                .get(body_a)
+                                .unwrap()
+                                .position()
+                                .translation
+                                .vector,
+                            normal: Vector3::y(),
                         });
                     } else {
                         // Make sure that projectile won't die on contact with owner.
@@ -490,12 +419,6 @@ impl Projectile {
             scene.graph.remove_node(self.model);
         }
     }
-}
-
-#[derive(Hash, Eq, PartialEq)]
-struct Hit {
-    actor: Handle<Actor>,
-    who: Handle<Actor>,
 }
 
 impl Visit for Projectile {

@@ -13,7 +13,6 @@ pub mod menu;
 pub mod message;
 pub mod options_menu;
 pub mod player;
-pub mod projectile;
 pub mod weapon;
 
 use crate::{

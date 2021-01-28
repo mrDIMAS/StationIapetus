@@ -1,25 +1,40 @@
-use crate::{actor::Actor, message::Message, projectile::ProjectileKind, GameTime};
-use rg3d::core::color::Color;
-use rg3d::rand::seq::SliceRandom;
-use rg3d::scene::base::BaseBuilder;
-use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
-use rg3d::scene::mesh::RenderPath;
+use crate::{
+    actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
+    GameTime,
+};
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
-        math::{Matrix4Ext, Vector3Ext},
+        color::Color,
+        math::{ray::Ray, Matrix4Ext, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    scene::{graph::Graph, node::Node, Scene},
-    utils::log::{Log, MessageKind},
+    physics::geometry::InteractionGroups,
+    rand::seq::SliceRandom,
+    scene::{
+        base::BaseBuilder,
+        graph::Graph,
+        light::{BaseLightBuilder, PointLightBuilder},
+        mesh::RenderPath,
+        node::Node,
+        physics::{Physics, RayCastOptions},
+        ColliderHandle, Scene,
+    },
+    utils::{
+        self,
+        log::{Log, MessageKind},
+    },
 };
 use std::{
+    hash::{Hash, Hasher},
     ops::{Index, IndexMut},
     path::{Path, PathBuf},
     sync::mpsc::Sender,
 };
+
+pub mod projectile;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
 pub enum WeaponKind {
@@ -64,11 +79,96 @@ pub struct Weapon {
     pub sender: Option<Sender<Message>>,
 }
 
+#[derive(Copy, Clone, PartialEq)]
+pub struct Hit {
+    pub actor: Handle<Actor>, // Can be None if level geometry was hit.
+    pub who: Handle<Actor>,
+    pub position: Vector3<f32>,
+    pub normal: Vector3<f32>,
+}
+
+impl Hash for Hit {
+    fn hash<H: Hasher>(&self, state: &mut H) {
+        utils::hash_as_bytes(self, state);
+    }
+}
+
+impl Eq for Hit {}
+
+/// Checks intersection of given ray with actors and environment.
+pub fn ray_hit(
+    begin: Vector3<f32>,
+    end: Vector3<f32>,
+    weapon: Handle<Weapon>,
+    weapons: &WeaponContainer,
+    actors: &ActorContainer,
+    physics: &mut Physics,
+    ignored_collider: ColliderHandle,
+) -> Option<Hit> {
+    if let Some(ray) = Ray::from_two_points(&begin, &end) {
+        // TODO: Avoid allocation.
+        let mut query_buffer = Vec::default();
+
+        physics.cast_ray(
+            RayCastOptions {
+                ray,
+                max_len: ray.dir.norm(),
+                groups: InteractionGroups::all(),
+                sort_results: true,
+            },
+            &mut query_buffer,
+        );
+
+        // List of hits sorted by distance from ray origin.
+        for hit in query_buffer
+            .iter()
+            .filter(|i| i.collider != ignored_collider)
+        {
+            let collider = physics.colliders.get(hit.collider.into()).unwrap();
+            let body = collider.parent();
+
+            // Check if there was an intersection with an actor.
+            for (actor_handle, actor) in actors.pair_iter() {
+                if actor.get_body() == body.into() && weapon.is_some() {
+                    let weapon = &weapons[weapon];
+                    // Ignore intersections with owners of weapon.
+                    if weapon.owner() != actor_handle {
+                        return Some(Hit {
+                            actor: actor_handle,
+                            who: weapon.owner(),
+                            position: hit.position.coords,
+                            normal: hit.normal,
+                        });
+                    }
+                }
+            }
+
+            return Some(Hit {
+                actor: Handle::NONE,
+                who: Handle::NONE,
+                position: hit.position.coords,
+                normal: hit.normal,
+            });
+        }
+    }
+
+    None
+}
+
+#[derive(Copy, Clone, Debug)]
+pub enum WeaponProjectile {
+    Projectile(ProjectileKind),
+    /// For high-speed "projectiles".
+    Ray {
+        damage: f32,
+    },
+}
+
 pub struct WeaponDefinition {
     pub model: &'static str,
     pub shot_sound: &'static str,
     pub ammo: u32,
-    pub projectile: ProjectileKind,
+    pub projectile: WeaponProjectile,
     pub shoot_interval: f64,
 }
 
@@ -127,7 +227,7 @@ impl Weapon {
                     model: "data/models/m4.FBX",
                     shot_sound: "data/sounds/m4_shot.ogg",
                     ammo: 200,
-                    projectile: ProjectileKind::Bullet,
+                    projectile: WeaponProjectile::Ray { damage: 15.0 },
                     shoot_interval: 0.15,
                 };
                 &DEFINITION
@@ -137,7 +237,7 @@ impl Weapon {
                     model: "data/models/ak47.FBX",
                     shot_sound: "data/sounds/ak47.ogg",
                     ammo: 200,
-                    projectile: ProjectileKind::Bullet,
+                    projectile: WeaponProjectile::Ray { damage: 17.0 },
                     shoot_interval: 0.15,
                 };
                 &DEFINITION
@@ -147,7 +247,7 @@ impl Weapon {
                     model: "data/models/plasma_rifle.fbx",
                     shot_sound: "data/sounds/plasma_shot.ogg",
                     ammo: 100,
-                    projectile: ProjectileKind::Plasma,
+                    projectile: WeaponProjectile::Projectile(ProjectileKind::Plasma),
                     shoot_interval: 0.25,
                 };
                 &DEFINITION
@@ -279,10 +379,12 @@ impl Weapon {
 
     pub fn try_shoot(
         &mut self,
+        self_handle: Handle<Weapon>,
         scene: &mut Scene,
         time: GameTime,
         resource_manager: ResourceManager,
-    ) -> bool {
+        direction: Option<Vector3<f32>>,
+    ) {
         if self.ammo != 0 && time.elapsed - self.last_shot_time >= self.definition.shoot_interval {
             self.ammo -= 1;
 
@@ -291,17 +393,17 @@ impl Weapon {
 
             let position = self.get_shot_position(&scene.graph);
 
-            if let Some(sender) = self.sender.as_ref() {
-                sender
-                    .send(Message::PlaySound {
-                        path: PathBuf::from(self.definition.shot_sound),
-                        position,
-                        gain: 1.0,
-                        rolloff_factor: 5.0,
-                        radius: 3.0,
-                    })
-                    .unwrap();
-            }
+            self.sender
+                .as_ref()
+                .unwrap()
+                .send(Message::PlaySound {
+                    path: PathBuf::from(self.definition.shot_sound),
+                    position,
+                    gain: 1.0,
+                    rolloff_factor: 5.0,
+                    radius: 3.0,
+                })
+                .unwrap();
 
             if self.muzzle_flash.is_some() {
                 let muzzle_flash = &mut scene.graph[self.muzzle_flash];
@@ -324,9 +426,39 @@ impl Weapon {
                 self.muzzle_flash_timer = 0.075;
             }
 
-            true
-        } else {
-            false
+            let position = self.get_shot_position(&scene.graph);
+            let direction = direction
+                .unwrap_or_else(|| self.get_shot_direction(&scene.graph))
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_else(|| Vector3::z());
+
+            match self.definition.projectile {
+                WeaponProjectile::Projectile(projectile) => self
+                    .sender
+                    .as_ref()
+                    .unwrap()
+                    .send(Message::CreateProjectile {
+                        kind: projectile,
+                        position,
+                        direction,
+                        owner: self_handle,
+                        initial_velocity: Default::default(),
+                    })
+                    .unwrap(),
+                WeaponProjectile::Ray { damage } => {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::ShootRay {
+                            impact_sound: PathBuf::from("data/sounds/bullet_impact_concrete.ogg"),
+                            weapon: self_handle,
+                            begin: position,
+                            end: position + direction.scale(1000.0),
+                            damage,
+                        })
+                        .unwrap();
+                }
+            }
         }
     }
 

@@ -644,7 +644,6 @@ impl Bot {
                 sender
                     .send(Message::ShootWeapon {
                         weapon: *weapon,
-                        initial_velocity: Vector3::default(),
                         direction: Some(look_dir),
                     })
                     .unwrap();

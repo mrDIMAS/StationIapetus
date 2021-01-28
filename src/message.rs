@@ -14,11 +14,11 @@ use crate::{
     bot::BotKind,
     effects::EffectKind,
     item::{Item, ItemKind},
-    projectile::ProjectileKind,
+    weapon::projectile::ProjectileKind,
     weapon::{Weapon, WeaponKind},
 };
 use rg3d::core::{
-    algebra::{Matrix3, UnitQuaternion, Vector3},
+    algebra::{UnitQuaternion, Vector3},
     pool::Handle,
 };
 use std::path::PathBuf;
@@ -55,7 +55,6 @@ pub enum Message {
         kind: ItemKind,
         position: Vector3<f32>,
         adjust_height: bool,
-        lifetime: Option<f32>,
     },
     CreateProjectile {
         kind: ProjectileKind,
@@ -63,12 +62,17 @@ pub enum Message {
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
         owner: Handle<Weapon>,
-        basis: Matrix3<f32>,
     },
     ShootWeapon {
         weapon: Handle<Weapon>,
-        initial_velocity: Vector3<f32>,
         direction: Option<Vector3<f32>>,
+    },
+    ShootRay {
+        weapon: Handle<Weapon>,
+        begin: Vector3<f32>,
+        end: Vector3<f32>,
+        damage: f32,
+        impact_sound: PathBuf, // TODO: This must not be here. Sound manager must do this.
     },
     PlaySound {
         path: PathBuf,
