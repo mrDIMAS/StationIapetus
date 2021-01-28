@@ -149,6 +149,7 @@ pub struct Level {
     sound_manager: SoundManager,
     proximity_events_receiver: Option<crossbeam::channel::Receiver<ProximityEvent>>,
     contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
+    beam: Option<Arc<RwLock<SurfaceSharedData>>>,
 }
 
 impl Default for Level {
@@ -170,6 +171,7 @@ impl Default for Level {
             sound_manager: Default::default(),
             proximity_events_receiver: None,
             contact_events_receiver: None,
+            beam: None,
         }
     }
 }
@@ -190,6 +192,10 @@ impl Visit for Level {
         self.sound_manager.visit("SoundManager", visitor)?;
         self.items.visit("Items", visitor)?;
         self.navmesh.visit("Navmesh", visitor)?;
+
+        if visitor.is_reading() {
+            self.beam = Some(make_beam());
+        }
 
         visitor.leave_region()
     }
@@ -231,6 +237,16 @@ pub struct AnalysisResult {
     death_zones: Vec<DeathZone>,
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
+}
+
+fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {
+    Arc::new(RwLock::new(SurfaceSharedData::make_cylinder(
+        6,
+        0.002,
+        100.0,
+        false,
+        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians()).to_homogeneous(),
+    )))
 }
 
 pub async fn analyze(
@@ -485,6 +501,7 @@ impl Level {
             proximity_events_receiver: Some(proximity_events_receiver),
             projectiles: ProjectileContainer::new(),
             sound_manager,
+            beam: Some(make_beam()),
         };
 
         (level, scene)
@@ -937,18 +954,9 @@ impl Level {
                             .build(),
                     ),
                 )
-                .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-                    SurfaceSharedData::make_cylinder(
-                        6,
-                        0.001,
-                        100.0,
-                        false,
-                        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
-                            .to_homogeneous(),
-                    ),
-                )))
-                .with_color(Color::from_rgba(255, 127, 40, 120))
-                .build()])
+                .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
+                    .with_color(Color::from_rgba(255, 127, 40, 120))
+                    .build()])
                 .with_cast_shadows(false)
                 .with_render_path(RenderPath::Forward)
                 .build(&mut scene.graph);
