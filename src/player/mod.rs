@@ -16,7 +16,7 @@ use rg3d::{
     },
     core::{
         algebra::{Isometry3, UnitQuaternion, Vector3},
-        math::{self, ray::Ray, SmoothAngle, Vector3Ext},
+        math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -430,6 +430,13 @@ impl Player {
     pub fn update(&mut self, context: &mut UpdateContext) {
         let UpdateContext { time, scene, .. } = context;
 
+        let mut sound_context = scene.sound_context.state();
+        let listener = sound_context.listener_mut();
+        let camera = &scene.graph[self.camera];
+        listener.set_basis(camera.global_transform().basis());
+        listener.set_position(camera.global_position());
+        std::mem::drop(sound_context);
+
         let mut has_ground_contact = false;
         if let Some(iterator) = scene
             .physics
@@ -836,7 +843,7 @@ impl Player {
         if has_ground_contact {
             self.in_air_time = 0.0;
         } else {
-            self.in_air_time += context.time.delta;
+            self.in_air_time += time.delta;
         }
 
         if has_ground_contact && self.controller.jump {
@@ -877,7 +884,7 @@ impl Player {
                     .unwrap()
                     .send(Message::ShootWeapon {
                         weapon: *current_weapon_handle,
-                        direction: Some(context.scene.graph[self.camera].look_vector()),
+                        direction: Some(scene.graph[self.camera].look_vector()),
                     })
                     .unwrap();
             }
