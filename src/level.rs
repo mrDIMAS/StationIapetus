@@ -31,7 +31,7 @@ use rg3d::{
     scene::{
         self,
         base::BaseBuilder,
-        mesh::{MeshBuilder, RenderPath},
+        mesh::{Mesh, MeshBuilder, RenderPath},
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
@@ -150,6 +150,7 @@ pub struct Level {
     proximity_events_receiver: Option<crossbeam::channel::Receiver<ProximityEvent>>,
     contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
     beam: Option<Arc<RwLock<SurfaceSharedData>>>,
+    trails: ShotTrailContainer,
 }
 
 impl Default for Level {
@@ -172,6 +173,7 @@ impl Default for Level {
             proximity_events_receiver: None,
             contact_events_receiver: None,
             beam: None,
+            trails: Default::default(),
         }
     }
 }
@@ -192,6 +194,7 @@ impl Visit for Level {
         self.sound_manager.visit("SoundManager", visitor)?;
         self.items.visit("Items", visitor)?;
         self.navmesh.visit("Navmesh", visitor)?;
+        self.trails.visit("Trails", visitor)?;
 
         if visitor.is_reading() {
             self.beam = Some(make_beam());
@@ -220,6 +223,68 @@ impl Default for DeathZone {
         Self {
             bounds: Default::default(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct ShotTrail {
+    node: Handle<Node>,
+    lifetime: f32,
+    max_lifetime: f32,
+}
+
+impl Visit for ShotTrail {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.node.visit("Node", visitor)?;
+        self.lifetime.visit("Lifetime", visitor)?;
+        self.max_lifetime.visit("MaxLifetime", visitor)?;
+
+        visitor.leave_region()
+    }
+}
+
+#[derive(Default)]
+pub struct ShotTrailContainer {
+    container: Vec<ShotTrail>,
+}
+
+impl ShotTrailContainer {
+    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
+        for trail in self.container.iter_mut() {
+            trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
+            let k = 1.0 - trail.lifetime / trail.max_lifetime;
+            let mesh: &mut Mesh = scene.graph[trail.node].as_mesh_mut();
+            for surface in mesh.surfaces_mut() {
+                let color = surface.color();
+                surface.set_color(Color::from_rgba(
+                    color.r,
+                    color.g,
+                    color.b,
+                    (255.0 * k) as u8,
+                ))
+            }
+            if trail.lifetime >= trail.max_lifetime {
+                scene.remove_node(trail.node);
+            }
+        }
+        self.container
+            .retain(|trail| trail.lifetime < trail.max_lifetime);
+    }
+
+    pub fn add(&mut self, trail: ShotTrail) {
+        self.container.push(trail);
+    }
+}
+
+impl Visit for ShotTrailContainer {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.container.visit("Container", visitor)?;
+
+        visitor.leave_region()
     }
 }
 
@@ -502,6 +567,7 @@ impl Level {
             projectiles: ProjectileContainer::new(),
             sound_manager,
             beam: Some(make_beam()),
+            trails: Default::default(),
         };
 
         (level, scene)
@@ -860,7 +926,92 @@ impl Level {
             weapons: &self.weapons,
         };
         self.actors.update(&mut ctx);
+        self.trails.update(time.delta, scene);
         self.update_game_ending();
+    }
+
+    fn shoot_ray(
+        &mut self,
+        engine: &mut GameEngine,
+        weapon: Handle<Weapon>,
+        begin: Vector3<f32>,
+        end: Vector3<f32>,
+        damage: f32,
+        impact_sound: PathBuf,
+    ) {
+        let scene = &mut engine.scenes[self.scene];
+
+        let trail = MeshBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(begin)
+                    .with_local_rotation(UnitQuaternion::face_towards(
+                        &(end - begin),
+                        &Vector3::y(),
+                    ))
+                    .build(),
+            ),
+        )
+        .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
+            .with_color(Color::from_rgba(255, 127, 40, 120))
+            .build()])
+        .with_cast_shadows(false)
+        .with_render_path(RenderPath::Forward)
+        .build(&mut scene.graph);
+
+        self.trails.add(ShotTrail {
+            node: trail,
+            lifetime: 0.0,
+            max_lifetime: 0.6,
+        });
+
+        // Do immediate intersection test and solve it.
+        if let Some(hit) = ray_hit(
+            begin,
+            end,
+            weapon,
+            &self.weapons,
+            &self.actors,
+            &mut scene.physics,
+            Default::default(),
+        ) {
+            // Just send new messages, instead of doing everything manually here.
+            self.sender
+                .as_ref()
+                .unwrap()
+                .send(Message::CreateEffect {
+                    kind: if hit.actor.is_some() {
+                        EffectKind::BloodSpray
+                    } else {
+                        EffectKind::BulletImpact
+                    },
+                    position: hit.position,
+                    orientation: UnitQuaternion::face_towards(&hit.normal, &Vector3::y()),
+                })
+                .unwrap();
+
+            self.sender
+                .as_ref()
+                .unwrap()
+                .send(Message::PlaySound {
+                    path: impact_sound.clone(),
+                    position: hit.position,
+                    gain: 1.0,
+                    rolloff_factor: 4.0,
+                    radius: 3.0,
+                })
+                .unwrap();
+
+            self.sender
+                .as_ref()
+                .unwrap()
+                .send(Message::DamageActor {
+                    actor: hit.actor,
+                    who: hit.who,
+                    amount: damage,
+                })
+                .unwrap();
+        }
     }
 
     pub async fn handle_message(
@@ -941,73 +1092,7 @@ impl Level {
                 damage,
                 impact_sound,
             } => {
-                let scene = &mut engine.scenes[self.scene];
-
-                MeshBuilder::new(
-                    BaseBuilder::new().with_lifetime(0.7).with_local_transform(
-                        TransformBuilder::new()
-                            .with_local_position(*begin)
-                            .with_local_rotation(UnitQuaternion::face_towards(
-                                &(end - begin),
-                                &Vector3::y(),
-                            ))
-                            .build(),
-                    ),
-                )
-                .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
-                    .with_color(Color::from_rgba(255, 127, 40, 120))
-                    .build()])
-                .with_cast_shadows(false)
-                .with_render_path(RenderPath::Forward)
-                .build(&mut scene.graph);
-
-                // Do immediate intersection test and solve it.
-                if let Some(hit) = ray_hit(
-                    *begin,
-                    *end,
-                    *weapon,
-                    &self.weapons,
-                    &self.actors,
-                    &mut scene.physics,
-                    Default::default(),
-                ) {
-                    // Just send new messages, instead of doing everything manually here.
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::CreateEffect {
-                            kind: if hit.actor.is_some() {
-                                EffectKind::BloodSpray
-                            } else {
-                                EffectKind::BulletImpact
-                            },
-                            position: hit.position,
-                            orientation: UnitQuaternion::face_towards(&hit.normal, &Vector3::y()),
-                        })
-                        .unwrap();
-
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::PlaySound {
-                            path: impact_sound.clone(),
-                            position: hit.position,
-                            gain: 1.0,
-                            rolloff_factor: 4.0,
-                            radius: 3.0,
-                        })
-                        .unwrap();
-
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::DamageActor {
-                            actor: hit.actor,
-                            who: hit.who,
-                            amount: *damage,
-                        })
-                        .unwrap();
-                }
+                self.shoot_ray(engine, *weapon, *begin, *end, *damage, impact_sound.clone());
             }
             _ => (),
         }
