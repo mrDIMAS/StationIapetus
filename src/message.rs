@@ -9,6 +9,7 @@
 //! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
 //! all kinds of games, but at least it very useful for first-person shooters.
 
+use crate::level::SoundKind;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -21,6 +22,8 @@ use rg3d::core::{
     algebra::{UnitQuaternion, Vector3},
     pool::Handle,
 };
+use rg3d::physics::parry::shape::FeatureId;
+use rg3d::scene::ColliderHandle;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -72,7 +75,6 @@ pub enum Message {
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: f32,
-        impact_sound: PathBuf, // TODO: This must not be here. Sound manager must do this.
     },
     PlaySound {
         path: PathBuf,
@@ -80,6 +82,12 @@ pub enum Message {
         gain: f32,
         rolloff_factor: f32,
         radius: f32,
+    },
+    PlayImpactSound {
+        collider: ColliderHandle,
+        feature: FeatureId,
+        position: Vector3<f32>,
+        sound_kind: SoundKind,
     },
     ShowWeapon {
         weapon: Handle<Weapon>,

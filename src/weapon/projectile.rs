@@ -18,7 +18,7 @@ use rg3d::{
     engine::resource_manager::ResourceManager,
     physics::{
         dynamics::{BodyStatus, RigidBodyBuilder},
-        geometry::{ColliderBuilder, Proximity, ProximityEvent},
+        geometry::ColliderBuilder,
         na::{Isometry3, Translation3},
     },
     rand,
@@ -343,68 +343,6 @@ impl Projectile {
         }
 
         self.last_position = position;
-    }
-
-    /// Some projectiles have just proximity sensors which used to detect contacts with
-    /// environment and actors. We have to handle proximity events separately.
-    pub fn handle_proximity(
-        &mut self,
-        proximity_event: &ProximityEvent,
-        scene: &mut Scene,
-        actors: &ActorContainer,
-        weapons: &WeaponContainer,
-    ) {
-        if proximity_event.new_status == Proximity::Intersecting
-            || proximity_event.new_status == Proximity::WithinMargin
-        {
-            let mut owner_contact = false;
-
-            let body_a = scene
-                .physics
-                .colliders
-                .get(proximity_event.collider1)
-                .unwrap()
-                .parent();
-            let body_b = scene
-                .physics
-                .colliders
-                .get(proximity_event.collider2)
-                .unwrap()
-                .parent();
-
-            // Check if we got contact with any actor and damage it then.
-            for (actor_handle, actor) in actors.pair_iter() {
-                if (body_a == actor.get_body().into() && body_b == self.body.into()
-                    || body_b == actor.get_body().into() && body_a == self.body.into())
-                    && self.owner.is_some()
-                {
-                    // Prevent self-damage.
-                    let weapon = &weapons[self.owner];
-                    if weapon.owner() != actor_handle {
-                        self.hits.insert(Hit {
-                            actor: actor_handle,
-                            who: weapon.owner(),
-                            position: scene
-                                .physics
-                                .bodies
-                                .get(body_a)
-                                .unwrap()
-                                .position()
-                                .translation
-                                .vector,
-                            normal: Vector3::y(),
-                        });
-                    } else {
-                        // Make sure that projectile won't die on contact with owner.
-                        owner_contact = true;
-                    }
-                }
-            }
-
-            if !owner_contact {
-                self.kill();
-            }
-        }
     }
 
     pub fn get_position(&self, graph: &Graph) -> Vector3<f32> {

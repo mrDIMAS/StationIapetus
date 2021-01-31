@@ -1,0 +1,62 @@
+(
+    material_to_sound: {
+        Grass: {
+            FootStep: [
+                "data/sounds/footsteps/FootStep_shoe_grass_step1.wav",
+                "data/sounds/footsteps/FootStep_shoe_grass_step2.wav",
+                "data/sounds/footsteps/FootStep_shoe_grass_step3.wav",
+                "data/sounds/footsteps/FootStep_shoe_grass_step4.wav",
+            ]
+        },
+        Metal: {
+            FootStep: [
+                "data/sounds/footsteps/FootStep_shoe_metal_step1.wav",
+                "data/sounds/footsteps/FootStep_shoe_metal_step2.wav",
+                "data/sounds/footsteps/FootStep_shoe_metal_step3.wav",
+                "data/sounds/footsteps/FootStep_shoe_metal_step4.wav",
+            ],
+
+            Impact: [
+                "data/sounds/bullet_impact_metal.ogg"
+            ]
+        },
+        Stone: {
+            FootStep: [
+                "data/sounds/footsteps/FootStep_shoe_stone_step1.wav",
+                "data/sounds/footsteps/FootStep_shoe_stone_step2.wav",
+                "data/sounds/footsteps/FootStep_shoe_stone_step3.wav",
+                "data/sounds/footsteps/FootStep_shoe_stone_step4.wav",
+            ],
+
+            Impact: [
+                "data/sounds/bullet_impact_concrete.ogg"
+            ]
+        },
+        Wood: {
+            FootStep: [
+                "data/sounds/footsteps/FootStep_shoe_wood_step1.wav",
+                "data/sounds/footsteps/FootStep_shoe_wood_step2.wav",
+                "data/sounds/footsteps/FootStep_shoe_wood_step3.wav",
+                "data/sounds/footsteps/FootStep_shoe_wood_step4.wav"
+            ]
+        },
+        Chain: {
+            FootStep: [
+                "data/sounds/footsteps/FootStep_shoe_chain1.wav",
+                "data/sounds/footsteps/FootStep_shoe_chain2.wav",
+                "data/sounds/footsteps/FootStep_shoe_chain3.wav",
+                "data/sounds/footsteps/FootStep_shoe_chain4.wav",
+            ]
+        },
+    },
+    texture_to_material: {
+        "data/textures/barrel.jpg": Metal,
+        "data/textures/floor_metal.jpg": Metal,
+        "data/textures/mesh.png": Metal,
+        "data/textures/metal_bare.jpg": Metal,
+        "data/textures/metal_bare_white.jpg": Metal,
+        "data/textures/metal_red.jpg": Metal,
+        "data/textures/metal8.jpg": Metal,
+        "data/textures/blocks17floor.tga": Stone,
+    }
+)

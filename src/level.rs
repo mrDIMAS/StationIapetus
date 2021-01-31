@@ -12,6 +12,9 @@ use crate::{
     },
     GameEngine, GameTime,
 };
+use rg3d::core::rand::seq::SliceRandom;
+use rg3d::physics::parry::shape::FeatureId;
+use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -24,9 +27,10 @@ use rg3d::{
     event::Event,
     physics::{
         crossbeam,
-        geometry::{ContactEvent, InteractionGroups, ProximityEvent},
+        geometry::{ContactEvent, InteractionGroups, IntersectionEvent},
         pipeline::ChannelEventCollector,
     },
+    rand,
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     scene::{
         self,
@@ -44,6 +48,10 @@ use rg3d::{
     },
     utils::navmesh::Navmesh,
 };
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs::File;
+use std::ops::Range;
 use std::{
     path::{Path, PathBuf},
     sync::{mpsc::Sender, Arc, RwLock},
@@ -52,14 +60,43 @@ use std::{
 
 pub const RESPAWN_TIME: f32 = 4.0;
 
+#[derive(Debug)]
+pub struct TriangleRange {
+    range: Range<u32>,
+    material: MaterialType,
+}
+
+#[derive(Deserialize, Hash, Eq, PartialEq, Copy, Clone, Debug)]
+pub enum MaterialType {
+    Grass,
+    Metal,
+    Stone,
+    Wood,
+    Chain,
+}
+
+#[derive(Deserialize, Hash, Eq, PartialEq, Copy, Clone, Debug)]
+pub enum SoundKind {
+    Impact,
+    FootStep,
+}
+
+#[derive(Deserialize, Debug, Default)]
+pub struct SoundBase {
+    material_to_sound: HashMap<MaterialType, HashMap<SoundKind, Vec<String>>>,
+    texture_to_material: HashMap<String, MaterialType>,
+}
+
 #[derive(Default)]
 pub struct SoundManager {
     context: Context,
     reverb: Handle<Effect>,
+    sound_base: SoundBase,
+    sound_map: HashMap<ColliderHandle, Vec<TriangleRange>>,
 }
 
 impl SoundManager {
-    pub fn new(context: Context) -> Self {
+    pub fn new(context: Context, scene: &Scene) -> Self {
         let mut base_effect = BaseEffect::default();
         base_effect.set_gain(0.7);
         let mut reverb = rg3d::sound::effects::reverb::Reverb::new(base_effect);
@@ -81,12 +118,108 @@ impl SoundManager {
                 rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
             ));
 
-        Self { context, reverb }
+        let file = File::open("data/sounds/sound_map.ron").unwrap();
+        let sound_base: SoundBase = ron::de::from_reader(file).unwrap();
+
+        let mut sound_map = HashMap::new();
+
+        let mut nodes = Vec::new();
+        for (handle, _) in scene.graph.pair_iter() {
+            if scene.physics_binder.body_of(handle).is_some() {
+                nodes.push(handle)
+            }
+        }
+
+        let mut stack = Vec::new();
+
+        for node in nodes {
+            let body = scene.physics_binder.body_of(node).unwrap();
+
+            if let Some(&collider) = scene
+                .physics
+                .bodies
+                .get(body.into())
+                .unwrap()
+                .colliders()
+                .first()
+            {
+                let mut ranges = Vec::new();
+
+                stack.clear();
+                stack.push(node);
+
+                let mut triangle_offset = 0u32;
+                while let Some(handle) = stack.pop() {
+                    let descendant = &scene.graph[handle];
+
+                    if let Node::Mesh(descendant_mesh) = descendant {
+                        for surface in descendant_mesh.surfaces() {
+                            let data = surface.data();
+                            let data = data.read().unwrap();
+
+                            if let Some(diffuse_texture) = surface.diffuse_texture() {
+                                let path =
+                                    diffuse_texture.state().path().to_string_lossy().to_string();
+                                if let Some(&material) = sound_base.texture_to_material.get(&path) {
+                                    ranges.push(TriangleRange {
+                                        range: triangle_offset
+                                            ..(triangle_offset + data.triangles().len() as u32),
+                                        material,
+                                    });
+                                }
+                            }
+                            triangle_offset += data.triangles().len() as u32;
+                        }
+                    }
+
+                    stack.extend_from_slice(descendant.children());
+                }
+
+                sound_map.insert(collider.into(), ranges);
+            }
+        }
+
+        Self {
+            context,
+            reverb,
+            sound_base,
+            sound_map,
+        }
+    }
+
+    async fn play_sound(
+        &self,
+        path: &Path,
+        position: Vector3<f32>,
+        gain: f32,
+        rolloff_factor: f32,
+        radius: f32,
+        resource_manager: ResourceManager,
+    ) {
+        let mut state = self.context.state();
+        let buffer = resource_manager
+            .request_sound_buffer(path, false)
+            .await
+            .unwrap();
+        let shot_sound = SpatialSourceBuilder::new(
+            GenericSourceBuilder::new(buffer.into())
+                .with_status(Status::Playing)
+                .with_play_once(true)
+                .with_gain(gain)
+                .build()
+                .unwrap(),
+        )
+        .with_position(position)
+        .with_radius(radius)
+        .with_rolloff_factor(rolloff_factor)
+        .build_source();
+        let source = state.add_source(shot_sound);
+        state
+            .effect_mut(self.reverb)
+            .add_input(EffectInput::direct(source));
     }
 
     pub async fn handle_message(&mut self, resource_manager: ResourceManager, message: &Message) {
-        let mut state = self.context.state();
-
         match message {
             Message::PlaySound {
                 path,
@@ -95,26 +228,49 @@ impl SoundManager {
                 rolloff_factor,
                 radius,
             } => {
-                let shot_buffer = resource_manager
-                    .request_sound_buffer(path, false)
-                    .await
-                    .unwrap();
-                let shot_sound = SpatialSourceBuilder::new(
-                    GenericSourceBuilder::new(shot_buffer.into())
-                        .with_status(Status::Playing)
-                        .with_play_once(true)
-                        .with_gain(*gain)
-                        .build()
-                        .unwrap(),
+                self.play_sound(
+                    path,
+                    *position,
+                    *gain,
+                    *rolloff_factor,
+                    *radius,
+                    resource_manager,
                 )
-                .with_position(*position)
-                .with_radius(*radius)
-                .with_rolloff_factor(*rolloff_factor)
-                .build_source();
-                let source = state.add_source(shot_sound);
-                state
-                    .effect_mut(self.reverb)
-                    .add_input(EffectInput::direct(source));
+                .await;
+            }
+            &Message::PlayImpactSound {
+                collider,
+                feature,
+                position,
+                sound_kind,
+            } => {
+                if let FeatureId::Face(idx) = feature {
+                    if let Some(ranges) = self.sound_map.get(&collider) {
+                        for range in ranges {
+                            if range.range.contains(&idx) {
+                                if let Some(map) =
+                                    self.sound_base.material_to_sound.get(&range.material)
+                                {
+                                    if let Some(sound_list) = map.get(&sound_kind) {
+                                        self.play_sound(
+                                            sound_list
+                                                .choose(&mut rand::thread_rng())
+                                                .unwrap()
+                                                .as_ref(),
+                                            position,
+                                            1.0,
+                                            1.0,
+                                            10.0,
+                                            resource_manager,
+                                        )
+                                        .await;
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
             _ => {}
         }
@@ -147,7 +303,7 @@ pub struct Level {
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
-    proximity_events_receiver: Option<crossbeam::channel::Receiver<ProximityEvent>>,
+    proximity_events_receiver: Option<crossbeam::channel::Receiver<IntersectionEvent>>,
     contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
     beam: Option<Arc<RwLock<SurfaceSharedData>>>,
     trails: ShotTrailContainer,
@@ -502,8 +658,6 @@ impl Level {
     ) -> (Level, Scene) {
         let mut scene = Scene::new();
 
-        let sound_manager = SoundManager::new(scene.sound_context.clone());
-
         let (proximity_events_sender, proximity_events_receiver) = crossbeam::channel::unbounded();
         let (contact_events_sender, contact_events_receiver) = crossbeam::channel::unbounded();
 
@@ -565,7 +719,7 @@ impl Level {
             contact_events_receiver: Some(contact_events_receiver),
             proximity_events_receiver: Some(proximity_events_receiver),
             projectiles: ProjectileContainer::new(),
-            sound_manager,
+            sound_manager: SoundManager::new(scene.sound_context.clone(), &scene),
             beam: Some(make_beam()),
             trails: Default::default(),
         };
@@ -908,12 +1062,10 @@ impl Level {
     pub fn update(&mut self, engine: &mut GameEngine, time: GameTime) {
         self.time += time.delta;
         let scene = &mut engine.scenes[self.scene];
-        while let Ok(proximity_event) = self.proximity_events_receiver.as_ref().unwrap().try_recv()
-        {
-            for proj in self.projectiles.iter_mut() {
-                proj.handle_proximity(&proximity_event, scene, &self.actors, &self.weapons);
-            }
+        while let Ok(_) = self.proximity_events_receiver.as_ref().unwrap().try_recv() {
+            // Drain for now.
         }
+
         self.update_death_zones(scene);
         self.weapons.update(scene, time.delta);
         self.projectiles
@@ -937,7 +1089,6 @@ impl Level {
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: f32,
-        impact_sound: PathBuf,
     ) {
         let scene = &mut engine.scenes[self.scene];
 
@@ -993,12 +1144,11 @@ impl Level {
             self.sender
                 .as_ref()
                 .unwrap()
-                .send(Message::PlaySound {
-                    path: impact_sound.clone(),
+                .send(Message::PlayImpactSound {
+                    collider: hit.collider,
+                    feature: hit.feature,
                     position: hit.position,
-                    gain: 1.0,
-                    rolloff_factor: 4.0,
-                    radius: 3.0,
+                    sound_kind: SoundKind::Impact,
                 })
                 .unwrap();
 
@@ -1090,9 +1240,8 @@ impl Level {
                 begin,
                 end,
                 damage,
-                impact_sound,
             } => {
-                self.shoot_ray(engine, *weapon, *begin, *end, *damage, impact_sound.clone());
+                self.shoot_ray(engine, *weapon, *begin, *end, *damage);
             }
             _ => (),
         }

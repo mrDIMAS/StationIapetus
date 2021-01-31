@@ -1,4 +1,6 @@
 extern crate rg3d;
+extern crate ron;
+extern crate serde;
 
 pub mod actor;
 pub mod bot;

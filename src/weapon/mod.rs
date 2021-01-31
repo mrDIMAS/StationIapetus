@@ -2,6 +2,7 @@ use crate::{
     actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
     GameTime,
 };
+use rg3d::physics::parry::shape::FeatureId;
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -85,6 +86,8 @@ pub struct Hit {
     pub who: Handle<Actor>,
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
+    pub collider: ColliderHandle,
+    pub feature: FeatureId,
 }
 
 impl Hash for Hit {
@@ -138,6 +141,8 @@ pub fn ray_hit(
                             who: weapon.owner(),
                             position: hit.position.coords,
                             normal: hit.normal,
+                            collider: hit.collider,
+                            feature: hit.feature,
                         });
                     }
                 }
@@ -148,6 +153,8 @@ pub fn ray_hit(
                 who: Handle::NONE,
                 position: hit.position.coords,
                 normal: hit.normal,
+                collider: hit.collider,
+                feature: hit.feature,
             });
         }
     }
@@ -450,7 +457,6 @@ impl Weapon {
                         .as_ref()
                         .unwrap()
                         .send(Message::ShootRay {
-                            impact_sound: PathBuf::from("data/sounds/bullet_impact_concrete.ogg"),
                             weapon: self_handle,
                             begin: position,
                             end: position + direction.scale(1000.0),
