@@ -12,15 +12,13 @@ use crate::{
     },
     GameEngine, GameTime,
 };
-use rg3d::core::rand::seq::SliceRandom;
-use rg3d::physics::parry::shape::FeatureId;
-use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, PositionProvider},
         pool::Handle,
+        rand::seq::SliceRandom,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -28,6 +26,7 @@ use rg3d::{
     physics::{
         crossbeam,
         geometry::{ContactEvent, InteractionGroups, IntersectionEvent},
+        parry::shape::FeatureId,
         pipeline::ChannelEventCollector,
     },
     rand,
@@ -39,7 +38,7 @@ use rg3d::{
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
-        Scene,
+        ColliderHandle, Scene,
     },
     sound::{
         context::{self, Context},
@@ -49,10 +48,10 @@ use rg3d::{
     utils::navmesh::Navmesh,
 };
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs::File;
-use std::ops::Range;
 use std::{
+    collections::HashMap,
+    fs::File,
+    ops::Range,
     path::{Path, PathBuf},
     sync::{mpsc::Sender, Arc, RwLock},
     time::Duration,
@@ -73,6 +72,7 @@ pub enum MaterialType {
     Stone,
     Wood,
     Chain,
+    Flesh,
 }
 
 #[derive(Deserialize, Hash, Eq, PartialEq, Copy, Clone, Debug)]
@@ -244,30 +244,43 @@ impl SoundManager {
                 position,
                 sound_kind,
             } => {
-                if let FeatureId::Face(idx) = feature {
-                    if let Some(ranges) = self.sound_map.get(&collider) {
-                        for range in ranges {
-                            if range.range.contains(&idx) {
-                                if let Some(map) =
-                                    self.sound_base.material_to_sound.get(&range.material)
-                                {
-                                    if let Some(sound_list) = map.get(&sound_kind) {
-                                        self.play_sound(
-                                            sound_list
-                                                .choose(&mut rand::thread_rng())
-                                                .unwrap()
-                                                .as_ref(),
-                                            position,
-                                            1.0,
-                                            1.0,
-                                            10.0,
-                                            resource_manager,
-                                        )
-                                        .await;
+                let material = self
+                    .sound_map
+                    .get(&collider)
+                    .map(|ranges| {
+                        match feature {
+                            FeatureId::Face(idx) => {
+                                let mut material = None;
+                                for range in ranges {
+                                    if range.range.contains(&idx) {
+                                        material = Some(range.material);
                                         break;
                                     }
                                 }
+                                material
                             }
+                            _ => {
+                                // Some object have convex shape colliders, they're not provide any
+                                // useful info about the point of impact, so we have to use first
+                                // available material.
+                                ranges.first().map(|first_range| first_range.material)
+                            }
+                        }
+                    })
+                    .flatten();
+
+                if let Some(material) = material {
+                    if let Some(map) = self.sound_base.material_to_sound.get(&material) {
+                        if let Some(sound_list) = map.get(&sound_kind) {
+                            self.play_sound(
+                                sound_list.choose(&mut rand::thread_rng()).unwrap().as_ref(),
+                                position,
+                                1.0,
+                                1.0,
+                                10.0,
+                                resource_manager,
+                            )
+                            .await;
                         }
                     }
                 }

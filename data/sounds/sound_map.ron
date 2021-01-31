@@ -48,6 +48,12 @@
                 "data/sounds/footsteps/FootStep_shoe_chain4.wav",
             ]
         },
+        Flesh: {
+            FootStep: [],
+            Impact: [
+                "data/sounds/bullet_impact_body.ogg"
+            ]
+        }
     },
     texture_to_material: {
         "data/textures/barrel.jpg": Metal,
@@ -58,5 +64,10 @@
         "data/textures/metal_red.jpg": Metal,
         "data/textures/metal8.jpg": Metal,
         "data/textures/blocks17floor.tga": Stone,
+        "data/textures/Ch10_1001_Diffuse.png": Flesh,
+        "data/textures/Ch10_1002_Diffuse.png": Flesh,
+        "data/textures/Ch15_1001_Diffuse.png": Flesh,
+        "data/textures/Mutant_diffuse.png": Flesh,
+        "data/textures/parasiteZombie_diffuse.png": Flesh,
     }
 )
