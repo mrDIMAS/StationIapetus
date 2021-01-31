@@ -1,6 +1,8 @@
 use crate::{
     create_play_animation_state,
+    message::Message,
     player::{make_walk_state, WalkStateDefinition},
+    sound::SoundKind,
 };
 use rg3d::{
     animation::{
@@ -8,12 +10,15 @@ use rg3d::{
         Animation, AnimationSignal,
     },
     core::{
+        algebra::Vector3,
+        math::ray::Ray,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    scene::{node::Node, Scene},
+    scene::{node::Node, physics::RayCastOptions, ColliderHandle, Scene},
 };
+use std::sync::mpsc::Sender;
 
 #[derive(Default)]
 pub struct LowerBodyMachine {
@@ -28,6 +33,7 @@ pub struct LowerBodyMachine {
     pub land_state: Handle<State>,
     pub walk_to_jump: Handle<Transition>,
     pub idle_to_jump: Handle<Transition>,
+    pub model: Handle<Node>,
 }
 
 impl Visit for LowerBodyMachine {
@@ -45,6 +51,7 @@ impl Visit for LowerBodyMachine {
         self.land_state.visit("LandState", visitor)?;
         self.walk_to_jump.visit("WalkToJump", visitor)?;
         self.idle_to_jump.visit("IdleToJump", visitor)?;
+        self.model.visit("Model", visitor)?;
 
         visitor.leave_region()
     }
@@ -70,6 +77,7 @@ impl LowerBodyMachine {
 
     pub const JUMP_SIGNAL: u64 = 1;
     pub const LANDING_SIGNAL: u64 = 2;
+    pub const FOOTSTEP_SIGNAL: u64 = 3;
 
     const RUN_FACTOR: &'static str = "RunFactor";
     const WALK_FACTOR: &'static str = "WalkFactor";
@@ -160,6 +168,18 @@ impl LowerBodyMachine {
             .add_signal(AnimationSignal::new(Self::LANDING_SIGNAL, 0.1))
             .set_loop(false);
 
+        scene
+            .animations
+            .get_mut(walk_animation)
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.4))
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.8));
+
+        scene
+            .animations
+            .get_mut(run_animation)
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.25))
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.5));
+
         // Add transitions between states. This is the "heart" of animation blending state machine
         // it defines how it will respond to input parameters.
         machine.add_transition(Transition::new(
@@ -240,10 +260,19 @@ impl LowerBodyMachine {
             fall_state,
             land_state,
             run_animation,
+            model,
         }
     }
 
-    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: LowerBodyMachineInput) {
+    pub fn apply(
+        &mut self,
+        scene: &mut Scene,
+        dt: f32,
+        input: LowerBodyMachineInput,
+        sender: Sender<Message>,
+        has_ground_contact: bool,
+        self_collider: ColliderHandle,
+    ) {
         self.machine
             // Update parameters which will be used by transitions.
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.is_walking))
@@ -274,5 +303,54 @@ impl LowerBodyMachine {
             .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
+
+        while let Some((walking, evt)) = scene
+            .animations
+            .get_mut(self.walk_animation)
+            .pop_event()
+            .map(|e| (true, e))
+            .or(scene
+                .animations
+                .get_mut(self.run_animation)
+                .pop_event()
+                .map(|e| (false, e)))
+        {
+            if input.is_walking && has_ground_contact && evt.signal_id == Self::FOOTSTEP_SIGNAL {
+                if input.run_factor < 0.5 && walking || input.run_factor >= 0.5 && !walking {
+                    let mut query_buffer = Vec::new();
+
+                    let begin =
+                        scene.graph[self.model].global_position() + Vector3::new(0.0, 10.0, 0.0);
+
+                    scene.physics.cast_ray(
+                        RayCastOptions {
+                            ray: Ray::from_two_points(
+                                &begin,
+                                &(begin + Vector3::new(0.0, -100.0, 0.0)),
+                            )
+                            .unwrap(),
+                            max_len: 100.0,
+                            groups: Default::default(),
+                            sort_results: true,
+                        },
+                        &mut query_buffer,
+                    );
+
+                    for intersection in query_buffer
+                        .into_iter()
+                        .filter(|i| i.collider != self_collider)
+                    {
+                        sender
+                            .send(Message::PlayEnvironmentSound {
+                                collider: intersection.collider,
+                                feature: intersection.feature,
+                                position: intersection.position.coords,
+                                sound_kind: SoundKind::FootStep,
+                            })
+                            .unwrap();
+                    }
+                }
+            }
+        }
     }
 }

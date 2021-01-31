@@ -468,6 +468,9 @@ impl Player {
                 has_ground_contact: self.in_air_time <= 0.3,
                 run_factor: self.run_factor,
             },
+            self.sender.clone().unwrap(),
+            has_ground_contact,
+            self.collider,
         );
 
         self.upper_body_machine.apply(

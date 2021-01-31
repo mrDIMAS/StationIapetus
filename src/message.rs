@@ -9,7 +9,7 @@
 //! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
 //! all kinds of games, but at least it very useful for first-person shooters.
 
-use crate::level::SoundKind;
+use crate::sound::SoundKind;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -83,7 +83,8 @@ pub enum Message {
         rolloff_factor: f32,
         radius: f32,
     },
-    PlayImpactSound {
+    /// Plays environment-specific sound. It also handles foot step sounds.
+    PlayEnvironmentSound {
         collider: ColliderHandle,
         feature: FeatureId,
         position: Vector3<f32>,
