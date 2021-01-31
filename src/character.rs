@@ -1,3 +1,4 @@
+use crate::weapon::{WeaponContainer, WeaponKind};
 use crate::{message::Message, weapon::Weapon};
 use rg3d::{
     core::{
@@ -143,6 +144,29 @@ impl Character {
         self.weapons.push(weapon);
 
         self.request_current_weapon_visible(true);
+    }
+
+    pub fn select_weapon(&mut self, weapon: WeaponKind, weapons: &WeaponContainer) {
+        if let Some(index) = self
+            .weapons
+            .iter()
+            .position(|&w| weapons[w].get_kind() == weapon)
+        {
+            if let Some(sender) = self.sender.as_ref() {
+                for other_weapon in self.weapons.iter() {
+                    sender
+                        .send(Message::ShowWeapon {
+                            weapon: *other_weapon,
+                            state: false,
+                        })
+                        .unwrap();
+                }
+            }
+
+            self.current_weapon = index as u32;
+
+            self.request_current_weapon_visible(true);
+        }
     }
 
     pub fn current_weapon(&self) -> Handle<Weapon> {

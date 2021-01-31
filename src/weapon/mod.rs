@@ -38,19 +38,22 @@ use std::{
 pub mod projectile;
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[repr(u32)]
 pub enum WeaponKind {
-    M4,
-    Ak47,
-    PlasmaRifle,
+    M4 = 0,
+    Ak47 = 1,
+    PlasmaRifle = 2,
+}
+
+impl Default for WeaponKind {
+    fn default() -> Self {
+        Self::M4
+    }
 }
 
 impl WeaponKind {
     pub fn id(self) -> u32 {
-        match self {
-            WeaponKind::M4 => 0,
-            WeaponKind::Ak47 => 1,
-            WeaponKind::PlasmaRifle => 2,
-        }
+        self as u32
     }
 
     pub fn new(id: u32) -> Result<Self, String> {
@@ -60,6 +63,17 @@ impl WeaponKind {
             2 => Ok(WeaponKind::PlasmaRifle),
             _ => Err(format!("unknown weapon kind {}", id)),
         }
+    }
+}
+
+impl Visit for WeaponKind {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        let mut id = self.id();
+        id.visit(name, visitor)?;
+        if visitor.is_reading() {
+            *self = Self::new(id)?;
+        }
+        VisitResult::Ok(())
     }
 }
 
@@ -204,12 +218,7 @@ impl Visit for Weapon {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
-        let mut kind_id = self.kind.id();
-        kind_id.visit("KindId", visitor)?;
-        if visitor.is_reading() {
-            self.kind = WeaponKind::new(kind_id)?
-        }
-
+        self.kind.visit("KindId", visitor)?;
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
         self.offset.visit("Offset", visitor)?;

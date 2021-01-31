@@ -167,7 +167,7 @@ impl ActorContainer {
 
             match actor {
                 Actor::Bot(bot) => bot.update(handle, context, &self.target_descriptors),
-                Actor::Player(player) => player.update(context),
+                Actor::Player(player) => player.update(handle, context),
             }
             if !is_dead {
                 for (item_handle, item) in context.items.pair_iter() {

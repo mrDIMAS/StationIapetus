@@ -94,6 +94,11 @@ pub enum Message {
         weapon: Handle<Weapon>,
         state: bool,
     },
+    /// Forces actor to use a weapon of given kind.
+    GrabWeapon {
+        kind: WeaponKind,
+        actor: Handle<Actor>,
+    },
     DamageActor {
         actor: Handle<Actor>,
         /// Actor who damaged target actor, can be Handle::NONE if damage came from environment

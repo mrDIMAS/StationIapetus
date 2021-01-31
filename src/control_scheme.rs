@@ -43,6 +43,9 @@ pub struct ControlScheme {
     pub run: ControlButtonDefinition,
     pub aim: ControlButtonDefinition,
     pub toss_grenade: ControlButtonDefinition,
+    pub grab_ak47: ControlButtonDefinition,
+    pub grab_m4: ControlButtonDefinition,
+    pub grab_plasma_gun: ControlButtonDefinition,
     pub mouse_sens: f32,
     pub mouse_y_inverse: bool,
 }
@@ -94,6 +97,18 @@ impl Default for ControlScheme {
                 description: "Toss Grenade".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::G),
             },
+            grab_ak47: ControlButtonDefinition {
+                description: "Grab AK47".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Key1),
+            },
+            grab_m4: ControlButtonDefinition {
+                description: "Grab M4".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Key2),
+            },
+            grab_plasma_gun: ControlButtonDefinition {
+                description: "Grab Plasma Gun".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Key3),
+            },
             mouse_sens: 0.3,
             mouse_y_inverse: false,
         }
@@ -101,7 +116,7 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 11] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 14] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
@@ -114,10 +129,13 @@ impl ControlScheme {
             &mut self.run,
             &mut self.aim,
             &mut self.toss_grenade,
+            &mut self.grab_ak47,
+            &mut self.grab_m4,
+            &mut self.grab_plasma_gun,
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 11] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 14] {
         [
             &self.move_forward,
             &self.move_backward,
@@ -130,6 +148,9 @@ impl ControlScheme {
             &self.run,
             &self.aim,
             &self.toss_grenade,
+            &self.grab_ak47,
+            &self.grab_m4,
+            &self.grab_plasma_gun,
         ]
     }
 

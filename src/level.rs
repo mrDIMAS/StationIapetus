@@ -1002,6 +1002,12 @@ impl Level {
             } => {
                 self.shoot_ray(engine, *weapon, *begin, *end, *damage);
             }
+            &Message::GrabWeapon { kind, actor } => {
+                if self.actors.contains(actor) {
+                    let actor = self.actors.get_mut(actor);
+                    actor.select_weapon(kind, &self.weapons);
+                }
+            }
             _ => (),
         }
     }

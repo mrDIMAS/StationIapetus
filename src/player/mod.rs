@@ -1,3 +1,5 @@
+use crate::actor::Actor;
+use crate::weapon::WeaponKind;
 use crate::{
     character::Character,
     control_scheme::{ControlButton, ControlScheme},
@@ -161,26 +163,54 @@ impl DerefMut for Player {
     }
 }
 
-#[derive(Copy, Clone, PartialOrd, PartialEq, Eq, Ord)]
-#[repr(u32)]
-enum Direction {
+#[derive(Copy, Clone, PartialEq, Eq)]
+enum RequiredWeapon {
     None,
     Next,
     Previous,
+    Specific(WeaponKind),
 }
 
-impl Direction {
+impl RequiredWeapon {
+    fn id(self) -> u32 {
+        match self {
+            RequiredWeapon::None => 0,
+            RequiredWeapon::Next => 1,
+            RequiredWeapon::Previous => 2,
+            RequiredWeapon::Specific(_) => 3,
+        }
+    }
+
     fn from_id(id: u32) -> Result<Self, String> {
         match id {
             0 => Ok(Self::None),
             1 => Ok(Self::Next),
             2 => Ok(Self::Previous),
+            3 => Ok(Self::Specific(WeaponKind::default())),
             _ => Err(format!("Invalid Direction id {}!", id)),
         }
     }
 }
 
-impl Default for Direction {
+impl Visit for RequiredWeapon {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        let mut id = self.id();
+        id.visit("Id", visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(id)?;
+        }
+
+        if let RequiredWeapon::Specific(kind) = self {
+            kind.visit("SpecificKind", visitor)?;
+        }
+
+        visitor.leave_region()
+    }
+}
+
+impl Default for RequiredWeapon {
     fn default() -> Self {
         Self::None
     }
@@ -205,7 +235,7 @@ pub struct Player {
     target_camera_offset: Vector3<f32>,
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
-    weapon_change_direction: Direction,
+    weapon_change_direction: RequiredWeapon,
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
     weapon_origin: Handle<Node>,
@@ -246,12 +276,8 @@ impl Visit for Player {
         self.in_air_time.visit("InAirTime", visitor)?;
         self.velocity.visit("Velocity", visitor)?;
         self.target_velocity.visit("TargetVelocity", visitor)?;
-
-        let mut direction = self.weapon_change_direction as u32;
-        direction.visit("WeaponChangeDirection", visitor)?;
-        if visitor.is_reading() {
-            self.weapon_change_direction = Direction::from_id(direction)?;
-        }
+        self.weapon_change_direction
+            .visit("WeaponChangeDirection", visitor)?;
 
         visitor.leave_region()
     }
@@ -396,7 +422,7 @@ impl Player {
             target_camera_offset: Vector3::new(0.0, 0.0, camera_offset),
             collider,
             control_scheme: Some(control_scheme),
-            weapon_change_direction: Direction::None,
+            weapon_change_direction: RequiredWeapon::None,
             weapon_yaw_correction: SmoothAngle {
                 angle: 0.0,
                 target: 30.0f32.to_radians(),
@@ -427,7 +453,7 @@ impl Player {
         self.health <= 0.0
     }
 
-    pub fn update(&mut self, context: &mut UpdateContext) {
+    pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
         let UpdateContext { time, scene, .. } = context;
 
         let mut sound_context = scene.sound_context.state();
@@ -483,7 +509,7 @@ impl Player {
                 is_aiming: self.controller.aim,
                 toss_grenade: self.controller.toss_grenade,
                 weapon: CombatWeaponKind::Rifle,
-                change_weapon: self.weapon_change_direction != Direction::None,
+                change_weapon: self.weapon_change_direction != RequiredWeapon::None,
                 run_factor: self.run_factor,
             },
         );
@@ -568,12 +594,22 @@ impl Player {
         {
             if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
                 match self.weapon_change_direction {
-                    Direction::None => (),
-                    Direction::Next => self.next_weapon(),
-                    Direction::Previous => self.prev_weapon(),
+                    RequiredWeapon::None => (),
+                    RequiredWeapon::Next => self.next_weapon(),
+                    RequiredWeapon::Previous => self.prev_weapon(),
+                    RequiredWeapon::Specific(kind) => {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::GrabWeapon {
+                                kind,
+                                actor: self_handle,
+                            })
+                            .unwrap();
+                    }
                 }
 
-                self.weapon_change_direction = Direction::None;
+                self.weapon_change_direction = RequiredWeapon::None;
             }
         }
 
@@ -941,6 +977,8 @@ impl Player {
             _ => None,
         };
 
+        let mut weapon_change_direction = None;
+
         if let Some((button, state)) = button_state {
             if button == scheme.aim.button {
                 self.controller.aim = state == ElementState::Pressed;
@@ -956,37 +994,21 @@ impl Player {
                 self.controller.jump = state == ElementState::Pressed;
             } else if button == scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
+            } else if button == scheme.grab_ak47.button {
+                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
+            } else if button == scheme.grab_m4.button {
+                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::M4));
+            } else if button == scheme.grab_plasma_gun.button {
+                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
             } else if button == scheme.next_weapon.button {
                 if state == ElementState::Pressed
                     && self.current_weapon < self.weapons.len() as u32 - 1
                 {
-                    self.weapon_change_direction = Direction::Next;
-
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.put_back_animation)
-                        .rewind();
-
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.grab_animation)
-                        .set_enabled(false)
-                        .rewind();
+                    weapon_change_direction = Some(RequiredWeapon::Next);
                 }
             } else if button == scheme.prev_weapon.button {
                 if state == ElementState::Pressed && self.current_weapon > 0 {
-                    self.weapon_change_direction = Direction::Previous;
-
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.put_back_animation)
-                        .rewind();
-
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.grab_animation)
-                        .set_enabled(false)
-                        .rewind();
+                    weapon_change_direction = Some(RequiredWeapon::Previous);
                 }
             } else if button == scheme.toss_grenade.button {
                 self.controller.toss_grenade = state == ElementState::Pressed;
@@ -999,6 +1021,21 @@ impl Player {
             } else if button == scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;
             }
+        }
+
+        if let Some(weapon_change_direction) = weapon_change_direction {
+            self.weapon_change_direction = weapon_change_direction;
+
+            scene
+                .animations
+                .get_mut(self.upper_body_machine.put_back_animation)
+                .rewind();
+
+            scene
+                .animations
+                .get_mut(self.upper_body_machine.grab_animation)
+                .set_enabled(false)
+                .rewind();
         }
     }
 }
