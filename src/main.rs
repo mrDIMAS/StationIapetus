@@ -18,10 +18,7 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
-use crate::{
-    actor::Actor, control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu,
-    message::Message,
-};
+use crate::{control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu, message::Message};
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -202,7 +199,7 @@ impl Game {
         let mut settings = engine.renderer.get_quality_settings();
         settings.point_shadow_map_precision = ShadowMapPrecision::Full;
         settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
-        settings.spot_shadows_distance = 200.0;
+        settings.spot_shadows_distance = 30.0;
         engine.renderer.set_quality_settings(&settings).unwrap();
         engine.renderer.set_ambient_color(Color::opaque(60, 60, 60));
 
@@ -383,12 +380,11 @@ impl Game {
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
-            level.set_message_sender(self.events_sender.clone(), &mut self.engine);
-            level.control_scheme = Some(self.control_scheme.clone());
-            let player = level.get_player();
-            if let Actor::Player(player) = level.actors_mut().get_mut(player) {
-                player.set_control_scheme(self.control_scheme.clone());
-            }
+            level.resolve(
+                &mut self.engine,
+                self.events_sender.clone(),
+                self.control_scheme.clone(),
+            );
         }
 
         self.time.elapsed = self.time.clock.elapsed().as_secs_f64();

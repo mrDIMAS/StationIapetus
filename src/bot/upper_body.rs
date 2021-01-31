@@ -329,6 +329,7 @@ impl Visit for UpperBodyMachine {
 
         self.machine.visit("Machine", visitor)?;
         self.attack_animation.visit("AttackAnimation", visitor)?;
+        self.dying_animation.visit("DyingAnimation", visitor)?;
         self.aim_state.visit("AimState", visitor)?;
 
         visitor.leave_region()

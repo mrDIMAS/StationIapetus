@@ -1006,6 +1006,22 @@ impl Level {
         }
     }
 
+    pub fn resolve(
+        &mut self,
+        engine: &mut GameEngine,
+        sender: Sender<Message>,
+        control_scheme: Arc<RwLock<ControlScheme>>,
+    ) {
+        self.set_message_sender(sender, engine);
+        self.control_scheme = Some(control_scheme.clone());
+
+        if let Actor::Player(player) = self.actors.get_mut(self.player) {
+            player.set_control_scheme(control_scheme);
+        }
+
+        self.sound_manager.resolve(&engine.scenes[self.scene]);
+    }
+
     pub fn set_message_sender(&mut self, sender: Sender<Message>, engine: &mut GameEngine) {
         self.sender = Some(sender.clone());
 

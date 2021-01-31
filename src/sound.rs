@@ -11,8 +11,7 @@ use rg3d::{
     rand::seq::SliceRandom,
     scene::{node::Node, ColliderHandle, Scene},
     sound::{
-        context,
-        context::Context,
+        context::{self, Context},
         effects::{BaseEffect, Effect, EffectInput},
         source::{generic::GenericSourceBuilder, spatial::SpatialSourceBuilder, Status},
     },
@@ -48,40 +47,20 @@ pub struct SoundBase {
     texture_to_material: HashMap<String, MaterialType>,
 }
 
+impl SoundBase {
+    pub fn load() -> Self {
+        let file = File::open("data/sounds/sound_map.ron").unwrap();
+        ron::de::from_reader(file).unwrap()
+    }
+}
+
 #[derive(Default)]
-pub struct SoundManager {
-    context: Context,
-    reverb: Handle<Effect>,
-    sound_base: SoundBase,
+pub struct SoundMap {
     sound_map: HashMap<ColliderHandle, Vec<TriangleRange>>,
 }
 
-impl SoundManager {
-    pub fn new(context: Context, scene: &Scene) -> Self {
-        let mut base_effect = BaseEffect::default();
-        base_effect.set_gain(0.7);
-        let mut reverb = rg3d::sound::effects::reverb::Reverb::new(base_effect);
-        reverb.set_dry(0.5);
-        reverb.set_wet(0.5);
-        reverb.set_decay_time(Duration::from_secs_f32(3.0));
-        let reverb = context
-            .state()
-            .add_effect(rg3d::sound::effects::Effect::Reverb(reverb));
-
-        let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
-            "data/sounds/IRC_1040_C.bin",
-            context::SAMPLE_RATE,
-        )
-        .unwrap();
-        context
-            .state()
-            .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
-                rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
-            ));
-
-        let file = File::open("data/sounds/sound_map.ron").unwrap();
-        let sound_base: SoundBase = ron::de::from_reader(file).unwrap();
-
+impl SoundMap {
+    pub fn new(scene: &Scene, sound_base: &SoundBase) -> Self {
         let mut sound_map = HashMap::new();
 
         let mut nodes = Vec::new();
@@ -139,12 +118,52 @@ impl SoundManager {
                 sound_map.insert(collider.into(), ranges);
             }
         }
+        Self { sound_map }
+    }
+
+    pub fn ranges_of(&self, collider: ColliderHandle) -> Option<&[TriangleRange]> {
+        self.sound_map.get(&collider).map(|r| r.as_slice())
+    }
+}
+
+#[derive(Default)]
+pub struct SoundManager {
+    context: Context,
+    reverb: Handle<Effect>,
+    sound_base: SoundBase,
+    sound_map: SoundMap,
+}
+
+impl SoundManager {
+    pub fn new(context: Context, scene: &Scene) -> Self {
+        let mut base_effect = BaseEffect::default();
+        base_effect.set_gain(0.7);
+        let mut reverb = rg3d::sound::effects::reverb::Reverb::new(base_effect);
+        reverb.set_dry(0.5);
+        reverb.set_wet(0.5);
+        reverb.set_decay_time(Duration::from_secs_f32(3.0));
+        let reverb = context
+            .state()
+            .add_effect(rg3d::sound::effects::Effect::Reverb(reverb));
+
+        let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
+            "data/sounds/IRC_1040_C.bin",
+            context::SAMPLE_RATE,
+        )
+        .unwrap();
+        context
+            .state()
+            .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
+                rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
+            ));
+
+        let sound_base = SoundBase::load();
 
         Self {
             context,
             reverb,
+            sound_map: SoundMap::new(scene, &sound_base),
             sound_base,
-            sound_map,
         }
     }
 
@@ -207,7 +226,7 @@ impl SoundManager {
             } => {
                 let material = self
                     .sound_map
-                    .get(&collider)
+                    .ranges_of(collider)
                     .map(|ranges| {
                         match feature {
                             FeatureId::Face(idx) => {
@@ -248,6 +267,11 @@ impl SoundManager {
             }
             _ => {}
         }
+    }
+
+    pub fn resolve(&mut self, scene: &Scene) {
+        self.sound_base = SoundBase::load();
+        self.sound_map = SoundMap::new(scene, &self.sound_base);
     }
 }
 
