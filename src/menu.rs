@@ -9,16 +9,13 @@ use rg3d::{
         button::ButtonBuilder,
         grid::{Column, GridBuilder, Row},
         message::{ButtonMessage, MessageDirection, UiMessageData, WidgetMessage, WindowMessage},
-        ttf::{Font, SharedFont},
+        ttf::SharedFont,
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
         Thickness,
     },
 };
-use std::{
-    path::Path,
-    sync::{mpsc::Sender, Arc, Mutex, RwLock},
-};
+use std::sync::{mpsc::Sender, Arc, RwLock};
 
 pub struct Menu {
     sender: Sender<Message>,
@@ -36,16 +33,9 @@ impl Menu {
         engine: &mut GameEngine,
         control_scheme: Arc<RwLock<ControlScheme>>,
         sender: Sender<Message>,
+        font: SharedFont,
     ) -> Self {
         let frame_size = engine.renderer.get_frame_size();
-
-        let font: Font = Font::from_file(
-            Path::new("data/ui/SquaresBold.ttf"),
-            31.0,
-            Font::default_char_set(),
-        )
-        .unwrap();
-        let font = SharedFont(Arc::new(Mutex::new(font)));
 
         let ctx = &mut engine.user_interface.build_ctx();
 

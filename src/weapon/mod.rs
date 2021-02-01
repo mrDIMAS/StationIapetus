@@ -1,3 +1,7 @@
+//! Weapon related stuff.
+//!
+//! TODO: Add DeadSpace-like sight for every weapon - it is a bright line with a bright glowing tip.
+
 use crate::{
     actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
     GameTime,

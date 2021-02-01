@@ -18,7 +18,9 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
+use crate::gui::DeathScreen;
 use crate::{control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu, message::Message};
+use rg3d::gui::ttf::{Font, SharedFont};
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -108,6 +110,7 @@ pub struct Game {
     loading_screen: LoadingScreen,
     menu_sound_context: Context,
     music: Handle<SoundSource>,
+    death_screen: DeathScreen,
 }
 
 struct LoadingScreen {
@@ -189,6 +192,14 @@ impl Game {
         monitor_dimensions.width = (monitor_dimensions.width as f32 * 0.7) as u32;
         let inner_size = monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor());
 
+        let font: Font = Font::from_file(
+            Path::new("data/ui/SquaresBold.ttf"),
+            31.0,
+            Font::default_char_set(),
+        )
+        .unwrap();
+        let font = SharedFont(Arc::new(Mutex::new(font)));
+
         let window_builder = rg3d::window::WindowBuilder::new()
             .with_title("Station Iapetus")
             .with_inner_size(inner_size)
@@ -248,7 +259,13 @@ impl Game {
             music,
             hud: Hud::new(&mut engine),
             running: true,
-            menu: Menu::new(&mut engine, control_scheme.clone(), tx.clone()),
+            menu: Menu::new(
+                &mut engine,
+                control_scheme.clone(),
+                tx.clone(),
+                font.clone(),
+            ),
+            death_screen: DeathScreen::new(&mut engine.user_interface, font, tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
             engine,
