@@ -994,6 +994,17 @@ impl Player {
                 self.controller.jump = state == ElementState::Pressed;
             } else if button == scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
+            } else if button == scheme.flash_light.button {
+                if state == ElementState::Pressed {
+                    let current_weapon = self.current_weapon();
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SwitchFlashLight {
+                            weapon: current_weapon,
+                        })
+                        .unwrap();
+                }
             } else if button == scheme.grab_ak47.button {
                 weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
             } else if button == scheme.grab_m4.button {

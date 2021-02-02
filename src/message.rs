@@ -99,6 +99,9 @@ pub enum Message {
         kind: WeaponKind,
         actor: Handle<Actor>,
     },
+    SwitchFlashLight {
+        weapon: Handle<Weapon>,
+    },
     DamageActor {
         actor: Handle<Actor>,
         /// Actor who damaged target actor, can be Handle::NONE if damage came from environment

@@ -334,6 +334,9 @@ impl Weapon {
         let flash_light = if flash_light_point.is_some() {
             let flash_light = SpotLightBuilder::new(BaseLightBuilder::new(BaseBuilder::new()))
                 .with_distance(10.0)
+                .with_cookie_texture(
+                    resource_manager.request_texture("data/particles/light_01.png"),
+                )
                 .with_hotspot_cone_angle(30.0f32.to_radians())
                 .build(&mut scene.graph);
 
@@ -415,6 +418,14 @@ impl Weapon {
 
     pub fn set_owner(&mut self, owner: Handle<Actor>) {
         self.owner = owner;
+    }
+
+    pub fn switch_flash_light(&self, graph: &mut Graph) {
+        if self.flash_light.is_some() {
+            let flash_light = &mut graph[self.flash_light];
+            let enabled = flash_light.visibility();
+            flash_light.set_visibility(!enabled);
+        }
     }
 
     pub fn try_shoot(

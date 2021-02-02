@@ -1015,6 +1015,11 @@ impl Level {
                     actor.select_weapon(kind, &self.weapons);
                 }
             }
+            &Message::SwitchFlashLight { weapon } => {
+                if self.weapons.contains(weapon) {
+                    self.weapons[weapon].switch_flash_light(&mut engine.scenes[self.scene].graph);
+                }
+            }
             _ => (),
         }
     }
