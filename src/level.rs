@@ -808,13 +808,15 @@ impl Level {
         }
     }
 
-    fn update_game_ending(&self) {
-        if self.actors.get(self.player).is_dead() {
-            self.sender
-                .as_ref()
-                .unwrap()
-                .send(Message::EndMatch)
-                .unwrap();
+    fn update_game_ending(&self, scene: &Scene) {
+        if let Actor::Player(player) = self.actors.get(self.player) {
+            if player.is_completely_dead(scene) {
+                self.sender
+                    .as_ref()
+                    .unwrap()
+                    .send(Message::EndMatch)
+                    .unwrap();
+            }
         }
     }
 
@@ -838,7 +840,7 @@ impl Level {
         };
         self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
-        self.update_game_ending();
+        self.update_game_ending(scene);
     }
 
     fn shoot_ray(

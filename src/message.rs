@@ -120,6 +120,7 @@ pub enum Message {
     LoadGame,
     StartNewGame,
     QuitGame,
+    ToggleMainMenu,
     SetMusicVolume {
         volume: f32,
     },

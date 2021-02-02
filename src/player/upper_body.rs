@@ -3,9 +3,10 @@ use crate::{
     player::{make_walk_state, WalkStateDefinition},
 };
 use rg3d::{
+    animation::Animation,
     animation::{
         machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
-        Animation, AnimationSignal,
+        AnimationSignal,
     },
     core::{
         pool::Handle,
@@ -28,6 +29,7 @@ pub struct UpperBodyMachine {
     pub toss_grenade_animation: Handle<Animation>,
     pub put_back_animation: Handle<Animation>,
     pub grab_animation: Handle<Animation>,
+    pub dying_animation: Handle<Animation>,
 }
 
 fn disable_leg_tracks(
@@ -60,6 +62,7 @@ impl Visit for UpperBodyMachine {
         self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
         self.put_back_animation.visit("PutBackAnimation", visitor)?;
         self.grab_animation.visit("GrabAnimation", visitor)?;
+        self.dying_animation.visit("DyingAnimation", visitor)?;
 
         visitor.leave_region()
     }
@@ -80,6 +83,7 @@ pub struct UpperBodyMachineInput {
     pub toss_grenade: bool,
     pub weapon: CombatWeaponKind,
     pub change_weapon: bool,
+    pub is_dead: bool,
 }
 
 impl UpperBodyMachine {
@@ -111,6 +115,16 @@ impl UpperBodyMachine {
     const GRAB_TO_IDLE: &'static str = "GrabToIdle";
     const GRAB_TO_WALK: &'static str = "GrabToWalk";
 
+    const LAND_TO_DYING: &'static str = "LandToDying";
+    const FALL_TO_DYING: &'static str = "FallToDying";
+    const IDLE_TO_DYING: &'static str = "IdleToDying";
+    const WALK_TO_DYING: &'static str = "WalkToDying";
+    const JUMP_TO_DYING: &'static str = "JumpToDying";
+    const AIM_TO_DYING: &'static str = "AimToDying";
+    const TOSS_GRENADE_TO_DYING: &'static str = "TossGrenadeToDying";
+    const GRAB_TO_DYING: &'static str = "GrabToDying";
+    const PUT_BACK_TO_DYING: &'static str = "PutBackToDying";
+
     const RIFLE_AIM_FACTOR: &'static str = "RifleAimFactor";
     const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
 
@@ -141,6 +155,7 @@ impl UpperBodyMachine {
             put_back_animation_resource,
             grab_animation_resource,
             run_animation_resource,
+            dying_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
@@ -153,6 +168,7 @@ impl UpperBodyMachine {
             resource_manager.request_model("data/animations/agent_put_back.fbx"),
             resource_manager.request_model("data/animations/agent_grab.fbx"),
             resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_dying.fbx"),
         );
 
         let aim_rifle_animation = *aim_rifle_animation_resource
@@ -239,6 +255,14 @@ impl UpperBodyMachine {
             model,
         );
 
+        let (dying_animation, dying_state) = create_play_animation_state(
+            dying_animation_resource.unwrap(),
+            "Dying",
+            &mut machine,
+            scene,
+            model,
+        );
+
         let WalkStateDefinition {
             walk_animation,
             state: walk_state,
@@ -278,6 +302,12 @@ impl UpperBodyMachine {
             .get_mut(toss_grenade_animation)
             .set_speed(1.5)
             .add_signal(AnimationSignal::new(Self::TOSS_GRENADE_SIGNAL, 1.7))
+            .set_loop(false);
+
+        scene
+            .animations
+            .get_mut(dying_animation)
+            .set_enabled(false)
             .set_loop(false);
 
         machine.add_transition(Transition::new(
@@ -446,6 +476,71 @@ impl UpperBodyMachine {
             Self::GRAB_TO_WALK,
         ));
 
+        // Dying transitions.
+        machine.add_transition(Transition::new(
+            "Land->Dying",
+            land_state,
+            dying_state,
+            0.20,
+            Self::LAND_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Fall->Dying",
+            fall_state,
+            dying_state,
+            0.20,
+            Self::FALL_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Dying",
+            idle_state,
+            dying_state,
+            0.20,
+            Self::IDLE_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Dying",
+            walk_state,
+            dying_state,
+            0.20,
+            Self::WALK_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Jump->Dying",
+            jump_state,
+            dying_state,
+            0.20,
+            Self::JUMP_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Aim->Dying",
+            aim_state,
+            dying_state,
+            0.20,
+            Self::AIM_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "TossGrenade->Dying",
+            toss_grenade_state,
+            dying_state,
+            0.20,
+            Self::TOSS_GRENADE_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Grab->Dying",
+            grab_state,
+            dying_state,
+            0.20,
+            Self::GRAB_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "PutBack->Dying",
+            put_back_state,
+            dying_state,
+            0.20,
+            Self::PUT_BACK_TO_DYING,
+        ));
+
         for leg in &["mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"] {
             for &animation in &[
                 aim_pistol_animation,
@@ -459,6 +554,7 @@ impl UpperBodyMachine {
                 grab_animation,
                 put_back_animation,
                 run_animation,
+                dying_animation,
             ] {
                 disable_leg_tracks(animation, model, leg, scene);
             }
@@ -478,6 +574,7 @@ impl UpperBodyMachine {
             toss_grenade_animation,
             put_back_animation,
             grab_animation,
+            dying_animation,
         }
     }
 
@@ -582,6 +679,15 @@ impl UpperBodyMachine {
                     0.0
                 }),
             )
+            .set_parameter(Self::LAND_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::FALL_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::JUMP_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::AIM_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::TOSS_GRENADE_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::GRAB_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::PUT_BACK_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
             .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .set_parameter(

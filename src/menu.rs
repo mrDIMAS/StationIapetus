@@ -150,7 +150,7 @@ impl Menu {
         }
     }
 
-    pub fn set_visible(&mut self, ui: &mut Gui, visible: bool) {
+    pub fn set_visible(&mut self, ui: &Gui, visible: bool) {
         ui.send_message(WidgetMessage::visibility(
             self.root,
             MessageDirection::ToWidget,
@@ -187,7 +187,7 @@ impl Menu {
         self.options_menu.process_input_event(engine, event);
     }
 
-    pub fn handle_ui_event(
+    pub fn handle_ui_message(
         &mut self,
         engine: &mut GameEngine,
         level: Option<&Level>,

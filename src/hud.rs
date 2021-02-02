@@ -263,7 +263,7 @@ impl Hud {
         ));
     }
 
-    pub fn set_visible(&mut self, ui: &mut Gui, visible: bool) {
+    pub fn set_visible(&mut self, ui: &Gui, visible: bool) {
         ui.send_message(WidgetMessage::visibility(
             self.root,
             MessageDirection::ToWidget,

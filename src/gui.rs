@@ -3,6 +3,7 @@
 //! is not much.
 
 use crate::{message::Message, BuildContext, Gui, GuiMessage, UiNode};
+use rg3d::gui::message::{MessageDirection, WidgetMessage};
 use rg3d::{
     core::pool::Handle,
     gui::{
@@ -175,14 +176,29 @@ impl DeathScreen {
         }
     }
 
-    pub fn handle_ui_event(&mut self, message: &GuiMessage) {
+    pub fn handle_ui_message(&mut self, message: &GuiMessage) {
         if let UiMessageData::Button(msg) = message.data() {
             if let ButtonMessage::Click = msg {
                 if message.destination() == self.load_game {
+                    self.sender.send(Message::LoadGame).unwrap();
                 } else if message.destination() == self.exit_to_menu {
+                    self.sender.send(Message::ToggleMainMenu).unwrap();
                 } else if message.destination() == self.exit_game {
+                    self.sender.send(Message::QuitGame).unwrap();
                 }
             }
         }
+    }
+
+    pub fn set_visible(&self, ui: &Gui, state: bool) {
+        ui.send_message(WidgetMessage::visibility(
+            self.root,
+            MessageDirection::ToWidget,
+            state,
+        ));
+    }
+
+    pub fn is_visible(&self, ui: &Gui) -> bool {
+        ui.node(self.root).visibility()
     }
 }

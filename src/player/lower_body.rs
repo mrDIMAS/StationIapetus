@@ -27,6 +27,7 @@ pub struct LowerBodyMachine {
     pub walk_animation: Handle<Animation>,
     pub run_animation: Handle<Animation>,
     pub land_animation: Handle<Animation>,
+    pub dying_animation: Handle<Animation>,
     pub walk_state: Handle<State>,
     pub jump_state: Handle<State>,
     pub fall_state: Handle<State>,
@@ -52,6 +53,7 @@ impl Visit for LowerBodyMachine {
         self.walk_to_jump.visit("WalkToJump", visitor)?;
         self.idle_to_jump.visit("IdleToJump", visitor)?;
         self.model.visit("Model", visitor)?;
+        self.dying_animation.visit("DyingAnimation", visitor)?;
 
         visitor.leave_region()
     }
@@ -62,6 +64,7 @@ pub struct LowerBodyMachineInput {
     pub is_jumping: bool,
     pub run_factor: f32,
     pub has_ground_contact: bool,
+    pub is_dead: bool,
 }
 
 impl LowerBodyMachine {
@@ -74,6 +77,12 @@ impl LowerBodyMachine {
     const IDLE_TO_FALL: &'static str = "IdleToFall";
     const FALL_TO_LAND: &'static str = "FallToLand";
     const LAND_TO_IDLE: &'static str = "LandToIdle";
+
+    const LAND_TO_DYING: &'static str = "LandToDying";
+    const FALL_TO_DYING: &'static str = "FallToDying";
+    const IDLE_TO_DYING: &'static str = "IdleToDying";
+    const WALK_TO_DYING: &'static str = "WalkToDying";
+    const JUMP_TO_DYING: &'static str = "JumpToDying";
 
     pub const JUMP_SIGNAL: u64 = 1;
     pub const LANDING_SIGNAL: u64 = 2;
@@ -97,6 +106,7 @@ impl LowerBodyMachine {
             falling_animation_resource,
             landing_animation_resource,
             run_animation_resource,
+            dying_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
@@ -104,6 +114,7 @@ impl LowerBodyMachine {
             resource_manager.request_model("data/animations/agent_falling.fbx"),
             resource_manager.request_model("data/animations/agent_landing.fbx"),
             resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_dying.fbx"),
         );
 
         let (_, idle_state) = create_play_animation_state(
@@ -133,6 +144,14 @@ impl LowerBodyMachine {
         let (land_animation, land_state) = create_play_animation_state(
             landing_animation_resource.unwrap(),
             "Land",
+            &mut machine,
+            scene,
+            model,
+        );
+
+        let (dying_animation, dying_state) = create_play_animation_state(
+            dying_animation_resource.unwrap(),
+            "Dying",
             &mut machine,
             scene,
             model,
@@ -179,6 +198,12 @@ impl LowerBodyMachine {
             .get_mut(run_animation)
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.25))
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.5));
+
+        scene
+            .animations
+            .get_mut(dying_animation)
+            .set_enabled(false)
+            .set_loop(false);
 
         // Add transitions between states. This is the "heart" of animation blending state machine
         // it defines how it will respond to input parameters.
@@ -248,6 +273,43 @@ impl LowerBodyMachine {
             Self::IDLE_TO_FALL,
         ));
 
+        // Dying transitions.
+        machine.add_transition(Transition::new(
+            "Land->Dying",
+            land_state,
+            dying_state,
+            0.20,
+            Self::LAND_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Fall->Dying",
+            fall_state,
+            dying_state,
+            0.20,
+            Self::FALL_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Idle->Dying",
+            idle_state,
+            dying_state,
+            0.20,
+            Self::IDLE_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Dying",
+            walk_state,
+            dying_state,
+            0.20,
+            Self::WALK_TO_DYING,
+        ));
+        machine.add_transition(Transition::new(
+            "Jump->Dying",
+            jump_state,
+            dying_state,
+            0.20,
+            Self::JUMP_TO_DYING,
+        ));
+
         Self {
             machine,
             jump_animation,
@@ -261,6 +323,7 @@ impl LowerBodyMachine {
             land_state,
             run_animation,
             model,
+            dying_animation,
         }
     }
 
@@ -299,6 +362,11 @@ impl LowerBodyMachine {
                 Self::LAND_TO_IDLE,
                 Parameter::Rule(scene.animations.get(self.land_animation).has_ended()),
             )
+            .set_parameter(Self::LAND_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::FALL_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::JUMP_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
             .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .evaluate_pose(&scene.animations, dt)

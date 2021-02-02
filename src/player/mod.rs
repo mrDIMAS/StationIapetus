@@ -1,6 +1,5 @@
-use crate::actor::Actor;
-use crate::weapon::WeaponKind;
 use crate::{
+    actor::Actor,
     character::Character,
     control_scheme::{ControlButton, ControlScheme},
     level::UpdateContext,
@@ -9,7 +8,7 @@ use crate::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
-    weapon::projectile::ProjectileKind,
+    weapon::{projectile::ProjectileKind, WeaponKind},
 };
 use rg3d::{
     animation::{
@@ -493,6 +492,7 @@ impl Player {
                 is_jumping,
                 has_ground_contact: self.in_air_time <= 0.3,
                 run_factor: self.run_factor,
+                is_dead: self.is_dead(),
             },
             self.sender.clone().unwrap(),
             has_ground_contact,
@@ -511,6 +511,7 @@ impl Player {
                 weapon: CombatWeaponKind::Rifle,
                 change_weapon: self.weapon_change_direction != RequiredWeapon::None,
                 run_factor: self.run_factor,
+                is_dead: self.is_dead(),
             },
         );
         if self.controller.run {
@@ -647,6 +648,17 @@ impl Player {
                     })
                     .unwrap();
             }
+        }
+
+        if self.is_dead() {
+            scene
+                .animations
+                .get_mut(self.lower_body_machine.dying_animation)
+                .set_enabled(true);
+            scene
+                .animations
+                .get_mut(self.upper_body_machine.dying_animation)
+                .set_enabled(true);
         }
 
         let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
@@ -1048,5 +1060,11 @@ impl Player {
                 .set_enabled(false)
                 .rewind();
         }
+    }
+
+    pub fn is_completely_dead(&self, scene: &Scene) -> bool {
+        self.is_dead()
+            && (scene.animations[self.upper_body_machine.dying_animation].has_ended()
+                || scene.animations[self.lower_body_machine.dying_animation].has_ended())
     }
 }

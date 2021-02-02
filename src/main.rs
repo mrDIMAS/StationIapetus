@@ -293,11 +293,7 @@ impl Game {
                         game.update(game.time);
 
                         while let Some(ui_event) = game.engine.user_interface.poll_message() {
-                            game.menu.handle_ui_event(
-                                &mut game.engine,
-                                game.level.as_ref(),
-                                &ui_event,
-                            );
+                            game.handle_ui_message(&ui_event);
                         }
                     }
                     if !game.running {
@@ -334,6 +330,13 @@ impl Game {
                 _ => *control_flow = ControlFlow::Poll,
             }
         });
+    }
+
+    fn handle_ui_message(&mut self, message: &GuiMessage) {
+        self.menu
+            .handle_ui_message(&mut self.engine, self.level.as_ref(), &message);
+
+        self.death_screen.handle_ui_message(message);
     }
 
     fn debug_render(&mut self) {
@@ -457,14 +460,16 @@ impl Game {
         self.hud.set_visible(ui, !visible);
     }
 
-    pub fn is_menu_visible(&self) -> bool {
+    pub fn is_any_menu_visible(&self) -> bool {
         self.menu.is_visible(&self.engine.user_interface)
+            || self.death_screen.is_visible(&self.engine.user_interface)
     }
 
     pub fn update(&mut self, time: GameTime) {
         let window = self.engine.get_window();
-        window.set_cursor_visible(self.is_menu_visible());
-        let _ = window.set_cursor_grab(!self.is_menu_visible());
+
+        window.set_cursor_visible(self.is_any_menu_visible());
+        let _ = window.set_cursor_grab(!self.is_any_menu_visible());
 
         if let Some(ctx) = self.load_context.clone() {
             if let Ok(mut ctx) = ctx.try_lock() {
@@ -546,12 +551,20 @@ impl Game {
                 }
                 Message::EndMatch => {
                     self.destroy_level();
+                    self.death_screen
+                        .set_visible(&self.engine.user_interface, true);
                 }
                 Message::SetMusicVolume { volume } => {
                     self.menu_sound_context
                         .state()
                         .source_mut(self.music)
                         .set_gain(*volume);
+                }
+                Message::ToggleMainMenu => {
+                    self.menu.set_visible(&self.engine.user_interface, true);
+                    self.death_screen
+                        .set_visible(&self.engine.user_interface, false);
+                    self.hud.set_visible(&self.engine.user_interface, false);
                 }
                 _ => (),
             }
@@ -617,7 +630,7 @@ impl Game {
             }
         }
 
-        if !self.is_menu_visible() {
+        if !self.is_any_menu_visible() {
             if let Some(ref mut level) = self.level {
                 level.process_input_event(
                     event,
@@ -636,7 +649,7 @@ impl Game {
                 if let ElementState::Pressed = input.state {
                     if let Some(key) = input.virtual_keycode {
                         if key == VirtualKeyCode::Escape && self.level.is_some() {
-                            self.set_menu_visible(!self.is_menu_visible());
+                            self.set_menu_visible(!self.is_any_menu_visible());
                         }
                     }
                 }
