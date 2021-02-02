@@ -7,6 +7,7 @@ use crate::{
     GameTime,
 };
 use rg3d::physics::parry::shape::FeatureId;
+use rg3d::scene::light::SpotLightBuilder;
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -96,6 +97,7 @@ pub struct Weapon {
     muzzle_flash_timer: f32,
     pub definition: &'static WeaponDefinition,
     pub sender: Option<Sender<Message>>,
+    flash_light: Handle<Node>,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -214,6 +216,7 @@ impl Default for Weapon {
             sender: None,
             muzzle_flash: Default::default(),
             shot_light: Default::default(),
+            flash_light: Default::default(),
         }
     }
 }
@@ -234,6 +237,7 @@ impl Visit for Weapon {
         self.muzzle_flash.visit("MuzzleFlash", visitor)?;
         self.muzzle_flash_timer.visit("MuzzleFlashTimer", visitor)?;
         self.shot_light.visit("ShotLight", visitor)?;
+        self.flash_light.visit("FlashLight", visitor)?;
 
         visitor.leave_region()
     }
@@ -325,6 +329,21 @@ impl Weapon {
             light
         };
 
+        let flash_light_point = scene.graph.find_by_name(model, "FlashLightPoint");
+
+        let flash_light = if flash_light_point.is_some() {
+            let flash_light = SpotLightBuilder::new(BaseLightBuilder::new(BaseBuilder::new()))
+                .with_distance(10.0)
+                .with_hotspot_cone_angle(30.0f32.to_radians())
+                .build(&mut scene.graph);
+
+            scene.graph.link_nodes(flash_light, flash_light_point);
+
+            flash_light
+        } else {
+            Handle::NONE
+        };
+
         Weapon {
             kind,
             model,
@@ -334,6 +353,7 @@ impl Weapon {
             shot_light,
             ammo: definition.ammo,
             sender: Some(sender),
+            flash_light,
             ..Default::default()
         }
     }
