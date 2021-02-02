@@ -578,7 +578,13 @@ impl UpperBodyMachine {
         }
     }
 
-    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: UpperBodyMachineInput) {
+    pub fn apply(
+        &mut self,
+        scene: &mut Scene,
+        dt: f32,
+        hips_handle: Handle<Node>,
+        input: UpperBodyMachineInput,
+    ) {
         self.machine
             // Update parameters which will be used by transitions.
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.is_walking))
@@ -705,8 +711,8 @@ impl UpperBodyMachine {
                 Parameter::Rule(input.toss_grenade && input.is_aiming),
             )
             .evaluate_pose(&scene.animations, dt)
-            .apply_with(&mut scene.graph, |node, pose| {
-                if node.name() == "mixamorig:Hips" {
+            .apply_with(&mut scene.graph, |node, handle, pose| {
+                if handle == hips_handle {
                     // Ignore position and rotation for hips. Some animations has unwanted shifts
                     // and we want to ignore them.
                     node.local_transform_mut().set_scale(pose.scale());

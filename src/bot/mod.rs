@@ -129,6 +129,7 @@ pub struct Bot {
     yaw: SmoothAngle,
     pitch: SmoothAngle,
     attack_timeout: f32,
+    hips: Handle<Node>,
 }
 
 impl Deref for Bot {
@@ -175,6 +176,7 @@ impl Default for Bot {
                 speed: 260.0f32.to_radians(), // rad/s
             },
             attack_timeout: 0.0,
+            hips: Default::default(),
         }
     }
 }
@@ -191,6 +193,7 @@ pub struct BotDefinition {
     pub left_leg_name: &'static str,
     pub right_leg_name: &'static str,
     pub spine: &'static str,
+    pub hips: &'static str,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
     pub attack_damage: f32,
@@ -221,6 +224,7 @@ impl Bot {
                     weapon_hand_name: "Mutant:RightHand",
                     left_leg_name: "Mutant:LeftUpLeg",
                     right_leg_name: "Mutant:RightUpLeg",
+                    hips: "Mutant:Hips",
                     spine: "", // Empty because cannot use weapons.
                     walk_speed: 0.7,
                     scale: 0.0065,
@@ -246,6 +250,7 @@ impl Bot {
                     weapon_hand_name: "RightHand",
                     left_leg_name: "LeftUpLeg",
                     right_leg_name: "RightUpLeg",
+                    hips: "Hips",
                     spine: "", // Empty because cannot use weapons.
                     walk_speed: 1.0,
                     scale: 0.0055,
@@ -271,6 +276,7 @@ impl Bot {
                     weapon_hand_name: "mixamorig5:RightHand",
                     left_leg_name: "mixamorig5:LeftUpLeg",
                     right_leg_name: "mixamorig5:RightUpLeg",
+                    hips: "mixamorig5:Hips",
                     spine: "Spine",
                     walk_speed: 1.2,
                     scale: 0.0055,
@@ -359,14 +365,17 @@ impl Bot {
 
         scene.graph.link_nodes(weapon_pivot, hand);
 
-        let locomotion_machine =
+        let hips = scene.graph.find_by_name(model, definition.hips);
+
+        let lower_body_machine =
             LowerBodyMachine::new(resource_manager.clone(), &definition, model, scene).await;
-        let combat_machine = UpperBodyMachine::new(
+        let upper_body_machine = UpperBodyMachine::new(
             resource_manager.clone(),
             definition,
             model,
             scene,
             definition.attack_timestamp,
+            hips,
         )
         .await;
 
@@ -379,13 +388,14 @@ impl Bot {
                 sender: Some(sender),
                 ..Default::default()
             },
+            hips,
             spine,
             definition,
             last_health: definition.health,
             model,
             kind,
-            lower_body_machine: locomotion_machine,
-            upper_body_machine: combat_machine,
+            lower_body_machine,
+            upper_body_machine,
             ..Default::default()
         }
     }
@@ -801,6 +811,7 @@ impl Visit for Bot {
         self.restoration_time.visit("RestorationTime", visitor)?;
         self.yaw.visit("Yaw", visitor)?;
         self.pitch.visit("Pitch", visitor)?;
+        self.hips.visit("Hips", visitor)?;
 
         visitor.leave_region()
     }

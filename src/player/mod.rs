@@ -502,6 +502,7 @@ impl Player {
         self.upper_body_machine.apply(
             scene,
             time.delta,
+            self.hips,
             UpperBodyMachineInput {
                 is_walking,
                 is_jumping,

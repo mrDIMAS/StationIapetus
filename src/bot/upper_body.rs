@@ -3,6 +3,7 @@ use crate::{
     create_play_animation_state, GameTime,
 };
 use rg3d::animation::machine::{Machine, Parameter, State, Transition};
+use rg3d::animation::PoseEvaluationFlags;
 use rg3d::{
     animation::{Animation, AnimationSignal},
     core::{
@@ -55,6 +56,7 @@ impl UpperBodyMachine {
         model: Handle<Node>,
         scene: &mut Scene,
         attack_timestamp: f32,
+        hips: Handle<Node>,
     ) -> Self {
         let (
             idle_animation_resource,
@@ -168,6 +170,15 @@ impl UpperBodyMachine {
                 }
             }
         }
+
+        scene.animations[attack_animation]
+            .track_of_mut(hips)
+            .unwrap()
+            .set_flags(PoseEvaluationFlags {
+                ignore_position: false,
+                ignore_rotation: true,
+                ignore_scale: false,
+            });
 
         machine.add_transition(Transition::new(
             "Attack->Idle",
