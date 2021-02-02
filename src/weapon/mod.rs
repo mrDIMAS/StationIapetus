@@ -310,7 +310,7 @@ impl Weapon {
             let light = PointLightBuilder::new(
                 BaseLightBuilder::new(BaseBuilder::new().with_visibility(false))
                     .with_scatter_enabled(false)
-                    .with_color(Color::opaque(255, 127, 40)),
+                    .with_color(Color::opaque(255, 255, 255)),
             )
             .with_radius(2.0)
             .build(&mut scene.graph);

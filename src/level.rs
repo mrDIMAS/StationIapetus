@@ -222,8 +222,8 @@ pub struct AnalysisResult {
 fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {
     Arc::new(RwLock::new(SurfaceSharedData::make_cylinder(
         6,
-        0.002,
-        100.0,
+        1.0,
+        1.0,
         false,
         UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians()).to_homogeneous(),
     )))
@@ -851,32 +851,8 @@ impl Level {
     ) {
         let scene = &mut engine.scenes[self.scene];
 
-        let trail = MeshBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(begin)
-                    .with_local_rotation(UnitQuaternion::face_towards(
-                        &(end - begin),
-                        &Vector3::y(),
-                    ))
-                    .build(),
-            ),
-        )
-        .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
-            .with_color(Color::from_rgba(255, 127, 40, 120))
-            .build()])
-        .with_cast_shadows(false)
-        .with_render_path(RenderPath::Forward)
-        .build(&mut scene.graph);
-
-        self.trails.add(ShotTrail {
-            node: trail,
-            lifetime: 0.0,
-            max_lifetime: 0.6,
-        });
-
         // Do immediate intersection test and solve it.
-        if let Some(hit) = ray_hit(
+        let trail_len = if let Some(hit) = ray_hit(
             begin,
             end,
             weapon,
@@ -920,7 +896,38 @@ impl Level {
                     amount: damage,
                 })
                 .unwrap();
-        }
+
+            (begin - hit.position).norm()
+        } else {
+            100.0
+        };
+
+        let trail_radius = 0.0014;
+
+        let trail = MeshBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(begin)
+                    .with_local_scale(Vector3::new(trail_radius, trail_radius, trail_len))
+                    .with_local_rotation(UnitQuaternion::face_towards(
+                        &(end - begin),
+                        &Vector3::y(),
+                    ))
+                    .build(),
+            ),
+        )
+        .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
+            .with_color(Color::from_rgba(255, 255, 255, 120))
+            .build()])
+        .with_cast_shadows(false)
+        .with_render_path(RenderPath::Forward)
+        .build(&mut scene.graph);
+
+        self.trails.add(ShotTrail {
+            node: trail,
+            lifetime: 0.0,
+            max_lifetime: 0.2,
+        });
     }
 
     pub async fn handle_message(
