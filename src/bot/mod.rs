@@ -437,7 +437,7 @@ impl Bot {
         let mut query_buffer = Vec::default();
         'target_loop: for desc in targets {
             if desc.handle != self_handle && self.frustum.is_contains_point(desc.position) {
-                let ray = Ray::from_two_points(&desc.position, &position).unwrap_or_default();
+                let ray = Ray::from_two_points(desc.position, position);
                 scene.physics.cast_ray(
                     RayCastOptions {
                         ray,

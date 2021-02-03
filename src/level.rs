@@ -535,20 +535,17 @@ impl Level {
 
     fn pick(&self, engine: &mut GameEngine, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
         let scene = &mut engine.scenes[self.scene];
-        if let Some(ray) = Ray::from_two_points(&from, &to) {
-            let options = RayCastOptions {
-                ray,
-                max_len: std::f32::MAX,
-                groups: InteractionGroups::all(),
-                sort_results: true,
-            };
-            let mut query_buffer = Vec::default();
-            scene.physics.cast_ray(options, &mut query_buffer);
-            if let Some(pt) = query_buffer.first() {
-                pt.position.coords
-            } else {
-                from
-            }
+        let ray = Ray::from_two_points(from, to);
+        let options = RayCastOptions {
+            ray,
+            max_len: std::f32::MAX,
+            groups: InteractionGroups::all(),
+            sort_results: true,
+        };
+        let mut query_buffer = Vec::default();
+        scene.physics.cast_ray(options, &mut query_buffer);
+        if let Some(pt) = query_buffer.first() {
+            pt.position.coords
         } else {
             from
         }
@@ -828,7 +825,7 @@ impl Level {
         }
 
         self.update_death_zones(scene);
-        self.weapons.update(scene, time.delta);
+        self.weapons.update(scene, &self.actors, time.delta);
         self.projectiles
             .update(scene, &self.actors, &self.weapons, time);
         let mut ctx = UpdateContext {

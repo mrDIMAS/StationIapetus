@@ -936,7 +936,7 @@ impl Player {
                     .unwrap()
                     .send(Message::ShootWeapon {
                         weapon: *current_weapon_handle,
-                        direction: Some(scene.graph[self.camera].look_vector()),
+                        direction: None,
                     })
                     .unwrap();
             }

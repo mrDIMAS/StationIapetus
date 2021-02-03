@@ -1,31 +1,30 @@
 //! Weapon related stuff.
-//!
-//! TODO: Add DeadSpace-like sight for every weapon - it is a bright line with a bright glowing tip.
 
 use crate::{
     actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
     GameTime,
 };
-use rg3d::physics::parry::shape::FeatureId;
-use rg3d::scene::light::SpotLightBuilder;
 use rg3d::{
     core::{
-        algebra::{Matrix3, Vector3},
+        algebra::{Matrix3, UnitQuaternion, Vector3},
+        arrayvec::ArrayVec,
         color::Color,
         math::{ray::Ray, Matrix4Ext, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    physics::geometry::InteractionGroups,
+    physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
+    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     scene::{
         base::BaseBuilder,
         graph::Graph,
-        light::{BaseLightBuilder, PointLightBuilder},
-        mesh::RenderPath,
+        light::{BaseLightBuilder, PointLightBuilder, SpotLightBuilder},
+        mesh::{MeshBuilder, RenderPath},
         node::Node,
         physics::{Physics, RayCastOptions},
+        sprite::SpriteBuilder,
         ColliderHandle, Scene,
     },
     utils::{
@@ -37,7 +36,7 @@ use std::{
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
     path::{Path, PathBuf},
-    sync::mpsc::Sender,
+    sync::{mpsc::Sender, Arc, RwLock},
 };
 
 pub mod projectile;
@@ -82,6 +81,92 @@ impl Visit for WeaponKind {
     }
 }
 
+#[derive(Default)]
+pub struct LaserSight {
+    ray: Handle<Node>,
+    tip: Handle<Node>,
+}
+
+impl LaserSight {
+    pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
+        let color = Color::from_rgba(0, 162, 232, 200);
+
+        let ray = MeshBuilder::new(BaseBuilder::new().with_visibility(false))
+            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+                SurfaceSharedData::make_cylinder(
+                    6,
+                    1.0,
+                    1.0,
+                    false,
+                    UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
+                        .to_homogeneous(),
+                ),
+            )))
+            .with_color(color)
+            .build()])
+            .with_cast_shadows(false)
+            .with_render_path(RenderPath::Forward)
+            .build(&mut scene.graph);
+
+        let tip = SpriteBuilder::new(BaseBuilder::new().with_visibility(false))
+            .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
+            .with_color(color)
+            .with_size(0.03)
+            .build(&mut scene.graph);
+
+        Self { ray, tip }
+    }
+
+    pub fn update(
+        &self,
+        scene: &mut Scene,
+        position: Vector3<f32>,
+        direction: Vector3<f32>,
+        ignore_collider: ColliderHandle,
+    ) {
+        let mut intersections = ArrayVec::<[_; 64]>::new();
+
+        let ray = &mut scene.graph[self.ray];
+        let max_toi = 100.0;
+
+        scene.physics.cast_ray(
+            RayCastOptions {
+                ray: Ray::new(position, direction.scale(max_toi)),
+                max_len: max_toi,
+                groups: Default::default(),
+                sort_results: true,
+            },
+            &mut intersections,
+        );
+
+        if let Some(result) = intersections
+            .into_iter()
+            .filter(|i| i.collider != ignore_collider)
+            .next()
+        {
+            ray.local_transform_mut()
+                .set_position(position)
+                .set_rotation(UnitQuaternion::face_towards(&direction, &Vector3::y()))
+                .set_scale(Vector3::new(0.0012, 0.0012, result.toi));
+
+            scene.graph[self.tip]
+                .local_transform_mut()
+                .set_position(result.position.coords - direction.scale(0.1));
+        }
+    }
+}
+
+impl Visit for LaserSight {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        self.ray.visit("Ray", visitor)?;
+        self.tip.visit("Tip", visitor)?;
+
+        visitor.leave_region()
+    }
+}
+
 pub struct Weapon {
     kind: WeaponKind,
     model: Handle<Node>,
@@ -98,6 +183,7 @@ pub struct Weapon {
     pub definition: &'static WeaponDefinition,
     pub sender: Option<Sender<Message>>,
     flash_light: Handle<Node>,
+    laser_sight: LaserSight,
 }
 
 #[derive(Copy, Clone, PartialEq)]
@@ -128,55 +214,55 @@ pub fn ray_hit(
     physics: &mut Physics,
     ignored_collider: ColliderHandle,
 ) -> Option<Hit> {
-    if let Some(ray) = Ray::from_two_points(&begin, &end) {
-        // TODO: Avoid allocation.
-        let mut query_buffer = Vec::default();
+    let ray = Ray::from_two_points(begin, end);
 
-        physics.cast_ray(
-            RayCastOptions {
-                ray,
-                max_len: ray.dir.norm(),
-                groups: InteractionGroups::all(),
-                sort_results: true,
-            },
-            &mut query_buffer,
-        );
+    // TODO: Avoid allocation.
+    let mut query_buffer = Vec::default();
 
-        // List of hits sorted by distance from ray origin.
-        for hit in query_buffer
-            .iter()
-            .filter(|i| i.collider != ignored_collider)
-        {
-            let collider = physics.colliders.get(hit.collider.into()).unwrap();
-            let body = collider.parent();
+    physics.cast_ray(
+        RayCastOptions {
+            ray,
+            max_len: ray.dir.norm(),
+            groups: InteractionGroups::all(),
+            sort_results: true,
+        },
+        &mut query_buffer,
+    );
 
-            // Check if there was an intersection with an actor.
-            for (actor_handle, actor) in actors.pair_iter() {
-                if actor.get_body() == body.into() && weapon.is_some() {
-                    let weapon = &weapons[weapon];
-                    // Ignore intersections with owners of weapon.
-                    if weapon.owner() != actor_handle {
-                        return Some(Hit {
-                            actor: actor_handle,
-                            who: weapon.owner(),
-                            position: hit.position.coords,
-                            normal: hit.normal,
-                            collider: hit.collider,
-                            feature: hit.feature,
-                        });
-                    }
+    // List of hits sorted by distance from ray origin.
+    for hit in query_buffer
+        .iter()
+        .filter(|i| i.collider != ignored_collider)
+    {
+        let collider = physics.colliders.get(hit.collider.into()).unwrap();
+        let body = collider.parent();
+
+        // Check if there was an intersection with an actor.
+        for (actor_handle, actor) in actors.pair_iter() {
+            if actor.get_body() == body.into() && weapon.is_some() {
+                let weapon = &weapons[weapon];
+                // Ignore intersections with owners of weapon.
+                if weapon.owner() != actor_handle {
+                    return Some(Hit {
+                        actor: actor_handle,
+                        who: weapon.owner(),
+                        position: hit.position.coords,
+                        normal: hit.normal,
+                        collider: hit.collider,
+                        feature: hit.feature,
+                    });
                 }
             }
-
-            return Some(Hit {
-                actor: Handle::NONE,
-                who: Handle::NONE,
-                position: hit.position.coords,
-                normal: hit.normal,
-                collider: hit.collider,
-                feature: hit.feature,
-            });
         }
+
+        return Some(Hit {
+            actor: Handle::NONE,
+            who: Handle::NONE,
+            position: hit.position.coords,
+            normal: hit.normal,
+            collider: hit.collider,
+            feature: hit.feature,
+        });
     }
 
     None
@@ -217,6 +303,7 @@ impl Default for Weapon {
             muzzle_flash: Default::default(),
             shot_light: Default::default(),
             flash_light: Default::default(),
+            laser_sight: Default::default(),
         }
     }
 }
@@ -238,6 +325,7 @@ impl Visit for Weapon {
         self.muzzle_flash_timer.visit("MuzzleFlashTimer", visitor)?;
         self.shot_light.visit("ShotLight", visitor)?;
         self.flash_light.visit("FlashLight", visitor)?;
+        self.laser_sight.visit("LaserSight", visitor)?;
 
         visitor.leave_region()
     }
@@ -357,19 +445,22 @@ impl Weapon {
             ammo: definition.ammo,
             sender: Some(sender),
             flash_light,
+            laser_sight: LaserSight::new(scene, resource_manager),
             ..Default::default()
         }
     }
 
     pub fn set_visibility(&self, visibility: bool, graph: &mut Graph) {
         graph[self.model].set_visibility(visibility);
+        graph[self.laser_sight.tip].set_visibility(visibility);
+        graph[self.laser_sight.ray].set_visibility(visibility);
     }
 
     pub fn get_model(&self) -> Handle<Node> {
         self.model
     }
 
-    pub fn update(&mut self, scene: &mut Scene, dt: f32) {
+    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
         self.offset.follow(&self.dest_offset, 0.2);
 
         let node = &mut scene.graph[self.model];
@@ -381,6 +472,22 @@ impl Weapon {
             scene.graph[self.muzzle_flash].set_visibility(false);
             scene.graph[self.shot_light].set_visibility(false);
         }
+
+        let ignored_collider = if actors.contains(self.owner) {
+            ColliderHandle::from(
+                scene
+                    .physics
+                    .bodies
+                    .get(actors.get(self.owner).get_body().into())
+                    .unwrap()
+                    .colliders()[0],
+            )
+        } else {
+            Default::default()
+        };
+        let dir = self.get_shot_direction(&scene.graph);
+        let pos = self.get_shot_position(&scene.graph);
+        self.laser_sight.update(scene, pos, dir, ignored_collider)
     }
 
     pub fn get_shot_position(&self, graph: &Graph) -> Vector3<f32> {
@@ -514,6 +621,8 @@ impl Weapon {
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
         scene.graph.remove_node(self.model);
+        scene.graph.remove_node(self.laser_sight.ray);
+        scene.graph.remove_node(self.laser_sight.tip);
     }
 }
 
@@ -543,9 +652,9 @@ impl WeaponContainer {
         self.pool.iter_mut()
     }
 
-    pub fn update(&mut self, scene: &mut Scene, dt: f32) {
+    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
         for weapon in self.pool.iter_mut() {
-            weapon.update(scene, dt)
+            weapon.update(scene, actors, dt)
         }
     }
 }

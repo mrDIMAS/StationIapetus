@@ -393,10 +393,9 @@ impl LowerBodyMachine {
                     scene.physics.cast_ray(
                         RayCastOptions {
                             ray: Ray::from_two_points(
-                                &begin,
-                                &(begin + Vector3::new(0.0, -100.0, 0.0)),
-                            )
-                            .unwrap(),
+                                begin,
+                                begin + Vector3::new(0.0, -100.0, 0.0),
+                            ),
                             max_len: 100.0,
                             groups: Default::default(),
                             sort_results: true,
