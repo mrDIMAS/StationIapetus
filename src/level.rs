@@ -1,4 +1,3 @@
-use crate::sound::{SoundKind, SoundManager};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -7,6 +6,7 @@ use crate::{
     item::{Item, ItemContainer, ItemKind},
     message::Message,
     player::Player,
+    sound::{SoundKind, SoundManager},
     weapon::{
         projectile::{Projectile, ProjectileContainer, ProjectileKind},
         ray_hit, Weapon, WeaponContainer, WeaponKind,
