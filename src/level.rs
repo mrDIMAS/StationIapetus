@@ -13,6 +13,7 @@ use crate::{
     },
     GameEngine, GameTime,
 };
+use rg3d::resource::texture::Texture;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -44,8 +45,6 @@ use std::{
     path::{Path, PathBuf},
     sync::{mpsc::Sender, Arc, RwLock},
 };
-
-pub const RESPAWN_TIME: f32 = 4.0;
 
 pub struct Level {
     map_root: Handle<Node>,
@@ -312,6 +311,7 @@ async fn spawn_player(
     resource_manager: ResourceManager,
     control_scheme: Arc<RwLock<ControlScheme>>,
     scene: &mut Scene,
+    display_texture: Texture,
 ) -> Handle<Actor> {
     let player = Player::new(
         scene,
@@ -319,6 +319,7 @@ async fn spawn_player(
         spawn_position,
         sender.clone(),
         control_scheme,
+        display_texture,
     )
     .await;
     let player = actors.add(Actor::Player(player));
@@ -414,6 +415,7 @@ impl Level {
         resource_manager: ResourceManager,
         control_scheme: Arc<RwLock<ControlScheme>>,
         sender: Sender<Message>,
+        display_texture: Texture,
     ) -> (Level, Scene) {
         let mut scene = Scene::new();
 
@@ -462,6 +464,7 @@ impl Level {
                 resource_manager.clone(),
                 control_scheme.clone(),
                 &mut scene,
+                display_texture,
             )
             .await,
             map_root,

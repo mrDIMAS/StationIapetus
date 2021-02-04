@@ -8,7 +8,6 @@ pub mod character;
 pub mod control_scheme;
 pub mod effects;
 pub mod gui;
-pub mod hud;
 pub mod item;
 pub mod level;
 pub mod menu;
@@ -18,8 +17,8 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
-use crate::gui::DeathScreen;
-use crate::{control_scheme::ControlScheme, hud::Hud, level::Level, menu::Menu, message::Message};
+use crate::gui::{ContextualDisplay, DeathScreen};
+use crate::{control_scheme::ControlScheme, level::Level, menu::Menu, message::Message};
 use rg3d::gui::ttf::{Font, SharedFont};
 use rg3d::{
     animation::{
@@ -95,7 +94,6 @@ pub fn create_play_animation_state(
 
 pub struct Game {
     menu: Menu,
-    hud: Hud,
     engine: GameEngine,
     level: Option<Level>,
     debug_text: UINodeHandle,
@@ -111,6 +109,7 @@ pub struct Game {
     menu_sound_context: Context,
     music: Handle<SoundSource>,
     death_screen: DeathScreen,
+    contextual_display: ContextualDisplay,
 }
 
 struct LoadingScreen {
@@ -257,7 +256,6 @@ impl Game {
             ),
             menu_sound_context,
             music,
-            hud: Hud::new(&mut engine),
             running: true,
             menu: Menu::new(
                 &mut engine,
@@ -265,7 +263,7 @@ impl Game {
                 tx.clone(),
                 font.clone(),
             ),
-            death_screen: DeathScreen::new(&mut engine.user_interface, font, tx.clone()),
+            death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
             engine,
@@ -276,6 +274,7 @@ impl Game {
             events_receiver: rx,
             events_sender: tx,
             load_context: None,
+            contextual_display: ContextualDisplay::new(font),
         };
 
         game.create_debug_ui();
@@ -310,7 +309,7 @@ impl Game {
                     }
 
                     // Render at max speed
-                    game.engine.render(fixed_timestep).unwrap();
+                    game.render(fixed_timestep);
                     // Make sure to cap update rate to 60 FPS.
                     game.limit_fps(FIXED_FPS as f64);
                 }
@@ -337,6 +336,18 @@ impl Game {
             .handle_ui_message(&mut self.engine, self.level.as_ref(), &message);
 
         self.death_screen.handle_ui_message(message);
+    }
+
+    fn render(&mut self, delta: f32) {
+        self.engine
+            .renderer
+            .render_ui_to_texture(
+                self.contextual_display.render_target.clone(),
+                &mut self.contextual_display.ui,
+            )
+            .unwrap();
+
+        self.engine.render(delta).unwrap();
     }
 
     fn debug_render(&mut self) {
@@ -442,12 +453,14 @@ impl Game {
         let resource_manager = self.engine.resource_manager.clone();
         let control_scheme = self.control_scheme.clone();
         let sender = self.events_sender.clone();
+        let display_texture = self.contextual_display.render_target.clone();
 
         std::thread::spawn(move || {
             let level = rg3d::futures::executor::block_on(Level::new(
                 resource_manager,
                 control_scheme,
                 sender,
+                display_texture,
             ));
 
             ctx.lock().unwrap().level = Some(level);
@@ -457,7 +470,6 @@ impl Game {
     pub fn set_menu_visible(&mut self, visible: bool) {
         let ui = &mut self.engine.user_interface;
         self.menu.set_visible(ui, visible);
-        self.hud.set_visible(ui, !visible);
     }
 
     pub fn is_any_menu_visible(&self) -> bool {
@@ -497,25 +509,16 @@ impl Game {
             }
         }
 
+        self.contextual_display.update(time.delta);
         self.engine.update(time.delta);
 
         if let Some(ref mut level) = self.level {
             level.update(&mut self.engine, time);
-            let ui = &mut self.engine.user_interface;
             let player = level.get_player();
             if player.is_some() {
-                // Sync hud with player state.
                 let player = level.actors().get(player);
-                self.hud.set_health(ui, player.get_health());
-                self.hud.set_armor(ui, player.get_armor());
-                let current_weapon = player.current_weapon();
-                if current_weapon.is_some() {
-                    self.hud
-                        .set_ammo(ui, level.weapons()[current_weapon].ammo());
-                }
-                self.hud.set_is_died(ui, false);
-            } else {
-                self.hud.set_is_died(ui, true);
+                self.contextual_display
+                    .sync_to_model(player, level.weapons());
             }
         }
 
@@ -564,7 +567,6 @@ impl Game {
                     self.menu.set_visible(&self.engine.user_interface, true);
                     self.death_screen
                         .set_visible(&self.engine.user_interface, false);
-                    self.hud.set_visible(&self.engine.user_interface, false);
                 }
                 _ => (),
             }
@@ -657,7 +659,6 @@ impl Game {
         }
 
         self.menu.process_input_event(&mut self.engine, &event);
-        self.hud.process_event(&mut self.engine, &event);
     }
 }
 

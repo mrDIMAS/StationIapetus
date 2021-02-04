@@ -10,13 +10,16 @@ use crate::{
     },
     weapon::{projectile::ProjectileKind, WeaponKind},
 };
+use rg3d::renderer::surface::{SurfaceBuilder, SurfaceSharedData};
+use rg3d::resource::texture::Texture;
+use rg3d::scene::mesh::{MeshBuilder, RenderPath};
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, PoseNode, PoseWeight, State},
         Animation,
     },
     core::{
-        algebra::{Isometry3, UnitQuaternion, Vector3},
+        algebra::{Isometry3, Matrix4, UnitQuaternion, Vector3},
         math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -243,6 +246,7 @@ pub struct Player {
     in_air_time: f32,
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
     target_velocity: Vector3<f32>,
+    contextual_display: Handle<Node>,
 }
 
 impl Visit for Player {
@@ -277,6 +281,8 @@ impl Visit for Player {
         self.target_velocity.visit("TargetVelocity", visitor)?;
         self.weapon_change_direction
             .visit("WeaponChangeDirection", visitor)?;
+        self.contextual_display
+            .visit("ContextualDisplay", visitor)?;
 
         visitor.leave_region()
     }
@@ -289,6 +295,7 @@ impl Player {
         position: Vector3<f32>,
         sender: Sender<Message>,
         control_scheme: Arc<RwLock<ControlScheme>>,
+        display_texture: Texture,
     ) -> Self {
         let body_radius = 0.2;
         let body_height = 0.25;
@@ -388,6 +395,24 @@ impl Player {
 
         scene.graph.link_nodes(weapon_origin, hand);
 
+        let contextual_display = MeshBuilder::new(
+            BaseBuilder::new()
+                .with_depth_offset(0.1)
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_scale(Vector3::new(0.1, 0.1, 0.1))
+                        .build(),
+                ),
+        )
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+            SurfaceSharedData::make_quad(Matrix4::identity()),
+        )))
+        .with_diffuse_texture(display_texture)
+        .build()])
+        .with_render_path(RenderPath::Forward)
+        .with_cast_shadows(false)
+        .build(&mut scene.graph);
+
         Self {
             character: Character {
                 pivot,
@@ -437,6 +462,7 @@ impl Player {
             run_factor: 0.0,
             target_run_factor: 0.0,
             target_velocity: Default::default(),
+            contextual_display,
         }
     }
 
@@ -461,6 +487,21 @@ impl Player {
         listener.set_basis(camera.global_transform().basis());
         listener.set_position(camera.global_position());
         std::mem::drop(sound_context);
+
+        let pivot = &scene.graph[self.pivot];
+        let display_position = scene.graph[self.spine].global_position();
+        let display_look_vector = pivot.look_vector();
+        let display_up_vector = pivot.up_vector();
+        let display_side_vector = pivot.side_vector();
+        let display_rotation = UnitQuaternion::face_towards(&display_look_vector, &Vector3::y());
+        scene.graph[self.contextual_display]
+            .local_transform_mut()
+            .set_rotation(display_rotation)
+            .set_position(
+                display_position - display_look_vector.scale(0.01)
+                    + display_up_vector.scale(0.15)
+                    + display_side_vector.scale(-0.075),
+            );
 
         let mut has_ground_contact = false;
         if let Some(iterator) = scene

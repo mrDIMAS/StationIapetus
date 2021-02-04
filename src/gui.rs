@@ -2,10 +2,11 @@
 //! However most of the styles are used from dark theme of rg3d-ui library so there
 //! is not much.
 
-use crate::{message::Message, BuildContext, Gui, GuiMessage, UiNode};
-use rg3d::gui::message::{MessageDirection, WidgetMessage};
+use crate::{
+    actor::Actor, message::Message, weapon::WeaponContainer, BuildContext, Gui, GuiMessage, UiNode,
+};
 use rg3d::{
-    core::pool::Handle,
+    core::{algebra::Vector2, pool::Handle},
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -13,7 +14,7 @@ use rg3d::{
         check_box::CheckBoxBuilder,
         core::color::Color,
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, UiMessageData},
+        message::{ButtonMessage, MessageDirection, TextMessage, UiMessageData, WidgetMessage},
         scroll_bar::ScrollBarBuilder,
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
@@ -22,6 +23,7 @@ use rg3d::{
         widget::WidgetBuilder,
         HorizontalAlignment, Orientation, Thickness, VerticalAlignment,
     },
+    resource::texture::Texture,
 };
 use std::sync::mpsc::Sender;
 
@@ -200,5 +202,105 @@ impl DeathScreen {
 
     pub fn is_visible(&self, ui: &Gui) -> bool {
         ui.node(self.root).visibility()
+    }
+}
+
+pub struct ContextualDisplay {
+    pub ui: Gui,
+    pub render_target: Texture,
+    health: Handle<UiNode>,
+    ammo: Handle<UiNode>,
+    armor: Handle<UiNode>,
+}
+
+impl ContextualDisplay {
+    pub const WIDTH: f32 = 120.0;
+    pub const HEIGHT: f32 = 120.0;
+
+    pub fn new(font: SharedFont) -> Self {
+        let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
+
+        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+
+        let health;
+        let ammo;
+        let armor;
+        GridBuilder::new(
+            WidgetBuilder::new()
+                .with_width(Self::WIDTH)
+                .with_height(Self::HEIGHT)
+                .with_child({
+                    health = TextBuilder::new(
+                        WidgetBuilder::new()
+                            .with_foreground(Brush::Solid(Color::opaque(0, 120, 0)))
+                            .on_row(0),
+                    )
+                    .with_font(font.clone())
+                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .build(&mut ui.build_ctx());
+                    health
+                })
+                .with_child({
+                    ammo = TextBuilder::new(WidgetBuilder::new().on_row(2))
+                        .with_font(font.clone())
+                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                        .build(&mut ui.build_ctx());
+                    ammo
+                })
+                .with_child({
+                    armor = TextBuilder::new(WidgetBuilder::new().on_row(1))
+                        .with_font(font)
+                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                        .build(&mut ui.build_ctx());
+                    armor
+                }),
+        )
+        .add_column(Column::stretch())
+        .add_row(Row::stretch())
+        .add_row(Row::stretch())
+        .add_row(Row::stretch())
+        .build(&mut ui.build_ctx());
+
+        Self {
+            ui,
+            render_target,
+            health,
+            ammo,
+            armor,
+        }
+    }
+
+    pub fn sync_to_model(&self, player: &Actor, weapons: &WeaponContainer) {
+        self.ui.send_message(TextMessage::text(
+            self.health,
+            MessageDirection::ToWidget,
+            format!("{}%", player.health as i32),
+        ));
+
+        let ammo = if player.current_weapon().is_some() {
+            weapons[player.current_weapon()].ammo()
+        } else {
+            0
+        };
+        self.ui.send_message(TextMessage::text(
+            self.ammo,
+            MessageDirection::ToWidget,
+            format!("{}", ammo),
+        ));
+
+        self.ui.send_message(TextMessage::text(
+            self.armor,
+            MessageDirection::ToWidget,
+            format!("{}%", player.armor as i32),
+        ));
+    }
+
+    pub fn update(&mut self, delta: f32) {
+        self.ui.update(
+            Vector2::new(ContextualDisplay::WIDTH, ContextualDisplay::HEIGHT),
+            delta,
+        );
+
+        while let Some(_) = self.ui.poll_message() {}
     }
 }
