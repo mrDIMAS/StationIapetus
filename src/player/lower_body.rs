@@ -201,6 +201,11 @@ impl LowerBodyMachine {
 
         scene
             .animations
+            .get_mut(land_animation)
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.12));
+
+        scene
+            .animations
             .get_mut(dying_animation)
             .set_enabled(false)
             .set_loop(false);
@@ -372,6 +377,8 @@ impl LowerBodyMachine {
             .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
 
+        let begin = scene.graph[self.model].global_position() + Vector3::new(0.0, 10.0, 0.0);
+
         while let Some((walking, evt)) = scene
             .animations
             .get_mut(self.walk_animation)
@@ -385,39 +392,48 @@ impl LowerBodyMachine {
         {
             if input.is_walking && has_ground_contact && evt.signal_id == Self::FOOTSTEP_SIGNAL {
                 if input.run_factor < 0.5 && walking || input.run_factor >= 0.5 && !walking {
-                    let mut query_buffer = Vec::new();
-
-                    let begin =
-                        scene.graph[self.model].global_position() + Vector3::new(0.0, 10.0, 0.0);
-
-                    scene.physics.cast_ray(
-                        RayCastOptions {
-                            ray: Ray::from_two_points(
-                                begin,
-                                begin + Vector3::new(0.0, -100.0, 0.0),
-                            ),
-                            max_len: 100.0,
-                            groups: Default::default(),
-                            sort_results: true,
-                        },
-                        &mut query_buffer,
-                    );
-
-                    for intersection in query_buffer
-                        .into_iter()
-                        .filter(|i| i.collider != self_collider)
-                    {
-                        sender
-                            .send(Message::PlayEnvironmentSound {
-                                collider: intersection.collider,
-                                feature: intersection.feature,
-                                position: intersection.position.coords,
-                                sound_kind: SoundKind::FootStep,
-                            })
-                            .unwrap();
-                    }
+                    ray_check(begin, scene, self_collider, sender.clone());
                 }
             }
         }
+
+        while let Some(evt) = scene.animations.get_mut(self.land_animation).pop_event() {
+            if evt.signal_id == Self::FOOTSTEP_SIGNAL {
+                ray_check(begin, scene, self_collider, sender.clone());
+            }
+        }
+    }
+}
+
+fn ray_check(
+    begin: Vector3<f32>,
+    scene: &mut Scene,
+    self_collider: ColliderHandle,
+    sender: Sender<Message>,
+) {
+    let mut query_buffer = Vec::new();
+
+    scene.physics.cast_ray(
+        RayCastOptions {
+            ray: Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0)),
+            max_len: 100.0,
+            groups: Default::default(),
+            sort_results: true,
+        },
+        &mut query_buffer,
+    );
+
+    for intersection in query_buffer
+        .into_iter()
+        .filter(|i| i.collider != self_collider)
+    {
+        sender
+            .send(Message::PlayEnvironmentSound {
+                collider: intersection.collider,
+                feature: intersection.feature,
+                position: intersection.position.coords,
+                sound_kind: SoundKind::FootStep,
+            })
+            .unwrap();
     }
 }
