@@ -161,7 +161,9 @@ impl Projectile {
                     )
                     .with_size(size)
                     .with_color(color)
-                    .with_texture(resource_manager.request_texture("data/particles/light_01.png"))
+                    .with_texture(
+                        resource_manager.request_texture("data/particles/plasma_ball.png"),
+                    )
                     .build(&mut scene.graph);
 
                     let collider = ColliderBuilder::ball(size).sensor(true).build();
