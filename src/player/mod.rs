@@ -564,7 +564,10 @@ impl Player {
                 is_dead: self.is_dead(),
             },
         );
-        if self.controller.run {
+
+        let is_running = self.controller.run && !self.controller.aim;
+
+        if is_running {
             self.target_run_factor = 1.0;
         } else {
             self.target_run_factor = 0.0;
@@ -892,11 +895,7 @@ impl Player {
         );
 
         if is_walking {
-            let (kx, ky) = if self.controller.run {
-                (8.0, 13.0)
-            } else {
-                (5.0, 10.0)
-            };
+            let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
 
             self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
             self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();

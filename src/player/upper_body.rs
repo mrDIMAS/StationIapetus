@@ -670,6 +670,12 @@ impl UpperBodyMachine {
                 ),
             )
             .set_parameter(
+                Self::GRAB_TO_AIM,
+                Parameter::Rule(
+                    input.is_aiming && scene.animations.get(self.grab_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
                 Self::GRAB_TO_WALK,
                 Parameter::Rule(
                     !input.change_weapon
