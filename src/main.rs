@@ -509,9 +509,6 @@ impl Game {
             }
         }
 
-        self.contextual_display.update(time.delta);
-        self.engine.update(time.delta);
-
         if let Some(ref mut level) = self.level {
             level.update(&mut self.engine, time);
             let player = level.get_player();
@@ -521,6 +518,9 @@ impl Game {
                     .sync_to_model(player, level.weapons());
             }
         }
+
+        self.contextual_display.update(time.delta);
+        self.engine.update(time.delta);
 
         self.handle_messages(time);
     }

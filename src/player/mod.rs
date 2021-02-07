@@ -11,13 +11,14 @@ use crate::{
     },
     weapon::{projectile::ProjectileKind, WeaponKind},
 };
+use rg3d::core::color::Color;
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, PoseNode, PoseWeight, State},
         Animation,
     },
     core::{
-        algebra::{Isometry3, Matrix4, UnitQuaternion, Vector3},
+        algebra::{Isometry3, UnitQuaternion, Vector3},
         math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -28,13 +29,12 @@ use rg3d::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder},
         geometry::ColliderBuilder,
     },
-    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     resource::{model::Model, texture::Texture, texture::TextureWrapMode},
     scene::{
         base::BaseBuilder,
         camera::{CameraBuilder, SkyBox},
         graph::Graph,
-        mesh::{MeshBuilder, RenderPath},
+        mesh::RenderPath,
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
@@ -254,6 +254,7 @@ pub struct Player {
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
     target_velocity: Vector3<f32>,
     contextual_display: Handle<Node>,
+    health_cylinder: Handle<Node>,
 }
 
 impl Visit for Player {
@@ -290,6 +291,7 @@ impl Visit for Player {
             .visit("WeaponChangeDirection", visitor)?;
         self.contextual_display
             .visit("ContextualDisplay", visitor)?;
+        self.health_cylinder.visit("HealthCylinder", visitor)?;
 
         visitor.leave_region()
     }
@@ -332,10 +334,12 @@ impl Player {
             }])
             .build(&mut scene.graph);
 
-        let model_resource = resource_manager
-            .request_model("data/models/agent.fbx")
-            .await
-            .unwrap();
+        let (model_resource, health_rig_resource) = rg3d::futures::join!(
+            resource_manager.request_model("data/models/agent.fbx"),
+            resource_manager.request_model("data/models/health_rig.FBX"),
+        );
+
+        let model_resource = model_resource.unwrap();
 
         let model_handle = model_resource.instantiate_geometry(scene);
 
@@ -403,23 +407,35 @@ impl Player {
 
         scene.graph.link_nodes(weapon_origin, hand);
 
-        let contextual_display = MeshBuilder::new(
-            BaseBuilder::new()
-                .with_depth_offset(0.1)
-                .with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_scale(Vector3::new(0.1, 0.1, 0.1))
-                        .build(),
-                ),
-        )
-        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-            SurfaceSharedData::make_quad(Matrix4::identity()),
-        )))
-        .with_diffuse_texture(display_texture)
-        .build()])
-        .with_render_path(RenderPath::Forward)
-        .with_cast_shadows(false)
-        .build(&mut scene.graph);
+        let health_rig = health_rig_resource.unwrap().instantiate_geometry(scene);
+
+        let spine = scene.graph.find_by_name(model_handle, "mixamorig:Spine2");
+        scene.graph.link_nodes(health_rig, spine);
+        let spine_scale = scene.graph.global_scale(spine);
+        scene.graph[health_rig]
+            .local_transform_mut()
+            .set_position(Vector3::new(0.0, -15.0, -10.5))
+            .set_scale(Vector3::new(
+                0.015 / spine_scale.x,
+                0.015 / spine_scale.y,
+                0.015 / spine_scale.z,
+            ));
+
+        let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
+        let mesh = scene.graph[health_cylinder].as_mesh_mut();
+        mesh.set_render_path(RenderPath::Forward);
+        mesh.surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_color(Color::from_rgba(0, 200, 0, 200));
+        let contextual_display = scene.graph.find_by_name(health_rig, "TextPanel");
+        let mesh = scene.graph[contextual_display].as_mesh_mut();
+        mesh.set_render_path(RenderPath::Forward);
+        let surface = mesh
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_diffuse_texture(Some(display_texture));
 
         Self {
             character: Character {
@@ -436,6 +452,7 @@ impl Player {
             lower_body_machine: locomotion_machine,
             camera_hinge,
             camera,
+            health_cylinder,
             upper_body_machine: combat_machine,
             spine: scene.graph.find_by_name(model_handle, "mixamorig:Spine"),
             hips: scene.graph.find_by_name(model_handle, "mixamorig:Hips"),
@@ -492,24 +509,10 @@ impl Player {
         let mut sound_context = scene.sound_context.state();
         let listener = sound_context.listener_mut();
         let camera = &scene.graph[self.camera];
+        let camera_position = camera.global_position();
         listener.set_basis(camera.global_transform().basis());
-        listener.set_position(camera.global_position());
+        listener.set_position(camera_position);
         std::mem::drop(sound_context);
-
-        let pivot = &scene.graph[self.pivot];
-        let display_position = scene.graph[self.spine].global_position();
-        let display_look_vector = pivot.look_vector();
-        let display_up_vector = pivot.up_vector();
-        let display_side_vector = pivot.side_vector();
-        let display_rotation = UnitQuaternion::face_towards(&display_look_vector, &Vector3::y());
-        scene.graph[self.contextual_display]
-            .local_transform_mut()
-            .set_rotation(display_rotation)
-            .set_position(
-                display_position - display_look_vector.scale(0.01)
-                    + display_up_vector.scale(0.15)
-                    + display_side_vector.scale(-0.075),
-            );
 
         let mut has_ground_contact = false;
         if let Some(iterator) = scene

@@ -151,7 +151,7 @@ impl LaserSight {
 
             scene.graph[self.tip]
                 .local_transform_mut()
-                .set_position(result.position.coords - direction.scale(0.1));
+                .set_position(result.position.coords - direction.scale(0.02));
         }
     }
 }
@@ -420,13 +420,15 @@ impl Weapon {
         let flash_light_point = scene.graph.find_by_name(model, "FlashLightPoint");
 
         let flash_light = if flash_light_point.is_some() {
-            let flash_light = SpotLightBuilder::new(BaseLightBuilder::new(BaseBuilder::new()))
-                .with_distance(10.0)
-                .with_cookie_texture(
-                    resource_manager.request_texture("data/particles/light_01.png"),
-                )
-                .with_hotspot_cone_angle(30.0f32.to_radians())
-                .build(&mut scene.graph);
+            let flash_light = SpotLightBuilder::new(
+                BaseLightBuilder::new(BaseBuilder::new())
+                    .with_scatter_enabled(true)
+                    .with_scatter_factor(Vector3::new(0.1, 0.1, 0.1)),
+            )
+            .with_distance(10.0)
+            .with_cookie_texture(resource_manager.request_texture("data/particles/light_01.png"))
+            .with_hotspot_cone_angle(30.0f32.to_radians())
+            .build(&mut scene.graph);
 
             scene.graph.link_nodes(flash_light, flash_light_point);
 
