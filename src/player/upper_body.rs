@@ -666,13 +666,9 @@ impl UpperBodyMachine {
             .set_parameter(
                 Self::GRAB_TO_IDLE,
                 Parameter::Rule(
-                    !input.change_weapon && scene.animations.get(self.grab_animation).has_ended(),
-                ),
-            )
-            .set_parameter(
-                Self::GRAB_TO_AIM,
-                Parameter::Rule(
-                    input.is_aiming && scene.animations.get(self.grab_animation).has_ended(),
+                    !input.change_weapon
+                        && !input.is_aiming
+                        && scene.animations.get(self.grab_animation).has_ended(),
                 ),
             )
             .set_parameter(
@@ -680,7 +676,14 @@ impl UpperBodyMachine {
                 Parameter::Rule(
                     !input.change_weapon
                         && input.is_walking
+                        && !input.is_aiming
                         && scene.animations.get(self.grab_animation).has_ended(),
+                ),
+            )
+            .set_parameter(
+                Self::GRAB_TO_AIM,
+                Parameter::Rule(
+                    input.is_aiming && scene.animations.get(self.grab_animation).has_ended(),
                 ),
             )
             .set_parameter(
