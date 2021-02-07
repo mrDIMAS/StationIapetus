@@ -1,3 +1,4 @@
+use crate::weapon::WeaponContainer;
 use crate::{
     actor::Actor,
     character::Character,
@@ -10,9 +11,6 @@ use crate::{
     },
     weapon::{projectile::ProjectileKind, WeaponKind},
 };
-use rg3d::renderer::surface::{SurfaceBuilder, SurfaceSharedData};
-use rg3d::resource::texture::Texture;
-use rg3d::scene::mesh::{MeshBuilder, RenderPath};
 use rg3d::{
     animation::{
         machine::{BlendPose, Machine, PoseNode, PoseWeight, State},
@@ -26,12 +24,17 @@ use rg3d::{
     },
     engine::resource_manager::ResourceManager,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
-    physics::{dynamics::RigidBodyBuilder, geometry::ColliderBuilder},
-    resource::{model::Model, texture::TextureWrapMode},
+    physics::{
+        dynamics::{CoefficientCombineRule, RigidBodyBuilder},
+        geometry::ColliderBuilder,
+    },
+    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
+    resource::{model::Model, texture::Texture, texture::TextureWrapMode},
     scene::{
         base::BaseBuilder,
         camera::{CameraBuilder, SkyBox},
         graph::Graph,
+        mesh::{MeshBuilder, RenderPath},
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
@@ -174,6 +177,10 @@ enum RequiredWeapon {
 }
 
 impl RequiredWeapon {
+    fn is_none(self) -> bool {
+        matches!(self, RequiredWeapon::None)
+    }
+
     fn id(self) -> u32 {
         match self {
             RequiredWeapon::None => 0,
@@ -343,6 +350,7 @@ impl Player {
             .build(&mut scene.graph);
 
         let capsule = ColliderBuilder::capsule_y(body_height, body_radius)
+            .friction_combine_rule(CoefficientCombineRule::Min)
             .friction(0.0)
             .build();
         let body = scene.physics.add_body(
@@ -984,7 +992,13 @@ impl Player {
         }
     }
 
-    pub fn process_input_event(&mut self, event: &Event<()>, dt: f32, scene: &mut Scene) {
+    pub fn process_input_event(
+        &mut self,
+        event: &Event<()>,
+        dt: f32,
+        scene: &mut Scene,
+        weapons: &WeaponContainer,
+    ) {
         let scheme = self.control_scheme.clone().unwrap();
         let scheme = scheme.read().unwrap();
 
@@ -1031,6 +1045,15 @@ impl Player {
             _ => None,
         };
 
+        let can_change_weapon = self.weapon_change_direction.is_none()
+            && scene.animations[self.upper_body_machine.grab_animation].has_ended();
+
+        let current_weapon_kind = if self.current_weapon().is_some() {
+            Some(weapons[self.current_weapon()].get_kind())
+        } else {
+            None
+        };
+
         let mut weapon_change_direction = None;
 
         if let Some((button, state)) = button_state {
@@ -1059,20 +1082,28 @@ impl Player {
                         })
                         .unwrap();
                 }
-            } else if button == scheme.grab_ak47.button {
-                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
-            } else if button == scheme.grab_m4.button {
-                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::M4));
-            } else if button == scheme.grab_plasma_gun.button {
-                weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
+            } else if button == scheme.grab_ak47.button && can_change_weapon {
+                if current_weapon_kind.map_or(false, |k| k != WeaponKind::Ak47) {
+                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
+                }
+            } else if button == scheme.grab_m4.button && can_change_weapon {
+                if current_weapon_kind.map_or(false, |k| k != WeaponKind::M4) {
+                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::M4));
+                }
+            } else if button == scheme.grab_plasma_gun.button && can_change_weapon {
+                if current_weapon_kind.map_or(false, |k| k != WeaponKind::PlasmaRifle) {
+                    weapon_change_direction =
+                        Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
+                }
             } else if button == scheme.next_weapon.button {
                 if state == ElementState::Pressed
                     && self.current_weapon < self.weapons.len() as u32 - 1
+                    && can_change_weapon
                 {
                     weapon_change_direction = Some(RequiredWeapon::Next);
                 }
             } else if button == scheme.prev_weapon.button {
-                if state == ElementState::Pressed && self.current_weapon > 0 {
+                if state == ElementState::Pressed && self.current_weapon > 0 && can_change_weapon {
                     weapon_change_direction = Some(RequiredWeapon::Previous);
                 }
             } else if button == scheme.toss_grenade.button {

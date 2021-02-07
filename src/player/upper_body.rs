@@ -114,6 +114,7 @@ impl UpperBodyMachine {
     const PUT_BACK_TO_GRAB: &'static str = "PutBackToGrab";
     const GRAB_TO_IDLE: &'static str = "GrabToIdle";
     const GRAB_TO_WALK: &'static str = "GrabToWalk";
+    const GRAB_TO_AIM: &'static str = "GrabToAim";
 
     const LAND_TO_DYING: &'static str = "LandToDying";
     const FALL_TO_DYING: &'static str = "FallToDying";
@@ -474,6 +475,13 @@ impl UpperBodyMachine {
             walk_state,
             0.20,
             Self::GRAB_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "Grab->Aim",
+            grab_state,
+            aim_state,
+            0.20,
+            Self::GRAB_TO_AIM,
         ));
 
         // Dying transitions.

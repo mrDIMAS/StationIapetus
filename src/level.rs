@@ -13,10 +13,9 @@ use crate::{
     },
     GameEngine, GameTime,
 };
-use rg3d::resource::texture::Texture;
 use rg3d::{
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, PositionProvider},
         pool::Handle,
@@ -30,6 +29,7 @@ use rg3d::{
         pipeline::ChannelEventCollector,
     },
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
+    resource::texture::Texture,
     scene::{
         self,
         base::BaseBuilder,
@@ -519,7 +519,7 @@ impl Level {
     pub fn process_input_event(&mut self, event: &Event<()>, scene: &mut Scene, dt: f32) {
         if self.player.is_some() {
             if let Actor::Player(player) = self.actors.get_mut(self.player) {
-                player.process_input_event(event, dt, scene);
+                player.process_input_event(event, dt, scene, &self.weapons);
             }
         }
     }
@@ -899,7 +899,24 @@ impl Level {
                 })
                 .unwrap();
 
-            (begin - hit.position).norm()
+            let dir = hit.position - begin;
+
+            if let Some(collider) = scene.physics.colliders.get(hit.collider.into()) {
+                scene
+                    .physics
+                    .bodies
+                    .get_mut(collider.parent())
+                    .unwrap()
+                    .apply_force_at_point(
+                        dir.try_normalize(std::f32::EPSILON)
+                            .unwrap_or_default()
+                            .scale(10.0),
+                        Point3::from(hit.position),
+                        true,
+                    );
+            }
+
+            dir.norm()
         } else {
             100.0
         };
