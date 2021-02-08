@@ -210,7 +210,6 @@ pub struct ContextualDisplay {
     pub render_target: Texture,
     health: Handle<UiNode>,
     ammo: Handle<UiNode>,
-    armor: Handle<UiNode>,
 }
 
 impl ContextualDisplay {
@@ -224,7 +223,6 @@ impl ContextualDisplay {
 
         let health;
         let ammo;
-        let armor;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
@@ -241,22 +239,14 @@ impl ContextualDisplay {
                     health
                 })
                 .with_child({
-                    ammo = TextBuilder::new(WidgetBuilder::new().on_row(2))
+                    ammo = TextBuilder::new(WidgetBuilder::new().on_row(1))
                         .with_font(font.clone())
                         .with_horizontal_text_alignment(HorizontalAlignment::Center)
                         .build(&mut ui.build_ctx());
                     ammo
-                })
-                .with_child({
-                    armor = TextBuilder::new(WidgetBuilder::new().on_row(1))
-                        .with_font(font)
-                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                        .build(&mut ui.build_ctx());
-                    armor
                 }),
         )
         .add_column(Column::stretch())
-        .add_row(Row::stretch())
         .add_row(Row::stretch())
         .add_row(Row::stretch())
         .build(&mut ui.build_ctx());
@@ -266,7 +256,6 @@ impl ContextualDisplay {
             render_target,
             health,
             ammo,
-            armor,
         }
     }
 
@@ -286,12 +275,6 @@ impl ContextualDisplay {
             self.ammo,
             MessageDirection::ToWidget,
             format!("{}", ammo),
-        ));
-
-        self.ui.send_message(TextMessage::text(
-            self.armor,
-            MessageDirection::ToWidget,
-            format!("{}%", player.armor as i32),
         ));
     }
 

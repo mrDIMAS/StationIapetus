@@ -14,7 +14,6 @@ pub struct Character {
     pub pivot: Handle<Node>,
     pub body: RigidBodyHandle,
     pub health: f32,
-    pub armor: f32,
     pub weapons: Vec<Handle<Weapon>>,
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
@@ -27,7 +26,6 @@ impl Default for Character {
             pivot: Handle::NONE,
             body: Default::default(),
             health: 100.0,
-            armor: 100.0,
             weapons: Vec::new(),
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
@@ -43,7 +41,6 @@ impl Visit for Character {
         self.pivot.visit("Pivot", visitor)?;
         self.body.visit("Body", visitor)?;
         self.health.visit("Health", visitor)?;
-        self.armor.visit("Armor", visitor)?;
         self.weapons.visit("Weapons", visitor)?;
         self.current_weapon.visit("CurrentWeapon", visitor)?;
         self.weapon_pivot.visit("WeaponPivot", visitor)?;
@@ -75,10 +72,6 @@ impl Character {
         self.health
     }
 
-    pub fn get_armor(&self) -> f32 {
-        self.armor
-    }
-
     pub fn set_position(&mut self, physics: &mut Physics, position: Vector3<f32>) {
         let body = physics.bodies.get_mut(self.get_body().into()).unwrap();
         let mut body_position = *body.position();
@@ -97,15 +90,7 @@ impl Character {
     }
 
     pub fn damage(&mut self, amount: f32) {
-        let amount = amount.abs();
-        if self.armor > 0.0 {
-            self.armor -= amount;
-            if self.armor < 0.0 {
-                self.health += self.armor;
-            }
-        } else {
-            self.health -= amount;
-        }
+        self.health -= amount.abs();
     }
 
     pub fn heal(&mut self, amount: f32) {

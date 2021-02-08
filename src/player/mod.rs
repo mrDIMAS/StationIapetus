@@ -567,145 +567,409 @@ impl Player {
             },
         );
 
-        let is_running = self.controller.run && !self.controller.aim;
+        if !self.is_dead() {
+            let is_running = self.controller.run && !self.controller.aim;
 
-        if is_running {
-            self.target_run_factor = 1.0;
-        } else {
-            self.target_run_factor = 0.0;
-        }
-        self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
-
-        let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
-
-        let pivot = &scene.graph[self.pivot];
-
-        let look_vector = pivot
-            .look_vector()
-            .try_normalize(std::f32::EPSILON)
-            .unwrap_or_else(Vector3::z);
-
-        let side_vector = pivot
-            .side_vector()
-            .try_normalize(std::f32::EPSILON)
-            .unwrap_or_else(Vector3::x);
-
-        let position = pivot.local_transform().position();
-
-        self.target_velocity = Vector3::default();
-
-        if self.controller.walk_right {
-            self.target_velocity -= side_vector;
-        }
-        if self.controller.walk_left {
-            self.target_velocity += side_vector;
-        }
-        if self.controller.walk_forward {
-            self.target_velocity += look_vector;
-        }
-        if self.controller.walk_backward {
-            self.target_velocity -= look_vector;
-        }
-
-        let can_move = self.lower_body_machine.machine.active_state()
-            != self.lower_body_machine.fall_state
-            && self.lower_body_machine.machine.active_state() != self.lower_body_machine.land_state;
-
-        let speed = if can_move {
-            math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta
-        } else {
-            0.0
-        };
-
-        self.target_velocity = self
-            .target_velocity
-            .try_normalize(std::f32::EPSILON)
-            .map(|v| v.scale(speed))
-            .unwrap_or_default();
-
-        self.velocity.follow(&self.target_velocity, 0.15);
-
-        let mut new_y_vel = None;
-        while let Some(event) = scene
-            .animations
-            .get_mut(self.lower_body_machine.jump_animation)
-            .pop_event()
-        {
-            if event.signal_id == LowerBodyMachine::JUMP_SIGNAL
-                && (self.lower_body_machine.machine.active_transition()
-                    == self.lower_body_machine.idle_to_jump
-                    || self.lower_body_machine.machine.active_transition()
-                        == self.lower_body_machine.walk_to_jump
-                    || self.lower_body_machine.machine.active_state()
-                        == self.lower_body_machine.jump_state)
-            {
-                new_y_vel = Some(3.0 * time.delta);
+            if is_running {
+                self.target_run_factor = 1.0;
+            } else {
+                self.target_run_factor = 0.0;
             }
-        }
+            self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
-        while let Some(event) = scene
-            .animations
-            .get_mut(self.upper_body_machine.grab_animation)
-            .pop_event()
-        {
-            if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
-                match self.weapon_change_direction {
-                    RequiredWeapon::None => (),
-                    RequiredWeapon::Next => self.next_weapon(),
-                    RequiredWeapon::Previous => self.prev_weapon(),
-                    RequiredWeapon::Specific(kind) => {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::GrabWeapon {
-                                kind,
-                                actor: self_handle,
-                            })
-                            .unwrap();
+            let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
+
+            let pivot = &scene.graph[self.pivot];
+
+            let look_vector = pivot
+                .look_vector()
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_else(Vector3::z);
+
+            let side_vector = pivot
+                .side_vector()
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_else(Vector3::x);
+
+            let position = pivot.local_transform().position();
+
+            self.target_velocity = Vector3::default();
+
+            if self.controller.walk_right {
+                self.target_velocity -= side_vector;
+            }
+            if self.controller.walk_left {
+                self.target_velocity += side_vector;
+            }
+            if self.controller.walk_forward {
+                self.target_velocity += look_vector;
+            }
+            if self.controller.walk_backward {
+                self.target_velocity -= look_vector;
+            }
+
+            let can_move = self.lower_body_machine.machine.active_state()
+                != self.lower_body_machine.fall_state
+                && self.lower_body_machine.machine.active_state()
+                    != self.lower_body_machine.land_state;
+
+            let speed = if can_move {
+                math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta
+            } else {
+                0.0
+            };
+
+            self.target_velocity = self
+                .target_velocity
+                .try_normalize(std::f32::EPSILON)
+                .map(|v| v.scale(speed))
+                .unwrap_or_default();
+
+            self.velocity.follow(&self.target_velocity, 0.15);
+
+            let mut new_y_vel = None;
+            while let Some(event) = scene
+                .animations
+                .get_mut(self.lower_body_machine.jump_animation)
+                .pop_event()
+            {
+                if event.signal_id == LowerBodyMachine::JUMP_SIGNAL
+                    && (self.lower_body_machine.machine.active_transition()
+                        == self.lower_body_machine.idle_to_jump
+                        || self.lower_body_machine.machine.active_transition()
+                            == self.lower_body_machine.walk_to_jump
+                        || self.lower_body_machine.machine.active_state()
+                            == self.lower_body_machine.jump_state)
+                {
+                    new_y_vel = Some(3.0 * time.delta);
+                }
+            }
+
+            while let Some(event) = scene
+                .animations
+                .get_mut(self.upper_body_machine.grab_animation)
+                .pop_event()
+            {
+                if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
+                    match self.weapon_change_direction {
+                        RequiredWeapon::None => (),
+                        RequiredWeapon::Next => self.next_weapon(),
+                        RequiredWeapon::Previous => self.prev_weapon(),
+                        RequiredWeapon::Specific(kind) => {
+                            self.sender
+                                .as_ref()
+                                .unwrap()
+                                .send(Message::GrabWeapon {
+                                    kind,
+                                    actor: self_handle,
+                                })
+                                .unwrap();
+                        }
                     }
+
+                    self.weapon_change_direction = RequiredWeapon::None;
+                }
+            }
+
+            while let Some(event) = scene
+                .animations
+                .get_mut(self.upper_body_machine.put_back_animation)
+                .pop_event()
+            {
+                if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
+                    scene
+                        .animations
+                        .get_mut(self.upper_body_machine.grab_animation)
+                        .set_enabled(true);
+                }
+            }
+
+            while let Some(event) = scene
+                .animations
+                .get_mut(self.upper_body_machine.toss_grenade_animation)
+                .pop_event()
+            {
+                if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
+                    let position = scene.graph[self.weapon_pivot].global_position();
+                    let direction = scene.graph[self.camera].look_vector();
+
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::CreateProjectile {
+                            kind: ProjectileKind::Grenade,
+                            position,
+                            direction,
+                            initial_velocity: direction.scale(15.0),
+                            owner: Default::default(),
+                        })
+                        .unwrap();
+                }
+            }
+
+            let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
+
+            body.wake_up(true);
+            body.set_angvel(Default::default(), true);
+            if let Some(new_y_vel) = new_y_vel {
+                body.set_linvel(
+                    Vector3::new(
+                        self.velocity.x / time.delta,
+                        new_y_vel / time.delta,
+                        self.velocity.z / time.delta,
+                    ),
+                    true,
+                );
+            } else {
+                body.set_linvel(
+                    Vector3::new(
+                        self.velocity.x / time.delta,
+                        body.linvel().y,
+                        self.velocity.z / time.delta,
+                    ),
+                    true,
+                );
+            }
+
+            if self.controller.aim {
+                self.spine_pitch.set_target(self.controller.pitch);
+            } else {
+                self.spine_pitch.set_target(0.0);
+            }
+
+            self.spine_pitch.update(time.delta);
+
+            if is_walking || self.controller.aim {
+                // Since we have free camera while not moving, we have to sync rotation of pivot
+                // with rotation of camera so character will start moving in look direction.
+                let mut current_position = *body.position();
+                current_position.rotation = quat_yaw;
+                body.set_position(current_position, true);
+
+                // Apply additional rotation to model - it will turn in front of walking direction.
+                let angle: f32 = if self.controller.aim {
+                    if self.controller.walk_left {
+                        if self.controller.walk_backward {
+                            -45.0
+                        } else {
+                            45.0
+                        }
+                    } else if self.controller.walk_right {
+                        if self.controller.walk_backward {
+                            45.0
+                        } else {
+                            -45.0
+                        }
+                    } else {
+                        0.0
+                    }
+                } else if self.controller.walk_left {
+                    if self.controller.walk_forward {
+                        45.0
+                    } else if self.controller.walk_backward {
+                        135.0
+                    } else {
+                        90.0
+                    }
+                } else if self.controller.walk_right {
+                    if self.controller.walk_forward {
+                        -45.0
+                    } else if self.controller.walk_backward {
+                        -135.0
+                    } else {
+                        -90.0
+                    }
+                } else if self.controller.walk_backward {
+                    180.0
+                } else {
+                    0.0
+                };
+
+                self.model_yaw
+                    .set_target(angle.to_radians())
+                    .update(time.delta);
+
+                let mut additional_hips_rotation = Default::default();
+                if self.controller.aim {
+                    scene.graph[self.model]
+                        .local_transform_mut()
+                        .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
+
+                    let spine_transform = scene.graph[self.spine].local_transform_mut();
+                    spine_transform.set_rotation(
+                        spine_transform.rotation()
+                            * UnitQuaternion::from_axis_angle(
+                                &Vector3::x_axis(),
+                                self.spine_pitch.angle,
+                            )
+                            * UnitQuaternion::from_axis_angle(
+                                &Vector3::y_axis(),
+                                -(self.model_yaw.angle + 37.5f32.to_radians()),
+                            ),
+                    );
+                    additional_hips_rotation =
+                        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle);
+                } else {
+                    scene.graph[self.model].local_transform_mut().set_rotation(
+                        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle),
+                    );
+
+                    scene.graph[self.spine].local_transform_mut().set_rotation(
+                        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.spine_pitch.angle)
+                            * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
+                    );
                 }
 
-                self.weapon_change_direction = RequiredWeapon::None;
-            }
-        }
+                scene.graph[self.hips].local_transform_mut().set_rotation(
+                    additional_hips_rotation
+                        * UnitQuaternion::from_axis_angle(
+                            &Vector3::x_axis(),
+                            math::lerpf(5.0f32.to_radians(), 17.0f32.to_radians(), self.run_factor),
+                        ),
+                );
 
-        while let Some(event) = scene
-            .animations
-            .get_mut(self.upper_body_machine.put_back_animation)
-            .pop_event()
-        {
-            if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
+                let walk_dir = if self.controller.aim && self.controller.walk_backward {
+                    -1.0
+                } else {
+                    1.0
+                };
+
+                for &animation in &[
+                    self.lower_body_machine.walk_animation,
+                    self.upper_body_machine.walk_animation,
+                    self.lower_body_machine.run_animation,
+                    self.upper_body_machine.run_animation,
+                ] {
+                    scene.animations.get_mut(animation).set_speed(walk_dir);
+                }
+            }
+
+            if self.controller.aim {
+                self.weapon_yaw_correction.set_target(-4.0f32.to_radians());
+                self.weapon_pitch_correction
+                    .set_target(-12.0f32.to_radians());
+            } else {
+                self.weapon_yaw_correction.set_target(30.0f32.to_radians());
+                self.weapon_pitch_correction.set_target(8.0f32.to_radians());
+            }
+
+            let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
+            let pitch_correction_angle = self.weapon_pitch_correction.update(time.delta).angle();
+            scene.graph[self.weapon_pivot]
+                .local_transform_mut()
+                .set_rotation(
+                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
+                        * UnitQuaternion::from_axis_angle(
+                            &Vector3::x_axis(),
+                            pitch_correction_angle,
+                        ),
+                );
+
+            let ray_origin = scene.graph[self.camera_hinge].global_position();
+            let ray_end = scene.graph[self.camera].global_position();
+            let dir = (ray_end - ray_origin)
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_default()
+                .scale(10.0);
+            let ray = Ray {
+                origin: ray_origin,
+                dir,
+            };
+            let mut results = Vec::new();
+            scene.physics.cast_ray(
+                RayCastOptions {
+                    ray,
+                    max_len: ray.dir.norm(),
+                    groups: Default::default(),
+                    sort_results: true,
+                },
+                &mut results,
+            );
+
+            if is_walking {
+                let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
+
+                self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
+                self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();
+            } else {
+                self.target_camera_offset.x = 0.0;
+                self.target_camera_offset.y = 0.0;
+            }
+
+            self.target_camera_offset.z = if self.controller.aim { 0.2 } else { 0.8 };
+
+            for result in results {
+                if result.collider != self.collider {
+                    let new_offset = (result.toi.min(0.8) - 0.2).max(0.1);
+                    if new_offset < self.target_camera_offset.z {
+                        self.target_camera_offset.z = new_offset;
+                    }
+                    break;
+                }
+            }
+
+            self.camera_offset.follow(&self.target_camera_offset, 0.2);
+
+            scene.graph[self.camera]
+                .local_transform_mut()
+                .set_position(Vector3::new(
+                    self.camera_offset.x,
+                    self.camera_offset.y,
+                    -self.camera_offset.z,
+                ));
+
+            scene.graph[self.camera_pivot]
+                .local_transform_mut()
+                .set_rotation(quat_yaw)
+                .set_position(position + self.velocity);
+
+            // Rotate camera hinge - this will make camera move up and down while look at character
+            // (well not exactly on character - on characters head)
+            scene.graph[self.camera_hinge]
+                .local_transform_mut()
+                .set_rotation(UnitQuaternion::from_axis_angle(
+                    &Vector3::x_axis(),
+                    self.controller.pitch,
+                ));
+
+            if has_ground_contact {
+                self.in_air_time = 0.0;
+            } else {
+                self.in_air_time += time.delta;
+            }
+
+            if !has_ground_contact {
                 scene
                     .animations
-                    .get_mut(self.upper_body_machine.grab_animation)
-                    .set_enabled(true);
+                    .get_mut(self.lower_body_machine.land_animation)
+                    .rewind();
+                scene
+                    .animations
+                    .get_mut(self.upper_body_machine.land_animation)
+                    .rewind();
             }
-        }
 
-        while let Some(event) = scene
-            .animations
-            .get_mut(self.upper_body_machine.toss_grenade_animation)
-            .pop_event()
-        {
-            if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
-                let position = scene.graph[self.weapon_pivot].global_position();
-                let direction = scene.graph[self.camera].look_vector();
-
-                self.sender
-                    .as_ref()
-                    .unwrap()
-                    .send(Message::CreateProjectile {
-                        kind: ProjectileKind::Grenade,
-                        position,
-                        direction,
-                        initial_velocity: direction.scale(15.0),
-                        owner: Default::default(),
-                    })
-                    .unwrap();
+            if let Some(current_weapon_handle) = self
+                .character
+                .weapons
+                .get(self.character.current_weapon as usize)
+            {
+                if self.controller.shoot
+                    && self.upper_body_machine.machine.active_state()
+                        == self.upper_body_machine.aim_state
+                {
+                    self.character
+                        .sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::ShootWeapon {
+                            weapon: *current_weapon_handle,
+                            direction: None,
+                        })
+                        .unwrap();
+                }
             }
-        }
-
-        if self.is_dead() {
+        } else {
             scene
                 .animations
                 .get_mut(self.lower_body_machine.dying_animation)
@@ -714,266 +978,6 @@ impl Player {
                 .animations
                 .get_mut(self.upper_body_machine.dying_animation)
                 .set_enabled(true);
-        }
-
-        let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
-
-        body.wake_up(true);
-        body.set_angvel(Default::default(), true);
-        if let Some(new_y_vel) = new_y_vel {
-            body.set_linvel(
-                Vector3::new(
-                    self.velocity.x / time.delta,
-                    new_y_vel / time.delta,
-                    self.velocity.z / time.delta,
-                ),
-                true,
-            );
-        } else {
-            body.set_linvel(
-                Vector3::new(
-                    self.velocity.x / time.delta,
-                    body.linvel().y,
-                    self.velocity.z / time.delta,
-                ),
-                true,
-            );
-        }
-
-        if self.controller.aim {
-            self.spine_pitch.set_target(self.controller.pitch);
-        } else {
-            self.spine_pitch.set_target(0.0);
-        }
-
-        self.spine_pitch.update(time.delta);
-
-        if is_walking || self.controller.aim {
-            // Since we have free camera while not moving, we have to sync rotation of pivot
-            // with rotation of camera so character will start moving in look direction.
-            let mut current_position = *body.position();
-            current_position.rotation = quat_yaw;
-            body.set_position(current_position, true);
-
-            // Apply additional rotation to model - it will turn in front of walking direction.
-            let angle: f32 = if self.controller.aim {
-                if self.controller.walk_left {
-                    if self.controller.walk_backward {
-                        -45.0
-                    } else {
-                        45.0
-                    }
-                } else if self.controller.walk_right {
-                    if self.controller.walk_backward {
-                        45.0
-                    } else {
-                        -45.0
-                    }
-                } else {
-                    0.0
-                }
-            } else if self.controller.walk_left {
-                if self.controller.walk_forward {
-                    45.0
-                } else if self.controller.walk_backward {
-                    135.0
-                } else {
-                    90.0
-                }
-            } else if self.controller.walk_right {
-                if self.controller.walk_forward {
-                    -45.0
-                } else if self.controller.walk_backward {
-                    -135.0
-                } else {
-                    -90.0
-                }
-            } else if self.controller.walk_backward {
-                180.0
-            } else {
-                0.0
-            };
-
-            self.model_yaw
-                .set_target(angle.to_radians())
-                .update(time.delta);
-
-            let mut additional_hips_rotation = Default::default();
-            if self.controller.aim {
-                scene.graph[self.model]
-                    .local_transform_mut()
-                    .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
-
-                let spine_transform = scene.graph[self.spine].local_transform_mut();
-                spine_transform.set_rotation(
-                    spine_transform.rotation()
-                        * UnitQuaternion::from_axis_angle(
-                            &Vector3::x_axis(),
-                            self.spine_pitch.angle,
-                        )
-                        * UnitQuaternion::from_axis_angle(
-                            &Vector3::y_axis(),
-                            -(self.model_yaw.angle + 37.5f32.to_radians()),
-                        ),
-                );
-                additional_hips_rotation =
-                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle);
-            } else {
-                scene.graph[self.model].local_transform_mut().set_rotation(
-                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle),
-                );
-
-                scene.graph[self.spine].local_transform_mut().set_rotation(
-                    UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.spine_pitch.angle)
-                        * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
-                );
-            }
-
-            scene.graph[self.hips].local_transform_mut().set_rotation(
-                additional_hips_rotation
-                    * UnitQuaternion::from_axis_angle(
-                        &Vector3::x_axis(),
-                        math::lerpf(5.0f32.to_radians(), 17.0f32.to_radians(), self.run_factor),
-                    ),
-            );
-
-            let walk_dir = if self.controller.aim && self.controller.walk_backward {
-                -1.0
-            } else {
-                1.0
-            };
-
-            for &animation in &[
-                self.lower_body_machine.walk_animation,
-                self.upper_body_machine.walk_animation,
-                self.lower_body_machine.run_animation,
-                self.upper_body_machine.run_animation,
-            ] {
-                scene.animations.get_mut(animation).set_speed(walk_dir);
-            }
-        }
-
-        if self.controller.aim {
-            self.weapon_yaw_correction.set_target(-4.0f32.to_radians());
-            self.weapon_pitch_correction
-                .set_target(-12.0f32.to_radians());
-        } else {
-            self.weapon_yaw_correction.set_target(30.0f32.to_radians());
-            self.weapon_pitch_correction.set_target(8.0f32.to_radians());
-        }
-
-        let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
-        let pitch_correction_angle = self.weapon_pitch_correction.update(time.delta).angle();
-        scene.graph[self.weapon_pivot]
-            .local_transform_mut()
-            .set_rotation(
-                UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
-                    * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch_correction_angle),
-            );
-
-        let ray_origin = scene.graph[self.camera_hinge].global_position();
-        let ray_end = scene.graph[self.camera].global_position();
-        let dir = (ray_end - ray_origin)
-            .try_normalize(std::f32::EPSILON)
-            .unwrap_or_default()
-            .scale(10.0);
-        let ray = Ray {
-            origin: ray_origin,
-            dir,
-        };
-        let mut results = Vec::new();
-        scene.physics.cast_ray(
-            RayCastOptions {
-                ray,
-                max_len: ray.dir.norm(),
-                groups: Default::default(),
-                sort_results: true,
-            },
-            &mut results,
-        );
-
-        if is_walking {
-            let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
-
-            self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
-            self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();
-        } else {
-            self.target_camera_offset.x = 0.0;
-            self.target_camera_offset.y = 0.0;
-        }
-
-        self.target_camera_offset.z = if self.controller.aim { 0.2 } else { 0.8 };
-
-        for result in results {
-            if result.collider != self.collider {
-                let new_offset = (result.toi.min(0.8) - 0.2).max(0.1);
-                if new_offset < self.target_camera_offset.z {
-                    self.target_camera_offset.z = new_offset;
-                }
-                break;
-            }
-        }
-
-        self.camera_offset.follow(&self.target_camera_offset, 0.2);
-
-        scene.graph[self.camera]
-            .local_transform_mut()
-            .set_position(Vector3::new(
-                self.camera_offset.x,
-                self.camera_offset.y,
-                -self.camera_offset.z,
-            ));
-
-        scene.graph[self.camera_pivot]
-            .local_transform_mut()
-            .set_rotation(quat_yaw)
-            .set_position(position + self.velocity);
-
-        // Rotate camera hinge - this will make camera move up and down while look at character
-        // (well not exactly on character - on characters head)
-        scene.graph[self.camera_hinge]
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::x_axis(),
-                self.controller.pitch,
-            ));
-
-        if has_ground_contact {
-            self.in_air_time = 0.0;
-        } else {
-            self.in_air_time += time.delta;
-        }
-
-        if !has_ground_contact {
-            scene
-                .animations
-                .get_mut(self.lower_body_machine.land_animation)
-                .rewind();
-            scene
-                .animations
-                .get_mut(self.upper_body_machine.land_animation)
-                .rewind();
-        }
-
-        if let Some(current_weapon_handle) = self
-            .character
-            .weapons
-            .get(self.character.current_weapon as usize)
-        {
-            if self.controller.shoot
-                && self.upper_body_machine.machine.active_state()
-                    == self.upper_body_machine.aim_state
-            {
-                self.character
-                    .sender
-                    .as_ref()
-                    .unwrap()
-                    .send(Message::ShootWeapon {
-                        weapon: *current_weapon_handle,
-                        direction: None,
-                    })
-                    .unwrap();
-            }
         }
     }
 
