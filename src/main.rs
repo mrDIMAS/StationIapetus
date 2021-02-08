@@ -415,6 +415,7 @@ impl Game {
                 &mut self.engine,
                 self.events_sender.clone(),
                 self.control_scheme.clone(),
+                self.contextual_display.render_target.clone(),
             );
         }
 

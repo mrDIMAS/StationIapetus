@@ -1048,11 +1048,13 @@ impl Level {
         engine: &mut GameEngine,
         sender: Sender<Message>,
         control_scheme: Arc<RwLock<ControlScheme>>,
+        display_texture: Texture,
     ) {
         self.set_message_sender(sender, engine);
         self.control_scheme = Some(control_scheme.clone());
 
         if let Actor::Player(player) = self.actors.get_mut(self.player) {
+            player.resolve(&mut engine.scenes[self.scene], display_texture);
             player.set_control_scheme(control_scheme);
         }
 

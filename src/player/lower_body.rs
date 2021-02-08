@@ -178,6 +178,7 @@ impl LowerBodyMachine {
             // so we have to be notified about this. This is where signals come into play
             // you can assign any signal in animation timeline and then in update loop you
             // can iterate over them and react appropriately.
+            .set_enabled(false)
             .add_signal(AnimationSignal::new(Self::JUMP_SIGNAL, 0.15))
             .set_loop(false);
 

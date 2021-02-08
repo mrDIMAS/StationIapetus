@@ -949,18 +949,6 @@ impl Player {
             self.in_air_time += time.delta;
         }
 
-        if has_ground_contact && self.controller.jump {
-            // Rewind jump animation to beginning before jump.
-            scene
-                .animations
-                .get_mut(self.lower_body_machine.jump_animation)
-                .rewind();
-            scene
-                .animations
-                .get_mut(self.upper_body_machine.jump_animation)
-                .rewind();
-        }
-
         if !has_ground_contact {
             scene
                 .animations
@@ -1070,7 +1058,24 @@ impl Player {
             } else if button == scheme.move_right.button {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == scheme.jump.button {
-                self.controller.jump = state == ElementState::Pressed;
+                let jump_anim = scene.animations.get(self.lower_body_machine.jump_animation);
+                let can_jump = (!jump_anim.is_enabled() || jump_anim.has_ended());
+
+                if state == ElementState::Pressed && can_jump {
+                    // Rewind jump animation to beginning before jump.
+                    scene
+                        .animations
+                        .get_mut(self.lower_body_machine.jump_animation)
+                        .set_enabled(true)
+                        .rewind();
+                    scene
+                        .animations
+                        .get_mut(self.upper_body_machine.jump_animation)
+                        .set_enabled(true)
+                        .rewind();
+                }
+
+                self.controller.jump = state == ElementState::Pressed && can_jump;
             } else if button == scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
             } else if button == scheme.flash_light.button {
@@ -1141,5 +1146,14 @@ impl Player {
         self.is_dead()
             && (scene.animations[self.upper_body_machine.dying_animation].has_ended()
                 || scene.animations[self.lower_body_machine.dying_animation].has_ended())
+    }
+
+    pub fn resolve(&mut self, scene: &mut Scene, display_texture: Texture) {
+        scene.graph[self.contextual_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_diffuse_texture(Some(display_texture));
     }
 }

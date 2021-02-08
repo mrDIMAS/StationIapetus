@@ -279,7 +279,11 @@ impl UpperBodyMachine {
         );
 
         // Some animations must not be looped.
-        scene.animations.get_mut(jump_animation).set_loop(false);
+        scene
+            .animations
+            .get_mut(jump_animation)
+            .set_enabled(false)
+            .set_loop(false);
         scene.animations.get_mut(land_animation).set_loop(false);
         scene
             .animations
