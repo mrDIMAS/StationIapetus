@@ -344,7 +344,7 @@ impl Bot {
             body,
         );
 
-        scene.physics_binder.bind(pivot, body.into());
+        scene.physics_binder.bind(pivot, body);
 
         let hand = scene.graph.find_by_name(model, definition.weapon_hand_name);
         let wpn_scale = definition.weapon_scale * (1.0 / definition.scale);
@@ -709,12 +709,9 @@ impl Bot {
             }
         }
 
-        if context.time.elapsed - self.last_path_rebuild_time >= 1.0 {
-            if context.navmesh.is_some() {
-                let navmesh = &mut context.scene.navmeshes[context.navmesh];
-
-                self.rebuild_path(position, navmesh, context.time);
-            }
+        if context.time.elapsed - self.last_path_rebuild_time >= 1.0 && context.navmesh.is_some() {
+            let navmesh = &mut context.scene.navmeshes[context.navmesh];
+            self.rebuild_path(position, navmesh, context.time);
         }
         self.restoration_time -= context.time.delta;
 
@@ -744,13 +741,12 @@ impl Bot {
             .animations
             .get_mut(self.upper_body_machine.attack_animation);
 
-        if in_close_combat {
-            if self.attack_timeout <= 0.0
-                && (attack_animation.has_ended() || !attack_animation.is_enabled())
-            {
-                attack_animation.set_enabled(true);
-                attack_animation.rewind();
-            }
+        if in_close_combat
+            && self.attack_timeout <= 0.0
+            && (attack_animation.has_ended() || !attack_animation.is_enabled())
+        {
+            attack_animation.set_enabled(true);
+            attack_animation.rewind();
         }
 
         if self.attack_timeout < 0.0 && attack_animation.has_ended() {

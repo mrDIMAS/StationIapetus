@@ -385,16 +385,22 @@ impl LowerBodyMachine {
             .get_mut(self.walk_animation)
             .pop_event()
             .map(|e| (true, e))
-            .or(scene
-                .animations
-                .get_mut(self.run_animation)
-                .pop_event()
-                .map(|e| (false, e)))
+            .or_else(|| {
+                scene
+                    .animations
+                    .get_mut(self.run_animation)
+                    .pop_event()
+                    .map(|e| (false, e))
+            })
         {
-            if input.is_walking && has_ground_contact && evt.signal_id == Self::FOOTSTEP_SIGNAL {
-                if input.run_factor < 0.5 && walking || input.run_factor >= 0.5 && !walking {
-                    ray_check(begin, scene, self_collider, sender.clone());
-                }
+            if input.is_walking
+                && has_ground_contact
+                && evt.signal_id == Self::FOOTSTEP_SIGNAL
+                && input.run_factor < 0.5
+                && walking
+                || input.run_factor >= 0.5 && !walking
+            {
+                ray_check(begin, scene, self_collider, sender.clone());
             }
         }
 

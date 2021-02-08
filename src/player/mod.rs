@@ -365,7 +365,7 @@ impl Player {
         );
         let collider = scene.physics.add_collider(capsule, body);
 
-        scene.physics_binder.bind(pivot, body.into());
+        scene.physics_binder.bind(pivot, body);
 
         let locomotion_machine =
             LowerBodyMachine::new(scene, model_handle, resource_manager.clone()).await;
@@ -431,8 +431,7 @@ impl Player {
         let contextual_display = scene.graph.find_by_name(health_rig, "TextPanel");
         let mesh = scene.graph[contextual_display].as_mesh_mut();
         mesh.set_render_path(RenderPath::Forward);
-        let surface = mesh
-            .surfaces_mut()
+        mesh.surfaces_mut()
             .first_mut()
             .unwrap()
             .set_diffuse_texture(Some(display_texture));
@@ -440,7 +439,7 @@ impl Player {
         Self {
             character: Character {
                 pivot,
-                body: body.into(),
+                body,
                 weapon_pivot,
                 sender: Some(sender),
                 ..Default::default()
@@ -584,12 +583,12 @@ impl Player {
         let look_vector = pivot
             .look_vector()
             .try_normalize(std::f32::EPSILON)
-            .unwrap_or(Vector3::z());
+            .unwrap_or_else(Vector3::z);
 
         let side_vector = pivot
             .side_vector()
             .try_normalize(std::f32::EPSILON)
-            .unwrap_or(Vector3::x());
+            .unwrap_or_else(Vector3::x);
 
         let position = pivot.local_transform().position();
 
@@ -621,8 +620,8 @@ impl Player {
         self.target_velocity = self
             .target_velocity
             .try_normalize(std::f32::EPSILON)
-            .and_then(|v| Some(v.scale(speed)))
-            .unwrap_or(Vector3::default());
+            .map(|v| v.scale(speed))
+            .unwrap_or_default();
 
         self.velocity.follow(&self.target_velocity, 0.15);
 
@@ -773,30 +772,26 @@ impl Player {
                 } else {
                     0.0
                 }
-            } else {
-                if self.controller.walk_left {
-                    if self.controller.walk_forward {
-                        45.0
-                    } else if self.controller.walk_backward {
-                        135.0
-                    } else {
-                        90.0
-                    }
-                } else if self.controller.walk_right {
-                    if self.controller.walk_forward {
-                        -45.0
-                    } else if self.controller.walk_backward {
-                        -135.0
-                    } else {
-                        -90.0
-                    }
+            } else if self.controller.walk_left {
+                if self.controller.walk_forward {
+                    45.0
+                } else if self.controller.walk_backward {
+                    135.0
                 } else {
-                    if self.controller.walk_backward {
-                        180.0
-                    } else {
-                        0.0
-                    }
+                    90.0
                 }
+            } else if self.controller.walk_right {
+                if self.controller.walk_forward {
+                    -45.0
+                } else if self.controller.walk_backward {
+                    -135.0
+                } else {
+                    -90.0
+                }
+            } else if self.controller.walk_backward {
+                180.0
+            } else {
+                0.0
             };
 
             self.model_yaw
@@ -1059,7 +1054,7 @@ impl Player {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == scheme.jump.button {
                 let jump_anim = scene.animations.get(self.lower_body_machine.jump_animation);
-                let can_jump = (!jump_anim.is_enabled() || jump_anim.has_ended());
+                let can_jump = !jump_anim.is_enabled() || jump_anim.has_ended();
 
                 if state == ElementState::Pressed && can_jump {
                     // Rewind jump animation to beginning before jump.

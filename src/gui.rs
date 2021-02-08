@@ -301,6 +301,7 @@ impl ContextualDisplay {
             delta,
         );
 
-        while let Some(_) = self.ui.poll_message() {}
+        // Just pump all messages, but ignore them in game code.
+        while self.ui.poll_message().is_some() {}
     }
 }

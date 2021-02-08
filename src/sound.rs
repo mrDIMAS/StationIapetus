@@ -176,7 +176,6 @@ impl SoundManager {
         radius: f32,
         resource_manager: ResourceManager,
     ) {
-        let mut state = self.context.state();
         let buffer = resource_manager
             .request_sound_buffer(path, false)
             .await
@@ -193,6 +192,8 @@ impl SoundManager {
         .with_radius(radius)
         .with_rolloff_factor(rolloff_factor)
         .build_source();
+
+        let mut state = self.context.state();
         let source = state.add_source(shot_sound);
         state
             .effect_mut(self.reverb)

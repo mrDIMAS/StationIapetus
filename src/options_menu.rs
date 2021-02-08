@@ -609,13 +609,10 @@ impl OptionsMenu {
         sync_check_box(self.cb_use_light_scatter, settings.light_scatter_enabled);
         sync_check_box(self.cb_mouse_y_inverse, control_scheme.mouse_y_inverse);
         let is_hrtf = if scene.is_some() {
-            if let rg3d::sound::renderer::Renderer::HrtfRenderer(_) =
-                engine.scenes[scene].sound_context.state().renderer()
-            {
-                true
-            } else {
-                false
-            }
+            matches!(
+                engine.scenes[scene].sound_context.state().renderer(),
+                rg3d::sound::renderer::Renderer::HrtfRenderer(_)
+            )
         } else {
             false
         };

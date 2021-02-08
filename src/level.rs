@@ -405,9 +405,7 @@ async fn add_bot(
         sender.clone(),
     )
     .await;
-    let bot = actors.add(Actor::Bot(bot));
-
-    bot
+    actors.add(Actor::Bot(bot))
 }
 
 impl Level {
@@ -823,7 +821,13 @@ impl Level {
     pub fn update(&mut self, engine: &mut GameEngine, time: GameTime) {
         self.time += time.delta;
         let scene = &mut engine.scenes[self.scene];
-        while let Ok(_) = self.proximity_events_receiver.as_ref().unwrap().try_recv() {
+        while self
+            .proximity_events_receiver
+            .as_ref()
+            .unwrap()
+            .try_recv()
+            .is_ok()
+        {
             // Drain for now.
         }
 
@@ -1085,8 +1089,8 @@ impl Level {
         self.contact_events_receiver = Some(contact_events_receiver);
 
         engine.scenes[self.scene].physics.event_handler = Box::new(ChannelEventCollector::new(
-            proximity_events_sender.clone(),
-            contact_events_sender.clone(),
+            proximity_events_sender,
+            contact_events_sender,
         ));
     }
 

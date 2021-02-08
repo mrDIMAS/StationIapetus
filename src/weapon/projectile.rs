@@ -200,7 +200,9 @@ impl Projectile {
             lifetime: definition.lifetime,
             body,
             initial_velocity,
-            dir: dir.try_normalize(std::f32::EPSILON).unwrap_or(Vector3::y()),
+            dir: dir
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_else(Vector3::y),
             kind,
             model,
             last_position: position,
@@ -384,6 +386,7 @@ impl Visit for Projectile {
     }
 }
 
+#[derive(Default)]
 pub struct ProjectileContainer {
     pool: Pool<Projectile>,
 }

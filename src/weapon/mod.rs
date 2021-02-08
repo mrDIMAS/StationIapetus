@@ -141,8 +141,7 @@ impl LaserSight {
 
         if let Some(result) = intersections
             .into_iter()
-            .filter(|i| i.collider != ignore_collider)
-            .next()
+            .find(|i| i.collider != ignore_collider)
         {
             ray.local_transform_mut()
                 .set_position(position)
@@ -186,7 +185,7 @@ pub struct Weapon {
     laser_sight: LaserSight,
 }
 
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone)]
 pub struct Hit {
     pub actor: Handle<Actor>, // Can be None if level geometry was hit.
     pub who: Handle<Actor>,
@@ -194,6 +193,17 @@ pub struct Hit {
     pub normal: Vector3<f32>,
     pub collider: ColliderHandle,
     pub feature: FeatureId,
+}
+
+impl PartialEq for Hit {
+    fn eq(&self, other: &Self) -> bool {
+        self.actor == other.actor
+            && self.who == other.who
+            && self.position == other.position
+            && self.normal == other.normal
+            && self.collider == other.collider
+            && self.feature == other.feature
+    }
 }
 
 impl Hash for Hit {
@@ -230,10 +240,7 @@ pub fn ray_hit(
     );
 
     // List of hits sorted by distance from ray origin.
-    for hit in query_buffer
-        .iter()
-        .filter(|i| i.collider != ignored_collider)
-    {
+    if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
         let collider = physics.colliders.get(hit.collider.into()).unwrap();
         let body = collider.parent();
 
@@ -255,17 +262,17 @@ pub fn ray_hit(
             }
         }
 
-        return Some(Hit {
+        Some(Hit {
             actor: Handle::NONE,
             who: Handle::NONE,
             position: hit.position.coords,
             normal: hit.normal,
             collider: hit.collider,
             feature: hit.feature,
-        });
+        })
+    } else {
+        None
     }
-
-    None
 }
 
 #[derive(Copy, Clone, Debug)]
@@ -590,7 +597,7 @@ impl Weapon {
             let direction = direction
                 .unwrap_or_else(|| self.get_shot_direction(&scene.graph))
                 .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(|| Vector3::z());
+                .unwrap_or_else(Vector3::z);
 
             match self.definition.projectile {
                 WeaponProjectile::Projectile(projectile) => self

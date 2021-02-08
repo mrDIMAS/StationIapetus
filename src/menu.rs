@@ -146,7 +146,7 @@ impl Menu {
             btn_save_game,
             btn_load_game,
             btn_quit_game,
-            options_menu: OptionsMenu::new(engine, control_scheme, sender.clone()),
+            options_menu: OptionsMenu::new(engine, control_scheme, sender),
         }
     }
 

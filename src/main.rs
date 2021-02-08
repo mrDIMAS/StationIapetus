@@ -1,3 +1,5 @@
+#![allow(clippy::too_many_arguments)]
+
 extern crate rg3d;
 extern crate ron;
 extern crate serde;
@@ -448,8 +450,7 @@ impl Game {
                 MessageDirection::ToWidget,
                 true,
             ));
-        self.menu
-            .set_visible(&mut self.engine.user_interface, false);
+        self.menu.set_visible(&self.engine.user_interface, false);
 
         let resource_manager = self.engine.resource_manager.clone();
         let control_scheme = self.control_scheme.clone();
