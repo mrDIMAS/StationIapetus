@@ -570,44 +570,9 @@ impl Bot {
         context: &mut UpdateContext,
         targets: &[TargetDescriptor],
     ) {
-        self.select_target(self_handle, context.scene, targets);
-        self.select_weapon(context.weapons);
-
-        let has_ground_contact = self.character.has_ground_contact(&context.scene.physics);
-        let body = context
-            .scene
-            .physics
-            .bodies
-            .get_mut(self.character.body.into())
-            .unwrap();
-        let (in_close_combat, look_dir) = match self.target.as_ref() {
-            None => (false, Vector3::z()),
-            Some(target) => {
-                let d = target.position - body.position().translation.vector;
-                let close_combat_threshold = 0.75;
-                (d.norm() <= close_combat_threshold, d)
-            }
-        };
-
-        let position = body.position().translation.vector;
-
-        if let Some(path_point) = self.path.get(self.current_path_point) {
-            self.move_target = *path_point;
-            if self.move_target.metric_distance(&position) <= 0.75
-                && self.current_path_point < self.path.len() - 1
-            {
-                self.current_path_point += 1;
-            }
-        }
-
-        self.update_frustum(position, &context.scene.graph);
-
-        let was_damaged = self.character.health < self.last_health;
-        if was_damaged {
-            self.restoration_time = 0.8;
-        }
-        let can_aim = self.restoration_time <= 0.0;
-        self.last_health = self.character.health;
+        let mut is_moving = false;
+        let mut can_aim = false;
+        let mut in_close_combat = false;
 
         if self.is_dead() {
             for &animation in &[
@@ -628,92 +593,169 @@ impl Bot {
                     .get_mut(animation)
                     .set_enabled(false);
             }
-        }
 
-        let mut is_moving = false;
-        if !self.is_dead() && !in_close_combat && self.target.is_some() {
-            if let Some(move_dir) = (self.move_target - position).try_normalize(std::f32::EPSILON) {
-                let mut vel = move_dir.scale(self.definition.walk_speed);
-                vel.y = body.linvel().y;
-                body.set_linvel(vel, true);
-                self.last_move_dir = move_dir;
-                is_moving = true;
+            if self.body.is_some() {
+                context.scene.physics.remove_body(self.body);
+                self.body = Default::default();
             }
         } else {
-            body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
-        }
+            self.select_target(self_handle, context.scene, targets);
+            self.select_weapon(context.weapons);
 
-        let sender = self.character.sender.as_ref().unwrap();
-
-        if !in_close_combat && can_aim && self.can_shoot() && self.target.is_some() {
-            if let Some(weapon) = self
-                .character
-                .weapons
-                .get(self.character.current_weapon as usize)
-            {
-                sender
-                    .send(Message::ShootWeapon {
-                        weapon: *weapon,
-                        direction: Some(look_dir),
-                    })
-                    .unwrap();
-            }
-        }
-
-        // Apply damage to target from melee attack
-        if let Some(target) = self.target.as_ref() {
-            while let Some(event) = context
+            let has_ground_contact = self.character.has_ground_contact(&context.scene.physics);
+            let body = context
                 .scene
-                .animations
-                .get_mut(self.upper_body_machine.attack_animation)
-                .pop_event()
-            {
-                if event.signal_id == UpperBodyMachine::HIT_SIGNAL && in_close_combat {
+                .physics
+                .bodies
+                .get_mut(self.character.body.into())
+                .unwrap();
+            let look_dir = match self.target.as_ref() {
+                None => {
+                    in_close_combat = false;
+                    Vector3::z()
+                }
+                Some(target) => {
+                    let d = target.position - body.position().translation.vector;
+                    let close_combat_threshold = 0.75;
+                    in_close_combat = d.norm() <= close_combat_threshold;
+                    d
+                }
+            };
+
+            let position = body.position().translation.vector;
+
+            if let Some(path_point) = self.path.get(self.current_path_point) {
+                self.move_target = *path_point;
+                if self.move_target.metric_distance(&position) <= 0.75
+                    && self.current_path_point < self.path.len() - 1
+                {
+                    self.current_path_point += 1;
+                }
+            }
+
+            self.update_frustum(position, &context.scene.graph);
+
+            let was_damaged = self.character.health < self.last_health;
+            if was_damaged {
+                self.restoration_time = 0.8;
+            }
+
+            can_aim = self.restoration_time <= 0.0;
+            self.last_health = self.character.health;
+
+            if !self.is_dead() && !in_close_combat && self.target.is_some() {
+                if let Some(move_dir) =
+                    (self.move_target - position).try_normalize(std::f32::EPSILON)
+                {
+                    let mut vel = move_dir.scale(self.definition.walk_speed);
+                    vel.y = body.linvel().y;
+                    body.set_linvel(vel, true);
+                    self.last_move_dir = move_dir;
+                    is_moving = true;
+                }
+            } else {
+                body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
+            }
+
+            let sender = self.character.sender.as_ref().unwrap();
+
+            if !in_close_combat && can_aim && self.can_shoot() && self.target.is_some() {
+                if let Some(weapon) = self
+                    .character
+                    .weapons
+                    .get(self.character.current_weapon as usize)
+                {
                     sender
-                        .send(Message::DamageActor {
-                            actor: target.handle,
-                            who: Default::default(),
-                            amount: self.definition.attack_damage,
+                        .send(Message::ShootWeapon {
+                            weapon: *weapon,
+                            direction: Some(look_dir),
                         })
                         .unwrap();
                 }
             }
-        }
 
-        // Emit step sounds from walking animation.
-        if self.lower_body_machine.is_walking() {
-            while let Some(event) = context
-                .scene
-                .animations
-                .get_mut(self.lower_body_machine.walk_animation)
-                .pop_event()
-            {
-                if event.signal_id == LowerBodyMachine::STEP_SIGNAL && has_ground_contact {
-                    let footsteps = [
-                        "data/sounds/footsteps/FootStep_shoe_stone_step1.wav",
-                        "data/sounds/footsteps/FootStep_shoe_stone_step2.wav",
-                        "data/sounds/footsteps/FootStep_shoe_stone_step3.wav",
-                        "data/sounds/footsteps/FootStep_shoe_stone_step4.wav",
-                    ];
-                    sender
-                        .send(Message::PlaySound {
-                            path: footsteps[rand::thread_rng().gen_range(0..footsteps.len())]
-                                .into(),
-                            position,
-                            gain: 1.0,
-                            rolloff_factor: 2.0,
-                            radius: 3.0,
-                        })
-                        .unwrap();
+            // Apply damage to target from melee attack
+            if let Some(target) = self.target.as_ref() {
+                while let Some(event) = context
+                    .scene
+                    .animations
+                    .get_mut(self.upper_body_machine.attack_animation)
+                    .pop_event()
+                {
+                    if event.signal_id == UpperBodyMachine::HIT_SIGNAL && in_close_combat {
+                        sender
+                            .send(Message::DamageActor {
+                                actor: target.handle,
+                                who: Default::default(),
+                                amount: self.definition.attack_damage,
+                            })
+                            .unwrap();
+                    }
                 }
             }
-        }
 
-        if context.time.elapsed - self.last_path_rebuild_time >= 1.0 && context.navmesh.is_some() {
-            let navmesh = &mut context.scene.navmeshes[context.navmesh];
-            self.rebuild_path(position, navmesh, context.time);
+            // Emit step sounds from walking animation.
+            if self.lower_body_machine.is_walking() {
+                while let Some(event) = context
+                    .scene
+                    .animations
+                    .get_mut(self.lower_body_machine.walk_animation)
+                    .pop_event()
+                {
+                    if event.signal_id == LowerBodyMachine::STEP_SIGNAL && has_ground_contact {
+                        let footsteps = [
+                            "data/sounds/footsteps/FootStep_shoe_stone_step1.wav",
+                            "data/sounds/footsteps/FootStep_shoe_stone_step2.wav",
+                            "data/sounds/footsteps/FootStep_shoe_stone_step3.wav",
+                            "data/sounds/footsteps/FootStep_shoe_stone_step4.wav",
+                        ];
+                        sender
+                            .send(Message::PlaySound {
+                                path: footsteps[rand::thread_rng().gen_range(0..footsteps.len())]
+                                    .into(),
+                                position,
+                                gain: 1.0,
+                                rolloff_factor: 2.0,
+                                radius: 3.0,
+                            })
+                            .unwrap();
+                    }
+                }
+            }
+
+            if context.time.elapsed - self.last_path_rebuild_time >= 1.0
+                && context.navmesh.is_some()
+            {
+                let navmesh = &mut context.scene.navmeshes[context.navmesh];
+                self.rebuild_path(position, navmesh, context.time);
+            }
+            self.restoration_time -= context.time.delta;
+
+            let attack_animation = context
+                .scene
+                .animations
+                .get_mut(self.upper_body_machine.attack_animation);
+
+            if in_close_combat
+                && self.attack_timeout <= 0.0
+                && (attack_animation.has_ended() || !attack_animation.is_enabled())
+            {
+                attack_animation.set_enabled(true);
+                attack_animation.rewind();
+            }
+
+            if self.attack_timeout < 0.0 && attack_animation.has_ended() {
+                self.attack_timeout = 0.3;
+            }
+
+            self.attack_timeout -= context.time.delta;
+
+            // Aim overrides result of machines for spine bone.
+            if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
+                self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
+                self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+            }
         }
-        self.restoration_time -= context.time.delta;
 
         self.lower_body_machine.apply(
             context.scene,
@@ -721,7 +763,7 @@ impl Bot {
             LowerBodyMachineInput {
                 walk: is_moving,
                 scream: false,
-                dead: self.health <= 0.0,
+                dead: self.is_dead(),
             },
         );
         self.upper_body_machine.apply(
@@ -731,37 +773,10 @@ impl Bot {
                 attack: in_close_combat && self.attack_timeout <= 0.0,
                 walk: is_moving,
                 scream: false,
-                dead: self.health <= 0.0,
+                dead: self.is_dead(),
                 aim: self.definition.can_use_weapons && can_aim,
             },
         );
-
-        let attack_animation = context
-            .scene
-            .animations
-            .get_mut(self.upper_body_machine.attack_animation);
-
-        if in_close_combat
-            && self.attack_timeout <= 0.0
-            && (attack_animation.has_ended() || !attack_animation.is_enabled())
-        {
-            attack_animation.set_enabled(true);
-            attack_animation.rewind();
-        }
-
-        if self.attack_timeout < 0.0 && attack_animation.has_ended() {
-            self.attack_timeout = 0.3;
-        }
-
-        self.attack_timeout -= context.time.delta;
-
-        // Aim overrides result of machines for spine bone.
-        if !self.is_dead() {
-            if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
-                self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
-                self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
-            }
-        }
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {

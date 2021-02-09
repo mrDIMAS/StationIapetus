@@ -155,41 +155,37 @@ impl ActorContainer {
     pub fn update(&mut self, context: &mut UpdateContext) {
         self.target_descriptors.clear();
         for (handle, actor) in self.pool.pair_iter() {
-            self.target_descriptors.push(TargetDescriptor {
-                handle,
-                health: actor.health,
-                position: actor.position(&context.scene.physics),
-            });
+            if !actor.is_dead() {
+                self.target_descriptors.push(TargetDescriptor {
+                    handle,
+                    health: actor.health,
+                    position: actor.position(&context.scene.physics),
+                });
+            }
         }
 
         for (handle, actor) in self.pool.pair_iter_mut() {
-            let is_dead = actor.is_dead();
-
             match actor {
                 Actor::Bot(bot) => bot.update(handle, context, &self.target_descriptors),
                 Actor::Player(player) => player.update(handle, context),
             }
-            if !is_dead {
+            if !actor.is_dead() {
                 for (item_handle, item) in context.items.pair_iter() {
-                    let body = context
-                        .scene
-                        .physics
-                        .bodies
-                        .get(actor.get_body().into())
-                        .unwrap();
-                    let distance = (context.scene.graph[item.get_pivot()].global_position()
-                        - body.position().translation.vector)
-                        .norm();
-                    if distance < 0.75 {
-                        actor
-                            .sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::PickUpItem {
-                                actor: handle,
-                                item: item_handle,
-                            })
-                            .unwrap();
+                    if let Some(body) = context.scene.physics.bodies.get(actor.get_body().into()) {
+                        let distance = (context.scene.graph[item.get_pivot()].global_position()
+                            - body.position().translation.vector)
+                            .norm();
+                        if distance < 0.75 {
+                            actor
+                                .sender
+                                .as_ref()
+                                .unwrap()
+                                .send(Message::PickUpItem {
+                                    actor: handle,
+                                    item: item_handle,
+                                })
+                                .unwrap();
+                        }
                     }
                 }
             }

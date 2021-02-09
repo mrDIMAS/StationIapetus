@@ -591,7 +591,7 @@ impl Player {
                 .try_normalize(std::f32::EPSILON)
                 .unwrap_or_else(Vector3::x);
 
-            let position = pivot.local_transform().position();
+            let position = **pivot.local_transform().position();
 
             self.target_velocity = Vector3::default();
 
@@ -797,7 +797,7 @@ impl Player {
 
                     let spine_transform = scene.graph[self.spine].local_transform_mut();
                     spine_transform.set_rotation(
-                        spine_transform.rotation()
+                        **spine_transform.rotation()
                             * UnitQuaternion::from_axis_angle(
                                 &Vector3::x_axis(),
                                 self.spine_pitch.angle,
