@@ -4,3 +4,4 @@ Cargo.lock
 *.log
 save.bin
 save.txt
+/materials
