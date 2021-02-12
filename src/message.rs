@@ -35,6 +35,7 @@ pub enum Message {
     AddBot {
         kind: BotKind,
         position: Vector3<f32>,
+        rotation: UnitQuaternion<f32>,
     },
     RemoveActor {
         actor: Handle<Actor>,

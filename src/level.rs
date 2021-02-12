@@ -260,18 +260,21 @@ pub async fn analyze(
         } else if name.starts_with("Zombie") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
+                rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Zombie,
                 spawned: false,
             })
         } else if name.starts_with("Mutant") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
+                rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Mutant,
                 spawned: false,
             })
         } else if name.starts_with("Parasite") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
+                rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Parasite,
                 spawned: false,
             })
@@ -389,6 +392,7 @@ async fn spawn_bot(
     let bot = add_bot(
         spawn_point.bot_kind,
         spawn_point.position,
+        spawn_point.rotation,
         actors,
         resource_manager,
         sender,
@@ -402,6 +406,7 @@ async fn spawn_bot(
 async fn add_bot(
     kind: BotKind,
     position: Vector3<f32>,
+    rotation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
     resource_manager: ResourceManager,
     sender: Sender<Message>,
@@ -412,6 +417,7 @@ async fn add_bot(
         resource_manager.clone(),
         scene,
         position,
+        rotation,
         sender.clone(),
     )
     .await;
@@ -580,10 +586,12 @@ impl Level {
         engine: &mut GameEngine,
         kind: BotKind,
         position: Vector3<f32>,
+        rotation: UnitQuaternion<f32>,
     ) -> Handle<Actor> {
         add_bot(
             kind,
             position,
+            rotation,
             &mut self.actors,
             engine.resource_manager.clone(),
             self.sender.clone().unwrap(),
@@ -980,8 +988,12 @@ impl Level {
             &Message::GiveNewWeapon { actor, kind } => {
                 self.give_new_weapon(engine, actor, kind).await;
             }
-            Message::AddBot { kind, position } => {
-                self.add_bot(engine, *kind, *position).await;
+            Message::AddBot {
+                kind,
+                position,
+                rotation,
+            } => {
+                self.add_bot(engine, *kind, *position, *rotation).await;
             }
             &Message::RemoveActor { actor } => self.remove_actor(engine, actor).await,
             &Message::GiveItem { actor, kind } => {
@@ -1146,6 +1158,7 @@ impl Level {
 
 pub struct SpawnPoint {
     position: Vector3<f32>,
+    rotation: UnitQuaternion<f32>,
     bot_kind: BotKind,
     spawned: bool,
 }
@@ -1154,6 +1167,7 @@ impl Default for SpawnPoint {
     fn default() -> Self {
         Self {
             position: Default::default(),
+            rotation: Default::default(),
             bot_kind: BotKind::Zombie,
             spawned: false,
         }
@@ -1165,6 +1179,7 @@ impl Visit for SpawnPoint {
         visitor.enter_region(name)?;
 
         self.position.visit("Position", visitor)?;
+        self.rotation.visit("Rotation", visitor)?;
         self.spawned.visit("Spawned", visitor)?;
 
         let mut kind_id = self.bot_kind.id();

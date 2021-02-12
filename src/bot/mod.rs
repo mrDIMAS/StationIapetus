@@ -10,6 +10,7 @@ use crate::{
     weapon::WeaponContainer,
     GameTime,
 };
+use rg3d::core::algebra::{Isometry3, Translation3};
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -297,6 +298,7 @@ impl Bot {
         resource_manager: ResourceManager,
         scene: &mut Scene,
         position: Vector3<f32>,
+        rotation: UnitQuaternion<f32>,
         sender: Sender<Message>,
     ) -> Self {
         let definition = Self::get_definition(kind);
@@ -334,7 +336,10 @@ impl Bot {
         let body = scene.physics.add_body(
             RigidBodyBuilder::new(BodyStatus::Dynamic)
                 .lock_rotations()
-                .translation(position.x, position.y, position.z)
+                .position(Isometry3 {
+                    translation: Translation3 { vector: position },
+                    rotation,
+                })
                 .build(),
         );
         scene.physics.add_collider(
@@ -751,9 +756,11 @@ impl Bot {
             self.attack_timeout -= context.time.delta;
 
             // Aim overrides result of machines for spine bone.
-            if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
-                self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
-                self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+            if self.target.is_some() {
+                if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
+                    self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
+                    self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+                }
             }
         }
 

@@ -117,7 +117,7 @@ impl DoorContainer {
             let need_to_open = actors.iter().any(|a| {
                 let actor_position = a.position(&scene.graph);
                 // TODO: Replace with triggers.
-                actor_position.metric_distance(&door_position) < 2.00
+                actor_position.metric_distance(&door_position) < 1.25
             });
 
             if need_to_open {
