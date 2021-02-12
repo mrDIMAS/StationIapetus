@@ -8,6 +8,7 @@ pub mod actor;
 pub mod bot;
 pub mod character;
 pub mod control_scheme;
+pub mod door;
 pub mod effects;
 pub mod gui;
 pub mod item;

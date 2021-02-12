@@ -1,7 +1,9 @@
+use crate::door::Door;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
     control_scheme::ControlScheme,
+    door::DoorContainer,
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
     message::Message,
@@ -65,6 +67,7 @@ pub struct Level {
     contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
     beam: Option<Arc<RwLock<SurfaceSharedData>>>,
     trails: ShotTrailContainer,
+    doors: DoorContainer,
 }
 
 impl Default for Level {
@@ -88,6 +91,7 @@ impl Default for Level {
             contact_events_receiver: None,
             beam: None,
             trails: Default::default(),
+            doors: Default::default(),
         }
     }
 }
@@ -109,6 +113,7 @@ impl Visit for Level {
         self.items.visit("Items", visitor)?;
         self.navmesh.visit("Navmesh", visitor)?;
         self.trails.visit("Trails", visitor)?;
+        self.doors.visit("Doors", visitor)?;
 
         if visitor.is_reading() {
             self.beam = Some(make_beam());
@@ -216,6 +221,7 @@ pub struct AnalysisResult {
     death_zones: Vec<DeathZone>,
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
+    doors: DoorContainer,
 }
 
 fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {
@@ -275,6 +281,10 @@ pub async fn analyze(
             if let Node::Mesh(_) = node {
                 death_zones.push(handle);
             }
+        }
+
+        if node.tag() == "SideDoor" {
+            result.doors.add(Door::new(handle, &scene.graph));
         }
     }
 
@@ -438,6 +448,7 @@ impl Level {
             death_zones,
             mut spawn_points,
             player_spawn_position,
+            doors,
         } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -482,6 +493,7 @@ impl Level {
             sound_manager: SoundManager::new(scene.sound_context.clone(), &scene),
             beam: Some(make_beam()),
             trails: Default::default(),
+            doors,
         };
 
         (level, scene)
@@ -845,6 +857,7 @@ impl Level {
         self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
+        self.doors.update(&self.actors, scene, time.delta);
     }
 
     fn shoot_ray(
@@ -1062,7 +1075,9 @@ impl Level {
             player.set_control_scheme(control_scheme);
         }
 
-        self.sound_manager.resolve(&engine.scenes[self.scene]);
+        let scene = &engine.scenes[self.scene];
+        self.sound_manager.resolve(scene);
+        self.doors.resolve(scene);
     }
 
     pub fn set_message_sender(&mut self, sender: Sender<Message>, engine: &mut GameEngine) {
