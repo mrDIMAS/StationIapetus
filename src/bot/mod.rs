@@ -431,7 +431,7 @@ impl Bot {
             }
         }
 
-        let position = self.character.position(&scene.physics);
+        let position = self.character.position(&scene.graph);
         let mut closest_distance = std::f32::MAX;
 
         let mut query_buffer = Vec::default();

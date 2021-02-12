@@ -1,12 +1,14 @@
-use crate::weapon::{WeaponContainer, WeaponKind};
-use crate::{message::Message, weapon::Weapon};
+use crate::{
+    message::Message,
+    weapon::{Weapon, WeaponContainer, WeaponKind},
+};
 use rg3d::{
     core::{
         algebra::Vector3,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    scene::{node::Node, physics::Physics, RigidBodyHandle, Scene},
+    scene::{graph::Graph, node::Node, physics::Physics, RigidBodyHandle, Scene},
 };
 use std::sync::mpsc::Sender;
 
@@ -79,14 +81,8 @@ impl Character {
         body.set_position(body_position, true);
     }
 
-    pub fn position(&self, physics: &Physics) -> Vector3<f32> {
-        physics
-            .bodies
-            .get(self.get_body().into())
-            .unwrap()
-            .position()
-            .translation
-            .vector
+    pub fn position(&self, graph: &Graph) -> Vector3<f32> {
+        graph[self.pivot].global_position()
     }
 
     pub fn damage(&mut self, amount: f32) {

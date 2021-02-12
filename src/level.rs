@@ -598,7 +598,7 @@ impl Level {
             let character = self.actors.get(actor);
 
             // Make sure to remove weapons and drop appropriate items (items will be temporary).
-            let drop_position = character.position(&scene.physics);
+            let drop_position = character.position(&scene.graph);
             let weapons = character
                 .weapons()
                 .iter()
@@ -759,7 +759,7 @@ impl Level {
         {
             let who_position = if who.is_some() {
                 let scene = &engine.scenes[self.scene];
-                Some(self.actors.get(who).position(&scene.physics))
+                Some(self.actors.get(who).position(&scene.graph))
             } else {
                 None
             };
@@ -802,7 +802,7 @@ impl Level {
             for death_zone in self.death_zones.iter() {
                 if death_zone
                     .bounds
-                    .is_contains_point(actor.position(&scene.physics))
+                    .is_contains_point(actor.position(&scene.graph))
                 {
                     self.sender
                         .as_ref()

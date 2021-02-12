@@ -159,7 +159,7 @@ impl ActorContainer {
                 self.target_descriptors.push(TargetDescriptor {
                     handle,
                     health: actor.health,
-                    position: actor.position(&context.scene.physics),
+                    position: actor.position(&context.scene.graph),
                 });
             }
         }
