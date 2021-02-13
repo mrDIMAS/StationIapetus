@@ -5,7 +5,9 @@ use crate::{
 use rg3d::{
     animation::Animation,
     animation::{
-        machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
+        machine::{
+            blend_nodes::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+        },
         AnimationSignal,
     },
     core::{

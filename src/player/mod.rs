@@ -14,7 +14,7 @@ use crate::{
 use rg3d::core::color::Color;
 use rg3d::{
     animation::{
-        machine::{BlendPose, Machine, PoseNode, PoseWeight, State},
+        machine::{blend_nodes::BlendPose, Machine, PoseNode, PoseWeight, State},
         Animation,
     },
     core::{

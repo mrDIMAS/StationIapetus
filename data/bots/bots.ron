@@ -1,0 +1,76 @@
+(
+    map: {
+        Mutant: (
+            model: "data/models/mutant.FBX",
+            attack_animations: ["data/animations/mutant_attack_swipe.fbx"],
+            scream_animation: "data/animations/mutant_scream.fbx",
+            idle_animation: "data/animations/mutant_idle.fbx",
+            walk_animation: "data/animations/mutant_walk.fbx",
+            aim_animation: "", // Empty because cannot use weapons.
+            dying_animation: "data/animations/mutant_dying.fbx",
+            weapon_hand_name: "Mutant:RightHand",
+            left_leg_name: "Mutant:LeftUpLeg",
+            right_leg_name: "Mutant:RightUpLeg",
+            hips: "Mutant:Hips",
+            spine: "", // Empty because cannot use weapons.
+            walk_speed: 0.7,
+            scale: 0.0065,
+            weapon_scale: 1.0,
+            health: 1000.0,
+            v_aim_angle_hack: 0.0,
+            can_use_weapons: false,
+            attack_damage: 120.0,
+            attack_timestamp: 1.1,
+        ),
+        Parasite: (
+            model: "data/models/parasite.FBX",
+            attack_animations: [
+                "data/animations/parasite_attack.fbx",
+                "data/animations/parasite_attack_2.fbx"
+            ],
+            scream_animation: "data/animations/parasite_scream.fbx",
+            idle_animation: "data/animations/parasite_idle.fbx",
+            walk_animation: "data/animations/parasite_running.fbx",
+            aim_animation: "", // Empty because cannot use weapons.
+            dying_animation: "data/animations/parasite_dying.fbx",
+            weapon_hand_name: "RightHand",
+            left_leg_name: "LeftUpLeg",
+            right_leg_name: "RightUpLeg",
+            hips: "Hips",
+            spine: "", // Empty because cannot use weapons.
+            walk_speed: 4.0,
+            scale: 0.0055,
+            weapon_scale: 1.0,
+            health: 300.0,
+            v_aim_angle_hack: 0.0,
+            can_use_weapons: false,
+            attack_damage: 40.0,
+            attack_timestamp: 1.1,
+        ),
+        Zombie: (
+            model: "data/models/zombie.fbx",
+            attack_animations: [
+                "data/animations/zombie_attack.fbx",
+                "data/animations/zombie_attack_2.fbx"
+            ],
+            scream_animation: "data/animations/zombie_scream.fbx",
+            idle_animation: "data/animations/zombie_idle.fbx",
+            walk_animation: "data/animations/zombie_running.fbx",
+            aim_animation: "data/animations/zombie_aim_rifle.fbx",
+            dying_animation: "data/animations/zombie_dying.fbx",
+            weapon_hand_name: "mixamorig5:RightHand",
+            left_leg_name: "mixamorig5:LeftUpLeg",
+            right_leg_name: "mixamorig5:RightUpLeg",
+            hips: "mixamorig5:Hips",
+            spine: "Spine",
+            walk_speed: 1.2,
+            scale: 0.0055,
+            weapon_scale: 1.0,
+            health: 100.0,
+            v_aim_angle_hack: 12.0,
+            can_use_weapons: false,
+            attack_damage: 0.0,
+            attack_timestamp: 1.6,
+        )
+    }
+)

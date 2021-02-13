@@ -20,9 +20,14 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
-use crate::gui::{ContextualDisplay, DeathScreen};
-use crate::{control_scheme::ControlScheme, level::Level, menu::Menu, message::Message};
-use rg3d::gui::ttf::{Font, SharedFont};
+use crate::{
+    control_scheme::ControlScheme,
+    gui::{ContextualDisplay, DeathScreen},
+    level::Level,
+    menu::Menu,
+    message::Message,
+};
+use rg3d::engine::resource_manager::ResourceManager;
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -42,6 +47,7 @@ use rg3d::{
         node::{StubNode, UINode},
         progress_bar::ProgressBarBuilder,
         text::TextBuilder,
+        ttf::{Font, SharedFont},
         widget::WidgetBuilder,
         HorizontalAlignment, UserInterface, VerticalAlignment,
     },
@@ -57,6 +63,8 @@ use rg3d::{
         translate_event,
     },
 };
+use std::collections::HashMap;
+use std::ops::Index;
 use std::{
     fs::File,
     io::Write,
@@ -93,6 +101,43 @@ pub fn create_play_animation_state(
     let node = machine.add_node(PoseNode::make_play_animation(animation));
     let state = machine.add_state(State::new(name, node));
     (animation, state)
+}
+
+pub struct ModelMap {
+    pub map: HashMap<String, Model>,
+}
+
+impl ModelMap {
+    pub async fn new<I>(paths: I, resource_manager: ResourceManager) -> Self
+    where
+        I: IntoIterator,
+        I::Item: AsRef<Path>,
+    {
+        Self {
+            map: rg3d::futures::future::join_all(
+                paths
+                    .into_iter()
+                    .map(|path| resource_manager.request_model(path))
+                    .collect::<Vec<_>>(),
+            )
+            .await
+            .into_iter()
+            .map(|r| {
+                let resource = r.unwrap();
+                let key = resource.state().path().to_string_lossy().into_owned();
+                (key, resource)
+            })
+            .collect::<HashMap<_, _>>(),
+        }
+    }
+}
+
+impl<T: AsRef<str>> Index<T> for ModelMap {
+    type Output = Model;
+
+    fn index(&self, index: T) -> &Self::Output {
+        self.map.get(index.as_ref()).unwrap()
+    }
 }
 
 pub struct Game {

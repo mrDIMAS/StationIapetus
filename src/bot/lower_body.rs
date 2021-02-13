@@ -2,9 +2,11 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     create_play_animation_state, GameTime,
 };
-use rg3d::animation::machine::{Machine, Parameter, State, Transition};
 use rg3d::{
-    animation::Animation,
+    animation::{
+        machine::{Machine, Parameter, State, Transition},
+        Animation, AnimationSignal,
+    },
     core::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -64,10 +66,10 @@ impl LowerBodyMachine {
             scream_animation_resource,
             dying_animation_resource,
         ) = rg3d::futures::join!(
-            resource_manager.request_model(definition.idle_animation),
-            resource_manager.request_model(definition.walk_animation),
-            resource_manager.request_model(definition.scream_animation),
-            resource_manager.request_model(definition.dying_animation),
+            resource_manager.request_model(&definition.idle_animation),
+            resource_manager.request_model(&definition.walk_animation),
+            resource_manager.request_model(&definition.scream_animation),
+            resource_manager.request_model(&definition.dying_animation),
         );
 
         let mut machine = Machine::new();
@@ -110,6 +112,10 @@ impl LowerBodyMachine {
             .set_loop(false)
             .set_enabled(false)
             .set_speed(1.0);
+
+        scene.animations[walk_animation]
+            .add_signal(AnimationSignal::new(Self::STEP_SIGNAL, 0.3))
+            .add_signal(AnimationSignal::new(Self::STEP_SIGNAL, 0.6));
 
         machine.add_transition(Transition::new(
             "Idle->Walk",

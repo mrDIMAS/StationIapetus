@@ -1,9 +1,8 @@
-use crate::door::Door;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
     control_scheme::ControlScheme,
-    door::DoorContainer,
+    door::{Door, DoorContainer},
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
     message::Message,
@@ -39,7 +38,7 @@ use rg3d::{
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
-        Scene,
+        ColliderHandle, Scene,
     },
     utils::navmesh::Navmesh,
 };
@@ -222,6 +221,39 @@ pub struct AnalysisResult {
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
     doors: DoorContainer,
+}
+
+pub fn footstep_ray_check(
+    begin: Vector3<f32>,
+    scene: &mut Scene,
+    self_collider: ColliderHandle,
+    sender: Sender<Message>,
+) {
+    let mut query_buffer = Vec::new();
+
+    scene.physics.cast_ray(
+        RayCastOptions {
+            ray: Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0)),
+            max_len: 100.0,
+            groups: Default::default(),
+            sort_results: true,
+        },
+        &mut query_buffer,
+    );
+
+    for intersection in query_buffer
+        .into_iter()
+        .filter(|i| i.collider != self_collider)
+    {
+        sender
+            .send(Message::PlayEnvironmentSound {
+                collider: intersection.collider,
+                feature: intersection.feature,
+                position: intersection.position.coords,
+                sound_kind: SoundKind::FootStep,
+            })
+            .unwrap();
+    }
 }
 
 fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {

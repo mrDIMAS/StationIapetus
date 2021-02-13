@@ -1,8 +1,8 @@
 use crate::{
     create_play_animation_state,
+    level::footstep_ray_check,
     message::Message,
     player::{make_walk_state, WalkStateDefinition},
-    sound::SoundKind,
 };
 use rg3d::{
     animation::{
@@ -11,12 +11,11 @@ use rg3d::{
     },
     core::{
         algebra::Vector3,
-        math::ray::Ray,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    scene::{node::Node, physics::RayCastOptions, ColliderHandle, Scene},
+    scene::{node::Node, ColliderHandle, Scene},
 };
 use std::sync::mpsc::Sender;
 
@@ -400,47 +399,14 @@ impl LowerBodyMachine {
                 && walking
                 || input.run_factor >= 0.5 && !walking
             {
-                ray_check(begin, scene, self_collider, sender.clone());
+                footstep_ray_check(begin, scene, self_collider, sender.clone());
             }
         }
 
         while let Some(evt) = scene.animations.get_mut(self.land_animation).pop_event() {
             if evt.signal_id == Self::FOOTSTEP_SIGNAL {
-                ray_check(begin, scene, self_collider, sender.clone());
+                footstep_ray_check(begin, scene, self_collider, sender.clone());
             }
         }
-    }
-}
-
-fn ray_check(
-    begin: Vector3<f32>,
-    scene: &mut Scene,
-    self_collider: ColliderHandle,
-    sender: Sender<Message>,
-) {
-    let mut query_buffer = Vec::new();
-
-    scene.physics.cast_ray(
-        RayCastOptions {
-            ray: Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0)),
-            max_len: 100.0,
-            groups: Default::default(),
-            sort_results: true,
-        },
-        &mut query_buffer,
-    );
-
-    for intersection in query_buffer
-        .into_iter()
-        .filter(|i| i.collider != self_collider)
-    {
-        sender
-            .send(Message::PlayEnvironmentSound {
-                collider: intersection.collider,
-                feature: intersection.feature,
-                position: intersection.position.coords,
-                sound_kind: SoundKind::FootStep,
-            })
-            .unwrap();
     }
 }

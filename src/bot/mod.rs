@@ -5,28 +5,27 @@ use crate::{
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
     character::Character,
-    level::UpdateContext,
+    level::{footstep_ray_check, UpdateContext},
     message::Message,
     weapon::WeaponContainer,
     GameTime,
 };
-use rg3d::core::algebra::{Isometry3, Translation3};
+use rg3d::core::rand::Rng;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
-        algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
+        algebra::{Isometry3, Matrix4, Point3, Translation3, UnitQuaternion, Vector3},
         color::Color,
         math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
         pool::Handle,
-        rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    lazy_static::lazy_static,
     physics::{
         dynamics::{BodyStatus, RigidBodyBuilder},
         geometry::{ColliderBuilder, InteractionGroups},
     },
-    rand,
     scene::{
         self,
         base::BaseBuilder,
@@ -34,23 +33,25 @@ use rg3d::{
         node::Node,
         physics::{Physics, RayCastOptions},
         transform::TransformBuilder,
-        Scene, SceneDrawingContext,
+        ColliderHandle, Scene, SceneDrawingContext,
     },
     utils::{
         log::{Log, MessageKind},
         navmesh::Navmesh,
     },
 };
+use serde::Deserialize;
 use std::{
+    collections::HashMap,
+    fs::File,
     ops::{Deref, DerefMut},
-    path::Path,
     sync::mpsc::Sender,
 };
 
 mod lower_body;
 mod upper_body;
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum BotKind {
     Mutant,
     Parasite,
@@ -131,6 +132,7 @@ pub struct Bot {
     pitch: SmoothAngle,
     attack_timeout: f32,
     hips: Handle<Node>,
+    attack_animation_index: u32,
 }
 
 impl Deref for Bot {
@@ -178,119 +180,56 @@ impl Default for Bot {
             },
             attack_timeout: 0.0,
             hips: Default::default(),
+            attack_animation_index: 0,
         }
     }
 }
 
+#[derive(Deserialize)]
 pub struct BotDefinition {
-    // Generic parameters.
     pub scale: f32,
     pub health: f32,
-    pub kind: BotKind,
     pub walk_speed: f32,
     pub weapon_scale: f32,
-    pub model: &'static str,
-    pub weapon_hand_name: &'static str,
-    pub left_leg_name: &'static str,
-    pub right_leg_name: &'static str,
-    pub spine: &'static str,
-    pub hips: &'static str,
+    pub model: String,
+    pub weapon_hand_name: String,
+    pub left_leg_name: String,
+    pub right_leg_name: String,
+    pub spine: String,
+    pub hips: String,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
     pub attack_damage: f32,
     pub attack_timestamp: f32,
 
     // Animations.
-    pub idle_animation: &'static str,
-    pub scream_animation: &'static str,
-    pub attack_animation: &'static str,
-    pub walk_animation: &'static str,
-    pub aim_animation: &'static str,
-    pub dying_animation: &'static str,
+    pub idle_animation: String,
+    pub scream_animation: String,
+    pub attack_animations: Vec<String>,
+    pub walk_animation: String,
+    pub aim_animation: String,
+    pub dying_animation: String,
+}
+
+#[derive(Deserialize)]
+pub struct BotDefinitionsContainer {
+    map: HashMap<BotKind, BotDefinition>,
+}
+
+impl BotDefinitionsContainer {
+    pub fn new() -> Self {
+        let file = File::open("data/bots/bots.ron").unwrap();
+        ron::de::from_reader(file).unwrap()
+    }
+}
+
+lazy_static! {
+    static ref DEFINITIONS: BotDefinitionsContainer = BotDefinitionsContainer::new();
 }
 
 impl Bot {
     pub fn get_definition(kind: BotKind) -> &'static BotDefinition {
-        match kind {
-            BotKind::Mutant => {
-                static DEFINITION: BotDefinition = BotDefinition {
-                    kind: BotKind::Mutant,
-                    model: "data/models/mutant.FBX",
-                    attack_animation: "data/animations/mutant_attack_swipe.fbx",
-                    scream_animation: "data/animations/mutant_scream.fbx",
-                    idle_animation: "data/animations/mutant_idle.fbx",
-                    walk_animation: "data/animations/mutant_walk.fbx",
-                    aim_animation: "", // Empty because cannot use weapons.
-                    dying_animation: "data/animations/mutant_dying.fbx",
-                    weapon_hand_name: "Mutant:RightHand",
-                    left_leg_name: "Mutant:LeftUpLeg",
-                    right_leg_name: "Mutant:RightUpLeg",
-                    hips: "Mutant:Hips",
-                    spine: "", // Empty because cannot use weapons.
-                    walk_speed: 0.7,
-                    scale: 0.0065,
-                    weapon_scale: 1.0,
-                    health: 1000.0,
-                    v_aim_angle_hack: 0.0,
-                    can_use_weapons: false,
-                    attack_damage: 120.0,
-                    attack_timestamp: 1.1,
-                };
-                &DEFINITION
-            }
-            BotKind::Parasite => {
-                static DEFINITION: BotDefinition = BotDefinition {
-                    kind: BotKind::Parasite,
-                    model: "data/models/parasite.FBX",
-                    attack_animation: "data/animations/parasite_attack.fbx",
-                    scream_animation: "data/animations/parasite_scream.fbx",
-                    idle_animation: "data/animations/parasite_idle.fbx",
-                    walk_animation: "data/animations/parasite_running.fbx",
-                    aim_animation: "", // Empty because cannot use weapons.
-                    dying_animation: "data/animations/parasite_dying.fbx",
-                    weapon_hand_name: "RightHand",
-                    left_leg_name: "LeftUpLeg",
-                    right_leg_name: "RightUpLeg",
-                    hips: "Hips",
-                    spine: "", // Empty because cannot use weapons.
-                    walk_speed: 1.0,
-                    scale: 0.0055,
-                    weapon_scale: 1.0,
-                    health: 300.0,
-                    v_aim_angle_hack: 0.0,
-                    can_use_weapons: false,
-                    attack_damage: 40.0,
-                    attack_timestamp: 1.1,
-                };
-                &DEFINITION
-            }
-            BotKind::Zombie => {
-                static DEFINITION: BotDefinition = BotDefinition {
-                    kind: BotKind::Parasite,
-                    model: "data/models/zombie.fbx",
-                    attack_animation: "data/animations/zombie_attack.fbx",
-                    scream_animation: "data/animations/zombie_scream.fbx",
-                    idle_animation: "data/animations/zombie_idle.fbx",
-                    walk_animation: "data/animations/zombie_running.fbx",
-                    aim_animation: "data/animations/zombie_aim_rifle.fbx",
-                    dying_animation: "data/animations/zombie_dying.fbx",
-                    weapon_hand_name: "mixamorig5:RightHand",
-                    left_leg_name: "mixamorig5:LeftUpLeg",
-                    right_leg_name: "mixamorig5:RightUpLeg",
-                    hips: "mixamorig5:Hips",
-                    spine: "Spine",
-                    walk_speed: 1.2,
-                    scale: 0.0055,
-                    weapon_scale: 1.0,
-                    health: 100.0,
-                    v_aim_angle_hack: 12.0,
-                    can_use_weapons: false,
-                    attack_damage: 40.0,
-                    attack_timestamp: 1.6,
-                };
-                &DEFINITION
-            }
-        }
+        DEFINITIONS.map.get(&kind).unwrap()
     }
 
     pub async fn new(
@@ -307,7 +246,7 @@ impl Bot {
         let body_radius = 0.20;
 
         let model = resource_manager
-            .request_model(Path::new(definition.model))
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);
@@ -321,7 +260,7 @@ impl Bot {
                 definition.scale,
             ));
 
-        let spine = scene.graph.find_by_name(model, definition.spine);
+        let spine = scene.graph.find_by_name(model, &definition.spine);
         if spine.is_none() {
             Log::writeln(
                 MessageKind::Warning,
@@ -351,7 +290,9 @@ impl Bot {
 
         scene.physics_binder.bind(pivot, body);
 
-        let hand = scene.graph.find_by_name(model, definition.weapon_hand_name);
+        let hand = scene
+            .graph
+            .find_by_name(model, &definition.weapon_hand_name);
         let wpn_scale = definition.weapon_scale * (1.0 / definition.scale);
         let weapon_pivot = BaseBuilder::new()
             .with_local_transform(
@@ -370,7 +311,7 @@ impl Bot {
 
         scene.graph.link_nodes(weapon_pivot, hand);
 
-        let hips = scene.graph.find_by_name(model, definition.hips);
+        let hips = scene.graph.find_by_name(model, &definition.hips);
 
         let lower_body_machine =
             LowerBodyMachine::new(resource_manager.clone(), &definition, model, scene).await;
@@ -591,7 +532,7 @@ impl Bot {
                     .set_enabled(true);
             }
 
-            for &animation in &[self.upper_body_machine.attack_animation] {
+            for &animation in self.upper_body_machine.attack_animations.iter() {
                 context
                     .scene
                     .animations
@@ -607,7 +548,6 @@ impl Bot {
             self.select_target(self_handle, context.scene, targets);
             self.select_weapon(context.weapons);
 
-            let has_ground_contact = self.character.has_ground_contact(&context.scene.physics);
             let body = context
                 .scene
                 .physics
@@ -679,12 +619,15 @@ impl Bot {
                 }
             }
 
+            let current_attack_animation =
+                self.upper_body_machine.attack_animations[self.attack_animation_index as usize];
+
             // Apply damage to target from melee attack
             if let Some(target) = self.target.as_ref() {
                 while let Some(event) = context
                     .scene
                     .animations
-                    .get_mut(self.upper_body_machine.attack_animation)
+                    .get_mut(current_attack_animation)
                     .pop_event()
                 {
                     if event.signal_id == UpperBodyMachine::HIT_SIGNAL && in_close_combat {
@@ -707,23 +650,19 @@ impl Bot {
                     .get_mut(self.lower_body_machine.walk_animation)
                     .pop_event()
                 {
-                    if event.signal_id == LowerBodyMachine::STEP_SIGNAL && has_ground_contact {
-                        let footsteps = [
-                            "data/sounds/footsteps/FootStep_shoe_stone_step1.wav",
-                            "data/sounds/footsteps/FootStep_shoe_stone_step2.wav",
-                            "data/sounds/footsteps/FootStep_shoe_stone_step3.wav",
-                            "data/sounds/footsteps/FootStep_shoe_stone_step4.wav",
-                        ];
-                        sender
-                            .send(Message::PlaySound {
-                                path: footsteps[rand::thread_rng().gen_range(0..footsteps.len())]
-                                    .into(),
-                                position,
-                                gain: 1.0,
-                                rolloff_factor: 2.0,
-                                radius: 3.0,
-                            })
-                            .unwrap();
+                    if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
+                        let begin = context.scene.graph[self.model].global_position()
+                            + Vector3::new(0.0, 10.0, 0.0);
+
+                        let self_collider = if let Some(body) =
+                            context.scene.physics.bodies.get(self.body.into())
+                        {
+                            ColliderHandle::from(body.colliders()[0])
+                        } else {
+                            Default::default()
+                        };
+
+                        footstep_ray_check(begin, context.scene, self_collider, sender.clone());
                     }
                 }
             }
@@ -736,23 +675,32 @@ impl Bot {
             }
             self.restoration_time -= context.time.delta;
 
-            let attack_animation = context
-                .scene
-                .animations
-                .get_mut(self.upper_body_machine.attack_animation);
+            let attack_animation = context.scene.animations.get_mut(current_attack_animation);
+            let attack_animation_ended = attack_animation.has_ended();
 
             if in_close_combat
                 && self.attack_timeout <= 0.0
-                && (attack_animation.has_ended() || !attack_animation.is_enabled())
+                && (attack_animation_ended || !attack_animation.is_enabled())
             {
-                attack_animation.set_enabled(true);
-                attack_animation.rewind();
+                attack_animation.set_enabled(true).rewind();
+                self.attack_animation_index = rg3d::core::rand::thread_rng()
+                    .gen_range(0..self.upper_body_machine.attack_animations.len())
+                    as u32;
+
+                context
+                    .scene
+                    .animations
+                    .get_mut(
+                        self.upper_body_machine.attack_animations
+                            [self.attack_animation_index as usize],
+                    )
+                    .set_enabled(true)
+                    .rewind();
             }
 
-            if self.attack_timeout < 0.0 && attack_animation.has_ended() {
+            if self.attack_timeout < 0.0 && attack_animation_ended {
                 self.attack_timeout = 0.3;
             }
-
             self.attack_timeout -= context.time.delta;
 
             // Aim overrides result of machines for spine bone.
@@ -782,6 +730,7 @@ impl Bot {
                 scream: false,
                 dead: self.is_dead(),
                 aim: self.definition.can_use_weapons && can_aim,
+                attack_animation_index: self.attack_animation_index,
             },
         );
     }
@@ -830,6 +779,8 @@ impl Visit for Bot {
         self.yaw.visit("Yaw", visitor)?;
         self.pitch.visit("Pitch", visitor)?;
         self.hips.visit("Hips", visitor)?;
+        self.attack_animation_index
+            .visit("AttackAnimationIndex", visitor)?;
 
         visitor.leave_region()
     }

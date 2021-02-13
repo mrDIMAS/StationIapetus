@@ -1,23 +1,27 @@
 use crate::{
     bot::{clean_machine, BotDefinition},
-    create_play_animation_state, GameTime,
+    create_play_animation_state, GameTime, ModelMap,
 };
-use rg3d::animation::machine::{Machine, Parameter, State, Transition};
-use rg3d::animation::PoseEvaluationFlags;
 use rg3d::{
-    animation::{Animation, AnimationSignal},
+    animation::{
+        machine::{
+            blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,
+        },
+        Animation, AnimationSignal, PoseEvaluationFlags,
+    },
     core::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    resource::model::Model,
     scene::{node::Node, Scene},
 };
 
 #[derive(Default)]
 pub struct UpperBodyMachine {
     pub machine: Machine,
-    pub attack_animation: Handle<Animation>,
+    pub attack_animations: Vec<Handle<Animation>>,
     pub aim_state: Handle<State>,
     pub dying_animation: Handle<Animation>,
 }
@@ -29,6 +33,58 @@ pub struct UpperBodyMachineInput {
     pub scream: bool,
     pub dead: bool,
     pub aim: bool,
+    pub attack_animation_index: u32,
+}
+
+pub fn make_attack_state(
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+    index_parameter: String,
+    attack_animation_resources: Vec<Model>,
+    attack_timestamp: f32,
+    hips: Handle<Node>,
+) -> (Handle<State>, Vec<Handle<Animation>>) {
+    let animations = attack_animation_resources
+        .into_iter()
+        .map(|resource| {
+            let animation = *resource.retarget_animations(model, scene).get(0).unwrap();
+            scene.animations[animation]
+                .set_enabled(false)
+                .set_loop(false)
+                .add_signal(AnimationSignal::new(
+                    UpperBodyMachine::HIT_SIGNAL,
+                    attack_timestamp,
+                ))
+                .set_speed(1.35)
+                .track_of_mut(hips)
+                .unwrap()
+                .set_flags(PoseEvaluationFlags {
+                    ignore_position: false,
+                    ignore_rotation: true,
+                    ignore_scale: false,
+                });
+            animation
+        })
+        .collect::<Vec<_>>();
+
+    let poses = animations
+        .iter()
+        .map(|&animation| IndexedBlendInput {
+            blend_time: 0.2,
+            pose_source: machine.add_node(PoseNode::make_play_animation(animation)),
+        })
+        .collect::<Vec<_>>();
+
+    let walk_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+        index_parameter,
+        poses,
+    ));
+
+    (
+        machine.add_state(State::new("Attack", walk_node)),
+        animations,
+    )
 }
 
 impl UpperBodyMachine {
@@ -50,6 +106,8 @@ impl UpperBodyMachine {
     const WALK_TO_DYING: &'static str = "WalkToDying";
     const IDLE_TO_DYING: &'static str = "IdleToDying";
 
+    const ATTACK_INDEX: &'static str = "AttackIndex";
+
     pub async fn new(
         resource_manager: ResourceManager,
         definition: &BotDefinition,
@@ -58,24 +116,20 @@ impl UpperBodyMachine {
         attack_timestamp: f32,
         hips: Handle<Node>,
     ) -> Self {
-        let (
-            idle_animation_resource,
-            walk_animation_resource,
-            scream_animation_resource,
-            attack_animation_resource,
-            dying_animation_resource,
-        ) = rg3d::futures::join!(
-            resource_manager.request_model(definition.idle_animation),
-            resource_manager.request_model(definition.walk_animation),
-            resource_manager.request_model(definition.scream_animation),
-            resource_manager.request_model(definition.attack_animation),
-            resource_manager.request_model(definition.dying_animation),
-        );
+        let mut resources = vec![
+            &definition.idle_animation,
+            &definition.walk_animation,
+            &definition.scream_animation,
+            &definition.dying_animation,
+        ];
+        resources.extend(definition.attack_animations.iter().map(|a| a));
+
+        let resources = ModelMap::new(resources, resource_manager.clone()).await;
 
         let aim_animation_resource =
-            if definition.can_use_weapons && !definition.attack_animation.is_empty() {
+            if definition.can_use_weapons && !definition.aim_animation.is_empty() {
                 resource_manager
-                    .request_model(definition.aim_animation)
+                    .request_model(&definition.aim_animation)
                     .await
                     .ok()
             } else {
@@ -93,7 +147,7 @@ impl UpperBodyMachine {
         };
 
         let (idle_animation, idle_state) = create_play_animation_state(
-            idle_animation_resource.unwrap(),
+            resources[&definition.idle_animation].clone(),
             "Idle",
             &mut machine,
             scene,
@@ -101,7 +155,7 @@ impl UpperBodyMachine {
         );
 
         let (walk_animation, walk_state) = create_play_animation_state(
-            walk_animation_resource.unwrap(),
+            resources[&definition.walk_animation].clone(),
             "Walk",
             &mut machine,
             scene,
@@ -109,23 +163,29 @@ impl UpperBodyMachine {
         );
 
         let (scream_animation, scream_state) = create_play_animation_state(
-            scream_animation_resource.unwrap(),
+            resources[&definition.scream_animation].clone(),
             "Scream",
             &mut machine,
             scene,
             model,
         );
 
-        let (attack_animation, attack_state) = create_play_animation_state(
-            attack_animation_resource.unwrap(),
-            "Attack",
+        let (attack_state, attack_animations) = make_attack_state(
             &mut machine,
             scene,
             model,
+            Self::ATTACK_INDEX.to_owned(),
+            definition
+                .attack_animations
+                .iter()
+                .map(|a| resources[a].clone())
+                .collect(),
+            attack_timestamp,
+            hips,
         );
 
         let (dying_animation, dying_state) = create_play_animation_state(
-            dying_animation_resource.unwrap(),
+            resources[&definition.dying_animation].clone(),
             "Dying",
             &mut machine,
             scene,
@@ -134,22 +194,11 @@ impl UpperBodyMachine {
 
         scene
             .animations
-            .get_mut(attack_animation)
-            .add_signal(AnimationSignal::new(Self::HIT_SIGNAL, attack_timestamp));
-
-        scene
-            .animations
             .get_mut(dying_animation)
             .set_loop(false)
             .set_enabled(false);
 
-        scene
-            .animations
-            .get_mut(attack_animation)
-            .set_loop(false)
-            .set_enabled(false);
-
-        for leg_name in &[definition.left_leg_name, definition.right_leg_name] {
+        for leg_name in &[&definition.left_leg_name, &definition.right_leg_name] {
             let leg_node = scene.graph.find_by_name(model, leg_name);
 
             for &animation in &[
@@ -158,7 +207,6 @@ impl UpperBodyMachine {
                 aim_animation,
                 scream_animation,
                 dying_animation,
-                attack_animation,
             ] {
                 // Some animations may be missing for some kinds of bots.
                 if animation.is_some() {
@@ -169,16 +217,15 @@ impl UpperBodyMachine {
                     )
                 }
             }
-        }
 
-        scene.animations[attack_animation]
-            .track_of_mut(hips)
-            .unwrap()
-            .set_flags(PoseEvaluationFlags {
-                ignore_position: false,
-                ignore_rotation: true,
-                ignore_scale: false,
-            });
+            // HACK. Move into upper loop.
+            for &attack_animation in attack_animations.iter() {
+                scene
+                    .animations
+                    .get_mut(attack_animation)
+                    .set_tracks_enabled_from(leg_node, false, &scene.graph)
+            }
+        }
 
         machine.add_transition(Transition::new(
             "Attack->Idle",
@@ -292,7 +339,7 @@ impl UpperBodyMachine {
 
         Self {
             machine,
-            attack_animation,
+            attack_animations,
             aim_state,
             dying_animation,
         }
@@ -303,18 +350,22 @@ impl UpperBodyMachine {
     }
 
     pub fn apply(&mut self, scene: &mut Scene, time: GameTime, input: UpperBodyMachineInput) {
+        let attack_animation_ended = scene.animations
+            [self.attack_animations[input.attack_animation_index as usize]]
+            .has_ended();
+
         self.machine
             .set_parameter(
                 Self::ATTACK_TO_IDLE,
-                Parameter::Rule(
-                    !input.walk && scene.animations.get(self.attack_animation).has_ended(),
-                ),
+                Parameter::Rule(!input.walk && attack_animation_ended),
             )
             .set_parameter(
                 Self::ATTACK_TO_WALK,
-                Parameter::Rule(
-                    input.walk && scene.animations.get(self.attack_animation).has_ended(),
-                ),
+                Parameter::Rule(input.walk && attack_animation_ended),
+            )
+            .set_parameter(
+                Self::ATTACK_INDEX,
+                Parameter::Index(input.attack_animation_index),
             )
             .set_parameter(Self::IDLE_TO_ATTACK, Parameter::Rule(input.attack))
             .set_parameter(Self::WALK_TO_ATTACK, Parameter::Rule(input.attack))
@@ -339,7 +390,7 @@ impl Visit for UpperBodyMachine {
         visitor.enter_region(name)?;
 
         self.machine.visit("Machine", visitor)?;
-        self.attack_animation.visit("AttackAnimation", visitor)?;
+        self.attack_animations.visit("AttackAnimations", visitor)?;
         self.dying_animation.visit("DyingAnimation", visitor)?;
         self.aim_state.visit("AimState", visitor)?;
 
