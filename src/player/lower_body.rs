@@ -2,7 +2,10 @@ use crate::{
     create_play_animation_state,
     level::footstep_ray_check,
     message::Message,
-    player::{make_walk_state, WalkStateDefinition},
+    player::upper_body::CombatWeaponKind,
+    player::{
+        make_hit_reaction_state, make_walk_state, HitReactionStateDefinition, WalkStateDefinition,
+    },
 };
 use rg3d::{
     animation::{
@@ -27,6 +30,8 @@ pub struct LowerBodyMachine {
     pub run_animation: Handle<Animation>,
     pub land_animation: Handle<Animation>,
     pub dying_animation: Handle<Animation>,
+    pub hit_reaction_pistol_animation: Handle<Animation>,
+    pub hit_reaction_rifle_animation: Handle<Animation>,
     pub walk_state: Handle<State>,
     pub jump_state: Handle<State>,
     pub fall_state: Handle<State>,
@@ -53,6 +58,10 @@ impl Visit for LowerBodyMachine {
         self.idle_to_jump.visit("IdleToJump", visitor)?;
         self.model.visit("Model", visitor)?;
         self.dying_animation.visit("DyingAnimation", visitor)?;
+        self.hit_reaction_pistol_animation
+            .visit("HitReactionPistolAnimation", visitor)?;
+        self.hit_reaction_rifle_animation
+            .visit("HitReactionRifleAnimation", visitor)?;
 
         visitor.leave_region()
     }
@@ -64,6 +73,8 @@ pub struct LowerBodyMachineInput {
     pub run_factor: f32,
     pub has_ground_contact: bool,
     pub is_dead: bool,
+    pub should_be_stunned: bool,
+    pub weapon_kind: CombatWeaponKind,
 }
 
 impl LowerBodyMachine {
@@ -83,12 +94,19 @@ impl LowerBodyMachine {
     const WALK_TO_DYING: &'static str = "WalkToDying";
     const JUMP_TO_DYING: &'static str = "JumpToDying";
 
+    const IDLE_TO_HIT_REACTION: &'static str = "IdleToHitReaction";
+    const WALK_TO_HIT_REACTION: &'static str = "WalkToHitReaction";
+    const HIT_REACTION_TO_IDLE: &'static str = "HitReactionToIdle";
+    const HIT_REACTION_TO_WALK: &'static str = "HitReactionToWalk";
+    const HIT_REACTION_TO_DYING: &'static str = "HitReactionToDying";
+
     pub const JUMP_SIGNAL: u64 = 1;
     pub const LANDING_SIGNAL: u64 = 2;
     pub const FOOTSTEP_SIGNAL: u64 = 3;
 
     const RUN_FACTOR: &'static str = "RunFactor";
     const WALK_FACTOR: &'static str = "WalkFactor";
+    const HIT_REACTION_WEAPON_KIND: &'static str = "HitReactionWeaponKind";
 
     pub async fn new(
         scene: &mut Scene,
@@ -106,6 +124,8 @@ impl LowerBodyMachine {
             landing_animation_resource,
             run_animation_resource,
             dying_animation_resource,
+            hit_reaction_rifle_animation_resource,
+            hit_reaction_pistol_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
@@ -114,6 +134,21 @@ impl LowerBodyMachine {
             resource_manager.request_model("data/animations/agent_landing.fbx"),
             resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_dying.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_pistol.fbx"),
+        );
+
+        let HitReactionStateDefinition {
+            state: hit_reaction_state,
+            hit_reaction_pistol_animation,
+            hit_reaction_rifle_animation,
+        } = make_hit_reaction_state(
+            &mut machine,
+            scene,
+            model,
+            Self::HIT_REACTION_WEAPON_KIND.to_owned(),
+            hit_reaction_rifle_animation_resource.unwrap(),
+            hit_reaction_pistol_animation_resource.unwrap(),
         );
 
         let (_, idle_state) = create_play_animation_state(
@@ -315,6 +350,44 @@ impl LowerBodyMachine {
             Self::JUMP_TO_DYING,
         ));
 
+        machine.add_transition(Transition::new(
+            "Idle->Hit",
+            idle_state,
+            hit_reaction_state,
+            0.20,
+            Self::IDLE_TO_HIT_REACTION,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->Hit",
+            walk_state,
+            hit_reaction_state,
+            0.20,
+            Self::WALK_TO_HIT_REACTION,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Idle",
+            hit_reaction_state,
+            idle_state,
+            0.20,
+            Self::HIT_REACTION_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Walk",
+            hit_reaction_state,
+            walk_state,
+            0.20,
+            Self::HIT_REACTION_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Dying",
+            hit_reaction_state,
+            dying_state,
+            0.20,
+            Self::HIT_REACTION_TO_DYING,
+        ));
+
+        machine.set_entry_state(idle_state);
+
         Self {
             machine,
             jump_animation,
@@ -329,6 +402,8 @@ impl LowerBodyMachine {
             run_animation,
             model,
             dying_animation,
+            hit_reaction_pistol_animation,
+            hit_reaction_rifle_animation,
         }
     }
 
@@ -341,6 +416,13 @@ impl LowerBodyMachine {
         has_ground_contact: bool,
         self_collider: ColliderHandle,
     ) {
+        let (current_hit_reaction_animation, index) = match input.weapon_kind {
+            CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 0),
+            CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 1),
+        };
+        let recovered = !input.should_be_stunned
+            && scene.animations[current_hit_reaction_animation].has_ended();
+
         self.machine
             // Update parameters which will be used by transitions.
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.is_walking))
@@ -372,6 +454,18 @@ impl LowerBodyMachine {
             .set_parameter(Self::FALL_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::JUMP_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(Self::HIT_REACTION_WEAPON_KIND, Parameter::Index(index))
+            .set_parameter(
+                Self::IDLE_TO_HIT_REACTION,
+                Parameter::Rule(input.should_be_stunned),
+            )
+            .set_parameter(
+                Self::WALK_TO_HIT_REACTION,
+                Parameter::Rule(input.should_be_stunned),
+            )
+            .set_parameter(Self::HIT_REACTION_TO_IDLE, Parameter::Rule(recovered))
+            .set_parameter(Self::HIT_REACTION_TO_WALK, Parameter::Rule(recovered))
+            .set_parameter(Self::HIT_REACTION_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
             .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
             .evaluate_pose(&scene.animations, dt)
@@ -408,5 +502,17 @@ impl LowerBodyMachine {
                 footstep_ray_check(begin, scene, self_collider, sender.clone());
             }
         }
+    }
+
+    pub fn is_stunned(&self, scene: &Scene) -> bool {
+        let hr_animation = &scene.animations[self.hit_reaction_rifle_animation];
+        !hr_animation.has_ended() && hr_animation.is_enabled()
+    }
+
+    pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {
+        [
+            self.hit_reaction_rifle_animation,
+            self.hit_reaction_pistol_animation,
+        ]
     }
 }

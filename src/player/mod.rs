@@ -1,4 +1,3 @@
-use crate::weapon::WeaponContainer;
 use crate::{
     actor::Actor,
     character::Character,
@@ -9,16 +8,19 @@ use crate::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
-    weapon::{projectile::ProjectileKind, WeaponKind},
+    weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
 };
-use rg3d::core::color::Color;
 use rg3d::{
     animation::{
-        machine::{blend_nodes::BlendPose, Machine, PoseNode, PoseWeight, State},
+        machine::{
+            blend_nodes::{BlendPose, IndexedBlendInput},
+            Machine, PoseNode, PoseWeight, State,
+        },
         Animation,
     },
     core::{
         algebra::{Isometry3, UnitQuaternion, Vector3},
+        color::Color,
         math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -139,6 +141,64 @@ pub fn make_walk_state(
     }
 }
 
+pub struct HitReactionStateDefinition {
+    state: Handle<State>,
+    hit_reaction_rifle_animation: Handle<Animation>,
+    hit_reaction_pistol_animation: Handle<Animation>,
+}
+
+pub fn make_hit_reaction_state(
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+    index: String,
+    hit_reaction_rifle_animation_resource: Model,
+    hit_reaction_pistol_animation_resource: Model,
+) -> HitReactionStateDefinition {
+    let hit_reaction_rifle_animation = *hit_reaction_rifle_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    scene.animations[hit_reaction_rifle_animation]
+        .set_speed(1.5)
+        .set_enabled(true)
+        .set_loop(false);
+    let hit_reaction_rifle_animation_node =
+        machine.add_node(PoseNode::make_play_animation(hit_reaction_rifle_animation));
+
+    let hit_reaction_pistol_animation = *hit_reaction_pistol_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    scene.animations[hit_reaction_pistol_animation]
+        .set_speed(1.5)
+        .set_enabled(false)
+        .set_enabled(false);
+    let hit_reaction_pistol_animation_node =
+        machine.add_node(PoseNode::make_play_animation(hit_reaction_pistol_animation));
+
+    let pose_node = PoseNode::make_blend_animations_by_index(
+        index,
+        vec![
+            IndexedBlendInput {
+                blend_time: 0.2,
+                pose_source: hit_reaction_rifle_animation_node,
+            },
+            IndexedBlendInput {
+                blend_time: 0.2,
+                pose_source: hit_reaction_pistol_animation_node,
+            },
+        ],
+    );
+    let handle = machine.add_node(pose_node);
+
+    HitReactionStateDefinition {
+        state: machine.add_state(State::new("HitReaction", handle)),
+        hit_reaction_rifle_animation,
+        hit_reaction_pistol_animation,
+    }
+}
+
 #[derive(Default)]
 pub struct InputController {
     walk_forward: bool,
@@ -255,6 +315,7 @@ pub struct Player {
     target_velocity: Vector3<f32>,
     contextual_display: Handle<Node>,
     health_cylinder: Handle<Node>,
+    last_health: f32,
 }
 
 impl Visit for Player {
@@ -292,6 +353,7 @@ impl Visit for Player {
         self.contextual_display
             .visit("ContextualDisplay", visitor)?;
         self.health_cylinder.visit("HealthCylinder", visitor)?;
+        self.last_health.visit("LastHealth", visitor)?;
 
         visitor.leave_region()
     }
@@ -487,6 +549,7 @@ impl Player {
             target_run_factor: 0.0,
             target_velocity: Default::default(),
             contextual_display,
+            last_health: 100.0,
         }
     }
 
@@ -535,6 +598,25 @@ impl Player {
             || self.controller.walk_left;
         let is_jumping = has_ground_contact && self.controller.jump;
 
+        let should_be_stunned = if (self.health - self.last_health).abs() >= 4.0 {
+            for &animation in self
+                .lower_body_machine
+                .hit_reaction_animations()
+                .iter()
+                .chain(self.upper_body_machine.hit_reaction_animations().iter())
+            {
+                scene.animations[animation].set_enabled(true).rewind();
+            }
+
+            self.last_health = self.health;
+            true
+        } else {
+            false
+        };
+
+        // TODO: Fix when there is any pistol added.
+        let weapon_kind = CombatWeaponKind::Rifle;
+
         self.lower_body_machine.apply(
             scene,
             time.delta,
@@ -544,6 +626,8 @@ impl Player {
                 has_ground_contact: self.in_air_time <= 0.3,
                 run_factor: self.run_factor,
                 is_dead: self.is_dead(),
+                should_be_stunned,
+                weapon_kind,
             },
             self.sender.clone().unwrap(),
             has_ground_contact,
@@ -560,15 +644,18 @@ impl Player {
                 has_ground_contact: self.in_air_time <= 0.3,
                 is_aiming: self.controller.aim,
                 toss_grenade: self.controller.toss_grenade,
-                weapon: CombatWeaponKind::Rifle,
+                weapon_kind,
                 change_weapon: self.weapon_change_direction != RequiredWeapon::None,
                 run_factor: self.run_factor,
                 is_dead: self.is_dead(),
+                should_be_stunned,
             },
         );
 
         if !self.is_dead() {
-            let is_running = self.controller.run && !self.controller.aim;
+            let stunned = self.lower_body_machine.is_stunned(scene);
+
+            let is_running = self.controller.run && !self.controller.aim && !stunned;
 
             if is_running {
                 self.target_run_factor = 1.0;
@@ -611,7 +698,8 @@ impl Player {
             let can_move = self.lower_body_machine.machine.active_state()
                 != self.lower_body_machine.fall_state
                 && self.lower_body_machine.machine.active_state()
-                    != self.lower_body_machine.land_state;
+                    != self.lower_body_machine.land_state
+                && !stunned;
 
             let speed = if can_move {
                 math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta
@@ -739,7 +827,7 @@ impl Player {
 
             self.spine_pitch.update(time.delta);
 
-            if is_walking || self.controller.aim {
+            if can_move && (is_walking || self.controller.aim) {
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
                 let mut current_position = *body.position();
@@ -853,17 +941,20 @@ impl Player {
                 self.weapon_pitch_correction.set_target(8.0f32.to_radians());
             }
 
-            let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
-            let pitch_correction_angle = self.weapon_pitch_correction.update(time.delta).angle();
-            scene.graph[self.weapon_pivot]
-                .local_transform_mut()
-                .set_rotation(
-                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
-                        * UnitQuaternion::from_axis_angle(
-                            &Vector3::x_axis(),
-                            pitch_correction_angle,
-                        ),
-                );
+            if can_move {
+                let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
+                let pitch_correction_angle =
+                    self.weapon_pitch_correction.update(time.delta).angle();
+                scene.graph[self.weapon_pivot]
+                    .local_transform_mut()
+                    .set_rotation(
+                        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
+                            * UnitQuaternion::from_axis_angle(
+                                &Vector3::x_axis(),
+                                pitch_correction_angle,
+                            ),
+                    );
+            }
 
             let ray_origin = scene.graph[self.camera_hinge].global_position();
             let ray_end = scene.graph[self.camera].global_position();

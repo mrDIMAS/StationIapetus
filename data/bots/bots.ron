@@ -69,7 +69,7 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
-            attack_damage: 20.0,
+            attack_damage: 5.0,
             attack_timestamp: 1.6,
         )
     }

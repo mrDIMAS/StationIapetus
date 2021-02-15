@@ -1,14 +1,15 @@
 use crate::{
     create_play_animation_state,
-    player::{make_walk_state, WalkStateDefinition},
+    player::{
+        make_hit_reaction_state, make_walk_state, HitReactionStateDefinition, WalkStateDefinition,
+    },
 };
 use rg3d::{
-    animation::Animation,
     animation::{
         machine::{
             blend_nodes::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
         },
-        AnimationSignal,
+        Animation, AnimationSignal,
     },
     core::{
         pool::Handle,
@@ -32,6 +33,8 @@ pub struct UpperBodyMachine {
     pub put_back_animation: Handle<Animation>,
     pub grab_animation: Handle<Animation>,
     pub dying_animation: Handle<Animation>,
+    pub hit_reaction_pistol_animation: Handle<Animation>,
+    pub hit_reaction_rifle_animation: Handle<Animation>,
 }
 
 fn disable_leg_tracks(
@@ -65,6 +68,10 @@ impl Visit for UpperBodyMachine {
         self.put_back_animation.visit("PutBackAnimation", visitor)?;
         self.grab_animation.visit("GrabAnimation", visitor)?;
         self.dying_animation.visit("DyingAnimation", visitor)?;
+        self.hit_reaction_pistol_animation
+            .visit("HitReactionPistolAnimation", visitor)?;
+        self.hit_reaction_rifle_animation
+            .visit("HitReactionRifleAnimation", visitor)?;
 
         visitor.leave_region()
     }
@@ -83,9 +90,10 @@ pub struct UpperBodyMachineInput {
     pub has_ground_contact: bool,
     pub is_aiming: bool,
     pub toss_grenade: bool,
-    pub weapon: CombatWeaponKind,
+    pub weapon_kind: CombatWeaponKind,
     pub change_weapon: bool,
     pub is_dead: bool,
+    pub should_be_stunned: bool,
 }
 
 impl UpperBodyMachine {
@@ -131,8 +139,18 @@ impl UpperBodyMachine {
     const RIFLE_AIM_FACTOR: &'static str = "RifleAimFactor";
     const PISTOL_AIM_FACTOR: &'static str = "PistolAimFactor";
 
+    const IDLE_TO_HIT_REACTION: &'static str = "IdleToHitReaction";
+    const WALK_TO_HIT_REACTION: &'static str = "WalkToHitReaction";
+    const AIM_TO_HIT_REACTION: &'static str = "AimToHitReaction";
+    const HIT_REACTION_TO_IDLE: &'static str = "HitReactionToIdle";
+    const HIT_REACTION_TO_WALK: &'static str = "HitReactionToWalk";
+    const HIT_REACTION_TO_DYING: &'static str = "HitReactionToDying";
+    const HIT_REACTION_TO_AIM: &'static str = "HitReactionToAim";
+
     const RUN_FACTOR: &'static str = "RunFactor";
     const WALK_FACTOR: &'static str = "WalkFactor";
+
+    const HIT_REACTION_WEAPON_KIND: &'static str = "HitReactionWeaponKind";
 
     // Signals unique per animation so there can be equal numbers across multiple animations.
     pub const GRAB_WEAPON_SIGNAL: u64 = 1;
@@ -159,6 +177,8 @@ impl UpperBodyMachine {
             grab_animation_resource,
             run_animation_resource,
             dying_animation_resource,
+            hit_reaction_rifle_animation_resource,
+            hit_reaction_pistol_animation_resource,
         ) = rg3d::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
@@ -172,6 +192,21 @@ impl UpperBodyMachine {
             resource_manager.request_model("data/animations/agent_grab.fbx"),
             resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_dying.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_pistol.fbx"),
+        );
+
+        let HitReactionStateDefinition {
+            state: hit_reaction_state,
+            hit_reaction_pistol_animation,
+            hit_reaction_rifle_animation,
+        } = make_hit_reaction_state(
+            &mut machine,
+            scene,
+            model,
+            Self::HIT_REACTION_WEAPON_KIND.to_owned(),
+            hit_reaction_rifle_animation_resource.unwrap(),
+            hit_reaction_pistol_animation_resource.unwrap(),
         );
 
         let aim_rifle_animation = *aim_rifle_animation_resource
@@ -555,6 +590,57 @@ impl UpperBodyMachine {
             Self::PUT_BACK_TO_DYING,
         ));
 
+        machine.add_transition(Transition::new(
+            "Idle->HitReaction",
+            idle_state,
+            hit_reaction_state,
+            0.20,
+            Self::IDLE_TO_HIT_REACTION,
+        ));
+        machine.add_transition(Transition::new(
+            "Walk->HitReaction",
+            walk_state,
+            hit_reaction_state,
+            0.20,
+            Self::WALK_TO_HIT_REACTION,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Idle",
+            hit_reaction_state,
+            idle_state,
+            0.20,
+            Self::HIT_REACTION_TO_IDLE,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Walk",
+            hit_reaction_state,
+            walk_state,
+            0.20,
+            Self::HIT_REACTION_TO_WALK,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Dying",
+            hit_reaction_state,
+            dying_state,
+            0.20,
+            Self::HIT_REACTION_TO_DYING,
+        ));
+
+        machine.add_transition(Transition::new(
+            "Aim->HitReaction",
+            aim_state,
+            hit_reaction_state,
+            0.20,
+            Self::AIM_TO_HIT_REACTION,
+        ));
+        machine.add_transition(Transition::new(
+            "HitReaction->Aim",
+            hit_reaction_state,
+            aim_state,
+            0.20,
+            Self::HIT_REACTION_TO_AIM,
+        ));
+
         for leg in &["mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"] {
             for &animation in &[
                 aim_pistol_animation,
@@ -569,6 +655,8 @@ impl UpperBodyMachine {
                 put_back_animation,
                 run_animation,
                 dying_animation,
+                hit_reaction_rifle_animation,
+                hit_reaction_pistol_animation,
             ] {
                 disable_leg_tracks(animation, model, leg, scene);
             }
@@ -589,6 +677,8 @@ impl UpperBodyMachine {
             put_back_animation,
             grab_animation,
             dying_animation,
+            hit_reaction_pistol_animation,
+            hit_reaction_rifle_animation,
         }
     }
 
@@ -599,6 +689,13 @@ impl UpperBodyMachine {
         hips_handle: Handle<Node>,
         input: UpperBodyMachineInput,
     ) {
+        let (current_hit_reaction_animation, index) = match input.weapon_kind {
+            CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 0),
+            CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 1),
+        };
+        let recovered = !input.should_be_stunned
+            && scene.animations[current_hit_reaction_animation].has_ended();
+
         self.machine
             // Update parameters which will be used by transitions.
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.is_walking))
@@ -694,7 +791,7 @@ impl UpperBodyMachine {
             )
             .set_parameter(
                 Self::PISTOL_AIM_FACTOR,
-                Parameter::Weight(if input.weapon == CombatWeaponKind::Pistol {
+                Parameter::Weight(if input.weapon_kind == CombatWeaponKind::Pistol {
                     1.0
                 } else {
                     0.0
@@ -702,11 +799,31 @@ impl UpperBodyMachine {
             )
             .set_parameter(
                 Self::RIFLE_AIM_FACTOR,
-                Parameter::Weight(if input.weapon == CombatWeaponKind::Rifle {
+                Parameter::Weight(if input.weapon_kind == CombatWeaponKind::Rifle {
                     1.0
                 } else {
                     0.0
                 }),
+            )
+            .set_parameter(Self::HIT_REACTION_WEAPON_KIND, Parameter::Index(index))
+            .set_parameter(
+                Self::IDLE_TO_HIT_REACTION,
+                Parameter::Rule(input.should_be_stunned),
+            )
+            .set_parameter(
+                Self::WALK_TO_HIT_REACTION,
+                Parameter::Rule(input.should_be_stunned),
+            )
+            .set_parameter(
+                Self::AIM_TO_HIT_REACTION,
+                Parameter::Rule(input.should_be_stunned),
+            )
+            .set_parameter(Self::HIT_REACTION_TO_IDLE, Parameter::Rule(recovered))
+            .set_parameter(Self::HIT_REACTION_TO_WALK, Parameter::Rule(recovered))
+            .set_parameter(Self::HIT_REACTION_TO_DYING, Parameter::Rule(input.is_dead))
+            .set_parameter(
+                Self::HIT_REACTION_TO_AIM,
+                Parameter::Rule(recovered && input.is_aiming),
             )
             .set_parameter(Self::LAND_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.is_dead))
@@ -746,5 +863,16 @@ impl UpperBodyMachine {
                         .set_scale(pose.scale());
                 }
             });
+
+        if self.machine.active_state().is_some() {
+            dbg!(self.machine.get_state(self.machine.active_state()).name());
+        }
+    }
+
+    pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {
+        [
+            self.hit_reaction_rifle_animation,
+            self.hit_reaction_pistol_animation,
+        ]
     }
 }
