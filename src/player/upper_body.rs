@@ -863,10 +863,6 @@ impl UpperBodyMachine {
                         .set_scale(pose.scale());
                 }
             });
-
-        if self.machine.active_state().is_some() {
-            dbg!(self.machine.get_state(self.machine.active_state()).name());
-        }
     }
 
     pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {

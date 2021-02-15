@@ -19,7 +19,7 @@
             health: 1000.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            attack_damage: 120.0,
+            attack_damage: 70.0,
             attack_timestamp: 1.1,
         ),
         Parasite: (
@@ -44,7 +44,7 @@
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            attack_damage: 40.0,
+            attack_damage: 30.0,
             attack_timestamp: 1.1,
         ),
         Zombie: (
@@ -69,7 +69,7 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
-            attack_damage: 5.0,
+            attack_damage: 10.0,
             attack_timestamp: 1.6,
         )
     }

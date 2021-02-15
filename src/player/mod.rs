@@ -598,7 +598,7 @@ impl Player {
             || self.controller.walk_left;
         let is_jumping = has_ground_contact && self.controller.jump;
 
-        let should_be_stunned = if (self.health - self.last_health).abs() >= 4.0 {
+        let should_be_stunned = if (self.health - self.last_health).abs() >= 15.0 {
             for &animation in self
                 .lower_body_machine
                 .hit_reaction_animations()
