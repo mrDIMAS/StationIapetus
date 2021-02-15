@@ -108,11 +108,22 @@ impl LaserSight {
             .with_render_path(RenderPath::Forward)
             .build(&mut scene.graph);
 
-        let tip = SpriteBuilder::new(BaseBuilder::new().with_visibility(false))
-            .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
-            .with_color(color)
-            .with_size(0.03)
-            .build(&mut scene.graph);
+        let tip = SpriteBuilder::new(
+            BaseBuilder::new()
+                .with_visibility(false)
+                .with_children(&[PointLightBuilder::new(
+                    BaseLightBuilder::new(BaseBuilder::new())
+                        .cast_shadows(false)
+                        .with_scatter_factor(Vector3::new(0.01, 0.01, 0.01))
+                        .with_color(color),
+                )
+                .with_radius(0.25)
+                .build(&mut scene.graph)]),
+        )
+        .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
+        .with_color(color)
+        .with_size(0.03)
+        .build(&mut scene.graph);
 
         Self { ray, tip }
     }
