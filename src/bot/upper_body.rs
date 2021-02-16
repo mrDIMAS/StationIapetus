@@ -41,20 +41,19 @@ pub fn make_attack_state(
     scene: &mut Scene,
     model: Handle<Node>,
     index_parameter: String,
-    attack_animation_resources: Vec<Model>,
-    attack_timestamp: f32,
+    attack_animation_resources: Vec<(Model, f32)>,
     hips: Handle<Node>,
 ) -> (Handle<State>, Vec<Handle<Animation>>) {
     let animations = attack_animation_resources
         .into_iter()
-        .map(|resource| {
+        .map(|(resource, timestamp)| {
             let animation = *resource.retarget_animations(model, scene).get(0).unwrap();
             scene.animations[animation]
                 .set_enabled(false)
                 .set_loop(false)
                 .add_signal(AnimationSignal::new(
                     UpperBodyMachine::HIT_SIGNAL,
-                    attack_timestamp,
+                    timestamp,
                 ))
                 .set_speed(1.35)
                 .track_of_mut(hips)
@@ -113,7 +112,6 @@ impl UpperBodyMachine {
         definition: &BotDefinition,
         model: Handle<Node>,
         scene: &mut Scene,
-        attack_timestamp: f32,
         hips: Handle<Node>,
     ) -> Self {
         let mut resources = vec![
@@ -122,7 +120,7 @@ impl UpperBodyMachine {
             &definition.scream_animation,
             &definition.dying_animation,
         ];
-        resources.extend(definition.attack_animations.iter().map(|a| a));
+        resources.extend(definition.attack_animations.iter().map(|a| &a.path));
 
         let resources = ModelMap::new(resources, resource_manager.clone()).await;
 
@@ -178,9 +176,8 @@ impl UpperBodyMachine {
             definition
                 .attack_animations
                 .iter()
-                .map(|a| resources[a].clone())
+                .map(|a| (resources[&a.path].clone(), a.timestamp))
                 .collect(),
-            attack_timestamp,
             hips,
         );
 

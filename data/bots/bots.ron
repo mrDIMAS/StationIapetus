@@ -2,7 +2,13 @@
     map: {
         Mutant: (
             model: "data/models/mutant.FBX",
-            attack_animations: ["data/animations/mutant_attack_swipe.fbx"],
+            attack_animations: [
+                (
+                    path: "data/animations/mutant_attack_swipe.fbx",
+                    timestamp: 1.1,
+                    damage: 60.0,
+                )
+            ],
             scream_animation: "data/animations/mutant_scream.fbx",
             idle_animation: "data/animations/mutant_idle.fbx",
             walk_animation: "data/animations/mutant_walk.fbx",
@@ -19,14 +25,20 @@
             health: 1000.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            attack_damage: 70.0,
-            attack_timestamp: 1.1,
         ),
         Parasite: (
             model: "data/models/parasite.FBX",
             attack_animations: [
-                "data/animations/parasite_attack.fbx",
-                "data/animations/parasite_attack_2.fbx"
+                (
+                    path: "data/animations/parasite_attack.fbx",
+                    timestamp: 0.8,
+                    damage: 30.0,
+                ),
+                (
+                    path: "data/animations/parasite_attack_2.fbx",
+                    timestamp: 0.9,
+                    damage: 25.0,
+                )
             ],
             scream_animation: "data/animations/parasite_scream.fbx",
             idle_animation: "data/animations/parasite_idle.fbx",
@@ -44,14 +56,20 @@
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            attack_damage: 30.0,
-            attack_timestamp: 1.1,
         ),
         Zombie: (
             model: "data/models/zombie.fbx",
             attack_animations: [
-                "data/animations/zombie_attack.fbx",
-                "data/animations/zombie_attack_2.fbx"
+                (
+                    path: "data/animations/zombie_attack.fbx",
+                    timestamp: 1.5,
+                    damage: 10.0,
+                ),
+                (
+                    path: "data/animations/zombie_attack_2.fbx",
+                    timestamp: 1.4,
+                    damage: 12.0,
+                ),
             ],
             scream_animation: "data/animations/zombie_scream.fbx",
             idle_animation: "data/animations/zombie_idle.fbx",
@@ -69,8 +87,6 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
-            attack_damage: 10.0,
-            attack_timestamp: 1.6,
         )
     }
 )

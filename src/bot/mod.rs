@@ -186,6 +186,13 @@ impl Default for Bot {
 }
 
 #[derive(Deserialize)]
+pub struct AttackAnimationDefinition {
+    path: String,
+    timestamp: f32,
+    damage: f32,
+}
+
+#[derive(Deserialize)]
 pub struct BotDefinition {
     pub scale: f32,
     pub health: f32,
@@ -199,13 +206,11 @@ pub struct BotDefinition {
     pub hips: String,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
-    pub attack_damage: f32,
-    pub attack_timestamp: f32,
 
     // Animations.
     pub idle_animation: String,
     pub scream_animation: String,
-    pub attack_animations: Vec<String>,
+    pub attack_animations: Vec<AttackAnimationDefinition>,
     pub walk_animation: String,
     pub aim_animation: String,
     pub dying_animation: String,
@@ -315,15 +320,8 @@ impl Bot {
 
         let lower_body_machine =
             LowerBodyMachine::new(resource_manager.clone(), &definition, model, scene).await;
-        let upper_body_machine = UpperBodyMachine::new(
-            resource_manager.clone(),
-            definition,
-            model,
-            scene,
-            definition.attack_timestamp,
-            hips,
-        )
-        .await;
+        let upper_body_machine =
+            UpperBodyMachine::new(resource_manager.clone(), definition, model, scene, hips).await;
 
         Self {
             character: Character {
@@ -635,7 +633,9 @@ impl Bot {
                             .send(Message::DamageActor {
                                 actor: target.handle,
                                 who: Default::default(),
-                                amount: self.definition.attack_damage,
+                                amount: self.definition.attack_animations
+                                    [self.attack_animation_index as usize]
+                                    .damage,
                             })
                             .unwrap();
                     }
