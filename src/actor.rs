@@ -1,10 +1,7 @@
-use crate::control_scheme::ControlScheme;
 use crate::{
-    bot::Bot, character::Character, level::UpdateContext, message::Message, player::Player,
+    bot::Bot, character::Character, control_scheme::ControlScheme, level::UpdateContext,
+    message::Message, player::Player,
 };
-use rg3d::resource::texture::Texture;
-use rg3d::scene::graph::Graph;
-use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -13,10 +10,13 @@ use rg3d::{
         },
         visitor::{Visit, VisitResult, Visitor},
     },
+    resource::texture::Texture,
     scene::Scene,
 };
-use std::ops::{Deref, DerefMut};
-use std::sync::{Arc, RwLock};
+use std::{
+    ops::{Deref, DerefMut},
+    sync::{Arc, RwLock},
+};
 
 #[allow(clippy::large_enum_variant)]
 pub enum Actor {
