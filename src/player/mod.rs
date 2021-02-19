@@ -399,7 +399,7 @@ impl Player {
             .build(&mut scene.graph);
 
         let (model_resource, health_rig_resource) = rg3d::futures::join!(
-            resource_manager.request_model("data/models/agent.fbx"),
+            resource_manager.request_model("data/models/agent.rgs"),
             resource_manager.request_model("data/models/health_rig.FBX"),
         );
 
@@ -409,9 +409,7 @@ impl Player {
 
         scene.graph[model_handle]
             .local_transform_mut()
-            .set_position(Vector3::new(0.0, -body_height - body_radius, 0.0))
-            // Our model is too big, fix it by scale.
-            .set_scale(Vector3::new(0.005, 0.005, 0.005));
+            .set_position(Vector3::new(0.0, -body_height - body_radius, 0.0));
 
         let pivot = BaseBuilder::new()
             .with_children(&[model_handle])

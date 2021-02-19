@@ -27,7 +27,7 @@
             can_use_weapons: false,
         ),
         Parasite: (
-            model: "data/models/parasite.FBX",
+            model: "data/models/parasite.rgs",
             attack_animations: [
                 (
                     path: "data/animations/parasite_attack.fbx",
@@ -51,7 +51,7 @@
             hips: "Hips",
             spine: "", // Empty because cannot use weapons.
             walk_speed: 4.0,
-            scale: 0.0055,
+            scale: 1.0,
             weapon_scale: 1.0,
             health: 300.0,
             v_aim_angle_hack: 0.0,
