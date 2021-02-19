@@ -341,7 +341,7 @@ impl Projectile {
                 .send(Message::DamageActor {
                     actor: hit.actor,
                     who: hit.who,
-                    amount: self.definition.damage,
+                    amount: self.definition.damage * hit.hit_box.map_or(1.0, |h| h.damage_factor),
                 })
                 .unwrap();
         }

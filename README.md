@@ -67,4 +67,5 @@ to be large).
 
 ## License
 
-The project uses GNU GPL 3.0.
+The project uses GNU GPL 3.0. The data (3d models, textures, sound, etc.) is proprietary and **cannot** be used 
+without my permission.  

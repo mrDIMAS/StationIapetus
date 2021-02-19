@@ -2,6 +2,7 @@ use crate::{
     message::Message,
     weapon::{Weapon, WeaponContainer, WeaponKind},
 };
+use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -20,6 +21,7 @@ pub struct Character {
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
     pub sender: Option<Sender<Message>>,
+    pub hit_boxes: Vec<HitBox>,
 }
 
 impl Default for Character {
@@ -32,6 +34,7 @@ impl Default for Character {
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
             sender: None,
+            hit_boxes: Default::default(),
         }
     }
 }
@@ -49,6 +52,48 @@ impl Visit for Character {
 
         visitor.leave_region()
     }
+}
+
+pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
+    let mut hit_boxes = Vec::new();
+
+    for descendant in scene.graph.traverse_handle_iter(from) {
+        if let Some(body) = scene.physics_binder.body_of(descendant) {
+            let collider = ColliderHandle::from(
+                *scene
+                    .physics
+                    .bodies
+                    .get(body.into())
+                    .unwrap()
+                    .colliders()
+                    .first()
+                    .unwrap(),
+            );
+
+            let node = &scene.graph[descendant];
+            match node.tag() {
+                "HitBoxArm" => hit_boxes.push(HitBox {
+                    collider,
+                    damage_factor: 0.25,
+                }),
+                "HitBoxLeg" => hit_boxes.push(HitBox {
+                    collider,
+                    damage_factor: 0.35,
+                }),
+                "HitBoxBody" => hit_boxes.push(HitBox {
+                    collider,
+                    damage_factor: 0.60,
+                }),
+                "HitBoxHead" => hit_boxes.push(HitBox {
+                    collider,
+                    damage_factor: 1.0,
+                }),
+                _ => (),
+            }
+        }
+    }
+
+    hit_boxes
 }
 
 impl Character {
@@ -205,4 +250,14 @@ impl Character {
         scene.remove_node(self.pivot);
         scene.physics.remove_body(self.body);
     }
+
+    pub fn restore_hit_boxes(&mut self, scene: &Scene) {
+        self.hit_boxes = find_hit_boxes(self.pivot, scene);
+    }
+}
+
+#[derive(Default, Clone, Copy, PartialEq)]
+pub struct HitBox {
+    pub collider: ColliderHandle,
+    pub damage_factor: f32,
 }

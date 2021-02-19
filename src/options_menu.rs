@@ -657,15 +657,16 @@ impl OptionsMenu {
             let mut control_button = None;
 
             match event {
-                WindowEvent::MouseWheel { delta, .. } => {
-                    if let MouseScrollDelta::LineDelta(_, y) = delta {
-                        if *y != 0.0 {
-                            control_button = if *y >= 0.0 {
-                                Some(ControlButton::WheelUp)
-                            } else {
-                                Some(ControlButton::WheelDown)
-                            };
-                        }
+                WindowEvent::MouseWheel {
+                    delta: MouseScrollDelta::LineDelta(_, y),
+                    ..
+                } => {
+                    if *y != 0.0 {
+                        control_button = if *y >= 0.0 {
+                            Some(ControlButton::WheelUp)
+                        } else {
+                            Some(ControlButton::WheelDown)
+                        };
                     }
                 }
                 WindowEvent::KeyboardInput { input, .. } => {
@@ -719,38 +720,34 @@ impl OptionsMenu {
         let mut settings = old_settings;
 
         match message.data() {
-            UiMessageData::ScrollBar(prop)
+            UiMessageData::ScrollBar(ScrollBarMessage::Value(new_value))
                 if message.direction() == MessageDirection::FromWidget =>
             {
-                if let ScrollBarMessage::Value(new_value) = prop {
-                    if message.destination() == self.sb_sound_volume {
-                        engine
-                            .sound_engine
-                            .lock()
-                            .unwrap()
-                            .set_master_gain(*new_value)
-                    } else if message.destination() == self.sb_point_shadow_distance {
-                        settings.point_shadows_distance = *new_value;
-                    } else if message.destination() == self.sb_spot_shadow_distance {
-                        settings.spot_shadows_distance = *new_value;
-                    } else if message.destination() == self.sb_mouse_sens {
-                        self.control_scheme.write().unwrap().mouse_sens = *new_value;
-                    } else if message.destination() == self.sb_music_volume {
-                        self.sender
-                            .send(Message::SetMusicVolume { volume: *new_value })
-                            .unwrap();
-                    }
+                if message.destination() == self.sb_sound_volume {
+                    engine
+                        .sound_engine
+                        .lock()
+                        .unwrap()
+                        .set_master_gain(*new_value)
+                } else if message.destination() == self.sb_point_shadow_distance {
+                    settings.point_shadows_distance = *new_value;
+                } else if message.destination() == self.sb_spot_shadow_distance {
+                    settings.spot_shadows_distance = *new_value;
+                } else if message.destination() == self.sb_mouse_sens {
+                    self.control_scheme.write().unwrap().mouse_sens = *new_value;
+                } else if message.destination() == self.sb_music_volume {
+                    self.sender
+                        .send(Message::SetMusicVolume { volume: *new_value })
+                        .unwrap();
                 }
             }
-            UiMessageData::ListView(msg) => {
-                if let ListViewMessage::SelectionChanged(new_value) = msg {
-                    if message.destination() == self.lb_video_modes {
-                        if let Some(index) = new_value {
-                            let video_mode = self.video_modes[*index].clone();
-                            engine
-                                .get_window()
-                                .set_fullscreen(Some(Fullscreen::Exclusive(video_mode)))
-                        }
+            UiMessageData::ListView(ListViewMessage::SelectionChanged(new_value)) => {
+                if message.destination() == self.lb_video_modes {
+                    if let Some(index) = new_value {
+                        let video_mode = self.video_modes[*index].clone();
+                        engine
+                            .get_window()
+                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode)))
                     }
                 }
             }
@@ -772,28 +769,26 @@ impl OptionsMenu {
                     settings.light_scatter_enabled = value;
                 }
             }
-            UiMessageData::Button(msg) => {
-                if let ButtonMessage::Click = msg {
-                    if message.destination() == self.btn_reset_control_scheme {
-                        self.control_scheme.write().unwrap().reset();
-                        self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
-                    } else if message.destination() == self.btn_reset_audio_settings {
-                        engine.sound_engine.lock().unwrap().set_master_gain(1.0);
-                        self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
-                    }
+            UiMessageData::Button(ButtonMessage::Click) => {
+                if message.destination() == self.btn_reset_control_scheme {
+                    self.control_scheme.write().unwrap().reset();
+                    self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                } else if message.destination() == self.btn_reset_audio_settings {
+                    engine.sound_engine.lock().unwrap().set_master_gain(1.0);
+                    self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                }
 
-                    for (i, button) in self.control_scheme_buttons.iter().enumerate() {
-                        if message.destination() == *button {
-                            if let UINode::Button(button) = engine.user_interface.node(*button) {
-                                engine.user_interface.send_message(TextMessage::text(
-                                    button.content(),
-                                    MessageDirection::ToWidget,
-                                    "[WAITING INPUT]".to_owned(),
-                                ))
-                            }
-
-                            self.active_control_button = Some(i);
+                for (i, button) in self.control_scheme_buttons.iter().enumerate() {
+                    if message.destination() == *button {
+                        if let UINode::Button(button) = engine.user_interface.node(*button) {
+                            engine.user_interface.send_message(TextMessage::text(
+                                button.content(),
+                                MessageDirection::ToWidget,
+                                "[WAITING INPUT]".to_owned(),
+                            ))
                         }
+
+                        self.active_control_button = Some(i);
                     }
                 }
             }

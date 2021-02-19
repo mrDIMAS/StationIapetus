@@ -1,3 +1,4 @@
+use crate::character::find_hit_boxes;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -8,7 +9,7 @@ use crate::{
     level::{footstep_ray_check, UpdateContext},
     message::Message,
     weapon::WeaponContainer,
-    GameTime,
+    CollisionGroups, GameTime,
 };
 use rg3d::core::rand::Rng;
 use rg3d::{
@@ -216,7 +217,7 @@ pub struct BotDefinition {
     pub dying_animation: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct BotDefinitionsContainer {
     map: HashMap<BotKind, BotDefinition>,
 }
@@ -289,6 +290,10 @@ impl Bot {
         scene.physics.add_collider(
             ColliderBuilder::capsule_y(body_height * 0.5, body_radius)
                 .friction(0.0)
+                .collision_groups(InteractionGroups::new(
+                    CollisionGroups::ActorCapsule as u16,
+                    0xFFFF,
+                ))
                 .build(),
             body,
         );
@@ -330,6 +335,7 @@ impl Bot {
                 weapon_pivot,
                 health: definition.health,
                 sender: Some(sender),
+                hit_boxes: find_hit_boxes(pivot, scene),
                 ..Default::default()
             },
             hips,

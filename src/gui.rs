@@ -179,15 +179,13 @@ impl DeathScreen {
     }
 
     pub fn handle_ui_message(&mut self, message: &GuiMessage) {
-        if let UiMessageData::Button(msg) = message.data() {
-            if let ButtonMessage::Click = msg {
-                if message.destination() == self.load_game {
-                    self.sender.send(Message::LoadGame).unwrap();
-                } else if message.destination() == self.exit_to_menu {
-                    self.sender.send(Message::ToggleMainMenu).unwrap();
-                } else if message.destination() == self.exit_game {
-                    self.sender.send(Message::QuitGame).unwrap();
-                }
+        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+            if message.destination() == self.load_game {
+                self.sender.send(Message::LoadGame).unwrap();
+            } else if message.destination() == self.exit_to_menu {
+                self.sender.send(Message::ToggleMainMenu).unwrap();
+            } else if message.destination() == self.exit_game {
+                self.sender.send(Message::QuitGame).unwrap();
             }
         }
     }
@@ -240,7 +238,7 @@ impl ContextualDisplay {
                 })
                 .with_child({
                     ammo = TextBuilder::new(WidgetBuilder::new().on_row(1))
-                        .with_font(font.clone())
+                        .with_font(font)
                         .with_horizontal_text_alignment(HorizontalAlignment::Center)
                         .build(&mut ui.build_ctx());
                     ammo

@@ -169,19 +169,21 @@ impl Menu {
     }
 
     pub fn process_input_event(&mut self, engine: &mut GameEngine, event: &Event<()>) {
-        if let Event::WindowEvent { event, .. } = event {
-            if let WindowEvent::Resized(new_size) = event {
-                engine.user_interface.send_message(WidgetMessage::width(
-                    self.root,
-                    MessageDirection::ToWidget,
-                    new_size.width as f32,
-                ));
-                engine.user_interface.send_message(WidgetMessage::height(
-                    self.root,
-                    MessageDirection::ToWidget,
-                    new_size.height as f32,
-                ));
-            }
+        if let Event::WindowEvent {
+            event: WindowEvent::Resized(new_size),
+            ..
+        } = event
+        {
+            engine.user_interface.send_message(WidgetMessage::width(
+                self.root,
+                MessageDirection::ToWidget,
+                new_size.width as f32,
+            ));
+            engine.user_interface.send_message(WidgetMessage::height(
+                self.root,
+                MessageDirection::ToWidget,
+                new_size.height as f32,
+            ));
         }
 
         self.options_menu.process_input_event(engine, event);
@@ -193,23 +195,21 @@ impl Menu {
         level: Option<&Level>,
         message: &GuiMessage,
     ) {
-        if let UiMessageData::Button(msg) = message.data() {
-            if let ButtonMessage::Click = msg {
-                if message.destination() == self.btn_new_game {
-                    self.sender.send(Message::StartNewGame).unwrap();
-                } else if message.destination() == self.btn_save_game {
-                    self.sender.send(Message::SaveGame).unwrap();
-                } else if message.destination() == self.btn_load_game {
-                    self.sender.send(Message::LoadGame).unwrap();
-                } else if message.destination() == self.btn_quit_game {
-                    self.sender.send(Message::QuitGame).unwrap();
-                } else if message.destination() == self.btn_settings {
-                    engine.user_interface.send_message(WindowMessage::open(
-                        self.options_menu.window,
-                        MessageDirection::ToWidget,
-                        true,
-                    ));
-                }
+        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+            if message.destination() == self.btn_new_game {
+                self.sender.send(Message::StartNewGame).unwrap();
+            } else if message.destination() == self.btn_save_game {
+                self.sender.send(Message::SaveGame).unwrap();
+            } else if message.destination() == self.btn_load_game {
+                self.sender.send(Message::LoadGame).unwrap();
+            } else if message.destination() == self.btn_quit_game {
+                self.sender.send(Message::QuitGame).unwrap();
+            } else if message.destination() == self.btn_settings {
+                engine.user_interface.send_message(WindowMessage::open(
+                    self.options_menu.window,
+                    MessageDirection::ToWidget,
+                    true,
+                ));
             }
         }
 

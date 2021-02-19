@@ -58,7 +58,7 @@
             can_use_weapons: false,
         ),
         Zombie: (
-            model: "data/models/zombie.fbx",
+            model: "data/models/zombie.rgs",
             attack_animations: [
                 (
                     path: "data/animations/zombie_attack.fbx",
@@ -82,7 +82,7 @@
             hips: "mixamorig5:Hips",
             spine: "Spine",
             walk_speed: 1.2,
-            scale: 0.0055,
+            scale: 1.0,
             weapon_scale: 1.0,
             health: 100.0,
             v_aim_angle_hack: 12.0,

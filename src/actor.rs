@@ -1,6 +1,10 @@
+use crate::control_scheme::ControlScheme;
 use crate::{
     bot::Bot, character::Character, level::UpdateContext, message::Message, player::Player,
 };
+use rg3d::resource::texture::Texture;
+use rg3d::scene::graph::Graph;
+use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -12,6 +16,7 @@ use rg3d::{
     scene::Scene,
 };
 use std::ops::{Deref, DerefMut};
+use std::sync::{Arc, RwLock};
 
 #[allow(clippy::large_enum_variant)]
 pub enum Actor {
@@ -206,6 +211,22 @@ impl ActorContainer {
 
     pub fn iter_mut(&mut self) -> PoolIteratorMut<Actor> {
         self.pool.iter_mut()
+    }
+
+    pub fn resolve(
+        &mut self,
+        scene: &mut Scene,
+        display_texture: Texture,
+        control_scheme: Arc<RwLock<ControlScheme>>,
+    ) {
+        for actor in self.pool.iter_mut() {
+            if let Actor::Player(player) = actor {
+                player.resolve(scene, display_texture.clone());
+                player.set_control_scheme(control_scheme.clone());
+            }
+
+            actor.restore_hit_boxes(scene);
+        }
     }
 }
 

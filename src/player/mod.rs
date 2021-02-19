@@ -1,3 +1,4 @@
+use crate::character::find_hit_boxes;
 use crate::{
     actor::Actor,
     character::Character,
@@ -9,6 +10,7 @@ use crate::{
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
+    CollisionGroups,
 };
 use rg3d::{
     animation::{
@@ -29,7 +31,7 @@ use rg3d::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     physics::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder},
-        geometry::ColliderBuilder,
+        geometry::{ColliderBuilder, InteractionGroups},
     },
     resource::{model::Model, texture::Texture, texture::TextureWrapMode},
     scene::{
@@ -416,6 +418,10 @@ impl Player {
             .build(&mut scene.graph);
 
         let capsule = ColliderBuilder::capsule_y(body_height, body_radius)
+            .collision_groups(InteractionGroups::new(
+                CollisionGroups::ActorCapsule as u16,
+                0xFFFF,
+            ))
             .friction_combine_rule(CoefficientCombineRule::Min)
             .friction(0.0)
             .build();
@@ -504,6 +510,7 @@ impl Player {
                 body,
                 weapon_pivot,
                 sender: Some(sender),
+                hit_boxes: find_hit_boxes(pivot, scene),
                 ..Default::default()
             },
             weapon_origin,

@@ -952,7 +952,7 @@ impl Level {
                 .send(Message::DamageActor {
                     actor: hit.actor,
                     who: hit.who,
-                    amount: damage,
+                    amount: damage * hit.hit_box.map_or(1.0, |h| h.damage_factor),
                 })
                 .unwrap();
 
@@ -1114,10 +1114,11 @@ impl Level {
         self.set_message_sender(sender, engine);
         self.control_scheme = Some(control_scheme.clone());
 
-        if let Actor::Player(player) = self.actors.get_mut(self.player) {
-            player.resolve(&mut engine.scenes[self.scene], display_texture);
-            player.set_control_scheme(control_scheme);
-        }
+        self.actors.resolve(
+            &mut engine.scenes[self.scene],
+            display_texture,
+            control_scheme,
+        );
 
         let scene = &engine.scenes[self.scene];
         self.sound_manager.resolve(scene);

@@ -1,8 +1,9 @@
 //! Weapon related stuff.
 
+use crate::character::HitBox;
 use crate::{
     actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
-    GameTime,
+    CollisionGroups, GameTime,
 };
 use rg3d::{
     core::{
@@ -144,7 +145,7 @@ impl LaserSight {
             RayCastOptions {
                 ray: Ray::new(position, direction.scale(max_toi)),
                 max_len: max_toi,
-                groups: Default::default(),
+                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u16)),
                 sort_results: true,
             },
             &mut intersections,
@@ -204,6 +205,7 @@ pub struct Hit {
     pub normal: Vector3<f32>,
     pub collider: ColliderHandle,
     pub feature: FeatureId,
+    pub hit_box: Option<HitBox>,
 }
 
 impl PartialEq for Hit {
@@ -214,6 +216,7 @@ impl PartialEq for Hit {
             && self.normal == other.normal
             && self.collider == other.collider
             && self.feature == other.feature
+            && self.hit_box == other.hit_box
     }
 }
 
@@ -244,7 +247,7 @@ pub fn ray_hit(
         RayCastOptions {
             ray,
             max_len: ray.dir.norm(),
-            groups: InteractionGroups::all(),
+            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u16)),
             sort_results: true,
         },
         &mut query_buffer,
@@ -252,23 +255,23 @@ pub fn ray_hit(
 
     // List of hits sorted by distance from ray origin.
     if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
-        let collider = physics.colliders.get(hit.collider.into()).unwrap();
-        let body = collider.parent();
-
         // Check if there was an intersection with an actor.
         for (actor_handle, actor) in actors.pair_iter() {
-            if actor.get_body() == body.into() && weapon.is_some() {
-                let weapon = &weapons[weapon];
-                // Ignore intersections with owners of weapon.
-                if weapon.owner() != actor_handle {
-                    return Some(Hit {
-                        actor: actor_handle,
-                        who: weapon.owner(),
-                        position: hit.position.coords,
-                        normal: hit.normal,
-                        collider: hit.collider,
-                        feature: hit.feature,
-                    });
+            for hit_box in actor.hit_boxes.iter() {
+                if hit_box.collider == hit.collider && weapon.is_some() {
+                    let weapon = &weapons[weapon];
+                    // Ignore intersections with owners of weapon.
+                    if weapon.owner() != actor_handle {
+                        return Some(Hit {
+                            actor: actor_handle,
+                            who: weapon.owner(),
+                            position: hit.position.coords,
+                            normal: hit.normal,
+                            collider: hit.collider,
+                            feature: hit.feature,
+                            hit_box: Some(*hit_box),
+                        });
+                    }
                 }
             }
         }
@@ -280,6 +283,7 @@ pub fn ray_hit(
             normal: hit.normal,
             collider: hit.collider,
             feature: hit.feature,
+            hit_box: None,
         })
     } else {
         None

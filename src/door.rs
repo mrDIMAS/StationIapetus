@@ -124,10 +124,8 @@ impl DoorContainer {
                 if door.state == State::Close {
                     door.state = State::Opening;
                 }
-            } else {
-                if door.state == State::Open {
-                    door.state = State::Closing;
-                }
+            } else if door.state == State::Open {
+                door.state = State::Closing;
             }
 
             match door.state {

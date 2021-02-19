@@ -27,7 +27,6 @@ use crate::{
     menu::Menu,
     message::Message,
 };
-use rg3d::engine::resource_manager::ResourceManager;
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -38,7 +37,7 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::Engine,
+    engine::{resource_manager::ResourceManager, Engine},
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     gui::{
@@ -63,11 +62,11 @@ use rg3d::{
         translate_event,
     },
 };
-use std::collections::HashMap;
-use std::ops::Index;
 use std::{
+    collections::HashMap,
     fs::File,
     io::Write,
+    ops::Index,
     path::Path,
     sync::{
         mpsc::{self, Receiver, Sender},
@@ -216,13 +215,10 @@ pub struct GameTime {
     delta: f32,
 }
 
-// Disable false-positive lint, isize *is* portable.
-#[allow(clippy::enum_clike_unportable_variant)]
+#[repr(u16)]
 pub enum CollisionGroups {
-    Generic = 1,
-    Projectile = 1 << 1,
-    Actor = 1 << 2,
-    All = std::isize::MAX,
+    ActorCapsule = 1 << 0,
+    All = std::u16::MAX,
 }
 
 pub struct LoadContext {
@@ -694,13 +690,15 @@ impl Game {
     pub fn process_input_event(&mut self, event: &Event<()>) {
         self.process_dispatched_event(event);
 
-        if let Event::WindowEvent { event, .. } = event {
-            if let WindowEvent::KeyboardInput { input, .. } = event {
-                if let ElementState::Pressed = input.state {
-                    if let Some(key) = input.virtual_keycode {
-                        if key == VirtualKeyCode::Escape && self.level.is_some() {
-                            self.set_menu_visible(!self.is_any_menu_visible());
-                        }
+        if let Event::WindowEvent {
+            event: WindowEvent::KeyboardInput { input, .. },
+            ..
+        } = event
+        {
+            if let ElementState::Pressed = input.state {
+                if let Some(key) = input.virtual_keycode {
+                    if key == VirtualKeyCode::Escape && self.level.is_some() {
+                        self.set_menu_visible(!self.is_any_menu_visible());
                     }
                 }
             }
