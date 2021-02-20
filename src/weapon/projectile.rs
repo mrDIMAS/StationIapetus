@@ -31,9 +31,10 @@ use rg3d::{
         RigidBodyHandle, Scene,
     },
 };
+use serde::Deserialize;
 use std::{collections::HashSet, path::PathBuf, sync::mpsc::Sender};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize)]
 pub enum ProjectileKind {
     Plasma,
     Grenade,

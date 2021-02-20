@@ -1,0 +1,32 @@
+(
+    map: {
+        M4: (
+            model: "data/models/m4.FBX",
+            shot_sound: "data/sounds/m4_shot.ogg",
+            ammo: 200,
+            projectile: Ray(damage: 15.0),
+            shoot_interval: 0.15,
+        ),
+        Ak47: (
+            model: "data/models/ak47.FBX",
+            shot_sound: "data/sounds/ak47.ogg",
+            ammo: 200,
+            projectile: Ray(damage: 17.0),
+            shoot_interval: 0.15,
+        ),
+        PlasmaRifle: (
+            model: "data/models/plasma_rifle.fbx",
+            shot_sound: "data/sounds/plasma_shot.ogg",
+            ammo: 100,
+            projectile: Projectile(Plasma),
+            shoot_interval: 0.25,
+        ),
+        Glock: (
+            model: "data/models/glock.FBX",
+            shot_sound: "data/sounds/ak47.ogg",
+            ammo: 100,
+            projectile: Ray(damage: 10.0),
+            shoot_interval: 0.3,
+        )
+    }
+)

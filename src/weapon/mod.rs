@@ -5,6 +5,7 @@ use crate::{
     actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
     CollisionGroups, GameTime,
 };
+use rg3d::lazy_static::lazy_static;
 use rg3d::{
     core::{
         algebra::{Matrix3, UnitQuaternion, Vector3},
@@ -33,6 +34,9 @@ use rg3d::{
         log::{Log, MessageKind},
     },
 };
+use serde::Deserialize;
+use std::collections::HashMap;
+use std::fs::File;
 use std::{
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
@@ -42,7 +46,7 @@ use std::{
 
 pub mod projectile;
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 #[repr(u32)]
 pub enum WeaponKind {
     M4 = 0,
@@ -292,7 +296,7 @@ pub fn ray_hit(
     }
 }
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Deserialize)]
 pub enum WeaponProjectile {
     Projectile(ProjectileKind),
     /// For high-speed "projectiles".
@@ -301,12 +305,29 @@ pub enum WeaponProjectile {
     },
 }
 
+#[derive(Deserialize)]
 pub struct WeaponDefinition {
-    pub model: &'static str,
-    pub shot_sound: &'static str,
+    pub model: String,
+    pub shot_sound: String,
     pub ammo: u32,
     pub projectile: WeaponProjectile,
     pub shoot_interval: f64,
+}
+
+#[derive(Deserialize)]
+pub struct WeaponDefinitionContainer {
+    map: HashMap<WeaponKind, WeaponDefinition>,
+}
+
+impl WeaponDefinitionContainer {
+    pub fn new() -> Self {
+        let file = File::open("data/configs/weapons.ron").unwrap();
+        ron::de::from_reader(file).unwrap()
+    }
+}
+
+lazy_static! {
+    static ref DEFINITIONS: WeaponDefinitionContainer = WeaponDefinitionContainer::new();
 }
 
 impl Default for Weapon {
@@ -357,48 +378,7 @@ impl Visit for Weapon {
 
 impl Weapon {
     pub fn get_definition(kind: WeaponKind) -> &'static WeaponDefinition {
-        match kind {
-            WeaponKind::M4 => {
-                static DEFINITION: WeaponDefinition = WeaponDefinition {
-                    model: "data/models/m4.FBX",
-                    shot_sound: "data/sounds/m4_shot.ogg",
-                    ammo: 200,
-                    projectile: WeaponProjectile::Ray { damage: 15.0 },
-                    shoot_interval: 0.15,
-                };
-                &DEFINITION
-            }
-            WeaponKind::Ak47 => {
-                static DEFINITION: WeaponDefinition = WeaponDefinition {
-                    model: "data/models/ak47.FBX",
-                    shot_sound: "data/sounds/ak47.ogg",
-                    ammo: 200,
-                    projectile: WeaponProjectile::Ray { damage: 17.0 },
-                    shoot_interval: 0.15,
-                };
-                &DEFINITION
-            }
-            WeaponKind::PlasmaRifle => {
-                static DEFINITION: WeaponDefinition = WeaponDefinition {
-                    model: "data/models/plasma_rifle.fbx",
-                    shot_sound: "data/sounds/plasma_shot.ogg",
-                    ammo: 100,
-                    projectile: WeaponProjectile::Projectile(ProjectileKind::Plasma),
-                    shoot_interval: 0.25,
-                };
-                &DEFINITION
-            }
-            WeaponKind::Glock => {
-                static DEFINITION: WeaponDefinition = WeaponDefinition {
-                    model: "data/models/glock.FBX",
-                    shot_sound: "data/sounds/ak47.ogg",
-                    ammo: 100,
-                    projectile: WeaponProjectile::Ray { damage: 10.0 },
-                    shoot_interval: 0.3,
-                };
-                &DEFINITION
-            }
-        }
+        DEFINITIONS.map.get(&kind).unwrap()
     }
 
     pub async fn new(
@@ -410,7 +390,7 @@ impl Weapon {
         let definition = Self::get_definition(kind);
 
         let model = resource_manager
-            .request_model(Path::new(definition.model))
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);
@@ -591,7 +571,7 @@ impl Weapon {
                 .as_ref()
                 .unwrap()
                 .send(Message::PlaySound {
-                    path: PathBuf::from(self.definition.shot_sound),
+                    path: PathBuf::from(self.definition.shot_sound.clone()),
                     position,
                     gain: 1.0,
                     rolloff_factor: 5.0,

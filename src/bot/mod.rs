@@ -224,7 +224,7 @@ pub struct BotDefinitionsContainer {
 
 impl BotDefinitionsContainer {
     pub fn new() -> Self {
-        let file = File::open("data/bots/bots.ron").unwrap();
+        let file = File::open("data/configs/bots.ron").unwrap();
         ron::de::from_reader(file).unwrap()
     }
 }
