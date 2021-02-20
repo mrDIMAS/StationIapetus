@@ -619,8 +619,16 @@ impl Player {
             false
         };
 
-        // TODO: Fix when there is any pistol added.
-        let weapon_kind = CombatWeaponKind::Rifle;
+        let weapon_kind = if self.current_weapon().is_some() {
+            match context.weapons[self.current_weapon()].get_kind() {
+                WeaponKind::M4 | WeaponKind::Ak47 | WeaponKind::PlasmaRifle => {
+                    CombatWeaponKind::Rifle
+                }
+                WeaponKind::Glock => CombatWeaponKind::Pistol,
+            }
+        } else {
+            CombatWeaponKind::Rifle
+        };
 
         self.lower_body_machine.apply(
             scene,
@@ -1196,6 +1204,10 @@ impl Player {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::PlasmaRifle) {
                     weapon_change_direction =
                         Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
+                }
+            } else if button == scheme.grab_pistol.button && can_change_weapon {
+                if current_weapon_kind.map_or(false, |k| k != WeaponKind::Glock) {
+                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Glock));
                 }
             } else if button == scheme.next_weapon.button {
                 if state == ElementState::Pressed

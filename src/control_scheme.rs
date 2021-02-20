@@ -46,6 +46,7 @@ pub struct ControlScheme {
     pub flash_light: ControlButtonDefinition,
     pub grab_ak47: ControlButtonDefinition,
     pub grab_m4: ControlButtonDefinition,
+    pub grab_pistol: ControlButtonDefinition,
     pub grab_plasma_gun: ControlButtonDefinition,
     pub mouse_sens: f32,
     pub mouse_y_inverse: bool,
@@ -102,17 +103,21 @@ impl Default for ControlScheme {
                 description: "Flash Light".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::F),
             },
+            grab_pistol: ControlButtonDefinition {
+                description: "Grab Pistol".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Key1),
+            },
             grab_ak47: ControlButtonDefinition {
                 description: "Grab AK47".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key1),
+                button: ControlButton::Key(VirtualKeyCode::Key2),
             },
             grab_m4: ControlButtonDefinition {
                 description: "Grab M4".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key2),
+                button: ControlButton::Key(VirtualKeyCode::Key3),
             },
             grab_plasma_gun: ControlButtonDefinition {
                 description: "Grab Plasma Gun".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key3),
+                button: ControlButton::Key(VirtualKeyCode::Key4),
             },
             mouse_sens: 0.3,
             mouse_y_inverse: false,
@@ -121,7 +126,7 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 15] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 16] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
@@ -135,13 +140,14 @@ impl ControlScheme {
             &mut self.aim,
             &mut self.toss_grenade,
             &mut self.flash_light,
+            &mut self.grab_pistol,
             &mut self.grab_ak47,
             &mut self.grab_m4,
             &mut self.grab_plasma_gun,
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 15] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 16] {
         [
             &self.move_forward,
             &self.move_backward,
@@ -155,6 +161,7 @@ impl ControlScheme {
             &self.aim,
             &self.toss_grenade,
             &self.flash_light,
+            &self.grab_pistol,
             &self.grab_ak47,
             &self.grab_m4,
             &self.grab_plasma_gun,

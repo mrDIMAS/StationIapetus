@@ -372,7 +372,12 @@ async fn spawn_player(
         .get_mut(player)
         .set_position(&mut scene.physics, spawn_position);
 
-    let weapons_to_give = [WeaponKind::M4, WeaponKind::Ak47, WeaponKind::PlasmaRifle];
+    let weapons_to_give = [
+        WeaponKind::M4,
+        WeaponKind::Ak47,
+        WeaponKind::PlasmaRifle,
+        WeaponKind::Glock,
+    ];
     for (i, &weapon) in weapons_to_give.iter().enumerate() {
         give_new_weapon(
             weapon,
@@ -649,6 +654,7 @@ impl Level {
                     WeaponKind::M4 => ItemKind::M4,
                     WeaponKind::Ak47 => ItemKind::Ak47,
                     WeaponKind::PlasmaRifle => ItemKind::PlasmaGun,
+                    WeaponKind::Glock => ItemKind::Glock,
                 };
                 self.spawn_item(engine, item_kind, drop_position, true)
                     .await;
@@ -670,11 +676,12 @@ impl Level {
             let character = self.actors.get_mut(actor);
             match kind {
                 ItemKind::Medkit => character.heal(20.0),
-                ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::RocketLauncher => {
+                ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::Glock => {
                     let weapon_kind = match kind {
                         ItemKind::Ak47 => WeaponKind::Ak47,
                         ItemKind::PlasmaGun => WeaponKind::PlasmaRifle,
                         ItemKind::M4 => WeaponKind::M4,
+                        ItemKind::Glock => WeaponKind::Glock,
                         _ => unreachable!(),
                     };
 

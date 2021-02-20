@@ -48,6 +48,7 @@ pub enum WeaponKind {
     M4 = 0,
     Ak47 = 1,
     PlasmaRifle = 2,
+    Glock = 3,
 }
 
 impl Default for WeaponKind {
@@ -66,6 +67,7 @@ impl WeaponKind {
             0 => Ok(WeaponKind::M4),
             1 => Ok(WeaponKind::Ak47),
             2 => Ok(WeaponKind::PlasmaRifle),
+            3 => Ok(WeaponKind::Glock),
             _ => Err(format!("unknown weapon kind {}", id)),
         }
     }
@@ -383,6 +385,16 @@ impl Weapon {
                     ammo: 100,
                     projectile: WeaponProjectile::Projectile(ProjectileKind::Plasma),
                     shoot_interval: 0.25,
+                };
+                &DEFINITION
+            }
+            WeaponKind::Glock => {
+                static DEFINITION: WeaponDefinition = WeaponDefinition {
+                    model: "data/models/glock.FBX",
+                    shot_sound: "data/sounds/ak47.ogg",
+                    ammo: 100,
+                    projectile: WeaponProjectile::Ray { damage: 10.0 },
+                    shoot_interval: 0.3,
                 };
                 &DEFINITION
             }
