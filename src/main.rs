@@ -630,7 +630,8 @@ impl Game {
         use std::fmt::Write;
         write!(
             self.debug_string,
-            "{}{}",
+            "Up time: {}\n{}{}",
+            elapsed,
             self.engine.renderer.get_statistics(),
             if let Some(level) = self.level.as_ref() {
                 self.engine.scenes[level.scene].performance_statistics

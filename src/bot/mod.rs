@@ -191,6 +191,7 @@ pub struct AttackAnimationDefinition {
     path: String,
     timestamp: f32,
     damage: f32,
+    speed: f32,
 }
 
 #[derive(Deserialize)]

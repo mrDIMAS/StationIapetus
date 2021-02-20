@@ -36,26 +36,36 @@ pub struct UpperBodyMachineInput {
     pub attack_animation_index: u32,
 }
 
+pub struct AttackAnimation {
+    resource: Model,
+    timestamp: f32,
+    speed: f32,
+}
+
 pub fn make_attack_state(
     machine: &mut Machine,
     scene: &mut Scene,
     model: Handle<Node>,
     index_parameter: String,
-    attack_animation_resources: Vec<(Model, f32)>,
+    attack_animation_resources: Vec<AttackAnimation>,
     hips: Handle<Node>,
 ) -> (Handle<State>, Vec<Handle<Animation>>) {
     let animations = attack_animation_resources
         .into_iter()
-        .map(|(resource, timestamp)| {
-            let animation = *resource.retarget_animations(model, scene).get(0).unwrap();
+        .map(|desc| {
+            let animation = *desc
+                .resource
+                .retarget_animations(model, scene)
+                .get(0)
+                .unwrap();
             scene.animations[animation]
                 .set_enabled(false)
                 .set_loop(false)
                 .add_signal(AnimationSignal::new(
                     UpperBodyMachine::HIT_SIGNAL,
-                    timestamp,
+                    desc.timestamp,
                 ))
-                .set_speed(1.35)
+                .set_speed(desc.speed)
                 .track_of_mut(hips)
                 .unwrap()
                 .set_flags(PoseEvaluationFlags {
@@ -176,7 +186,11 @@ impl UpperBodyMachine {
             definition
                 .attack_animations
                 .iter()
-                .map(|a| (resources[&a.path].clone(), a.timestamp))
+                .map(|a| AttackAnimation {
+                    resource: resources[&a.path].clone(),
+                    timestamp: a.timestamp,
+                    speed: a.speed,
+                })
                 .collect(),
             hips,
         );

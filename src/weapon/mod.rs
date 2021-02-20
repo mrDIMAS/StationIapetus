@@ -40,7 +40,7 @@ use std::fs::File;
 use std::{
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
-    path::{Path, PathBuf},
+    path::PathBuf,
     sync::{mpsc::Sender, Arc, RwLock},
 };
 

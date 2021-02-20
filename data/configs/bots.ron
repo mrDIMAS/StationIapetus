@@ -7,6 +7,7 @@
                     path: "data/animations/mutant_attack_swipe.fbx",
                     timestamp: 1.1,
                     damage: 60.0,
+                    speed: 1.1
                 )
             ],
             scream_animation: "data/animations/mutant_scream.fbx",
@@ -33,11 +34,13 @@
                     path: "data/animations/parasite_attack.fbx",
                     timestamp: 0.8,
                     damage: 30.0,
+                    speed: 1.0
                 ),
                 (
                     path: "data/animations/parasite_attack_2.fbx",
                     timestamp: 0.9,
                     damage: 25.0,
+                    speed: 1.0
                 )
             ],
             scream_animation: "data/animations/parasite_scream.fbx",
@@ -50,7 +53,7 @@
             right_leg_name: "RightUpLeg",
             hips: "Hips",
             spine: "", // Empty because cannot use weapons.
-            walk_speed: 4.0,
+            walk_speed: 3.5,
             scale: 1.0,
             weapon_scale: 1.0,
             health: 300.0,
@@ -64,11 +67,13 @@
                     path: "data/animations/zombie_attack.fbx",
                     timestamp: 1.5,
                     damage: 10.0,
+                    speed: 1.3
                 ),
                 (
                     path: "data/animations/zombie_attack_2.fbx",
                     timestamp: 1.4,
                     damage: 12.0,
+                    speed: 1.3
                 ),
             ],
             scream_animation: "data/animations/zombie_scream.fbx",
