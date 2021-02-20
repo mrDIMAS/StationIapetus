@@ -5,7 +5,6 @@ use crate::{
     weapon::{ray_hit, Hit, Weapon, WeaponContainer},
     GameTime,
 };
-use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -16,6 +15,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    lazy_static::lazy_static,
     physics::{
         dynamics::{BodyStatus, RigidBodyBuilder},
         geometry::ColliderBuilder,
@@ -28,13 +28,15 @@ use rg3d::{
         light::{BaseLightBuilder, PointLightBuilder},
         node::Node,
         sprite::SpriteBuilder,
-        RigidBodyHandle, Scene,
+        ColliderHandle, RigidBodyHandle, Scene,
     },
 };
 use serde::Deserialize;
-use std::{collections::HashSet, path::PathBuf, sync::mpsc::Sender};
+use std::{
+    collections::HashMap, collections::HashSet, fs::File, path::PathBuf, sync::mpsc::Sender,
+};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum ProjectileKind {
     Plasma,
     Grenade,
@@ -98,6 +100,7 @@ impl Default for Projectile {
     }
 }
 
+#[derive(Deserialize)]
 pub struct ProjectileDefinition {
     damage: f32,
     speed: f32,
@@ -105,33 +108,28 @@ pub struct ProjectileDefinition {
     /// Means that movement of projectile controlled by code, not physics.
     /// However projectile still could have rigid body to detect collisions.
     is_kinematic: bool,
-    impact_sound: &'static str,
+    impact_sound: String,
+}
+
+#[derive(Deserialize)]
+pub struct ProjectileDefinitionContainer {
+    map: HashMap<ProjectileKind, ProjectileDefinition>,
+}
+
+impl ProjectileDefinitionContainer {
+    pub fn new() -> Self {
+        let file = File::open("data/configs/projectiles.ron").unwrap();
+        ron::de::from_reader(file).unwrap()
+    }
+}
+
+lazy_static! {
+    static ref DEFINITIONS: ProjectileDefinitionContainer = ProjectileDefinitionContainer::new();
 }
 
 impl Projectile {
     pub fn get_definition(kind: ProjectileKind) -> &'static ProjectileDefinition {
-        match kind {
-            ProjectileKind::Plasma => {
-                static DEFINITION: ProjectileDefinition = ProjectileDefinition {
-                    damage: 30.0,
-                    speed: 0.15,
-                    lifetime: 10.0,
-                    is_kinematic: true,
-                    impact_sound: "data/sounds/bullet_impact_concrete.ogg",
-                };
-                &DEFINITION
-            }
-            ProjectileKind::Grenade => {
-                static DEFINITION: ProjectileDefinition = ProjectileDefinition {
-                    damage: 60.0,
-                    speed: 0.0,
-                    lifetime: 10.0,
-                    is_kinematic: false,
-                    impact_sound: "data/sounds/explosion.ogg",
-                };
-                &DEFINITION
-            }
-        }
+        DEFINITIONS.map.get(&kind).unwrap()
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -326,7 +324,7 @@ impl Projectile {
                 .as_ref()
                 .unwrap()
                 .send(Message::PlaySound {
-                    path: PathBuf::from(self.definition.impact_sound),
+                    path: PathBuf::from(self.definition.impact_sound.clone()),
                     position: pos,
                     gain: 1.0,
                     rolloff_factor: 4.0,
