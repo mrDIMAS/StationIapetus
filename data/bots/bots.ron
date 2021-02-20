@@ -1,7 +1,7 @@
 (
     map: {
         Mutant: (
-            model: "data/models/mutant.FBX",
+            model: "data/models/mutant.rgs",
             attack_animations: [
                 (
                     path: "data/animations/mutant_attack_swipe.fbx",
@@ -20,7 +20,7 @@
             hips: "Mutant:Hips",
             spine: "", // Empty because cannot use weapons.
             walk_speed: 0.7,
-            scale: 0.0065,
+            scale: 1.0,
             weapon_scale: 1.0,
             health: 1000.0,
             v_aim_angle_hack: 0.0,

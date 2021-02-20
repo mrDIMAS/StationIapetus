@@ -628,23 +628,15 @@ impl Game {
     pub fn update_statistics(&mut self, elapsed: f64) {
         self.debug_string.clear();
         use std::fmt::Write;
-        let statistics = self.engine.renderer.get_statistics();
         write!(
             self.debug_string,
-            "Pure frame time: {:.2} ms\n\
-               Capped frame time: {:.2} ms\n\
-               FPS: {}\n\
-               Triangles: {}\n\
-               Draw calls: {}\n\
-               Uptime: {:.2} s\n\
-               UI time: {:?}",
-            statistics.pure_frame_time * 1000.0,
-            statistics.capped_frame_time * 1000.0,
-            statistics.frames_per_second,
-            statistics.geometry.triangles_rendered,
-            statistics.geometry.draw_calls,
-            elapsed,
-            self.engine.ui_time
+            "{}{}",
+            self.engine.renderer.get_statistics(),
+            if let Some(level) = self.level.as_ref() {
+                self.engine.scenes[level.scene].performance_statistics
+            } else {
+                Default::default()
+            }
         )
         .unwrap();
 
