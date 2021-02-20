@@ -171,6 +171,11 @@ impl LaserSight {
                 .set_position(result.position.coords - direction.scale(0.02));
         }
     }
+
+    pub fn set_visible(&self, visibility: bool, graph: &mut Graph) {
+        graph[self.tip].set_visibility(visibility);
+        graph[self.ray].set_visibility(visibility);
+    }
 }
 
 impl Visit for LaserSight {
@@ -468,8 +473,9 @@ impl Weapon {
 
     pub fn set_visibility(&self, visibility: bool, graph: &mut Graph) {
         graph[self.model].set_visibility(visibility);
-        graph[self.laser_sight.tip].set_visibility(visibility);
-        graph[self.laser_sight.ray].set_visibility(visibility);
+        if !visibility {
+            self.laser_sight.set_visible(visibility, graph);
+        }
     }
 
     pub fn get_model(&self) -> Handle<Node> {
@@ -549,6 +555,10 @@ impl Weapon {
             let enabled = flash_light.visibility();
             flash_light.set_visibility(!enabled);
         }
+    }
+
+    pub fn laser_sight(&self) -> &LaserSight {
+        &self.laser_sight
     }
 
     pub fn try_shoot(

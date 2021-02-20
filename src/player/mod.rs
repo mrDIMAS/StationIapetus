@@ -1053,24 +1053,33 @@ impl Player {
                     .rewind();
             }
 
-            if let Some(current_weapon_handle) = self
+            if let Some(&current_weapon_handle) = self
                 .character
                 .weapons
                 .get(self.character.current_weapon as usize)
             {
-                if self.controller.shoot
-                    && self.upper_body_machine.machine.active_state()
-                        == self.upper_body_machine.aim_state
+                if self.upper_body_machine.machine.active_state()
+                    == self.upper_body_machine.aim_state
                 {
-                    self.character
-                        .sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::ShootWeapon {
-                            weapon: *current_weapon_handle,
-                            direction: None,
-                        })
-                        .unwrap();
+                    context.weapons[current_weapon_handle]
+                        .laser_sight()
+                        .set_visible(true, &mut scene.graph);
+
+                    if self.controller.shoot {
+                        self.character
+                            .sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::ShootWeapon {
+                                weapon: current_weapon_handle,
+                                direction: None,
+                            })
+                            .unwrap();
+                    }
+                } else {
+                    context.weapons[current_weapon_handle]
+                        .laser_sight()
+                        .set_visible(false, &mut scene.graph);
                 }
             }
         } else {
