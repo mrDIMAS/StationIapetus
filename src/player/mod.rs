@@ -12,6 +12,7 @@ use crate::{
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
     CollisionGroups,
 };
+use rg3d::core::color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint};
 use rg3d::{
     animation::{
         machine::{
@@ -318,6 +319,7 @@ pub struct Player {
     contextual_display: Handle<Node>,
     health_cylinder: Handle<Node>,
     last_health: f32,
+    health_color_gradient: ColorGradient,
 }
 
 impl Visit for Player {
@@ -357,8 +359,25 @@ impl Visit for Player {
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
 
+        if visitor.is_reading() {
+            self.health_color_gradient = make_color_gradient();
+        }
+
         visitor.leave_region()
     }
+}
+
+fn make_color_gradient() -> ColorGradient {
+    ColorGradientBuilder::new()
+        .with_point(GradientPoint::new(0.0, Color::from_rgba(255, 0, 0, 200)))
+        .with_point(GradientPoint::new(0.2, Color::from_rgba(255, 0, 0, 200)))
+        .with_point(GradientPoint::new(0.3, Color::from_rgba(255, 200, 15, 200)))
+        .with_point(GradientPoint::new(0.4, Color::from_rgba(255, 200, 15, 200)))
+        .with_point(GradientPoint::new(0.5, Color::from_rgba(255, 100, 12, 200)))
+        .with_point(GradientPoint::new(0.7, Color::from_rgba(255, 100, 12, 200)))
+        .with_point(GradientPoint::new(0.8, Color::from_rgba(0, 255, 0, 200)))
+        .with_point(GradientPoint::new(1.0, Color::from_rgba(0, 255, 0, 200)))
+        .build()
 }
 
 impl Player {
@@ -490,10 +509,6 @@ impl Player {
         let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
         let mesh = scene.graph[health_cylinder].as_mesh_mut();
         mesh.set_render_path(RenderPath::Forward);
-        mesh.surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .set_color(Color::from_rgba(0, 200, 0, 200));
         let contextual_display = scene.graph.find_by_name(health_rig, "TextPanel");
         let mesh = scene.graph[contextual_display].as_mesh_mut();
         mesh.set_render_path(RenderPath::Forward);
@@ -555,6 +570,7 @@ impl Player {
             target_velocity: Default::default(),
             contextual_display,
             last_health: 100.0,
+            health_color_gradient: make_color_gradient(),
         }
     }
 
@@ -580,6 +596,12 @@ impl Player {
         listener.set_basis(camera.global_transform().basis());
         listener.set_position(camera_position);
         std::mem::drop(sound_context);
+
+        let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
+        mesh.surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_color(self.health_color_gradient.get_color(self.health / 100.0));
 
         let mut has_ground_contact = false;
         if let Some(iterator) = scene
