@@ -6,6 +6,8 @@
             ammo: 200,
             projectile: Ray(damage: 15.0),
             shoot_interval: 0.15,
+            yaw_correction: -4.0,
+            pitch_correction: -12.0,
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
@@ -13,6 +15,8 @@
             ammo: 200,
             projectile: Ray(damage: 17.0),
             shoot_interval: 0.15,
+            yaw_correction: -4.0,
+            pitch_correction: -12.0,
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle.fbx",
@@ -20,6 +24,8 @@
             ammo: 100,
             projectile: Projectile(Plasma),
             shoot_interval: 0.25,
+            yaw_correction: -4.0,
+            pitch_correction: -12.0,
         ),
         Glock: (
             model: "data/models/glock.FBX",
@@ -27,6 +33,8 @@
             ammo: 100,
             projectile: Ray(damage: 10.0),
             shoot_interval: 0.3,
+            yaw_correction: -10.0,
+            pitch_correction: -4.0,
         )
     }
 )

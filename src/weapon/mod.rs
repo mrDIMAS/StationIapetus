@@ -1,11 +1,9 @@
 //! Weapon related stuff.
 
-use crate::character::HitBox;
 use crate::{
-    actor::Actor, actor::ActorContainer, message::Message, weapon::projectile::ProjectileKind,
-    CollisionGroups, GameTime,
+    actor::Actor, actor::ActorContainer, character::HitBox, message::Message,
+    weapon::projectile::ProjectileKind, CollisionGroups, GameTime,
 };
-use rg3d::lazy_static::lazy_static;
 use rg3d::{
     core::{
         algebra::{Matrix3, UnitQuaternion, Vector3},
@@ -16,6 +14,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    lazy_static::lazy_static,
     physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
@@ -35,9 +34,9 @@ use rg3d::{
     },
 };
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs::File;
 use std::{
+    collections::HashMap,
+    fs::File,
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
     path::PathBuf,
@@ -317,6 +316,8 @@ pub struct WeaponDefinition {
     pub ammo: u32,
     pub projectile: WeaponProjectile,
     pub shoot_interval: f64,
+    pub yaw_correction: f32,
+    pub pitch_correction: f32,
 }
 
 #[derive(Deserialize)]
@@ -664,6 +665,10 @@ impl WeaponContainer {
 
     pub fn add(&mut self, weapon: Weapon) -> Handle<Weapon> {
         self.pool.spawn(weapon)
+    }
+
+    pub fn try_get(&self, weapon: Handle<Weapon>) -> Option<&Weapon> {
+        self.pool.try_borrow(weapon)
     }
 
     pub fn contains(&self, weapon: Handle<Weapon>) -> bool {

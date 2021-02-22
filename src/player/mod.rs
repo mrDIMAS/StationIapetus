@@ -968,9 +968,20 @@ impl Player {
             }
 
             if self.controller.aim {
-                self.weapon_yaw_correction.set_target(-4.0f32.to_radians());
+                let (pitch_correction, yaw_correction) =
+                    if let Some(weapon) = context.weapons.try_get(self.current_weapon()) {
+                        (
+                            weapon.definition.pitch_correction,
+                            weapon.definition.yaw_correction,
+                        )
+                    } else {
+                        (-12.0f32, -4.0f32)
+                    };
+
+                self.weapon_yaw_correction
+                    .set_target(yaw_correction.to_radians());
                 self.weapon_pitch_correction
-                    .set_target(-12.0f32.to_radians());
+                    .set_target(pitch_correction.to_radians());
             } else {
                 self.weapon_yaw_correction.set_target(30.0f32.to_radians());
                 self.weapon_pitch_correction.set_target(8.0f32.to_radians());
