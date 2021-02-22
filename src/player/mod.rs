@@ -12,7 +12,10 @@ use crate::{
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
     CollisionGroups,
 };
+use rg3d::core::algebra::Matrix4;
 use rg3d::core::color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint};
+use rg3d::renderer::surface::{SurfaceBuilder, SurfaceSharedData};
+use rg3d::scene::mesh::MeshBuilder;
 use rg3d::{
     animation::{
         machine::{
@@ -509,13 +512,16 @@ impl Player {
         let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
         let mesh = scene.graph[health_cylinder].as_mesh_mut();
         mesh.set_render_path(RenderPath::Forward);
-        let contextual_display = scene.graph.find_by_name(health_rig, "TextPanel");
-        let mesh = scene.graph[contextual_display].as_mesh_mut();
-        mesh.set_render_path(RenderPath::Forward);
-        mesh.surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .set_diffuse_texture(Some(display_texture));
+
+        let contextual_display = MeshBuilder::new(BaseBuilder::new())
+            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+                SurfaceSharedData::make_quad(Matrix4::new_scaling(0.07)),
+            )))
+            .with_diffuse_texture(display_texture)
+            .build()])
+            .with_render_path(RenderPath::Forward)
+            .build(&mut scene.graph);
+        scene.graph.link_nodes(contextual_display, weapon_pivot);
 
         Self {
             character: Character {
@@ -1094,9 +1100,12 @@ impl Player {
                 if self.upper_body_machine.machine.active_state()
                     == self.upper_body_machine.aim_state
                 {
-                    context.weapons[current_weapon_handle]
-                        .laser_sight()
-                        .set_visible(true, &mut scene.graph);
+                    let weapon = &context.weapons[current_weapon_handle];
+                    weapon.laser_sight().set_visible(true, &mut scene.graph);
+                    context.scene.graph[self.contextual_display]
+                        .set_visibility(true)
+                        .local_transform_mut()
+                        .set_position(weapon.definition.ammo_indicator_offset());
 
                     if self.controller.shoot {
                         self.character
@@ -1113,6 +1122,7 @@ impl Player {
                     context.weapons[current_weapon_handle]
                         .laser_sight()
                         .set_visible(false, &mut scene.graph);
+                    context.scene.graph[self.contextual_display].set_visibility(false);
                 }
             }
         } else {

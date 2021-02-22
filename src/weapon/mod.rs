@@ -318,6 +318,17 @@ pub struct WeaponDefinition {
     pub shoot_interval: f64,
     pub yaw_correction: f32,
     pub pitch_correction: f32,
+    pub ammo_indicator_offset: (f32, f32, f32),
+}
+
+impl WeaponDefinition {
+    pub fn ammo_indicator_offset(&self) -> Vector3<f32> {
+        Vector3::new(
+            self.ammo_indicator_offset.0,
+            self.ammo_indicator_offset.1,
+            self.ammo_indicator_offset.2,
+        )
+    }
 }
 
 #[derive(Deserialize)]

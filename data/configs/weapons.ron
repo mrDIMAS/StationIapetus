@@ -8,6 +8,7 @@
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
+            ammo_indicator_offset: (-0.09, 0.03, 0.0)
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
@@ -17,6 +18,7 @@
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
+            ammo_indicator_offset: (-0.09, 0.03, 0.0)
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle.fbx",
@@ -26,6 +28,7 @@
             shoot_interval: 0.25,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
+            ammo_indicator_offset: (-0.09, 0.03, 0.0)
         ),
         Glock: (
             model: "data/models/glock.FBX",
@@ -35,6 +38,7 @@
             shoot_interval: 0.3,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
+            ammo_indicator_offset: (-0.15, -0.0, 0.0)
         )
     }
 )

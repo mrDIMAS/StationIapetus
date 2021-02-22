@@ -206,7 +206,6 @@ impl DeathScreen {
 pub struct ContextualDisplay {
     pub ui: Gui,
     pub render_target: Texture,
-    health: Handle<UiNode>,
     ammo: Handle<UiNode>,
 }
 
@@ -219,51 +218,35 @@ impl ContextualDisplay {
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
-        let health;
         let ammo;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
                 .with_child({
-                    health = TextBuilder::new(
+                    ammo = TextBuilder::new(
                         WidgetBuilder::new()
-                            .with_foreground(Brush::Solid(Color::opaque(0, 120, 0)))
+                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
                             .on_row(0),
                     )
-                    .with_font(font.clone())
+                    .with_font(font)
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .build(&mut ui.build_ctx());
-                    health
-                })
-                .with_child({
-                    ammo = TextBuilder::new(WidgetBuilder::new().on_row(1))
-                        .with_font(font)
-                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                        .build(&mut ui.build_ctx());
                     ammo
                 }),
         )
         .add_column(Column::stretch())
-        .add_row(Row::stretch())
         .add_row(Row::stretch())
         .build(&mut ui.build_ctx());
 
         Self {
             ui,
             render_target,
-            health,
             ammo,
         }
     }
 
     pub fn sync_to_model(&self, player: &Actor, weapons: &WeaponContainer) {
-        self.ui.send_message(TextMessage::text(
-            self.health,
-            MessageDirection::ToWidget,
-            format!("{}%", player.health as i32),
-        ));
-
         let ammo = if player.current_weapon().is_some() {
             weapons[player.current_weapon()].ammo()
         } else {
