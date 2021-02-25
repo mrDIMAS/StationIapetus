@@ -12,6 +12,8 @@ use crate::{
     CollisionGroups, GameTime,
 };
 use rg3d::core::rand::Rng;
+use rg3d::physics::dynamics::CoefficientCombineRule;
+use rg3d::utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder};
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -122,11 +124,8 @@ pub struct Bot {
     upper_body_machine: UpperBodyMachine,
     last_health: f32,
     restoration_time: f32,
-    path: Vec<Vector3<f32>>,
     move_target: Vector3<f32>,
-    current_path_point: usize,
     frustum: Frustum,
-    last_path_rebuild_time: f64,
     last_move_dir: Vector3<f32>,
     spine: Handle<Node>,
     yaw: SmoothAngle,
@@ -134,6 +133,7 @@ pub struct Bot {
     attack_timeout: f32,
     hips: Handle<Node>,
     attack_animation_index: u32,
+    agent: NavmeshAgent,
 }
 
 impl Deref for Bot {
@@ -162,11 +162,8 @@ impl Default for Bot {
             upper_body_machine: Default::default(),
             last_health: 0.0,
             restoration_time: 0.0,
-            path: Default::default(),
             move_target: Default::default(),
-            current_path_point: 0,
             frustum: Default::default(),
-            last_path_rebuild_time: -10.0,
             last_move_dir: Default::default(),
             spine: Default::default(),
             yaw: SmoothAngle {
@@ -182,6 +179,7 @@ impl Default for Bot {
             attack_timeout: 0.0,
             hips: Default::default(),
             attack_animation_index: 0,
+            agent: Default::default(),
         }
     }
 }
@@ -291,6 +289,7 @@ impl Bot {
         scene.physics.add_collider(
             ColliderBuilder::capsule_y(body_height * 0.5, body_radius)
                 .friction(0.0)
+                .friction_combine_rule(CoefficientCombineRule::Min)
                 .collision_groups(InteractionGroups::new(
                     CollisionGroups::ActorCapsule as u16,
                     0xFFFF,
@@ -347,6 +346,10 @@ impl Bot {
             kind,
             lower_body_machine,
             upper_body_machine,
+            agent: NavmeshAgentBuilder::new()
+                .with_position(position)
+                .with_speed(definition.walk_speed)
+                .build(),
             ..Default::default()
         }
     }
@@ -440,7 +443,7 @@ impl Bot {
     }
 
     pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
-        for pts in self.path.windows(2) {
+        for pts in self.agent.path().windows(2) {
             let a = pts[0];
             let b = pts[1];
             context.add_line(scene::Line {
@@ -492,22 +495,9 @@ impl Bot {
         body.set_position(position, true);
     }
 
-    fn rebuild_path(&mut self, position: Vector3<f32>, navmesh: &mut Navmesh, time: GameTime) {
+    fn update_agent(&mut self, navmesh: &mut Navmesh, time: GameTime) {
         if let Some(target) = self.target.as_ref() {
-            let from = position - Vector3::new(0.0, 1.0, 0.0);
-            if let Some(from_index) = navmesh.query_closest(from) {
-                if let Some(to_index) = navmesh.query_closest(target.position) {
-                    self.current_path_point = 0;
-                    // Rebuild path if target path vertex has changed.
-                    if navmesh
-                        .build_path(from_index, to_index, &mut self.path)
-                        .is_ok()
-                    {
-                        self.path.reverse();
-                        self.last_path_rebuild_time = time.elapsed;
-                    }
-                }
-            }
+            let _ = self.agent.update(time.delta, navmesh, target.position);
         }
     }
 
@@ -574,14 +564,7 @@ impl Bot {
 
             let position = body.position().translation.vector;
 
-            if let Some(path_point) = self.path.get(self.current_path_point) {
-                self.move_target = *path_point;
-                if self.move_target.metric_distance(&position) <= 0.75
-                    && self.current_path_point < self.path.len() - 1
-                {
-                    self.current_path_point += 1;
-                }
-            }
+            self.move_target = self.agent.position();
 
             self.update_frustum(position, &context.scene.graph);
 
@@ -594,15 +577,11 @@ impl Bot {
             self.last_health = self.character.health;
 
             if !self.is_dead() && !in_close_combat && self.target.is_some() {
-                if let Some(move_dir) =
-                    (self.move_target - position).try_normalize(std::f32::EPSILON)
-                {
-                    let mut vel = move_dir.scale(self.definition.walk_speed);
-                    vel.y = body.linvel().y;
-                    body.set_linvel(vel, true);
-                    self.last_move_dir = move_dir;
-                    is_moving = true;
-                }
+                let mut vel = self.move_target - position;
+                vel.y = body.linvel().y;
+                body.set_linvel(vel, true);
+                self.last_move_dir = vel;
+                is_moving = true;
             } else {
                 body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
             }
@@ -674,12 +653,9 @@ impl Bot {
                 }
             }
 
-            if context.time.elapsed - self.last_path_rebuild_time >= 1.0
-                && context.navmesh.is_some()
-            {
-                let navmesh = &mut context.scene.navmeshes[context.navmesh];
-                self.rebuild_path(position, navmesh, context.time);
-            }
+            let navmesh = &mut context.scene.navmeshes[context.navmesh];
+            self.update_agent(navmesh, context.time);
+
             self.restoration_time -= context.time.delta;
 
             let attack_animation = context.scene.animations.get_mut(current_attack_animation);
