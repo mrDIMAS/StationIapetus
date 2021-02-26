@@ -203,6 +203,7 @@ pub struct BotDefinition {
     pub hips: String,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
+    pub close_combat_distance: f32,
 
     // Animations.
     pub idle_animation: String,
@@ -244,8 +245,8 @@ impl Bot {
     ) -> Self {
         let definition = Self::get_definition(kind);
 
-        let body_height = 0.60;
-        let body_radius = 0.20;
+        let body_height = 0.55;
+        let body_radius = 0.16;
 
         let model = resource_manager
             .request_model(&definition.model)
@@ -554,8 +555,7 @@ impl Bot {
                 }
                 Some(target) => {
                     let d = target.position - body.position().translation.vector;
-                    let close_combat_threshold = 0.75;
-                    in_close_combat = d.norm() <= close_combat_threshold;
+                    in_close_combat = d.norm() <= self.definition.close_combat_distance;
                     d
                 }
             };

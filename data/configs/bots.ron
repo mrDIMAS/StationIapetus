@@ -26,6 +26,7 @@
             health: 1000.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
+            close_combat_distance: 0.9
         ),
         Parasite: (
             model: "data/models/parasite.rgs",
@@ -59,6 +60,7 @@
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
+            close_combat_distance: 0.45
         ),
         Zombie: (
             model: "data/models/zombie.rgs",
@@ -92,6 +94,7 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
+            close_combat_distance: 0.4
         )
     }
 )
