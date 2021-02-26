@@ -348,7 +348,7 @@ impl Game {
                     game.update_statistics(game.time.elapsed);
 
                     // <<<<< ENABLE THIS TO SHOW DEBUG GEOMETRY >>>>>
-                    if true {
+                    if false {
                         game.debug_render();
                     }
 
