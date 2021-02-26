@@ -1,19 +1,15 @@
-use crate::character::find_hit_boxes;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
-    character::Character,
+    character::{find_hit_boxes, Character},
     level::{footstep_ray_check, UpdateContext},
     message::Message,
     weapon::WeaponContainer,
     CollisionGroups, GameTime,
 };
-use rg3d::core::rand::Rng;
-use rg3d::physics::dynamics::CoefficientCombineRule;
-use rg3d::utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder};
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -21,12 +17,13 @@ use rg3d::{
         color::Color,
         math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
         pool::Handle,
+        rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
     physics::{
-        dynamics::{BodyStatus, RigidBodyBuilder},
+        dynamics::{BodyStatus, CoefficientCombineRule, RigidBodyBuilder},
         geometry::{ColliderBuilder, InteractionGroups},
     },
     scene::{
@@ -40,7 +37,7 @@ use rg3d::{
     },
     utils::{
         log::{Log, MessageKind},
-        navmesh::Navmesh,
+        navmesh::{Navmesh, NavmeshAgent, NavmeshAgentBuilder},
     },
 };
 use serde::Deserialize;
@@ -497,7 +494,8 @@ impl Bot {
 
     fn update_agent(&mut self, navmesh: &mut Navmesh, time: GameTime) {
         if let Some(target) = self.target.as_ref() {
-            let _ = self.agent.update(time.delta, navmesh, target.position);
+            self.agent.set_target(target.position);
+            let _ = self.agent.update(time.delta, navmesh);
         }
     }
 
@@ -563,7 +561,9 @@ impl Bot {
             };
 
             let position = body.position().translation.vector;
-
+            let navmesh = &mut context.scene.navmeshes[context.navmesh];
+            self.agent.warp(position);
+            self.update_agent(navmesh, context.time);
             self.move_target = self.agent.position();
 
             self.update_frustum(position, &context.scene.graph);
@@ -577,7 +577,7 @@ impl Bot {
             self.last_health = self.character.health;
 
             if !self.is_dead() && !in_close_combat && self.target.is_some() {
-                let mut vel = self.move_target - position;
+                let mut vel = (self.move_target - position).scale(1.0 / context.time.delta);
                 vel.y = body.linvel().y;
                 body.set_linvel(vel, true);
                 self.last_move_dir = vel;
@@ -652,9 +652,6 @@ impl Bot {
                     }
                 }
             }
-
-            let navmesh = &mut context.scene.navmeshes[context.navmesh];
-            self.update_agent(navmesh, context.time);
 
             self.restoration_time -= context.time.delta;
 
@@ -764,6 +761,7 @@ impl Visit for Bot {
         self.hips.visit("Hips", visitor)?;
         self.attack_animation_index
             .visit("AttackAnimationIndex", visitor)?;
+        self.agent.visit("Agent", visitor)?;
 
         visitor.leave_region()
     }

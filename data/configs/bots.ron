@@ -53,7 +53,7 @@
             right_leg_name: "RightUpLeg",
             hips: "Hips",
             spine: "", // Empty because cannot use weapons.
-            walk_speed: 3.5,
+            walk_speed: 2.8,
             scale: 1.0,
             weapon_scale: 1.0,
             health: 300.0,
