@@ -3,29 +3,129 @@
 //! is not much.
 
 use crate::{
-    actor::Actor, message::Message, weapon::WeaponContainer, BuildContext, Gui, GuiMessage, UiNode,
+    gui::inventory::{InventoryItem, InventoryItemMessage},
+    message::Message,
 };
 use rg3d::{
-    core::{algebra::Vector2, pool::Handle},
+    core::{algebra::Vector2, math::Rect, pool::Handle},
     gui::{
         border::BorderBuilder,
         brush::Brush,
         button::ButtonBuilder,
         check_box::CheckBoxBuilder,
         core::color::Color,
+        draw::DrawingContext,
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, MessageDirection, TextMessage, UiMessageData, WidgetMessage},
+        message::{
+            ButtonMessage, MessageData, MessageDirection, OsEvent, UiMessage, UiMessageData,
+            WidgetMessage,
+        },
+        node::UINode,
         scroll_bar::ScrollBarBuilder,
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         ttf::SharedFont,
         widget::WidgetBuilder,
-        HorizontalAlignment, Orientation, Thickness, VerticalAlignment,
+        Control, HorizontalAlignment, NodeHandleMapping, Orientation, Thickness, UserInterface,
+        VerticalAlignment,
     },
-    resource::texture::Texture,
 };
-use std::sync::mpsc::Sender;
+use std::{
+    ops::{Deref, DerefMut},
+    sync::mpsc::Sender,
+};
+
+#[derive(Debug, Clone)]
+pub enum CustomUiNode {
+    InventoryItem(InventoryItem),
+}
+
+macro_rules! static_dispatch {
+    ($self:ident, $func:ident, $($args:expr),*) => {
+        match $self {
+            CustomUiNode::InventoryItem(v) => v.$func($($args),*),
+        }
+    }
+}
+
+impl Deref for CustomUiNode {
+    type Target = CustomWidget;
+
+    fn deref(&self) -> &Self::Target {
+        static_dispatch!(self, deref,)
+    }
+}
+
+impl DerefMut for CustomUiNode {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        static_dispatch!(self, deref_mut,)
+    }
+}
+
+impl Control<CustomUiMessage, CustomUiNode> for CustomUiNode {
+    fn resolve(&mut self, node_map: &NodeHandleMapping<CustomUiMessage, CustomUiNode>) {
+        static_dispatch!(self, resolve, node_map);
+    }
+
+    fn measure_override(&self, ui: &Gui, available_size: Vector2<f32>) -> Vector2<f32> {
+        static_dispatch!(self, measure_override, ui, available_size)
+    }
+
+    fn arrange_override(&self, ui: &Gui, final_size: Vector2<f32>) -> Vector2<f32> {
+        static_dispatch!(self, arrange_override, ui, final_size)
+    }
+
+    fn arrange(&self, ui: &Gui, final_rect: &Rect<f32>) {
+        static_dispatch!(self, arrange, ui, final_rect)
+    }
+
+    fn measure(&self, ui: &Gui, available_size: Vector2<f32>) {
+        static_dispatch!(self, measure, ui, available_size)
+    }
+
+    fn draw(&self, drawing_context: &mut DrawingContext) {
+        static_dispatch!(self, draw, drawing_context)
+    }
+
+    fn update(&mut self, dt: f32) {
+        static_dispatch!(self, update, dt)
+    }
+
+    fn handle_routed_message(&mut self, ui: &mut Gui, message: &mut GuiMessage) {
+        static_dispatch!(self, handle_routed_message, ui, message)
+    }
+
+    fn preview_message(&self, ui: &Gui, message: &mut GuiMessage) {
+        static_dispatch!(self, preview_message, ui, message)
+    }
+
+    fn handle_os_event(&mut self, self_handle: Handle<UiNode>, ui: &mut Gui, event: &OsEvent) {
+        static_dispatch!(self, handle_os_event, self_handle, ui, event)
+    }
+
+    fn remove_ref(&mut self, handle: Handle<UiNode>) {
+        static_dispatch!(self, remove_ref, handle)
+    }
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum CustomUiMessage {
+    InventoryItem(InventoryItemMessage),
+}
+
+impl MessageData for CustomUiMessage {}
+
+pub type UiNode = UINode<CustomUiMessage, CustomUiNode>;
+pub type UINodeHandle = Handle<UiNode>;
+pub type Gui = UserInterface<CustomUiMessage, CustomUiNode>;
+pub type GuiMessage = UiMessage<CustomUiMessage, CustomUiNode>;
+pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, CustomUiMessage, CustomUiNode>;
+pub type CustomWidget = rg3d::gui::widget::Widget<CustomUiMessage, CustomUiNode>;
+pub type UiWidgetBuilder = rg3d::gui::widget::WidgetBuilder<CustomUiMessage, CustomUiNode>;
+
+pub mod inventory;
+pub mod weapon_display;
 
 pub struct ScrollBarData {
     pub min: f32,
@@ -200,72 +300,5 @@ impl DeathScreen {
 
     pub fn is_visible(&self, ui: &Gui) -> bool {
         ui.node(self.root).visibility()
-    }
-}
-
-pub struct ContextualDisplay {
-    pub ui: Gui,
-    pub render_target: Texture,
-    ammo: Handle<UiNode>,
-}
-
-impl ContextualDisplay {
-    pub const WIDTH: f32 = 120.0;
-    pub const HEIGHT: f32 = 120.0;
-
-    pub fn new(font: SharedFont) -> Self {
-        let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
-
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
-
-        let ammo;
-        GridBuilder::new(
-            WidgetBuilder::new()
-                .with_width(Self::WIDTH)
-                .with_height(Self::HEIGHT)
-                .with_child({
-                    ammo = TextBuilder::new(
-                        WidgetBuilder::new()
-                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
-                            .on_row(0),
-                    )
-                    .with_font(font)
-                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                    .build(&mut ui.build_ctx());
-                    ammo
-                }),
-        )
-        .add_column(Column::stretch())
-        .add_row(Row::stretch())
-        .build(&mut ui.build_ctx());
-
-        Self {
-            ui,
-            render_target,
-            ammo,
-        }
-    }
-
-    pub fn sync_to_model(&self, player: &Actor, weapons: &WeaponContainer) {
-        let ammo = if player.current_weapon().is_some() {
-            weapons[player.current_weapon()].ammo()
-        } else {
-            0
-        };
-        self.ui.send_message(TextMessage::text(
-            self.ammo,
-            MessageDirection::ToWidget,
-            format!("{}", ammo),
-        ));
-    }
-
-    pub fn update(&mut self, delta: f32) {
-        self.ui.update(
-            Vector2::new(ContextualDisplay::WIDTH, ContextualDisplay::HEIGHT),
-            delta,
-        );
-
-        // Just pump all messages, but ignore them in game code.
-        while self.ui.poll_message().is_some() {}
     }
 }

@@ -1,0 +1,34 @@
+(
+    map: {
+        Medkit: (
+            model: "data/models/medkit.fbx",
+            scale: 1.0,
+            description: "Medium-sized container with medical gel. Restores medium amount of health",
+        ),
+        Ammo: (
+            model: "data/models/yellow_box.FBX",
+            scale: 0.25,
+            description: "Energy cell. Suitable for any modern weapon used by Sovereign Colonies",
+        ),
+        PlasmaGun: (
+            model: "data/models/plasma_rifle.FBX",
+            scale: 3.0,
+            description: "Modern energy weapon. Shoots plasma balls.",
+        ),
+        Ak47: (
+            model: "data/models/ak47.FBX",
+            scale: 3.0,
+            description: "Famous USSR weapon modernized to shoot with energy beams.",
+        ),
+        M4: (
+            model: "data/models/m4.FBX",
+            scale: 3.0,
+            description: "Classic USA weapon modernized to shoot with energy beams.",
+        ),
+        Glock: (
+            model: "data/models/glock.FBX",
+            scale: 3.0,
+            description: "Semi-automatic energy weapon.",
+        ),
+    }
+)

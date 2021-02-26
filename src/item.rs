@@ -6,19 +6,19 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    lazy_static::lazy_static,
     scene::{base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene},
     sound::pool::PoolIteratorMut,
 };
-use std::{path::Path, sync::mpsc::Sender};
+use serde::Deserialize;
+use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum ItemKind {
     Medkit,
 
     // Ammo
-    Plasma,
-    Ak47Ammo,
-    M4Ammo,
+    Ammo,
 
     // Weapons
     PlasmaGun,
@@ -27,13 +27,28 @@ pub enum ItemKind {
     Glock,
 }
 
+impl Default for ItemKind {
+    fn default() -> Self {
+        Self::Medkit
+    }
+}
+
+impl Visit for ItemKind {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        let mut kind = self.id();
+        kind.visit(name, visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(kind)?;
+        }
+        Ok(())
+    }
+}
+
 impl ItemKind {
     fn from_id(id: u32) -> Result<ItemKind, String> {
         match id {
             0 => Ok(ItemKind::Medkit),
-            1 => Ok(ItemKind::Plasma),
-            2 => Ok(ItemKind::Ak47Ammo),
-            3 => Ok(ItemKind::M4Ammo),
+            1 => Ok(ItemKind::Ammo),
             4 => Ok(ItemKind::PlasmaGun),
             5 => Ok(ItemKind::Ak47),
             6 => Ok(ItemKind::M4),
@@ -45,9 +60,7 @@ impl ItemKind {
     fn id(self) -> u32 {
         match self {
             ItemKind::Medkit => 0,
-            ItemKind::Plasma => 1,
-            ItemKind::Ak47Ammo => 2,
-            ItemKind::M4Ammo => 3,
+            ItemKind::Ammo => 1,
             ItemKind::PlasmaGun => 4,
             ItemKind::Ak47 => 5,
             ItemKind::M4 => 6,
@@ -76,71 +89,32 @@ impl Default for Item {
     }
 }
 
+#[derive(Deserialize)]
 pub struct ItemDefinition {
-    model: &'static str,
+    model: String,
+    description: String,
     scale: f32,
+}
+
+#[derive(Deserialize)]
+pub struct ItemDefinitionContainer {
+    map: HashMap<ItemKind, ItemDefinition>,
+}
+
+impl ItemDefinitionContainer {
+    pub fn new() -> Self {
+        let file = File::open("data/configs/projectiles.ron").unwrap();
+        ron::de::from_reader(file).unwrap()
+    }
+}
+
+lazy_static! {
+    static ref DEFINITIONS: ItemDefinitionContainer = ItemDefinitionContainer::new();
 }
 
 impl Item {
     pub fn get_definition(kind: ItemKind) -> &'static ItemDefinition {
-        match kind {
-            ItemKind::Medkit => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/medkit.fbx",
-                    scale: 1.0,
-                };
-                &DEFINITION
-            }
-            ItemKind::Plasma => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/yellow_box.FBX",
-                    scale: 0.25,
-                };
-                &DEFINITION
-            }
-            ItemKind::Ak47Ammo => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/box_medium.FBX",
-                    scale: 0.30,
-                };
-                &DEFINITION
-            }
-            ItemKind::M4Ammo => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/box_small.FBX",
-                    scale: 0.30,
-                };
-                &DEFINITION
-            }
-            ItemKind::PlasmaGun => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/plasma_rifle.FBX",
-                    scale: 3.0,
-                };
-                &DEFINITION
-            }
-            ItemKind::Ak47 => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/ak47.FBX",
-                    scale: 3.0,
-                };
-                &DEFINITION
-            }
-            ItemKind::M4 => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/m4.FBX",
-                    scale: 3.0,
-                };
-                &DEFINITION
-            }
-            ItemKind::Glock => {
-                static DEFINITION: ItemDefinition = ItemDefinition {
-                    model: "data/models/glock.FBX",
-                    scale: 3.0,
-                };
-                &DEFINITION
-            }
-        }
+        DEFINITIONS.map.get(&kind).unwrap()
     }
 
     pub async fn new(
@@ -153,7 +127,7 @@ impl Item {
         let definition = Self::get_definition(kind);
 
         let model = resource_manager
-            .request_model(Path::new(definition.model))
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);
@@ -203,12 +177,7 @@ impl Visit for Item {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
-        let mut kind = self.kind.id();
-        kind.visit("Kind", visitor)?;
-        if visitor.is_reading() {
-            self.kind = ItemKind::from_id(kind)?;
-        }
-
+        self.kind.visit("Kind", visitor)?;
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
         self.pivot.visit("Pivot", visitor)?;

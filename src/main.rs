@@ -11,6 +11,7 @@ pub mod control_scheme;
 pub mod door;
 pub mod effects;
 pub mod gui;
+pub mod inventory;
 pub mod item;
 pub mod level;
 pub mod menu;
@@ -20,9 +21,13 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
+use crate::gui::inventory::InventoryInterface;
 use crate::{
     control_scheme::ControlScheme,
-    gui::{ContextualDisplay, DeathScreen},
+    gui::{
+        weapon_display::WeaponDisplay, BuildContext, CustomUiMessage, CustomUiNode, DeathScreen,
+        GuiMessage, UINodeHandle, UiNode,
+    },
     level::Level,
     menu::Menu,
     message::Message,
@@ -42,13 +47,12 @@ use rg3d::{
     event_loop::{ControlFlow, EventLoop},
     gui::{
         grid::{Column, GridBuilder, Row},
-        message::{MessageDirection, ProgressBarMessage, TextMessage, UiMessage, WidgetMessage},
-        node::{StubNode, UINode},
+        message::{MessageDirection, ProgressBarMessage, TextMessage, WidgetMessage},
         progress_bar::ProgressBarBuilder,
         text::TextBuilder,
         ttf::{Font, SharedFont},
         widget::WidgetBuilder,
-        HorizontalAlignment, UserInterface, VerticalAlignment,
+        HorizontalAlignment, VerticalAlignment,
     },
     renderer::ShadowMapPrecision,
     resource::model::Model,
@@ -79,12 +83,7 @@ use std::{
 const FIXED_FPS: f32 = 60.0;
 
 // Define type aliases for engine structs.
-pub type UiNode = UINode<(), StubNode>;
-pub type UINodeHandle = Handle<UiNode>;
-pub type GameEngine = Engine<(), StubNode>;
-pub type Gui = UserInterface<(), StubNode>;
-pub type GuiMessage = UiMessage<(), StubNode>;
-pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, (), StubNode>;
+pub type GameEngine = Engine<CustomUiMessage, CustomUiNode>;
 
 pub fn create_play_animation_state(
     animation_resource: Model,
@@ -156,7 +155,8 @@ pub struct Game {
     menu_sound_context: Context,
     music: Handle<SoundSource>,
     death_screen: DeathScreen,
-    contextual_display: ContextualDisplay,
+    weapon_display: WeaponDisplay,
+    inventory_interface: InventoryInterface,
 }
 
 struct LoadingScreen {
@@ -318,7 +318,8 @@ impl Game {
             events_receiver: rx,
             events_sender: tx,
             load_context: None,
-            contextual_display: ContextualDisplay::new(font),
+            weapon_display: WeaponDisplay::new(font),
+            inventory_interface: InventoryInterface::new(),
         };
 
         game.create_debug_ui();
@@ -386,8 +387,16 @@ impl Game {
         self.engine
             .renderer
             .render_ui_to_texture(
-                self.contextual_display.render_target.clone(),
-                &mut self.contextual_display.ui,
+                self.weapon_display.render_target.clone(),
+                &mut self.weapon_display.ui,
+            )
+            .unwrap();
+
+        self.engine
+            .renderer
+            .render_ui_to_texture(
+                self.inventory_interface.render_target.clone(),
+                &mut self.inventory_interface.ui,
             )
             .unwrap();
 
@@ -459,7 +468,7 @@ impl Game {
                 &mut self.engine,
                 self.events_sender.clone(),
                 self.control_scheme.clone(),
-                self.contextual_display.render_target.clone(),
+                self.weapon_display.render_target.clone(),
             );
         }
 
@@ -497,7 +506,8 @@ impl Game {
         let resource_manager = self.engine.resource_manager.clone();
         let control_scheme = self.control_scheme.clone();
         let sender = self.events_sender.clone();
-        let display_texture = self.contextual_display.render_target.clone();
+        let display_texture = self.weapon_display.render_target.clone();
+        let inventory_texture = self.inventory_interface.render_target.clone();
 
         std::thread::spawn(move || {
             let level = rg3d::futures::executor::block_on(Level::new(
@@ -505,6 +515,7 @@ impl Game {
                 control_scheme,
                 sender,
                 display_texture,
+                inventory_texture,
             ));
 
             ctx.lock().unwrap().level = Some(level);
@@ -558,12 +569,12 @@ impl Game {
             let player = level.get_player();
             if player.is_some() {
                 let player = level.actors().get(player);
-                self.contextual_display
-                    .sync_to_model(player, level.weapons());
+                self.weapon_display.sync_to_model(player, level.weapons());
             }
         }
 
-        self.contextual_display.update(time.delta);
+        self.weapon_display.update(time.delta);
+        self.inventory_interface.update(time.delta);
         self.engine.update(time.delta);
 
         self.handle_messages(time);

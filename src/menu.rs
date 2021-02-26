@@ -1,6 +1,6 @@
 use crate::{
-    control_scheme::ControlScheme, level::Level, message::Message, options_menu::OptionsMenu,
-    GameEngine, Gui, GuiMessage, UiNode,
+    control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, level::Level,
+    message::Message, options_menu::OptionsMenu, GameEngine,
 };
 use rg3d::{
     core::pool::Handle,

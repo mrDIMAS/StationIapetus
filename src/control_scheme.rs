@@ -48,6 +48,7 @@ pub struct ControlScheme {
     pub grab_m4: ControlButtonDefinition,
     pub grab_pistol: ControlButtonDefinition,
     pub grab_plasma_gun: ControlButtonDefinition,
+    pub inventory: ControlButtonDefinition,
     pub mouse_sens: f32,
     pub mouse_y_inverse: bool,
 }
@@ -119,6 +120,10 @@ impl Default for ControlScheme {
                 description: "Grab Plasma Gun".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::Key4),
             },
+            inventory: ControlButtonDefinition {
+                description: "Inventory".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::I),
+            },
             mouse_sens: 0.3,
             mouse_y_inverse: false,
         }
@@ -126,7 +131,7 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 16] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 17] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
@@ -138,6 +143,7 @@ impl ControlScheme {
             &mut self.prev_weapon,
             &mut self.run,
             &mut self.aim,
+            &mut self.inventory,
             &mut self.toss_grenade,
             &mut self.flash_light,
             &mut self.grab_pistol,
@@ -147,7 +153,7 @@ impl ControlScheme {
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 16] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 17] {
         [
             &self.move_forward,
             &self.move_backward,
@@ -159,6 +165,7 @@ impl ControlScheme {
             &self.prev_weapon,
             &self.run,
             &self.aim,
+            &self.inventory,
             &self.toss_grenade,
             &self.flash_light,
             &self.grab_pistol,

@@ -283,12 +283,8 @@ pub async fn analyze(
         let name = node.name();
         if name.starts_with("Medkit") {
             items.push((ItemKind::Medkit, position));
-        } else if name.starts_with("Ammo_Ak47") {
-            items.push((ItemKind::Ak47Ammo, position));
-        } else if name.starts_with("Ammo_M4") {
-            items.push((ItemKind::M4Ammo, position));
-        } else if name.starts_with("Ammo_Plasma") {
-            items.push((ItemKind::Plasma, position));
+        } else if name.starts_with("Ammo") {
+            items.push((ItemKind::Ammo, position));
         } else if name.starts_with("Zombie") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
@@ -357,6 +353,7 @@ async fn spawn_player(
     control_scheme: Arc<RwLock<ControlScheme>>,
     scene: &mut Scene,
     display_texture: Texture,
+    inventory_texture: Texture,
 ) -> Handle<Actor> {
     let player = Player::new(
         scene,
@@ -365,6 +362,7 @@ async fn spawn_player(
         sender.clone(),
         control_scheme,
         display_texture,
+        inventory_texture,
     )
     .await;
     let player = actors.add(Actor::Player(player));
@@ -467,6 +465,7 @@ impl Level {
         control_scheme: Arc<RwLock<ControlScheme>>,
         sender: Sender<Message>,
         display_texture: Texture,
+        inventory_texture: Texture,
     ) -> (Level, Scene) {
         let mut scene = Scene::new();
 
@@ -517,6 +516,7 @@ impl Level {
                 control_scheme.clone(),
                 &mut scene,
                 display_texture,
+                inventory_texture,
             )
             .await,
             map_root,
@@ -700,19 +700,12 @@ impl Level {
                         self.give_new_weapon(engine, actor, weapon_kind).await;
                     }
                 }
-                ItemKind::Plasma | ItemKind::Ak47Ammo | ItemKind::M4Ammo => {
+                ItemKind::Ammo => {
                     for weapon in character.weapons() {
                         let weapon = &mut self.weapons[*weapon];
-                        let (weapon_kind, ammo) = match kind {
-                            ItemKind::Plasma => (WeaponKind::PlasmaRifle, 200),
-                            ItemKind::Ak47Ammo => (WeaponKind::Ak47, 200),
-                            ItemKind::M4Ammo => (WeaponKind::M4, 200),
-                            _ => continue,
-                        };
-                        if weapon.get_kind() == weapon_kind {
-                            weapon.add_ammo(ammo);
-                            break;
-                        }
+
+                        weapon.add_ammo(200);
+                        break;
                     }
                 }
             }

@@ -1,9 +1,11 @@
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
+    gui::GuiMessage,
+    gui::UiNode,
     gui::{create_check_box, create_scroll_bar, create_scroll_viewer, ScrollBarData},
     level::Level,
     message::Message,
-    GameEngine, GuiMessage, UiNode,
+    GameEngine,
 };
 use rg3d::{
     core::pool::Handle,

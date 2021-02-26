@@ -1,8 +1,8 @@
-use crate::character::find_hit_boxes;
 use crate::{
     actor::Actor,
-    character::Character,
+    character::{find_hit_boxes, Character},
     control_scheme::{ControlButton, ControlScheme},
+    inventory::Inventory,
     level::UpdateContext,
     message::Message,
     player::{
@@ -12,11 +12,7 @@ use crate::{
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
     CollisionGroups,
 };
-use rg3d::core::algebra::Matrix4;
-use rg3d::core::color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint};
-use rg3d::renderer::surface::{SurfaceBuilder, SurfaceSharedData};
-use rg3d::scene::mesh::MeshBuilder;
-use rg3d::{
+pub use rg3d::{
     animation::{
         machine::{
             blend_nodes::{BlendPose, IndexedBlendInput},
@@ -25,8 +21,10 @@ use rg3d::{
         Animation,
     },
     core::{
+        algebra::Matrix4,
         algebra::{Isometry3, UnitQuaternion, Vector3},
         color::Color,
+        color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
@@ -37,12 +35,13 @@ use rg3d::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder},
         geometry::{ColliderBuilder, InteractionGroups},
     },
+    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     resource::{model::Model, texture::Texture, texture::TextureWrapMode},
     scene::{
         base::BaseBuilder,
         camera::{CameraBuilder, SkyBox},
         graph::Graph,
-        mesh::RenderPath,
+        mesh::{MeshBuilder, RenderPath},
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
@@ -319,10 +318,12 @@ pub struct Player {
     in_air_time: f32,
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
     target_velocity: Vector3<f32>,
-    contextual_display: Handle<Node>,
+    weapon_display: Handle<Node>,
+    inventory_display: Handle<Node>,
     health_cylinder: Handle<Node>,
     last_health: f32,
     health_color_gradient: ColorGradient,
+    inventory: Inventory,
 }
 
 impl Visit for Player {
@@ -357,10 +358,11 @@ impl Visit for Player {
         self.target_velocity.visit("TargetVelocity", visitor)?;
         self.weapon_change_direction
             .visit("WeaponChangeDirection", visitor)?;
-        self.contextual_display
-            .visit("ContextualDisplay", visitor)?;
+        self.weapon_display.visit("WeaponDisplay", visitor)?;
+        self.inventory_display.visit("InventoryDisplay", visitor)?;
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
+        self.inventory.visit("Inventory", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -391,6 +393,7 @@ impl Player {
         sender: Sender<Message>,
         control_scheme: Arc<RwLock<ControlScheme>>,
         display_texture: Texture,
+        inventory_texture: Texture,
     ) -> Self {
         let body_radius = 0.2;
         let body_height = 0.25;
@@ -523,6 +526,24 @@ impl Player {
             .build(&mut scene.graph);
         scene.graph.link_nodes(contextual_display, weapon_pivot);
 
+        let inventory_display = MeshBuilder::new(
+            BaseBuilder::new()
+                .with_visibility(false)
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(Vector3::new(0.0, 0.1, 0.4))
+                        .build(),
+                ),
+        )
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+            SurfaceSharedData::make_quad(Matrix4::new_scaling(0.8)),
+        )))
+        .with_diffuse_texture(inventory_texture)
+        .build()])
+        .with_render_path(RenderPath::Forward)
+        .build(&mut scene.graph);
+        scene.graph.link_nodes(inventory_display, pivot);
+
         Self {
             character: Character {
                 pivot,
@@ -532,6 +553,7 @@ impl Player {
                 hit_boxes: find_hit_boxes(pivot, scene),
                 ..Default::default()
             },
+            inventory_display,
             weapon_origin,
             model: model_handle,
             camera_pivot,
@@ -574,9 +596,10 @@ impl Player {
             run_factor: 0.0,
             target_run_factor: 0.0,
             target_velocity: Default::default(),
-            contextual_display,
+            weapon_display: contextual_display,
             last_health: 100.0,
             health_color_gradient: make_color_gradient(),
+            inventory: Default::default(),
         }
     }
 
@@ -590,6 +613,10 @@ impl Player {
 
     pub fn can_be_removed(&self, _scene: &Scene) -> bool {
         self.health <= 0.0
+    }
+
+    pub fn inventory(&self) -> &Inventory {
+        &self.inventory
     }
 
     pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
@@ -1102,7 +1129,7 @@ impl Player {
                 {
                     let weapon = &context.weapons[current_weapon_handle];
                     weapon.laser_sight().set_visible(true, &mut scene.graph);
-                    context.scene.graph[self.contextual_display]
+                    context.scene.graph[self.weapon_display]
                         .set_visibility(true)
                         .local_transform_mut()
                         .set_position(weapon.definition.ammo_indicator_offset());
@@ -1122,7 +1149,7 @@ impl Player {
                     context.weapons[current_weapon_handle]
                         .laser_sight()
                         .set_visible(false, &mut scene.graph);
-                    context.scene.graph[self.contextual_display].set_visibility(false);
+                    context.scene.graph[self.weapon_display].set_visibility(false);
                 }
             }
         } else {
@@ -1282,6 +1309,10 @@ impl Player {
                 }
             } else if button == scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;
+            } else if button == scheme.inventory.button && state == ElementState::Pressed {
+                let inventory = &mut scene.graph[self.inventory_display];
+                let new_visibility = !inventory.visibility();
+                inventory.set_visibility(new_visibility);
             }
         }
 
@@ -1308,7 +1339,7 @@ impl Player {
     }
 
     pub fn resolve(&mut self, scene: &mut Scene, display_texture: Texture) {
-        scene.graph[self.contextual_display]
+        scene.graph[self.weapon_display]
             .as_mesh_mut()
             .surfaces_mut()
             .first_mut()
