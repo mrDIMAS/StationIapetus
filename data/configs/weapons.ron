@@ -3,42 +3,42 @@
         M4: (
             model: "data/models/m4.FBX",
             shot_sound: "data/sounds/m4_shot.ogg",
-            ammo: 200,
             projectile: Ray(damage: 15.0),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0)
+            ammo_indicator_offset: (-0.09, 0.03, 0.0),
+            ammo_consumption_per_shot: 2,
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
             shot_sound: "data/sounds/ak47.ogg",
-            ammo: 200,
             projectile: Ray(damage: 17.0),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0)
+            ammo_indicator_offset: (-0.09, 0.03, 0.0),
+            ammo_consumption_per_shot: 2,
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle.fbx",
             shot_sound: "data/sounds/plasma_shot.ogg",
-            ammo: 100,
             projectile: Projectile(Plasma),
             shoot_interval: 0.25,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0)
+            ammo_indicator_offset: (-0.09, 0.03, 0.0),
+            ammo_consumption_per_shot: 4,
         ),
         Glock: (
             model: "data/models/glock.FBX",
             shot_sound: "data/sounds/ak47.ogg",
-            ammo: 100,
             projectile: Ray(damage: 10.0),
             shoot_interval: 0.3,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
-            ammo_indicator_offset: (-0.15, -0.0, 0.0)
+            ammo_indicator_offset: (-0.15, -0.0, 0.0),
+            ammo_consumption_per_shot: 1,
         )
     }
 )

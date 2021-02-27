@@ -688,25 +688,20 @@ impl Level {
                     let mut found = false;
                     for weapon_handle in character.weapons() {
                         let weapon = &mut self.weapons[*weapon_handle];
-                        // If actor already has weapon of given kind, then just add ammo to it.
                         if weapon.get_kind() == weapon_kind {
                             found = true;
-                            weapon.add_ammo(200);
                             break;
                         }
                     }
-                    // Finally if actor does not have such weapon, give new one to him.
-                    if !found {
+                    if found {
+                        character.inventory_mut().add_item(ItemKind::Ammo, 20);
+                    } else {
+                        // Finally if actor does not have such weapon, give new one to him.
                         self.give_new_weapon(engine, actor, weapon_kind).await;
                     }
                 }
                 ItemKind::Ammo => {
-                    for weapon in character.weapons() {
-                        let weapon = &mut self.weapons[*weapon];
-
-                        weapon.add_ammo(200);
-                        break;
-                    }
+                    character.inventory_mut().add_item(ItemKind::Ammo, 20);
                 }
             }
         }
@@ -773,7 +768,7 @@ impl Level {
         if self.weapons.contains(weapon_handle) {
             let scene = &mut engine.scenes[self.scene];
             let weapon = &mut self.weapons[weapon_handle];
-            weapon.try_shoot(
+            weapon.shoot(
                 weapon_handle,
                 scene,
                 time,

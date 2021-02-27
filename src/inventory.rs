@@ -1,7 +1,7 @@
 use crate::item::ItemKind;
 use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 
-#[derive(Default)]
+#[derive(Default, Debug)]
 pub struct ItemEntry {
     kind: ItemKind,
     amount: u32,
@@ -29,7 +29,6 @@ impl ItemEntry {
 }
 
 #[derive(Default)]
-
 pub struct Inventory {
     items: Vec<ItemEntry>,
 }
@@ -49,23 +48,29 @@ impl Inventory {
         Self { items: vec![] }
     }
 
-    pub fn add_item(&mut self, item: ItemKind) {
-        if let Some(position) = self.items.iter().position(|i| i.kind == item) {
-            self.items[position].amount += 1;
+    pub fn add_item(&mut self, item: ItemKind, count: u32) {
+        assert_ne!(count, 0);
+
+        if let Some(item) = self.entry_mut(item) {
+            item.amount += count;
         } else {
             self.items.push(ItemEntry {
                 kind: item,
-                amount: 1,
+                amount: count,
             })
         }
     }
 
-    pub fn try_extract_exact_items(&mut self, item: ItemKind, amount: usize) -> usize {
+    pub fn try_extract_exact_items(&mut self, item: ItemKind, amount: u32) -> u32 {
         if let Some(position) = self.items.iter().position(|i| i.kind == item) {
             let item = &mut self.items[position];
 
-            if item.amount as usize > amount {
-                item.amount -= amount as u32;
+            if item.amount > amount {
+                item.amount -= amount;
+
+                if item.amount == 0 {
+                    self.items.remove(position);
+                }
 
                 return amount;
             }
@@ -76,5 +81,21 @@ impl Inventory {
 
     pub fn items(&self) -> &[ItemEntry] {
         &self.items
+    }
+
+    pub fn item_count(&self, item: ItemKind) -> u32 {
+        if let Some(item) = self.entry(item) {
+            item.amount
+        } else {
+            0
+        }
+    }
+
+    fn entry(&self, item: ItemKind) -> Option<&ItemEntry> {
+        self.items.iter().find(|i| i.kind == item)
+    }
+
+    fn entry_mut(&mut self, item: ItemKind) -> Option<&mut ItemEntry> {
+        self.items.iter_mut().find(|i| i.kind == item)
     }
 }

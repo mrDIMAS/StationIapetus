@@ -1,3 +1,4 @@
+use crate::item::ItemKind;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -323,7 +324,6 @@ pub struct Player {
     health_cylinder: Handle<Node>,
     last_health: f32,
     health_color_gradient: ColorGradient,
-    inventory: Inventory,
 }
 
 impl Visit for Player {
@@ -362,7 +362,6 @@ impl Visit for Player {
         self.inventory_display.visit("InventoryDisplay", visitor)?;
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
-        self.inventory.visit("Inventory", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -526,23 +525,36 @@ impl Player {
             .build(&mut scene.graph);
         scene.graph.link_nodes(contextual_display, weapon_pivot);
 
+        let s = 0.8;
         let inventory_display = MeshBuilder::new(
-            BaseBuilder::new()
-                .with_visibility(false)
-                .with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_position(Vector3::new(0.0, 0.1, 0.4))
-                        .build(),
-                ),
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(Vector3::new(-0.3, 0.1, 0.4))
+                    .build(),
+            ),
         )
+        .with_cast_shadows(false)
         .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-            SurfaceSharedData::make_quad(Matrix4::new_scaling(0.8)),
+            SurfaceSharedData::make_quad(Matrix4::new_nonuniform_scaling(&Vector3::new(
+                s,
+                3.0 / 4.0 * s,
+                s,
+            ))),
         )))
         .with_diffuse_texture(inventory_texture)
         .build()])
         .with_render_path(RenderPath::Forward)
         .build(&mut scene.graph);
         scene.graph.link_nodes(inventory_display, pivot);
+
+        let mut inventory = Inventory::new();
+
+        inventory.add_item(ItemKind::Medkit, 2);
+        inventory.add_item(ItemKind::Ammo, 200);
+        inventory.add_item(ItemKind::Glock, 1);
+        inventory.add_item(ItemKind::Ak47, 1);
+        inventory.add_item(ItemKind::M4, 1);
+        inventory.add_item(ItemKind::PlasmaGun, 1);
 
         Self {
             character: Character {
@@ -551,6 +563,7 @@ impl Player {
                 weapon_pivot,
                 sender: Some(sender),
                 hit_boxes: find_hit_boxes(pivot, scene),
+                inventory,
                 ..Default::default()
             },
             inventory_display,
@@ -599,7 +612,6 @@ impl Player {
             weapon_display: contextual_display,
             last_health: 100.0,
             health_color_gradient: make_color_gradient(),
-            inventory: Default::default(),
         }
     }
 
@@ -613,10 +625,6 @@ impl Player {
 
     pub fn can_be_removed(&self, _scene: &Scene) -> bool {
         self.health <= 0.0
-    }
-
-    pub fn inventory(&self) -> &Inventory {
-        &self.inventory
     }
 
     pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
@@ -1134,16 +1142,26 @@ impl Player {
                         .local_transform_mut()
                         .set_position(weapon.definition.ammo_indicator_offset());
 
-                    if self.controller.shoot {
-                        self.character
-                            .sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::ShootWeapon {
-                                weapon: current_weapon_handle,
-                                direction: None,
-                            })
-                            .unwrap();
+                    if self.controller.shoot && weapon.can_shoot(context.time) {
+                        let ammo_per_shot = context.weapons[current_weapon_handle]
+                            .definition
+                            .ammo_consumption_per_shot;
+
+                        if self
+                            .inventory
+                            .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
+                            == ammo_per_shot
+                        {
+                            self.character
+                                .sender
+                                .as_ref()
+                                .unwrap()
+                                .send(Message::ShootWeapon {
+                                    weapon: current_weapon_handle,
+                                    direction: None,
+                                })
+                                .unwrap();
+                        }
                     }
                 } else {
                     context.weapons[current_weapon_handle]

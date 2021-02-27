@@ -1,4 +1,6 @@
-use crate::{actor::Actor, gui::Gui, gui::UiNode, weapon::WeaponContainer};
+use crate::item::ItemKind;
+use crate::player::Player;
+use crate::{gui::Gui, gui::UiNode, weapon::WeaponContainer};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -56,9 +58,13 @@ impl WeaponDisplay {
         }
     }
 
-    pub fn sync_to_model(&self, player: &Actor, weapons: &WeaponContainer) {
+    pub fn sync_to_model(&self, player: &Player, weapons: &WeaponContainer) {
         let ammo = if player.current_weapon().is_some() {
-            weapons[player.current_weapon()].ammo()
+            let total_ammo = player.inventory().item_count(ItemKind::Ammo);
+            total_ammo
+                / weapons[player.current_weapon()]
+                    .definition
+                    .ammo_consumption_per_shot
         } else {
             0
         };

@@ -1,7 +1,7 @@
 (
     map: {
         Plasma: (
-            damage: 30.0,
+            damage: 60.0,
             speed: 0.15,
             lifetime: 10.0,
             is_kinematic: true,

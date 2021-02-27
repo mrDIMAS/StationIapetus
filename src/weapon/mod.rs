@@ -199,7 +199,6 @@ pub struct Weapon {
     last_shot_time: f64,
     shot_position: Vector3<f32>,
     owner: Handle<Actor>,
-    ammo: u32,
     muzzle_flash_timer: f32,
     pub definition: &'static WeaponDefinition,
     pub sender: Option<Sender<Message>>,
@@ -313,12 +312,12 @@ pub enum WeaponProjectile {
 pub struct WeaponDefinition {
     pub model: String,
     pub shot_sound: String,
-    pub ammo: u32,
     pub projectile: WeaponProjectile,
     pub shoot_interval: f64,
     pub yaw_correction: f32,
     pub pitch_correction: f32,
     pub ammo_indicator_offset: (f32, f32, f32),
+    pub ammo_consumption_per_shot: u32,
 }
 
 impl WeaponDefinition {
@@ -358,7 +357,6 @@ impl Default for Weapon {
             last_shot_time: 0.0,
             shot_position: Vector3::default(),
             owner: Handle::NONE,
-            ammo: 250,
             muzzle_flash_timer: 0.0,
             definition: Self::get_definition(WeaponKind::M4),
             sender: None,
@@ -381,7 +379,6 @@ impl Visit for Weapon {
         self.dest_offset.visit("DestOffset", visitor)?;
         self.last_shot_time.visit("LastShotTime", visitor)?;
         self.owner.visit("Owner", visitor)?;
-        self.ammo.visit("Ammo", visitor)?;
         self.shot_point.visit("ShotPoint", visitor)?;
         self.muzzle_flash.visit("MuzzleFlash", visitor)?;
         self.muzzle_flash_timer.visit("MuzzleFlashTimer", visitor)?;
@@ -475,7 +472,6 @@ impl Weapon {
             definition,
             muzzle_flash,
             shot_light,
-            ammo: definition.ammo,
             sender: Some(sender),
             flash_light,
             laser_sight: LaserSight::new(scene, resource_manager),
@@ -545,14 +541,6 @@ impl Weapon {
         graph[self.model].global_transform().basis()
     }
 
-    pub fn add_ammo(&mut self, amount: u32) {
-        self.ammo += amount;
-    }
-
-    pub fn ammo(&self) -> u32 {
-        self.ammo
-    }
-
     pub fn owner(&self) -> Handle<Actor> {
         self.owner
     }
@@ -573,7 +561,11 @@ impl Weapon {
         &self.laser_sight
     }
 
-    pub fn try_shoot(
+    pub fn can_shoot(&self, time: GameTime) -> bool {
+        time.elapsed - self.last_shot_time >= self.definition.shoot_interval
+    }
+
+    pub fn shoot(
         &mut self,
         self_handle: Handle<Weapon>,
         scene: &mut Scene,
@@ -581,78 +573,73 @@ impl Weapon {
         resource_manager: ResourceManager,
         direction: Option<Vector3<f32>>,
     ) {
-        if self.ammo != 0 && time.elapsed - self.last_shot_time >= self.definition.shoot_interval {
-            self.ammo -= 1;
+        self.offset = Vector3::new(0.0, 0.0, -0.05);
+        self.last_shot_time = time.elapsed;
 
-            self.offset = Vector3::new(0.0, 0.0, -0.05);
-            self.last_shot_time = time.elapsed;
+        let position = self.get_shot_position(&scene.graph);
 
-            let position = self.get_shot_position(&scene.graph);
+        self.sender
+            .as_ref()
+            .unwrap()
+            .send(Message::PlaySound {
+                path: PathBuf::from(self.definition.shot_sound.clone()),
+                position,
+                gain: 1.0,
+                rolloff_factor: 5.0,
+                radius: 3.0,
+            })
+            .unwrap();
 
-            self.sender
+        if self.muzzle_flash.is_some() {
+            let muzzle_flash = &mut scene.graph[self.muzzle_flash];
+            muzzle_flash.set_visibility(true);
+            for surface in muzzle_flash.as_mesh_mut().surfaces_mut() {
+                let textures = [
+                    "data/particles/muzzle_01.png",
+                    "data/particles/muzzle_02.png",
+                    "data/particles/muzzle_03.png",
+                    "data/particles/muzzle_04.png",
+                    "data/particles/muzzle_05.png",
+                ];
+                surface.set_diffuse_texture(Some(
+                    resource_manager
+                        .request_texture(textures.choose(&mut rg3d::rand::thread_rng()).unwrap()),
+                ))
+            }
+            scene.graph[self.shot_light].set_visibility(true);
+            self.muzzle_flash_timer = 0.075;
+        }
+
+        let position = self.get_shot_position(&scene.graph);
+        let direction = direction
+            .unwrap_or_else(|| self.get_shot_direction(&scene.graph))
+            .try_normalize(std::f32::EPSILON)
+            .unwrap_or_else(Vector3::z);
+
+        match self.definition.projectile {
+            WeaponProjectile::Projectile(projectile) => self
+                .sender
                 .as_ref()
                 .unwrap()
-                .send(Message::PlaySound {
-                    path: PathBuf::from(self.definition.shot_sound.clone()),
+                .send(Message::CreateProjectile {
+                    kind: projectile,
                     position,
-                    gain: 1.0,
-                    rolloff_factor: 5.0,
-                    radius: 3.0,
+                    direction,
+                    owner: self_handle,
+                    initial_velocity: Default::default(),
                 })
-                .unwrap();
-
-            if self.muzzle_flash.is_some() {
-                let muzzle_flash = &mut scene.graph[self.muzzle_flash];
-                muzzle_flash.set_visibility(true);
-                for surface in muzzle_flash.as_mesh_mut().surfaces_mut() {
-                    let textures = [
-                        "data/particles/muzzle_01.png",
-                        "data/particles/muzzle_02.png",
-                        "data/particles/muzzle_03.png",
-                        "data/particles/muzzle_04.png",
-                        "data/particles/muzzle_05.png",
-                    ];
-                    surface.set_diffuse_texture(Some(
-                        resource_manager.request_texture(
-                            textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
-                        ),
-                    ))
-                }
-                scene.graph[self.shot_light].set_visibility(true);
-                self.muzzle_flash_timer = 0.075;
-            }
-
-            let position = self.get_shot_position(&scene.graph);
-            let direction = direction
-                .unwrap_or_else(|| self.get_shot_direction(&scene.graph))
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(Vector3::z);
-
-            match self.definition.projectile {
-                WeaponProjectile::Projectile(projectile) => self
-                    .sender
+                .unwrap(),
+            WeaponProjectile::Ray { damage } => {
+                self.sender
                     .as_ref()
                     .unwrap()
-                    .send(Message::CreateProjectile {
-                        kind: projectile,
-                        position,
-                        direction,
-                        owner: self_handle,
-                        initial_velocity: Default::default(),
+                    .send(Message::ShootRay {
+                        weapon: self_handle,
+                        begin: position,
+                        end: position + direction.scale(1000.0),
+                        damage,
                     })
-                    .unwrap(),
-                WeaponProjectile::Ray { damage } => {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::ShootRay {
-                            weapon: self_handle,
-                            begin: position,
-                            end: position + direction.scale(1000.0),
-                            damage,
-                        })
-                        .unwrap();
-                }
+                    .unwrap();
             }
         }
     }

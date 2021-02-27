@@ -1,3 +1,4 @@
+use crate::item::ItemKind;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -428,14 +429,10 @@ impl Bot {
     }
 
     fn select_weapon(&mut self, weapons: &WeaponContainer) {
-        if self.character.current_weapon().is_some()
-            && weapons[self.character.current_weapon()].ammo() == 0
-        {
+        if self.character.current_weapon().is_some() {
             for (i, handle) in self.character.weapons().iter().enumerate() {
-                if weapons[*handle].ammo() > 0 {
-                    self.character.set_current_weapon(i);
-                    break;
-                }
+                self.character.set_current_weapon(i);
+                break;
             }
         }
     }
@@ -586,7 +583,7 @@ impl Bot {
                 body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
             }
 
-            let sender = self.character.sender.as_ref().unwrap();
+            let sender = self.character.sender.clone().unwrap();
 
             if !in_close_combat && can_aim && self.can_shoot() && self.target.is_some() {
                 if let Some(weapon) = self
@@ -594,12 +591,24 @@ impl Bot {
                     .weapons
                     .get(self.character.current_weapon as usize)
                 {
-                    sender
-                        .send(Message::ShootWeapon {
-                            weapon: *weapon,
-                            direction: Some(look_dir),
-                        })
-                        .unwrap();
+                    let weapon = *weapon;
+
+                    let ammo_per_shot =
+                        context.weapons[weapon].definition.ammo_consumption_per_shot;
+
+                    if context.weapons[weapon].can_shoot(context.time)
+                        && self
+                            .inventory
+                            .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
+                            == ammo_per_shot
+                    {
+                        sender
+                            .send(Message::ShootWeapon {
+                                weapon,
+                                direction: Some(look_dir),
+                            })
+                            .unwrap();
+                    }
                 }
             }
 

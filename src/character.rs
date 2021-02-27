@@ -1,3 +1,4 @@
+use crate::inventory::Inventory;
 use crate::{
     message::Message,
     weapon::{Weapon, WeaponContainer, WeaponKind},
@@ -22,6 +23,7 @@ pub struct Character {
     pub weapon_pivot: Handle<Node>,
     pub sender: Option<Sender<Message>>,
     pub hit_boxes: Vec<HitBox>,
+    pub inventory: Inventory,
 }
 
 impl Default for Character {
@@ -35,6 +37,7 @@ impl Default for Character {
             weapon_pivot: Handle::NONE,
             sender: None,
             hit_boxes: Default::default(),
+            inventory: Default::default(),
         }
     }
 }
@@ -49,6 +52,7 @@ impl Visit for Character {
         self.weapons.visit("Weapons", visitor)?;
         self.current_weapon.visit("CurrentWeapon", visitor)?;
         self.weapon_pivot.visit("WeaponPivot", visitor)?;
+        self.inventory.visit("Inventory", visitor)?;
 
         visitor.leave_region()
     }
@@ -253,6 +257,14 @@ impl Character {
 
     pub fn restore_hit_boxes(&mut self, scene: &Scene) {
         self.hit_boxes = find_hit_boxes(self.pivot, scene);
+    }
+
+    pub fn inventory(&self) -> &Inventory {
+        &self.inventory
+    }
+
+    pub fn inventory_mut(&mut self) -> &mut Inventory {
+        &mut self.inventory
     }
 }
 

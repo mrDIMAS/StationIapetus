@@ -91,9 +91,10 @@ impl Default for Item {
 
 #[derive(Deserialize)]
 pub struct ItemDefinition {
-    model: String,
-    description: String,
-    scale: f32,
+    pub model: String,
+    pub description: String,
+    pub scale: f32,
+    pub name: String,
 }
 
 #[derive(Deserialize)]
@@ -103,7 +104,7 @@ pub struct ItemDefinitionContainer {
 
 impl ItemDefinitionContainer {
     pub fn new() -> Self {
-        let file = File::open("data/configs/projectiles.ron").unwrap();
+        let file = File::open("data/configs/items.ron").unwrap();
         ron::de::from_reader(file).unwrap()
     }
 }

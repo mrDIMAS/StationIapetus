@@ -21,6 +21,7 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
+use crate::actor::Actor;
 use crate::gui::inventory::InventoryInterface;
 use crate::{
     control_scheme::ControlScheme,
@@ -568,8 +569,12 @@ impl Game {
             level.update(&mut self.engine, time);
             let player = level.get_player();
             if player.is_some() {
-                let player = level.actors().get(player);
-                self.weapon_display.sync_to_model(player, level.weapons());
+                if let Actor::Player(player) = level.actors().get(player) {
+                    self.weapon_display.sync_to_model(player, level.weapons());
+
+                    // TODO
+                    self.inventory_interface.sync_to_model(player);
+                }
             }
         }
 
