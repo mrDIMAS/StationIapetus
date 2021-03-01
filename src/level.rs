@@ -675,7 +675,8 @@ impl Level {
         if self.actors.contains(actor) {
             let character = self.actors.get_mut(actor);
             match kind {
-                ItemKind::Medkit => character.heal(20.0),
+                ItemKind::Medkit => character.heal(40.0),
+                ItemKind::Medpack => character.heal(20.0),
                 ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::Glock => {
                     let weapon_kind = match kind {
                         ItemKind::Ak47 => WeaponKind::Ak47,

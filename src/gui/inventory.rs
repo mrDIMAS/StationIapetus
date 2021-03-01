@@ -17,7 +17,8 @@ use rg3d::{
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         message::{
-            ButtonState, MessageDirection, OsEvent, UiMessage, UiMessageData, WidgetMessage,
+            ButtonState, MessageDirection, OsEvent, ScrollViewerMessage, TextMessage, UiMessage,
+            UiMessageData, WidgetMessage,
         },
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
@@ -39,6 +40,8 @@ pub struct InventoryInterface {
     items_panel: Handle<UiNode>,
     is_enabled: bool,
     sender: Sender<Message>,
+    item_description: Handle<UiNode>,
+    scroll_viewer: Handle<UiNode>,
 }
 
 #[derive(Debug, Clone)]
@@ -65,16 +68,15 @@ impl Control<CustomUiMessage, CustomUiNode> for InventoryItem {
 
         match message.data() {
             UiMessageData::User(msg) => {
-                if let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg {
-                    if message.destination() == self.handle() {
-                        self.is_selected = select;
+                let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
+                if message.destination() == self.handle() {
+                    self.is_selected = select;
 
-                        self.set_foreground(if select {
-                            Brush::Solid(Color::opaque(0, 0, 255))
-                        } else {
-                            Brush::Solid(Color::opaque(255, 255, 255))
-                        });
-                    }
+                    self.set_foreground(if select {
+                        Brush::Solid(Color::opaque(0, 0, 255))
+                    } else {
+                        Brush::Solid(Color::opaque(255, 255, 255))
+                    });
                 }
             }
             _ => (),
@@ -135,8 +137,12 @@ impl InventoryItemBuilder {
                                     GridBuilder::new(
                                         WidgetBuilder::new()
                                             .with_child(
-                                                ImageBuilder::new(WidgetBuilder::new().on_row(0))
-                                                    .build(ctx),
+                                                ImageBuilder::new(
+                                                    WidgetBuilder::new()
+                                                        .with_margin(Thickness::uniform(1.0))
+                                                        .on_row(0),
+                                                )
+                                                .build(ctx),
                                             )
                                             .with_child(
                                                 StackPanelBuilder::new(
@@ -206,6 +212,8 @@ impl InventoryInterface {
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let items_panel;
+        let item_description;
+        let scroll_viewer;
         BorderBuilder::new(
             WidgetBuilder::new()
                 .with_foreground(Brush::Solid(Color::opaque(120, 120, 120)))
@@ -225,33 +233,65 @@ impl InventoryInterface {
                                 GridBuilder::new(
                                     WidgetBuilder::new()
                                         .on_row(1)
-                                        .with_child(
-                                            ScrollViewerBuilder::new(WidgetBuilder::new())
-                                                .with_content({
-                                                    items_panel = WrapPanelBuilder::new(
-                                                        WidgetBuilder::new()
-                                                            .with_horizontal_alignment(
-                                                                HorizontalAlignment::Left,
-                                                            )
-                                                            .with_vertical_alignment(
-                                                                VerticalAlignment::Top,
-                                                            )
-                                                            .on_column(0),
-                                                    )
-                                                    .with_orientation(Orientation::Horizontal)
+                                        .with_child({
+                                            scroll_viewer =
+                                                ScrollViewerBuilder::new(WidgetBuilder::new())
+                                                    .with_content({
+                                                        items_panel = WrapPanelBuilder::new(
+                                                            WidgetBuilder::new()
+                                                                .with_horizontal_alignment(
+                                                                    HorizontalAlignment::Left,
+                                                                )
+                                                                .with_vertical_alignment(
+                                                                    VerticalAlignment::Top,
+                                                                )
+                                                                .on_column(0),
+                                                        )
+                                                        .with_orientation(Orientation::Horizontal)
+                                                        .build(&mut ui.build_ctx());
+                                                        items_panel
+                                                    })
                                                     .build(&mut ui.build_ctx());
-                                                    items_panel
-                                                })
-                                                .build(&mut ui.build_ctx()),
-                                        )
+                                            scroll_viewer
+                                        })
                                         .with_child(
-                                            TextBuilder::new(WidgetBuilder::new().on_column(1))
-                                                .with_text("Description")
-                                                .build(&mut ui.build_ctx()),
+                                            BorderBuilder::new(
+                                                WidgetBuilder::new()
+                                                    .on_column(1)
+                                                    .with_background(Brush::Solid(Color::opaque(
+                                                        80, 80, 80,
+                                                    )))
+                                                    .with_child(
+                                                        StackPanelBuilder::new(
+                                                            WidgetBuilder::new()
+                                                                .with_child(
+                                                                    TextBuilder::new(
+                                                                        WidgetBuilder::new(),
+                                                                    )
+                                                                    .with_text("Item")
+                                                                    .with_horizontal_text_alignment(
+                                                                        HorizontalAlignment::Center,
+                                                                    )
+                                                                    .build(&mut ui.build_ctx()),
+                                                                )
+                                                                .with_child({
+                                                                    item_description =
+                                                                        TextBuilder::new(
+                                                                            WidgetBuilder::new(),
+                                                                        )
+                                                                        .with_wrap(true)
+                                                                        .build(&mut ui.build_ctx());
+                                                                    item_description
+                                                                }),
+                                                        )
+                                                        .build(&mut ui.build_ctx()),
+                                                    ),
+                                            )
+                                            .build(&mut ui.build_ctx()),
                                         ),
                                 )
                                 .add_column(Column::stretch())
-                                .add_column(Column::strict(100.0))
+                                .add_column(Column::strict(150.0))
                                 .add_row(Row::stretch())
                                 .build(&mut ui.build_ctx()),
                             ),
@@ -270,6 +310,8 @@ impl InventoryInterface {
             items_panel,
             is_enabled: true,
             sender,
+            item_description,
+            scroll_viewer,
         }
     }
 
@@ -358,6 +400,12 @@ impl InventoryInterface {
                     MessageDirection::ToWidget,
                     CustomUiMessage::InventoryItem(InventoryItemMessage::Select(true)),
                 ));
+
+                self.ui.send_message(ScrollViewerMessage::bring_into_view(
+                    self.scroll_viewer,
+                    MessageDirection::ToWidget,
+                    closest,
+                ));
             }
         }
     }
@@ -417,6 +465,8 @@ impl InventoryInterface {
                                                 .unwrap();
                                             self.sender.send(Message::SyncInventory).unwrap();
                                         }
+                                    } else {
+                                        unreachable!()
                                     }
                                 }
                             }
@@ -432,10 +482,14 @@ impl InventoryInterface {
         while let Some(message) = self.ui.poll_message() {
             match message.data() {
                 UiMessageData::User(msg) => {
-                    if let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) =
-                        *msg
-                    {
-                        if select {
+                    let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
+
+                    if select {
+                        if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                            self.ui.node(message.destination())
+                        {
+                            let definition = Item::get_definition(item.item);
+
                             // Deselect every other item.
                             for &item_handle in self.ui.node(self.items_panel).children() {
                                 if item_handle != message.destination() {
@@ -448,6 +502,14 @@ impl InventoryInterface {
                                     ));
                                 }
                             }
+
+                            self.ui.send_message(TextMessage::text(
+                                self.item_description,
+                                MessageDirection::ToWidget,
+                                definition.description.clone(),
+                            ));
+                        } else {
+                            unreachable!();
                         }
                     }
                 }

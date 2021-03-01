@@ -16,6 +16,7 @@ use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum ItemKind {
     Medkit,
+    Medpack,
 
     // Ammo
     Ammo,
@@ -49,6 +50,7 @@ impl ItemKind {
         match id {
             0 => Ok(ItemKind::Medkit),
             1 => Ok(ItemKind::Ammo),
+            2 => Ok(ItemKind::Medpack),
             4 => Ok(ItemKind::PlasmaGun),
             5 => Ok(ItemKind::Ak47),
             6 => Ok(ItemKind::M4),
@@ -61,6 +63,7 @@ impl ItemKind {
         match self {
             ItemKind::Medkit => 0,
             ItemKind::Ammo => 1,
+            ItemKind::Medpack => 2,
             ItemKind::PlasmaGun => 4,
             ItemKind::Ak47 => 5,
             ItemKind::M4 => 6,

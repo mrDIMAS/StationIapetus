@@ -552,6 +552,7 @@ impl Player {
         let mut inventory = Inventory::new();
 
         inventory.add_item(ItemKind::Medkit, 2);
+        inventory.add_item(ItemKind::Medpack, 2);
         inventory.add_item(ItemKind::Ammo, 200);
         inventory.add_item(ItemKind::Glock, 1);
         inventory.add_item(ItemKind::Ak47, 1);
@@ -668,7 +669,7 @@ impl Player {
             || self.controller.walk_left;
         let is_jumping = has_ground_contact && self.controller.jump;
 
-        let should_be_stunned = if (self.health - self.last_health).abs() >= 15.0 {
+        let should_be_stunned = if self.last_health - self.health >= 15.0 {
             for &animation in self
                 .lower_body_machine
                 .hit_reaction_animations()
