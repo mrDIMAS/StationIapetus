@@ -49,6 +49,11 @@ pub struct ControlScheme {
     pub grab_pistol: ControlButtonDefinition,
     pub grab_plasma_gun: ControlButtonDefinition,
     pub inventory: ControlButtonDefinition,
+    pub action: ControlButtonDefinition,
+    pub cursor_up: ControlButtonDefinition,
+    pub cursor_down: ControlButtonDefinition,
+    pub cursor_left: ControlButtonDefinition,
+    pub cursor_right: ControlButtonDefinition,
     pub mouse_sens: f32,
     pub mouse_y_inverse: bool,
 }
@@ -124,6 +129,26 @@ impl Default for ControlScheme {
                 description: "Inventory".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::I),
             },
+            action: ControlButtonDefinition {
+                description: "Action".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::E),
+            },
+            cursor_up: ControlButtonDefinition {
+                description: "Cursor Up".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Up),
+            },
+            cursor_down: ControlButtonDefinition {
+                description: "Cursor Down".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Down),
+            },
+            cursor_left: ControlButtonDefinition {
+                description: "Cursor Left".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Left),
+            },
+            cursor_right: ControlButtonDefinition {
+                description: "Cursor Right".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Right),
+            },
             mouse_sens: 0.3,
             mouse_y_inverse: false,
         }
@@ -131,12 +156,13 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 17] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 22] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
             &mut self.move_left,
             &mut self.move_right,
+            &mut self.action,
             &mut self.jump,
             &mut self.shoot,
             &mut self.next_weapon,
@@ -150,15 +176,20 @@ impl ControlScheme {
             &mut self.grab_ak47,
             &mut self.grab_m4,
             &mut self.grab_plasma_gun,
+            &mut self.cursor_up,
+            &mut self.cursor_down,
+            &mut self.cursor_left,
+            &mut self.cursor_right,
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 17] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 22] {
         [
             &self.move_forward,
             &self.move_backward,
             &self.move_left,
             &self.move_right,
+            &self.action,
             &self.jump,
             &self.shoot,
             &self.next_weapon,
@@ -172,6 +203,10 @@ impl ControlScheme {
             &self.grab_ak47,
             &self.grab_m4,
             &self.grab_plasma_gun,
+            &self.cursor_up,
+            &self.cursor_down,
+            &self.cursor_left,
+            &self.cursor_right,
         ]
     }
 

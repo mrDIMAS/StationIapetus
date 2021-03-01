@@ -126,4 +126,5 @@ pub enum Message {
         volume: f32,
     },
     EndMatch,
+    SyncInventory,
 }

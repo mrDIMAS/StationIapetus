@@ -571,9 +571,6 @@ impl Game {
             if player.is_some() {
                 if let Actor::Player(player) = level.actors().get(player) {
                     self.weapon_display.sync_to_model(player, level.weapons());
-
-                    // TODO
-                    self.inventory_interface.sync_to_model(player);
                 }
             }
         }
@@ -627,6 +624,13 @@ impl Game {
                     self.menu.set_visible(&self.engine.user_interface, true);
                     self.death_screen
                         .set_visible(&self.engine.user_interface, false);
+                }
+                Message::SyncInventory => {
+                    if let Some(ref mut level) = self.level {
+                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
+                            self.inventory_interface.sync_to_model(player);
+                        }
+                    }
                 }
                 _ => (),
             }
@@ -682,6 +686,8 @@ impl Game {
         if let Event::WindowEvent { event, .. } = event {
             if let Some(event) = translate_event(event) {
                 self.engine.user_interface.process_os_event(&event);
+                self.inventory_interface
+                    .process_os_event(&event, &self.control_scheme.read().unwrap());
             }
         }
 

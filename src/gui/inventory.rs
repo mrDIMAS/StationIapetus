@@ -1,4 +1,5 @@
 use crate::{
+    control_scheme::{ControlButton, ControlScheme},
     gui::{
         BuildContext, CustomUiMessage, CustomUiNode, CustomWidget, Gui, UiNode, UiWidgetBuilder,
     },
@@ -6,13 +7,16 @@ use crate::{
     player::Player,
 };
 use rg3d::{
-    core::{algebra::Vector2, color::Color, pool::Handle},
+    core::{algebra::Vector2, color::Color, math, pool::Handle},
     gui::{
         border::BorderBuilder,
         brush::Brush,
+        draw::{CommandTexture, Draw, DrawingContext},
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        message::{MessageDirection, UiMessage, WidgetMessage},
+        message::{
+            ButtonState, MessageDirection, OsEvent, UiMessage, UiMessageData, WidgetMessage,
+        },
         scroll_viewer::ScrollViewerBuilder,
         text::TextBuilder,
         widget::WidgetBuilder,
@@ -27,6 +31,7 @@ pub struct InventoryInterface {
     pub ui: Gui,
     pub render_target: Texture,
     items_panel: Handle<UiNode>,
+    is_enabled: bool,
 }
 
 #[derive(Debug, Clone)]
@@ -37,12 +42,35 @@ pub struct InventoryItem {
 }
 
 impl Control<CustomUiMessage, CustomUiNode> for InventoryItem {
+    fn draw(&self, drawing_context: &mut DrawingContext) {
+        let bounds = self.screen_bounds();
+        drawing_context.push_rect(&bounds, 1.0);
+        drawing_context.commit(bounds, self.foreground(), CommandTexture::None, None);
+    }
+
     fn handle_routed_message(
         &mut self,
         ui: &mut UserInterface<CustomUiMessage, CustomUiNode>,
         message: &mut UiMessage<CustomUiMessage, CustomUiNode>,
     ) {
         self.widget.handle_routed_message(ui, message);
+
+        match message.data() {
+            UiMessageData::User(msg) => {
+                if let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg {
+                    if message.destination() == self.handle() {
+                        self.is_selected = select;
+
+                        self.set_foreground(if select {
+                            Brush::Solid(Color::opaque(0, 0, 255))
+                        } else {
+                            Brush::Solid(Color::opaque(255, 255, 255))
+                        });
+                    }
+                }
+            }
+            _ => (),
+        }
     }
 }
 
@@ -83,6 +111,7 @@ impl InventoryItemBuilder {
                 .with_child(
                     BorderBuilder::new(
                         WidgetBuilder::new()
+                            .with_margin(Thickness::uniform(1.0))
                             .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
                             .with_child(
                                 GridBuilder::new(
@@ -118,6 +147,13 @@ impl InventoryItemBuilder {
 
         ctx.add_node(UiNode::User(CustomUiNode::InventoryItem(item)))
     }
+}
+
+enum MoveDirection {
+    Up,
+    Down,
+    Left,
+    Right,
 }
 
 impl InventoryInterface {
@@ -192,6 +228,7 @@ impl InventoryInterface {
             ui,
             render_target,
             items_panel,
+            is_enabled: true,
         }
     }
 
@@ -220,8 +257,130 @@ impl InventoryInterface {
         }
     }
 
+    pub fn selection(&self) -> Handle<UiNode> {
+        for &item_handle in self.ui.node(self.items_panel).children() {
+            if let UiNode::User(CustomUiNode::InventoryItem(inventory_item)) =
+                self.ui.node(item_handle)
+            {
+                if inventory_item.is_selected {
+                    return item_handle;
+                }
+            }
+        }
+        Handle::NONE
+    }
+
+    fn try_move_selection(&mut self, dir: MoveDirection) {
+        let items = self.ui.node(self.items_panel).children();
+
+        let mut direction = match dir {
+            MoveDirection::Up => -Vector2::y(),
+            MoveDirection::Down => Vector2::y(),
+            MoveDirection::Left => -Vector2::x(),
+            MoveDirection::Right => Vector2::x(),
+        }
+        .scale(999.0);
+
+        direction += Vector2::new(std::f32::EPSILON, std::f32::EPSILON);
+
+        if !items.is_empty() {
+            let current_selection = self.selection();
+
+            let current_bounds = if current_selection.is_some() {
+                self.ui.node(current_selection).screen_bounds()
+            } else {
+                self.ui.node(*items.first().unwrap()).screen_bounds()
+            };
+            let origin = (current_bounds.left_top_corner() + current_bounds.right_bottom_corner())
+                .scale(0.5);
+
+            let mut closest = Handle::NONE;
+            let mut closest_distance = std::f32::MAX;
+
+            for &item_handle in items {
+                let item_bounds = self.ui.node(item_handle).screen_bounds();
+
+                if let Some(intersection) =
+                    math::ray_rect_intersection(item_bounds, origin, direction)
+                {
+                    if intersection.min < closest_distance && item_handle != current_selection {
+                        closest_distance = intersection.min;
+                        closest = item_handle;
+                    }
+                }
+            }
+
+            if closest.is_some() {
+                self.ui.send_message(UiMessage::user(
+                    closest,
+                    MessageDirection::ToWidget,
+                    CustomUiMessage::InventoryItem(InventoryItemMessage::Select(true)),
+                ));
+            }
+        }
+    }
+
+    pub fn process_os_event(&mut self, os_event: &OsEvent, control_scheme: &ControlScheme) {
+        self.ui.process_os_event(os_event);
+
+        if self.is_enabled {
+            match *os_event {
+                OsEvent::KeyboardInput { button, state } => {
+                    if state == ButtonState::Pressed {
+                        if let ControlButton::Key(key) = control_scheme.cursor_up.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                self.try_move_selection(MoveDirection::Up);
+                            }
+                        }
+                        if let ControlButton::Key(key) = control_scheme.cursor_down.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                self.try_move_selection(MoveDirection::Down);
+                            }
+                        }
+                        if let ControlButton::Key(key) = control_scheme.cursor_left.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                self.try_move_selection(MoveDirection::Left);
+                            }
+                        }
+                        if let ControlButton::Key(key) = control_scheme.cursor_right.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                self.try_move_selection(MoveDirection::Right);
+                            }
+                        }
+                        if let ControlButton::Key(key) = control_scheme.action.button {}
+                    }
+                }
+                _ => (),
+            }
+        }
+    }
+
     pub fn update(&mut self, delta: f32) {
-        while self.ui.poll_message().is_some() {}
+        while let Some(message) = self.ui.poll_message() {
+            match message.data() {
+                UiMessageData::User(msg) => {
+                    if let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) =
+                        *msg
+                    {
+                        if select {
+                            // Deselect every other item.
+                            for &item_handle in self.ui.node(self.items_panel).children() {
+                                if item_handle != message.destination() {
+                                    self.ui.send_message(UiMessage::user(
+                                        item_handle,
+                                        MessageDirection::ToWidget,
+                                        CustomUiMessage::InventoryItem(
+                                            InventoryItemMessage::Select(false),
+                                        ),
+                                    ));
+                                }
+                            }
+                        }
+                    }
+                }
+                _ => (),
+            }
+        }
 
         self.ui
             .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);

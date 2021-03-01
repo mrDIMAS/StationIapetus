@@ -527,11 +527,13 @@ impl Player {
 
         let s = 0.8;
         let inventory_display = MeshBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(Vector3::new(-0.3, 0.1, 0.4))
-                    .build(),
-            ),
+            BaseBuilder::new()
+                .with_visibility(false)
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(Vector3::new(-0.3, 0.1, 0.4))
+                        .build(),
+                ),
         )
         .with_cast_shadows(false)
         .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
@@ -1249,6 +1251,9 @@ impl Player {
         if let Some((button, state)) = button_state {
             if button == scheme.aim.button {
                 self.controller.aim = state == ElementState::Pressed;
+                if state == ElementState::Pressed {
+                    scene.graph[self.inventory_display].set_visibility(false);
+                }
             } else if button == scheme.move_forward.button {
                 self.controller.walk_forward = state == ElementState::Pressed;
             } else if button == scheme.move_backward.button {
@@ -1331,6 +1336,13 @@ impl Player {
                 let inventory = &mut scene.graph[self.inventory_display];
                 let new_visibility = !inventory.visibility();
                 inventory.set_visibility(new_visibility);
+                if new_visibility {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SyncInventory)
+                        .unwrap();
+                }
             }
         }
 
