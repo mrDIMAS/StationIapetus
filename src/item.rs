@@ -95,6 +95,7 @@ pub struct ItemDefinition {
     pub description: String,
     pub scale: f32,
     pub name: String,
+    pub consumable: bool,
 }
 
 #[derive(Deserialize)]

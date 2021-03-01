@@ -316,11 +316,11 @@ impl Game {
             debug_string: String::new(),
             last_tick_time: time::Instant::now(),
             time,
-            events_receiver: rx,
-            events_sender: tx,
             load_context: None,
             weapon_display: WeaponDisplay::new(font),
-            inventory_interface: InventoryInterface::new(),
+            inventory_interface: InventoryInterface::new(tx.clone()),
+            events_receiver: rx,
+            events_sender: tx,
         };
 
         game.create_debug_ui();
@@ -686,8 +686,21 @@ impl Game {
         if let Event::WindowEvent { event, .. } = event {
             if let Some(event) = translate_event(event) {
                 self.engine.user_interface.process_os_event(&event);
-                self.inventory_interface
-                    .process_os_event(&event, &self.control_scheme.read().unwrap());
+                if let Some(level) = self.level.as_mut() {
+                    let player_handle = level.get_player();
+                    let player =
+                        if let Actor::Player(player) = level.actors_mut().get_mut(player_handle) {
+                            player
+                        } else {
+                            unreachable!()
+                        };
+                    self.inventory_interface.process_os_event(
+                        &event,
+                        &self.control_scheme.read().unwrap(),
+                        player_handle,
+                        player,
+                    );
+                }
             }
         }
 

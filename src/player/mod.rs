@@ -179,7 +179,7 @@ pub fn make_hit_reaction_state(
     scene.animations[hit_reaction_pistol_animation]
         .set_speed(1.5)
         .set_enabled(false)
-        .set_enabled(false);
+        .set_loop(false);
     let hit_reaction_pistol_animation_node =
         machine.add_node(PoseNode::make_play_animation(hit_reaction_pistol_animation));
 
@@ -531,7 +531,7 @@ impl Player {
                 .with_visibility(false)
                 .with_local_transform(
                     TransformBuilder::new()
-                        .with_local_position(Vector3::new(-0.3, 0.1, 0.4))
+                        .with_local_position(Vector3::new(-0.5, 0.1, 0.4))
                         .build(),
                 ),
         )

@@ -417,8 +417,8 @@ impl LowerBodyMachine {
         self_collider: ColliderHandle,
     ) {
         let (current_hit_reaction_animation, index) = match input.weapon_kind {
-            CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 0),
-            CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 1),
+            CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),
+            CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 1),
         };
         let recovered = !input.should_be_stunned
             && scene.animations[current_hit_reaction_animation].has_ended();

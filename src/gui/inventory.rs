@@ -1,9 +1,11 @@
 use crate::{
+    actor::Actor,
     control_scheme::{ControlButton, ControlScheme},
     gui::{
         BuildContext, CustomUiMessage, CustomUiNode, CustomWidget, Gui, UiNode, UiWidgetBuilder,
     },
     item::{Item, ItemKind},
+    message::Message,
     player::Player,
 };
 use rg3d::{
@@ -18,6 +20,7 @@ use rg3d::{
             ButtonState, MessageDirection, OsEvent, UiMessage, UiMessageData, WidgetMessage,
         },
         scroll_viewer::ScrollViewerBuilder,
+        stack_panel::StackPanelBuilder,
         text::TextBuilder,
         widget::WidgetBuilder,
         wrap_panel::WrapPanelBuilder,
@@ -25,13 +28,17 @@ use rg3d::{
     },
     resource::texture::Texture,
 };
-use std::ops::{Deref, DerefMut};
+use std::{
+    ops::{Deref, DerefMut},
+    sync::mpsc::Sender,
+};
 
 pub struct InventoryInterface {
     pub ui: Gui,
     pub render_target: Texture,
     items_panel: Handle<UiNode>,
     is_enabled: bool,
+    sender: Sender<Message>,
 }
 
 #[derive(Debug, Clone)]
@@ -39,6 +46,7 @@ pub struct InventoryItem {
     widget: CustomWidget,
     is_selected: bool,
     item: ItemKind,
+    count: Handle<UiNode>,
 }
 
 impl Control<CustomUiMessage, CustomUiNode> for InventoryItem {
@@ -95,55 +103,87 @@ impl DerefMut for InventoryItem {
 
 pub struct InventoryItemBuilder {
     widget_builder: UiWidgetBuilder,
+    count: usize,
 }
 
 impl InventoryItemBuilder {
     pub fn new(widget_builder: UiWidgetBuilder) -> Self {
-        Self { widget_builder }
+        Self {
+            widget_builder,
+            count: 0,
+        }
+    }
+    pub fn with_count(mut self, count: usize) -> Self {
+        self.count = count;
+        self
     }
 
     pub fn build(self, item: ItemKind, ctx: &mut BuildContext) -> Handle<UiNode> {
         let definition = Item::get_definition(item);
 
-        let item = InventoryItem {
-            widget: self
-                .widget_builder
-                .with_child(
-                    BorderBuilder::new(
-                        WidgetBuilder::new()
-                            .with_margin(Thickness::uniform(1.0))
-                            .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
-                            .with_child(
-                                GridBuilder::new(
-                                    WidgetBuilder::new()
-                                        .with_child(
-                                            ImageBuilder::new(WidgetBuilder::new().on_row(0))
-                                                .build(ctx),
-                                        )
-                                        .with_child(
-                                            TextBuilder::new(WidgetBuilder::new().on_row(1))
-                                                .with_horizontal_text_alignment(
-                                                    HorizontalAlignment::Center,
+        let count;
+        let item =
+            InventoryItem {
+                widget: self
+                    .widget_builder
+                    .with_child(
+                        BorderBuilder::new(
+                            WidgetBuilder::new()
+                                .with_margin(Thickness::uniform(1.0))
+                                .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
+                                .with_child(
+                                    GridBuilder::new(
+                                        WidgetBuilder::new()
+                                            .with_child(
+                                                ImageBuilder::new(WidgetBuilder::new().on_row(0))
+                                                    .build(ctx),
+                                            )
+                                            .with_child(
+                                                StackPanelBuilder::new(
+                                                    WidgetBuilder::new()
+                                                        .on_row(1)
+                                                        .with_child(
+                                                            TextBuilder::new(WidgetBuilder::new())
+                                                                .with_horizontal_text_alignment(
+                                                                    HorizontalAlignment::Center,
+                                                                )
+                                                                .with_vertical_text_alignment(
+                                                                    VerticalAlignment::Center,
+                                                                )
+                                                                .with_text(&definition.name)
+                                                                .build(ctx),
+                                                        )
+                                                        .with_child({
+                                                            count = TextBuilder::new(
+                                                                WidgetBuilder::new(),
+                                                            )
+                                                            .with_horizontal_text_alignment(
+                                                                HorizontalAlignment::Center,
+                                                            )
+                                                            .with_vertical_text_alignment(
+                                                                VerticalAlignment::Center,
+                                                            )
+                                                            .with_text(format!("x{}", self.count))
+                                                            .build(ctx);
+                                                            count
+                                                        }),
                                                 )
-                                                .with_vertical_text_alignment(
-                                                    VerticalAlignment::Center,
-                                                )
-                                                .with_text(&definition.name)
                                                 .build(ctx),
-                                        ),
-                                )
-                                .add_row(Row::stretch())
-                                .add_row(Row::strict(16.0))
-                                .add_column(Column::stretch())
-                                .build(ctx),
-                            ),
+                                            ),
+                                    )
+                                    .add_row(Row::stretch())
+                                    .add_row(Row::auto())
+                                    .add_column(Column::stretch())
+                                    .build(ctx),
+                                ),
+                        )
+                        .build(ctx),
                     )
-                    .build(ctx),
-                )
-                .build(),
-            is_selected: false,
-            item,
-        };
+                    .build(),
+                count,
+                is_selected: false,
+                item,
+            };
 
         ctx.add_node(UiNode::User(CustomUiNode::InventoryItem(item)))
     }
@@ -160,7 +200,7 @@ impl InventoryInterface {
     pub const WIDTH: f32 = 400.0;
     pub const HEIGHT: f32 = 300.0;
 
-    pub fn new() -> Self {
+    pub fn new(sender: Sender<Message>) -> Self {
         let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
@@ -229,6 +269,7 @@ impl InventoryInterface {
             render_target,
             items_panel,
             is_enabled: true,
+            sender,
         }
     }
 
@@ -245,8 +286,9 @@ impl InventoryInterface {
                 WidgetBuilder::new()
                     .with_margin(Thickness::uniform(1.0))
                     .with_width(70.0)
-                    .with_height(86.0),
+                    .with_height(100.0),
             )
+            .with_count(item.amount() as usize)
             .build(item.kind(), ctx);
 
             self.ui.send_message(WidgetMessage::link(
@@ -320,7 +362,13 @@ impl InventoryInterface {
         }
     }
 
-    pub fn process_os_event(&mut self, os_event: &OsEvent, control_scheme: &ControlScheme) {
+    pub fn process_os_event(
+        &mut self,
+        os_event: &OsEvent,
+        control_scheme: &ControlScheme,
+        player_handle: Handle<Actor>,
+        player: &mut Player,
+    ) {
         self.ui.process_os_event(os_event);
 
         if self.is_enabled {
@@ -347,7 +395,32 @@ impl InventoryInterface {
                                 self.try_move_selection(MoveDirection::Right);
                             }
                         }
-                        if let ControlButton::Key(key) = control_scheme.action.button {}
+                        if let ControlButton::Key(key) = control_scheme.action.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                let selection = self.selection();
+                                if selection.is_some() {
+                                    if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                                        self.ui.node(selection)
+                                    {
+                                        let definition = Item::get_definition(item.item);
+                                        if definition.consumable
+                                            && player
+                                                .inventory_mut()
+                                                .try_extract_exact_items(item.item, 1)
+                                                == 1
+                                        {
+                                            self.sender
+                                                .send(Message::GiveItem {
+                                                    actor: player_handle,
+                                                    kind: item.item,
+                                                })
+                                                .unwrap();
+                                            self.sender.send(Message::SyncInventory).unwrap();
+                                        }
+                                    }
+                                }
+                            }
+                        }
                     }
                 }
                 _ => (),

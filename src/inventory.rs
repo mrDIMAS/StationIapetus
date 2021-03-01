@@ -65,7 +65,7 @@ impl Inventory {
         if let Some(position) = self.items.iter().position(|i| i.kind == item) {
             let item = &mut self.items[position];
 
-            if item.amount > amount {
+            if item.amount >= amount {
                 item.amount -= amount;
 
                 if item.amount == 0 {

@@ -5,36 +5,42 @@
             scale: 1.0,
             name: "Medkit",
             description: "Medium-sized container with medical gel. Restores medium amount of health",
+            consumable: true
         ),
         Ammo: (
             model: "data/models/yellow_box.FBX",
             scale: 0.25,
             name: "Ammo",
             description: "Energy cell. Suitable for any modern weapon used by Sovereign Colonies",
+            consumable: false
         ),
         PlasmaGun: (
             model: "data/models/plasma_rifle.FBX",
             scale: 3.0,
             name: "Plasma Rifle",
             description: "Modern energy weapon. Shoots plasma balls.",
+            consumable: false
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
             scale: 3.0,
             name: "Ak47",
             description: "Famous USSR weapon modernized to shoot energy beams.",
+            consumable: false
         ),
         M4: (
             model: "data/models/m4.FBX",
             scale: 3.0,
             name: "M4",
             description: "Classic USA weapon modernized to shoot energy beams.",
+            consumable: false
         ),
         Glock: (
             model: "data/models/glock.FBX",
             scale: 3.0,
             name: "Glock",
             description: "Semi-automatic energy weapon.",
+            consumable: false
         ),
     }
 )
