@@ -1,5 +1,6 @@
 //! Weapon related stuff.
 
+use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::Actor, actor::ActorContainer, character::HitBox, message::Message,
     weapon::projectile::ProjectileKind, CollisionGroups, GameTime,
@@ -241,7 +242,7 @@ impl Eq for Hit {}
 pub fn ray_hit(
     begin: Vector3<f32>,
     end: Vector3<f32>,
-    weapon: Handle<Weapon>,
+    owner: ProjectileOwner,
     weapons: &WeaponContainer,
     actors: &ActorContainer,
     physics: &mut Physics,
@@ -264,36 +265,51 @@ pub fn ray_hit(
 
     // List of hits sorted by distance from ray origin.
     if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
+        let mut is_hitbox_hit = false;
+
         // Check if there was an intersection with an actor.
-        for (actor_handle, actor) in actors.pair_iter() {
+        'actor_loop: for (actor_handle, actor) in actors.pair_iter() {
             for hit_box in actor.hit_boxes.iter() {
-                if hit_box.collider == hit.collider && weapon.is_some() {
-                    let weapon = &weapons[weapon];
-                    // Ignore intersections with owners of weapon.
-                    if weapon.owner() != actor_handle {
-                        return Some(Hit {
-                            actor: actor_handle,
-                            who: weapon.owner(),
-                            position: hit.position.coords,
-                            normal: hit.normal,
-                            collider: hit.collider,
-                            feature: hit.feature,
-                            hit_box: Some(*hit_box),
-                        });
+                if hit_box.collider == hit.collider {
+                    is_hitbox_hit = true;
+
+                    let who = match owner {
+                        ProjectileOwner::None => Default::default(),
+                        ProjectileOwner::Actor(actor) => actor,
+                        ProjectileOwner::Weapon(weapon) => weapons[weapon].owner(),
+                    };
+
+                    // Ignore intersections with owners.
+                    if who == actor_handle {
+                        continue 'actor_loop;
                     }
+
+                    return Some(Hit {
+                        actor: actor_handle,
+                        who,
+                        position: hit.position.coords,
+                        normal: hit.normal,
+                        collider: hit.collider,
+                        feature: hit.feature,
+                        hit_box: Some(*hit_box),
+                    });
                 }
             }
         }
 
-        Some(Hit {
-            actor: Handle::NONE,
-            who: Handle::NONE,
-            position: hit.position.coords,
-            normal: hit.normal,
-            collider: hit.collider,
-            feature: hit.feature,
-            hit_box: None,
-        })
+        if is_hitbox_hit {
+            None
+        } else {
+            Some(Hit {
+                actor: Handle::NONE,
+                who: Handle::NONE,
+                position: hit.position.coords,
+                normal: hit.normal,
+                collider: hit.collider,
+                feature: hit.feature,
+                hit_box: None,
+            })
+        }
     } else {
         None
     }
@@ -624,7 +640,7 @@ impl Weapon {
                     kind: projectile,
                     position,
                     direction,
-                    owner: self_handle,
+                    owner: ProjectileOwner::Weapon(self_handle),
                     initial_velocity: Default::default(),
                 })
                 .unwrap(),

@@ -1,3 +1,4 @@
+use crate::actor::Actor;
 use crate::{
     actor::ActorContainer,
     effects::EffectKind,
@@ -59,6 +60,57 @@ impl ProjectileKind {
     }
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+pub enum ProjectileOwner {
+    None,
+    Actor(Handle<Actor>),
+    Weapon(Handle<Weapon>),
+}
+
+impl Default for ProjectileOwner {
+    fn default() -> Self {
+        Self::None
+    }
+}
+
+impl ProjectileOwner {
+    fn id(&self) -> u32 {
+        match self {
+            Self::None => 0,
+            Self::Actor(_) => 1,
+            Self::Weapon(_) => 2,
+        }
+    }
+
+    fn from_id(id: u32) -> Result<Self, String> {
+        match id {
+            0 => Ok(Self::None),
+            1 => Ok(Self::Actor(Default::default())),
+            2 => Ok(Self::Weapon(Default::default())),
+            _ => Err(format!("Invalid projectile owner id {}!", id)),
+        }
+    }
+}
+
+impl Visit for ProjectileOwner {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        let mut id = self.id();
+        id.visit("Id", visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(id)?;
+        }
+        match self {
+            ProjectileOwner::None => (),
+            ProjectileOwner::Actor(handle) => handle.visit("Handle", visitor)?,
+            ProjectileOwner::Weapon(handle) => handle.visit("Handle", visitor)?,
+        }
+
+        visitor.leave_region()
+    }
+}
+
 pub struct Projectile {
     kind: ProjectileKind,
     model: Handle<Node>,
@@ -70,8 +122,7 @@ pub struct Projectile {
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
-    /// Handle of weapons from which projectile was fired.
-    pub owner: Handle<Weapon>,
+    pub owner: ProjectileOwner,
     initial_velocity: Vector3<f32>,
     /// Position of projectile on the previous frame, it is used to simulate
     /// continuous intersection detection from fast moving projectiles.
@@ -139,7 +190,7 @@ impl Projectile {
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
-        owner: Handle<Weapon>,
+        owner: ProjectileOwner,
         initial_velocity: Vector3<f32>,
         sender: Sender<Message>,
     ) -> Self {

@@ -1,3 +1,4 @@
+use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -609,9 +610,11 @@ impl Level {
 
     fn remove_weapon(&mut self, engine: &mut GameEngine, weapon: Handle<Weapon>) {
         for projectile in self.projectiles.iter_mut() {
-            if projectile.owner == weapon {
+            if let ProjectileOwner::Weapon(ref mut owner) = projectile.owner {
                 // Reset owner because handle to weapon will be invalid after weapon freed.
-                projectile.owner = Handle::NONE;
+                if *owner == weapon {
+                    *owner = Handle::NONE;
+                }
             }
         }
         self.weapons[weapon].clean_up(&mut engine.scenes[self.scene]);
@@ -745,7 +748,7 @@ impl Level {
         position: Vector3<f32>,
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
-        owner: Handle<Weapon>,
+        owner: ProjectileOwner,
     ) {
         let scene = &mut engine.scenes[self.scene];
         let projectile = Projectile::new(
@@ -913,7 +916,7 @@ impl Level {
         let trail_len = if let Some(hit) = ray_hit(
             begin,
             end,
-            weapon,
+            ProjectileOwner::Weapon(weapon),
             &self.weapons,
             &self.actors,
             &mut scene.physics,

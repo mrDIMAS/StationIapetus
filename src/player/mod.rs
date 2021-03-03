@@ -1,4 +1,5 @@
 use crate::item::ItemKind;
+use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -871,7 +872,7 @@ impl Player {
                                 position,
                                 direction,
                                 initial_velocity: direction.scale(15.0),
-                                owner: Default::default(),
+                                owner: ProjectileOwner::Actor(self_handle),
                             })
                             .unwrap();
                     }

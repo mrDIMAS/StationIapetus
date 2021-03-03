@@ -10,6 +10,7 @@
 //! all kinds of games, but at least it very useful for first-person shooters.
 
 use crate::sound::SoundKind;
+use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -65,7 +66,7 @@ pub enum Message {
         position: Vector3<f32>,
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
-        owner: Handle<Weapon>,
+        owner: ProjectileOwner,
     },
     ShootWeapon {
         weapon: Handle<Weapon>,
