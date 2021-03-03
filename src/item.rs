@@ -20,6 +20,7 @@ pub enum ItemKind {
 
     // Ammo
     Ammo,
+    Grenade,
 
     // Weapons
     PlasmaGun,
@@ -51,6 +52,7 @@ impl ItemKind {
             0 => Ok(ItemKind::Medkit),
             1 => Ok(ItemKind::Ammo),
             2 => Ok(ItemKind::Medpack),
+            3 => Ok(ItemKind::Grenade),
             4 => Ok(ItemKind::PlasmaGun),
             5 => Ok(ItemKind::Ak47),
             6 => Ok(ItemKind::M4),
@@ -64,6 +66,7 @@ impl ItemKind {
             ItemKind::Medkit => 0,
             ItemKind::Ammo => 1,
             ItemKind::Medpack => 2,
+            ItemKind::Grenade => 3,
             ItemKind::PlasmaGun => 4,
             ItemKind::Ak47 => 5,
             ItemKind::M4 => 6,

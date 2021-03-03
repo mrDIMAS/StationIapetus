@@ -28,6 +28,7 @@ use rg3d::{
         Control, HorizontalAlignment, Orientation, Thickness, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
+    scene::graph::Graph,
 };
 use std::{
     ops::{Deref, DerefMut},
@@ -416,6 +417,7 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player_handle: Handle<Actor>,
         player: &mut Player,
+        graph: &Graph,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -423,6 +425,7 @@ impl InventoryInterface {
             match *os_event {
                 OsEvent::KeyboardInput { button, state } => {
                     if state == ButtonState::Pressed {
+                        // TODO: Add support for other input bindings.
                         if let ControlButton::Key(key) = control_scheme.cursor_up.button {
                             if rg3d::utils::translate_key(key) == button {
                                 self.try_move_selection(MoveDirection::Up);
@@ -461,6 +464,34 @@ impl InventoryInterface {
                                                 .send(Message::GiveItem {
                                                     actor: player_handle,
                                                     kind: item.item,
+                                                })
+                                                .unwrap();
+                                            self.sender.send(Message::SyncInventory).unwrap();
+                                        }
+                                    } else {
+                                        unreachable!()
+                                    }
+                                }
+                            }
+                        }
+                        if let ControlButton::Key(key) = control_scheme.drop_item.button {
+                            if rg3d::utils::translate_key(key) == button {
+                                let selection = self.selection();
+                                if selection.is_some() {
+                                    if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                                        self.ui.node(selection)
+                                    {
+                                        let definition = Item::get_definition(item.item);
+                                        if player
+                                            .inventory_mut()
+                                            .try_extract_exact_items(item.item, 1)
+                                            == 1
+                                        {
+                                            self.sender
+                                                .send(Message::SpawnItem {
+                                                    kind: item.item,
+                                                    position: player.position(graph),
+                                                    adjust_height: true,
                                                 })
                                                 .unwrap();
                                             self.sender.send(Message::SyncInventory).unwrap();

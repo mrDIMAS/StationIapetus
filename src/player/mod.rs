@@ -13,7 +13,7 @@ use crate::{
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
     CollisionGroups,
 };
-pub use rg3d::{
+use rg3d::{
     animation::{
         machine::{
             blend_nodes::{BlendPose, IndexedBlendInput},
@@ -528,6 +528,7 @@ impl Player {
         let s = 0.8;
         let inventory_display = MeshBuilder::new(
             BaseBuilder::new()
+                .with_depth_offset(0.2)
                 .with_visibility(false)
                 .with_local_transform(
                     TransformBuilder::new()
@@ -558,6 +559,7 @@ impl Player {
         inventory.add_item(ItemKind::Ak47, 1);
         inventory.add_item(ItemKind::M4, 1);
         inventory.add_item(ItemKind::PlasmaGun, 1);
+        inventory.add_item(ItemKind::Grenade, 3);
 
         Self {
             character: Character {
@@ -860,17 +862,19 @@ impl Player {
                     let position = scene.graph[self.weapon_pivot].global_position();
                     let direction = scene.graph[self.camera].look_vector();
 
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::CreateProjectile {
-                            kind: ProjectileKind::Grenade,
-                            position,
-                            direction,
-                            initial_velocity: direction.scale(15.0),
-                            owner: Default::default(),
-                        })
-                        .unwrap();
+                    if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::CreateProjectile {
+                                kind: ProjectileKind::Grenade,
+                                position,
+                                direction,
+                                initial_velocity: direction.scale(15.0),
+                                owner: Default::default(),
+                            })
+                            .unwrap();
+                    }
                 }
             }
 
@@ -1324,12 +1328,14 @@ impl Player {
                     weapon_change_direction = Some(RequiredWeapon::Previous);
                 }
             } else if button == scheme.toss_grenade.button {
-                self.controller.toss_grenade = state == ElementState::Pressed;
-                if state == ElementState::Pressed {
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.toss_grenade_animation)
-                        .rewind();
+                if self.inventory.item_count(ItemKind::Grenade) > 0 {
+                    self.controller.toss_grenade = state == ElementState::Pressed;
+                    if state == ElementState::Pressed {
+                        scene
+                            .animations
+                            .get_mut(self.upper_body_machine.toss_grenade_animation)
+                            .rewind();
+                    }
                 }
             } else if button == scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;

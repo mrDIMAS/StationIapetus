@@ -311,13 +311,13 @@ impl Game {
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
+            weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
             engine,
             level: None,
             debug_string: String::new(),
             last_tick_time: time::Instant::now(),
             time,
             load_context: None,
-            weapon_display: WeaponDisplay::new(font),
             inventory_interface: InventoryInterface::new(tx.clone()),
             events_receiver: rx,
             events_sender: tx,
@@ -688,6 +688,7 @@ impl Game {
                 self.engine.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
+                    let graph = &self.engine.scenes[level.scene].graph;
                     let player =
                         if let Actor::Player(player) = level.actors_mut().get_mut(player_handle) {
                             player
@@ -699,6 +700,7 @@ impl Game {
                         &self.control_scheme.read().unwrap(),
                         player_handle,
                         player,
+                        graph,
                     );
                 }
             }

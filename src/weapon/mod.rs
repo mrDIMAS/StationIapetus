@@ -503,18 +503,17 @@ impl Weapon {
             scene.graph[self.shot_light].set_visibility(false);
         }
 
-        let ignored_collider = if actors.contains(self.owner) {
-            ColliderHandle::from(
-                scene
-                    .physics
-                    .bodies
-                    .get(actors.get(self.owner).get_body().into())
-                    .unwrap()
-                    .colliders()[0],
-            )
-        } else {
-            Default::default()
-        };
+        let mut ignored_collider = Default::default();
+        if actors.contains(self.owner) {
+            if let Some(body) = scene
+                .physics
+                .bodies
+                .get(actors.get(self.owner).get_body().into())
+            {
+                ignored_collider = ColliderHandle::from(body.colliders()[0]);
+            }
+        }
+
         let dir = self.get_shot_direction(&scene.graph);
         let pos = self.get_shot_position(&scene.graph);
         self.laser_sight.update(scene, pos, dir, ignored_collider)

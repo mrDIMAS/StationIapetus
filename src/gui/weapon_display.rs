@@ -1,6 +1,9 @@
 use crate::item::ItemKind;
 use crate::player::Player;
 use crate::{gui::Gui, gui::UiNode, weapon::WeaponContainer};
+use rg3d::engine::resource_manager::ResourceManager;
+use rg3d::gui::image::ImageBuilder;
+use rg3d::gui::VerticalAlignment;
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -13,41 +16,88 @@ use rg3d::{
         HorizontalAlignment,
     },
     resource::texture::Texture,
+    utils,
 };
+use std::path::Path;
 
 pub struct WeaponDisplay {
     pub ui: Gui,
     pub render_target: Texture,
     ammo: Handle<UiNode>,
+    grenades: Handle<UiNode>,
 }
 
 impl WeaponDisplay {
     pub const WIDTH: f32 = 120.0;
     pub const HEIGHT: f32 = 120.0;
 
-    pub fn new(font: SharedFont) -> Self {
+    pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
         let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let ammo;
+        let grenades;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
+                .with_child(
+                    ImageBuilder::new(
+                        WidgetBuilder::new()
+                            .with_width(32.0)
+                            .with_height(32.0)
+                            .on_row(0)
+                            .on_column(0),
+                    )
+                    .with_texture(utils::into_gui_texture(
+                        resource_manager.request_texture(Path::new("data/ui/ammo_icon.png")),
+                    ))
+                    .build(&mut ui.build_ctx()),
+                )
                 .with_child({
                     ammo = TextBuilder::new(
                         WidgetBuilder::new()
+                            .with_vertical_alignment(VerticalAlignment::Center)
                             .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
-                            .on_row(0),
+                            .on_row(0)
+                            .on_column(1),
+                    )
+                    .with_font(font.clone())
+                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .build(&mut ui.build_ctx());
+                    ammo
+                })
+                .with_child(
+                    ImageBuilder::new(
+                        WidgetBuilder::new()
+                            .with_width(32.0)
+                            .with_height(32.0)
+                            .on_row(1)
+                            .on_column(0),
+                    )
+                    .with_texture(utils::into_gui_texture(
+                        resource_manager.request_texture(Path::new("data/ui/grenade.png")),
+                    ))
+                    .build(&mut ui.build_ctx()),
+                )
+                .with_child({
+                    grenades = TextBuilder::new(
+                        WidgetBuilder::new()
+                            .with_vertical_alignment(VerticalAlignment::Center)
+                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
+                            .on_row(1)
+                            .on_column(1),
                     )
                     .with_font(font)
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .build(&mut ui.build_ctx());
-                    ammo
+                    grenades
                 }),
         )
+        .add_column(Column::auto())
         .add_column(Column::stretch())
+        .add_row(Row::stretch())
         .add_row(Row::stretch())
         .build(&mut ui.build_ctx());
 
@@ -55,6 +105,7 @@ impl WeaponDisplay {
             ui,
             render_target,
             ammo,
+            grenades,
         }
     }
 
@@ -72,6 +123,13 @@ impl WeaponDisplay {
             self.ammo,
             MessageDirection::ToWidget,
             format!("{}", ammo),
+        ));
+
+        let grenades = player.inventory().item_count(ItemKind::Grenade);
+        self.ui.send_message(TextMessage::text(
+            self.grenades,
+            MessageDirection::ToWidget,
+            format!("{}", grenades),
         ));
     }
 

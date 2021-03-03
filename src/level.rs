@@ -704,6 +704,9 @@ impl Level {
                 ItemKind::Ammo => {
                     character.inventory_mut().add_item(ItemKind::Ammo, 20);
                 }
+                ItemKind::Grenade => {
+                    character.inventory_mut().add_item(ItemKind::Grenade, 1);
+                }
             }
         }
     }

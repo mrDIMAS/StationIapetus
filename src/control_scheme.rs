@@ -50,6 +50,7 @@ pub struct ControlScheme {
     pub grab_plasma_gun: ControlButtonDefinition,
     pub inventory: ControlButtonDefinition,
     pub action: ControlButtonDefinition,
+    pub drop_item: ControlButtonDefinition,
     pub cursor_up: ControlButtonDefinition,
     pub cursor_down: ControlButtonDefinition,
     pub cursor_left: ControlButtonDefinition,
@@ -133,6 +134,10 @@ impl Default for ControlScheme {
                 description: "Action".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::E),
             },
+            drop_item: ControlButtonDefinition {
+                description: "Drop Item".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::R),
+            },
             cursor_up: ControlButtonDefinition {
                 description: "Cursor Up".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::Up),
@@ -156,13 +161,14 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 22] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 23] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
             &mut self.move_left,
             &mut self.move_right,
             &mut self.action,
+            &mut self.drop_item,
             &mut self.jump,
             &mut self.shoot,
             &mut self.next_weapon,
@@ -183,13 +189,14 @@ impl ControlScheme {
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 22] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 23] {
         [
             &self.move_forward,
             &self.move_backward,
             &self.move_left,
             &self.move_right,
             &self.action,
+            &self.drop_item,
             &self.jump,
             &self.shoot,
             &self.next_weapon,
