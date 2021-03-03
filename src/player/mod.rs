@@ -1334,6 +1334,7 @@ impl Player {
                         scene
                             .animations
                             .get_mut(self.upper_body_machine.toss_grenade_animation)
+                            .set_enabled(true)
                             .rewind();
                     }
                 }

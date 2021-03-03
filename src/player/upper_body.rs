@@ -344,6 +344,7 @@ impl UpperBodyMachine {
             .get_mut(toss_grenade_animation)
             .set_speed(1.5)
             .add_signal(AnimationSignal::new(Self::TOSS_GRENADE_SIGNAL, 1.7))
+            .set_enabled(false)
             .set_loop(false);
 
         scene
