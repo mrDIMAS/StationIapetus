@@ -64,7 +64,6 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font.clone())
-                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .build(&mut ui.build_ctx());
                     ammo
                 })
@@ -90,14 +89,14 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font)
-                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .build(&mut ui.build_ctx());
                     grenades
                 }),
         )
         .add_column(Column::auto())
         .add_column(Column::stretch())
-        .add_row(Row::stretch())
+        .add_row(Row::auto())
+        .add_row(Row::auto())
         .add_row(Row::stretch())
         .build(&mut ui.build_ctx());
 
