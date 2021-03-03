@@ -1,14 +1,17 @@
 (
     map: {
         Plasma: (
-            damage: 60.0,
+            damage: Point(60.0),
             speed: 0.15,
             lifetime: 10.0,
             is_kinematic: true,
             impact_sound: "data/sounds/bullet_impact_concrete.ogg",
         ),
         Grenade: (
-            damage: 60.0,
+            damage: Splash(
+                radius: 2.0,
+                amount: 60.0,
+            ),
             speed: 0.0,
             lifetime: 10.0,
             is_kinematic: false,

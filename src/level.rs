@@ -1,4 +1,4 @@
-use crate::weapon::projectile::ProjectileOwner;
+use crate::weapon::projectile::{Damage, ProjectileOwner};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -908,7 +908,7 @@ impl Level {
         weapon: Handle<Weapon>,
         begin: Vector3<f32>,
         end: Vector3<f32>,
-        damage: f32,
+        damage: Damage,
     ) {
         let scene = &mut engine.scenes[self.scene];
 
@@ -954,7 +954,9 @@ impl Level {
                 .send(Message::DamageActor {
                     actor: hit.actor,
                     who: hit.who,
-                    amount: damage * hit.hit_box.map_or(1.0, |h| h.damage_factor),
+                    amount: damage
+                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
+                        .amount(),
                 })
                 .unwrap();
 
@@ -1006,6 +1008,33 @@ impl Level {
             lifetime: 0.0,
             max_lifetime: 0.2,
         });
+    }
+
+    fn apply_splash_damage(
+        &mut self,
+        engine: &mut GameEngine,
+        amount: f32,
+        radius: f32,
+        center: Vector3<f32>,
+        who: Handle<Actor>,
+    ) {
+        let scene = &mut engine.scenes[self.scene];
+        // Just find out actors which must be damaged and re-cast damage message for each.
+        for (actor_handle, actor) in self.actors.pair_iter() {
+            // TODO: Add occlusion test. This will hit actors through walls.
+            let position = actor.position(&scene.graph);
+            if position.metric_distance(&center) <= radius {
+                self.sender
+                    .as_ref()
+                    .unwrap()
+                    .send(Message::DamageActor {
+                        actor: actor_handle,
+                        who,
+                        amount,
+                    })
+                    .unwrap();
+            }
+        }
     }
 
     pub async fn handle_message(
@@ -1062,6 +1091,12 @@ impl Level {
                     .await;
                 }
             }
+            &Message::ApplySplashDamage {
+                amount,
+                radius,
+                center,
+                who,
+            } => self.apply_splash_damage(engine, amount, radius, center, who),
             &Message::DamageActor { actor, who, amount } => {
                 self.damage_actor(engine, actor, who, amount);
             }

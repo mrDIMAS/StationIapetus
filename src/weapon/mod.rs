@@ -1,6 +1,6 @@
 //! Weapon related stuff.
 
-use crate::weapon::projectile::ProjectileOwner;
+use crate::weapon::projectile::{Damage, ProjectileOwner};
 use crate::{
     actor::Actor, actor::ActorContainer, character::HitBox, message::Message,
     weapon::projectile::ProjectileKind, CollisionGroups, GameTime,
@@ -320,7 +320,7 @@ pub enum WeaponProjectile {
     Projectile(ProjectileKind),
     /// For high-speed "projectiles".
     Ray {
-        damage: f32,
+        damage: Damage,
     },
 }
 

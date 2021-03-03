@@ -9,22 +9,25 @@
 //! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
 //! all kinds of games, but at least it very useful for first-person shooters.
 
-use crate::sound::SoundKind;
-use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::Actor,
     bot::BotKind,
     effects::EffectKind,
     item::{Item, ItemKind},
-    weapon::projectile::ProjectileKind,
-    weapon::{Weapon, WeaponKind},
+    sound::SoundKind,
+    weapon::{
+        projectile::{Damage, ProjectileKind, ProjectileOwner},
+        Weapon, WeaponKind,
+    },
 };
-use rg3d::core::{
-    algebra::{UnitQuaternion, Vector3},
-    pool::Handle,
+use rg3d::{
+    core::{
+        algebra::{UnitQuaternion, Vector3},
+        pool::Handle,
+    },
+    physics::parry::shape::FeatureId,
+    scene::ColliderHandle,
 };
-use rg3d::physics::parry::shape::FeatureId;
-use rg3d::scene::ColliderHandle;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -76,7 +79,7 @@ pub enum Message {
         weapon: Handle<Weapon>,
         begin: Vector3<f32>,
         end: Vector3<f32>,
-        damage: f32,
+        damage: Damage,
     },
     PlaySound {
         path: PathBuf,
@@ -105,16 +108,25 @@ pub enum Message {
         weapon: Handle<Weapon>,
     },
     DamageActor {
+        /// Which actor should be damaged.
         actor: Handle<Actor>,
         /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
         /// or not from any actor.
         who: Handle<Actor>,
+        /// Numeric value of damage.
         amount: f32,
     },
     CreateEffect {
         kind: EffectKind,
         position: Vector3<f32>,
         orientation: UnitQuaternion<f32>,
+    },
+    ApplySplashDamage {
+        amount: f32,
+        radius: f32,
+        center: Vector3<f32>,
+        /// Damage initiator
+        who: Handle<Actor>,
     },
     /// Save game state to a file. TODO: Add filename field.
     SaveGame,

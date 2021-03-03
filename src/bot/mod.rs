@@ -1,4 +1,5 @@
 use crate::item::ItemKind;
+use crate::weapon::projectile::Damage;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -186,7 +187,7 @@ impl Default for Bot {
 pub struct AttackAnimationDefinition {
     path: String,
     timestamp: f32,
-    damage: f32,
+    damage: Damage,
     speed: f32,
 }
 
@@ -630,7 +631,8 @@ impl Bot {
                                 who: Default::default(),
                                 amount: self.definition.attack_animations
                                     [self.attack_animation_index as usize]
-                                    .damage,
+                                    .damage
+                                    .amount(),
                             })
                             .unwrap();
                     }

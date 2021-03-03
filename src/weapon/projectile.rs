@@ -111,6 +111,79 @@ impl Visit for ProjectileOwner {
     }
 }
 
+#[derive(Deserialize, Copy, Clone, Debug)]
+pub enum Damage {
+    Splash { radius: f32, amount: f32 },
+    Point(f32),
+}
+
+impl Default for Damage {
+    fn default() -> Self {
+        Self::Point(0.0)
+    }
+}
+
+impl Damage {
+    fn id(&self) -> u32 {
+        match self {
+            Self::Splash { .. } => 0,
+            Self::Point(_) => 1,
+        }
+    }
+
+    fn from_id(id: u32) -> Result<Self, String> {
+        match id {
+            0 => Ok(Self::Splash {
+                radius: 0.0,
+                amount: 0.0,
+            }),
+            1 => Ok(Self::Point(0.0)),
+            _ => Err(format!("Invalid damage id {}!", id)),
+        }
+    }
+
+    #[must_use]
+    pub fn scale(&self, k: f32) -> Self {
+        match *self {
+            Self::Splash { amount, radius } => Self::Splash {
+                amount: amount * k.abs(),
+                radius,
+            },
+            Self::Point(amount) => Self::Point(amount * k.abs()),
+        }
+    }
+
+    pub fn amount(&self) -> f32 {
+        *match self {
+            Damage::Splash { amount, .. } => amount,
+            Damage::Point(amount) => amount,
+        }
+    }
+}
+
+impl Visit for Damage {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        let mut id = self.id();
+        id.visit("Id", visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(id)?;
+        }
+        match self {
+            Damage::Splash { radius, amount } => {
+                radius.visit("Radius", visitor)?;
+                amount.visit("Amount", visitor)?;
+            }
+            Damage::Point(amount) => {
+                amount.visit("Amount", visitor)?;
+            }
+        }
+
+        visitor.leave_region()
+    }
+}
+
 pub struct Projectile {
     kind: ProjectileKind,
     model: Handle<Node>,
@@ -153,7 +226,7 @@ impl Default for Projectile {
 
 #[derive(Deserialize)]
 pub struct ProjectileDefinition {
-    damage: f32,
+    damage: Damage,
     speed: f32,
     lifetime: f32,
     /// Means that movement of projectile controlled by code, not physics.
@@ -385,15 +458,36 @@ impl Projectile {
         }
 
         for hit in self.hits.drain() {
-            self.sender
-                .as_ref()
-                .unwrap()
-                .send(Message::DamageActor {
-                    actor: hit.actor,
-                    who: hit.who,
-                    amount: self.definition.damage * hit.hit_box.map_or(1.0, |h| h.damage_factor),
-                })
-                .unwrap();
+            let damage = self
+                .definition
+                .damage
+                .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
+
+            match damage {
+                Damage::Splash { radius, amount } => {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::ApplySplashDamage {
+                            amount,
+                            radius,
+                            center: position,
+                            who: hit.who,
+                        })
+                        .unwrap();
+                }
+                Damage::Point(amount) => {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::DamageActor {
+                            actor: hit.actor,
+                            who: hit.who,
+                            amount,
+                        })
+                        .unwrap();
+                }
+            }
         }
 
         self.last_position = position;

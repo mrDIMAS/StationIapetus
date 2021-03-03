@@ -3,7 +3,7 @@
         M4: (
             model: "data/models/m4.FBX",
             shot_sound: "data/sounds/m4_shot.ogg",
-            projectile: Ray(damage: 15.0),
+            projectile: Ray(damage: Point(15.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
@@ -13,7 +13,7 @@
         Ak47: (
             model: "data/models/ak47.FBX",
             shot_sound: "data/sounds/ak47.ogg",
-            projectile: Ray(damage: 17.0),
+            projectile: Ray(damage: Point(17.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
@@ -33,7 +33,7 @@
         Glock: (
             model: "data/models/glock.FBX",
             shot_sound: "data/sounds/ak47.ogg",
-            projectile: Ray(damage: 10.0),
+            projectile: Ray(damage: Point(10.0)),
             shoot_interval: 0.3,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
