@@ -1,4 +1,5 @@
 use crate::message::Message;
+use crate::weapon::WeaponKind;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -73,13 +74,24 @@ impl ItemKind {
             ItemKind::Glock => 7,
         }
     }
+
+    pub fn associated_weapon(&self) -> Option<WeaponKind> {
+        match self {
+            ItemKind::PlasmaGun => Some(WeaponKind::PlasmaRifle),
+            ItemKind::Ak47 => Some(WeaponKind::Ak47),
+            ItemKind::M4 => Some(WeaponKind::M4),
+            ItemKind::Glock => Some(WeaponKind::Glock),
+            ItemKind::Medkit | ItemKind::Medpack | ItemKind::Ammo | ItemKind::Grenade => None,
+        }
+    }
 }
 
 pub struct Item {
     kind: ItemKind,
     pivot: Handle<Node>,
     model: Handle<Node>,
-    definition: &'static ItemDefinition,
+    pub stack_size: u32,
+    pub definition: &'static ItemDefinition,
     pub sender: Option<Sender<Message>>,
 }
 
@@ -89,6 +101,7 @@ impl Default for Item {
             kind: ItemKind::Medkit,
             pivot: Default::default(),
             model: Default::default(),
+            stack_size: 1,
             definition: Self::get_definition(ItemKind::Medkit),
             sender: None,
         }
@@ -189,6 +202,7 @@ impl Visit for Item {
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
         self.pivot.visit("Pivot", visitor)?;
+        self.stack_size.visit("StackSize", visitor)?;
 
         visitor.leave_region()
     }
@@ -241,5 +255,10 @@ impl ItemContainer {
 
     pub fn iter_mut(&mut self) -> PoolIteratorMut<Item> {
         self.pool.iter_mut()
+    }
+
+    pub fn remove(&mut self, item: Handle<Item>, graph: &mut Graph) {
+        self.pool[item].cleanup(graph);
+        self.pool.free(item);
     }
 }

@@ -21,13 +21,12 @@ pub mod player;
 pub mod sound;
 pub mod weapon;
 
-use crate::actor::Actor;
-use crate::gui::inventory::InventoryInterface;
 use crate::{
+    actor::Actor,
     control_scheme::ControlScheme,
     gui::{
-        weapon_display::WeaponDisplay, BuildContext, CustomUiMessage, CustomUiNode, DeathScreen,
-        GuiMessage, UINodeHandle, UiNode,
+        inventory::InventoryInterface, item_display::ItemDisplay, weapon_display::WeaponDisplay,
+        BuildContext, CustomUiMessage, CustomUiNode, DeathScreen, GuiMessage, UINodeHandle, UiNode,
     },
     level::Level,
     menu::Menu,
@@ -158,6 +157,7 @@ pub struct Game {
     death_screen: DeathScreen,
     weapon_display: WeaponDisplay,
     inventory_interface: InventoryInterface,
+    item_display: ItemDisplay,
 }
 
 struct LoadingScreen {
@@ -311,7 +311,8 @@ impl Game {
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
-            weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
+            weapon_display: WeaponDisplay::new(font.clone(), engine.resource_manager.clone()),
+            item_display: ItemDisplay::new(font, engine.resource_manager.clone()),
             engine,
             level: None,
             debug_string: String::new(),
@@ -398,6 +399,14 @@ impl Game {
             .render_ui_to_texture(
                 self.inventory_interface.render_target.clone(),
                 &mut self.inventory_interface.ui,
+            )
+            .unwrap();
+
+        self.engine
+            .renderer
+            .render_ui_to_texture(
+                self.item_display.render_target.clone(),
+                &mut self.item_display.ui,
             )
             .unwrap();
 
@@ -509,6 +518,7 @@ impl Game {
         let sender = self.events_sender.clone();
         let display_texture = self.weapon_display.render_target.clone();
         let inventory_texture = self.inventory_interface.render_target.clone();
+        let item_texture = self.item_display.render_target.clone();
 
         std::thread::spawn(move || {
             let level = rg3d::futures::executor::block_on(Level::new(
@@ -517,6 +527,7 @@ impl Game {
                 sender,
                 display_texture,
                 inventory_texture,
+                item_texture,
             ));
 
             ctx.lock().unwrap().level = Some(level);
@@ -577,6 +588,7 @@ impl Game {
 
         self.weapon_display.update(time.delta);
         self.inventory_interface.update(time.delta);
+        self.item_display.update(time.delta);
         self.engine.update(time.delta);
 
         self.handle_messages(time);
@@ -631,6 +643,9 @@ impl Game {
                             self.inventory_interface.sync_to_model(player);
                         }
                     }
+                }
+                &Message::ShowItemDisplay { item, count } => {
+                    self.item_display.sync_to_model(item, count);
                 }
                 _ => (),
             }
@@ -700,7 +715,6 @@ impl Game {
                         &self.control_scheme.read().unwrap(),
                         player_handle,
                         player,
-                        graph,
                     );
                 }
             }

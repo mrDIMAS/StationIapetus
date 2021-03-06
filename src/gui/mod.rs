@@ -36,6 +36,10 @@ use std::{
     sync::mpsc::Sender,
 };
 
+pub mod inventory;
+pub mod item_display;
+pub mod weapon_display;
+
 #[derive(Debug, Clone)]
 pub enum CustomUiNode {
     InventoryItem(InventoryItem),
@@ -123,9 +127,6 @@ pub type GuiMessage = UiMessage<CustomUiMessage, CustomUiNode>;
 pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, CustomUiMessage, CustomUiNode>;
 pub type CustomWidget = rg3d::gui::widget::Widget<CustomUiMessage, CustomUiNode>;
 pub type UiWidgetBuilder = rg3d::gui::widget::WidgetBuilder<CustomUiMessage, CustomUiNode>;
-
-pub mod inventory;
-pub mod weapon_display;
 
 pub struct ScrollBarData {
     pub min: f32,

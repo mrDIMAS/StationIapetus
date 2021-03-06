@@ -140,4 +140,13 @@ pub enum Message {
     },
     EndMatch,
     SyncInventory,
+    ShowItemDisplay {
+        item: ItemKind,
+        count: u32,
+    },
+    DropItems {
+        actor: Handle<Actor>,
+        item: ItemKind,
+        count: u32,
+    },
 }

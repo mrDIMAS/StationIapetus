@@ -417,7 +417,6 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player_handle: Handle<Actor>,
         player: &mut Player,
-        graph: &Graph,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -481,21 +480,14 @@ impl InventoryInterface {
                                     if let UiNode::User(CustomUiNode::InventoryItem(item)) =
                                         self.ui.node(selection)
                                     {
-                                        let definition = Item::get_definition(item.item);
-                                        if player
-                                            .inventory_mut()
-                                            .try_extract_exact_items(item.item, 1)
-                                            == 1
-                                        {
-                                            self.sender
-                                                .send(Message::SpawnItem {
-                                                    kind: item.item,
-                                                    position: player.position(graph),
-                                                    adjust_height: true,
-                                                })
-                                                .unwrap();
-                                            self.sender.send(Message::SyncInventory).unwrap();
-                                        }
+                                        self.sender
+                                            .send(Message::DropItems {
+                                                actor: player_handle,
+                                                item: item.item,
+                                                count: 1,
+                                            })
+                                            .unwrap();
+                                        self.sender.send(Message::SyncInventory).unwrap();
                                     } else {
                                         unreachable!()
                                     }

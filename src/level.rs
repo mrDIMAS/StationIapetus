@@ -355,6 +355,7 @@ async fn spawn_player(
     scene: &mut Scene,
     display_texture: Texture,
     inventory_texture: Texture,
+    item_texture: Texture,
 ) -> Handle<Actor> {
     let player = Player::new(
         scene,
@@ -364,6 +365,7 @@ async fn spawn_player(
         control_scheme,
         display_texture,
         inventory_texture,
+        item_texture,
     )
     .await;
     let player = actors.add(Actor::Player(player));
@@ -413,6 +415,7 @@ async fn give_new_weapon(
         let weapon_handle = weapons.add(weapon);
         actor.add_weapon(weapon_handle);
         scene.graph.link_nodes(weapon_model, actor.weapon_pivot());
+        actor.inventory_mut().add_item(kind.associated_item(), 1);
     }
 }
 
@@ -467,6 +470,7 @@ impl Level {
         sender: Sender<Message>,
         display_texture: Texture,
         inventory_texture: Texture,
+        item_texture: Texture,
     ) -> (Level, Scene) {
         let mut scene = Scene::new();
 
@@ -518,6 +522,7 @@ impl Level {
                 &mut scene,
                 display_texture,
                 inventory_texture,
+                item_texture,
             )
             .await,
             map_root,
@@ -617,7 +622,23 @@ impl Level {
                 }
             }
         }
-        self.weapons[weapon].clean_up(&mut engine.scenes[self.scene]);
+
+        let scene = &mut engine.scenes[self.scene];
+
+        for actor in self.actors.iter_mut() {
+            if actor.current_weapon() == weapon {
+                if let Some(&first_weapon) = actor.weapons.first() {
+                    actor.current_weapon = 0;
+                    self.weapons[first_weapon].set_visibility(true, &mut scene.graph);
+                }
+            }
+
+            if let Some(i) = actor.weapons.iter().position(|&w| w == weapon) {
+                actor.weapons.remove(i);
+            }
+        }
+
+        self.weapons[weapon].clean_up(scene);
         self.weapons.free(weapon);
     }
 
@@ -643,33 +664,46 @@ impl Level {
     async fn remove_actor(&mut self, engine: &mut GameEngine, actor: Handle<Actor>) {
         if self.actors.contains(actor) {
             let scene = &mut engine.scenes[self.scene];
-            let character = self.actors.get(actor);
-
-            // Make sure to remove weapons and drop appropriate items (items will be temporary).
-            let drop_position = character.position(&scene.graph);
-            let weapons = character
-                .weapons()
-                .iter()
-                .copied()
-                .collect::<Vec<Handle<Weapon>>>();
-            for weapon in weapons {
-                let item_kind = match self.weapons[weapon].get_kind() {
-                    WeaponKind::M4 => ItemKind::M4,
-                    WeaponKind::Ak47 => ItemKind::Ak47,
-                    WeaponKind::PlasmaRifle => ItemKind::PlasmaGun,
-                    WeaponKind::Glock => ItemKind::Glock,
-                };
-                self.spawn_item(engine, item_kind, drop_position, true)
-                    .await;
-                self.remove_weapon(engine, weapon);
-            }
-
-            let scene = &mut engine.scenes[self.scene];
             self.actors.get_mut(actor).clean_up(scene);
             self.actors.free(actor);
 
             if self.player == actor {
                 self.player = Handle::NONE;
+            }
+        }
+    }
+
+    async fn drop_items(
+        &mut self,
+        engine: &mut GameEngine,
+        actor: Handle<Actor>,
+        item: ItemKind,
+        count: u32,
+    ) {
+        let character = self.actors.get_mut(actor);
+
+        // TODO: Raycast and pick ground position.
+        let drop_position = character.position(&engine.scenes[self.scene].graph);
+        let weapons = character
+            .weapons()
+            .iter()
+            .copied()
+            .collect::<Vec<Handle<Weapon>>>();
+
+        if character
+            .inventory_mut()
+            .try_extract_exact_items(item, count)
+            == count
+        {
+            self.spawn_item(engine, item, drop_position, true).await;
+
+            // Make sure to remove weapons associated with items.
+            if let Some(weapon_kind) = item.associated_weapon() {
+                for weapon in weapons {
+                    if self.weapons[weapon].get_kind() == weapon_kind {
+                        self.remove_weapon(engine, weapon);
+                    }
+                }
             }
         }
     }
@@ -718,14 +752,17 @@ impl Level {
         &mut self,
         engine: &mut GameEngine,
         actor: Handle<Actor>,
-        item: Handle<Item>,
+        item_handle: Handle<Item>,
     ) {
-        if self.actors.contains(actor) && self.items.contains(item) {
-            let item = self.items.get_mut(item);
+        if self.actors.contains(actor) && self.items.contains(item_handle) {
+            let item = self.items.get_mut(item_handle);
 
             let scene = &mut engine.scenes[self.scene];
             let position = item.position(&scene.graph);
             let kind = item.get_kind();
+
+            self.items.remove(item_handle, &mut scene.graph);
+
             self.sender
                 .as_ref()
                 .unwrap()
@@ -1136,6 +1173,9 @@ impl Level {
                 if self.weapons.contains(weapon) {
                     self.weapons[weapon].switch_flash_light(&mut engine.scenes[self.scene].graph);
                 }
+            }
+            &Message::DropItems { actor, item, count } => {
+                self.drop_items(engine, actor, item, count).await;
             }
             _ => (),
         }

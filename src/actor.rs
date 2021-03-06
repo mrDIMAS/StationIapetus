@@ -1,6 +1,6 @@
 use crate::{
     bot::Bot, character::Character, control_scheme::ControlScheme, level::UpdateContext,
-    message::Message, player::Player,
+    player::Player,
 };
 use rg3d::{
     core::{
@@ -173,26 +173,6 @@ impl ActorContainer {
             match actor {
                 Actor::Bot(bot) => bot.update(handle, context, &self.target_descriptors),
                 Actor::Player(player) => player.update(handle, context),
-            }
-            if !actor.is_dead() {
-                for (item_handle, item) in context.items.pair_iter() {
-                    if let Some(body) = context.scene.physics.bodies.get(actor.get_body().into()) {
-                        let distance = (context.scene.graph[item.get_pivot()].global_position()
-                            - body.position().translation.vector)
-                            .norm();
-                        if distance < 0.75 {
-                            actor
-                                .sender
-                                .as_ref()
-                                .unwrap()
-                                .send(Message::PickUpItem {
-                                    actor: handle,
-                                    item: item_handle,
-                                })
-                                .unwrap();
-                        }
-                    }
-                }
             }
         }
     }

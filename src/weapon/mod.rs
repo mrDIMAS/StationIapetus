@@ -1,5 +1,6 @@
 //! Weapon related stuff.
 
+use crate::item::ItemKind;
 use crate::weapon::projectile::{Damage, ProjectileOwner};
 use crate::{
     actor::Actor, actor::ActorContainer, character::HitBox, message::Message,
@@ -73,6 +74,15 @@ impl WeaponKind {
             2 => Ok(WeaponKind::PlasmaRifle),
             3 => Ok(WeaponKind::Glock),
             _ => Err(format!("unknown weapon kind {}", id)),
+        }
+    }
+
+    pub fn associated_item(&self) -> ItemKind {
+        match self {
+            WeaponKind::M4 => ItemKind::M4,
+            WeaponKind::Ak47 => ItemKind::Ak47,
+            WeaponKind::PlasmaRifle => ItemKind::PlasmaGun,
+            WeaponKind::Glock => ItemKind::Glock,
         }
     }
 }

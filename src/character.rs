@@ -240,6 +240,16 @@ impl Character {
         }
     }
 
+    pub fn use_first_weapon_or_none(&mut self) {
+        if !self.weapons.is_empty() {
+            self.request_current_weapon_visible(false);
+
+            self.current_weapon = 0;
+
+            self.request_current_weapon_visible(true);
+        }
+    }
+
     pub fn set_current_weapon(&mut self, i: usize) {
         if i < self.weapons.len() {
             self.request_current_weapon_visible(false);

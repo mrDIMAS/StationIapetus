@@ -14,6 +14,7 @@ use crate::{
     weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
     CollisionGroups,
 };
+use rg3d::scene::sprite::SpriteBuilder;
 use rg3d::{
     animation::{
         machine::{
@@ -219,6 +220,7 @@ pub struct InputController {
     toss_grenade: bool,
     shoot: bool,
     run: bool,
+    action: bool,
 }
 
 impl Deref for Player {
@@ -322,6 +324,7 @@ pub struct Player {
     target_velocity: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
+    item_display: Handle<Node>,
     health_cylinder: Handle<Node>,
     last_health: f32,
     health_color_gradient: ColorGradient,
@@ -363,6 +366,7 @@ impl Visit for Player {
         self.inventory_display.visit("InventoryDisplay", visitor)?;
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
+        self.item_display.visit("ItemDisplay", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -394,6 +398,7 @@ impl Player {
         control_scheme: Arc<RwLock<ControlScheme>>,
         display_texture: Texture,
         inventory_texture: Texture,
+        item_texture: Texture,
     ) -> Self {
         let body_radius = 0.2;
         let body_height = 0.25;
@@ -516,7 +521,7 @@ impl Player {
         let mesh = scene.graph[health_cylinder].as_mesh_mut();
         mesh.set_render_path(RenderPath::Forward);
 
-        let contextual_display = MeshBuilder::new(BaseBuilder::new())
+        let weapon_display = MeshBuilder::new(BaseBuilder::new())
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
                 SurfaceSharedData::make_quad(Matrix4::new_scaling(0.07)),
             )))
@@ -525,7 +530,12 @@ impl Player {
             .with_cast_shadows(false)
             .with_render_path(RenderPath::Forward)
             .build(&mut scene.graph);
-        scene.graph.link_nodes(contextual_display, weapon_pivot);
+        scene.graph.link_nodes(weapon_display, weapon_pivot);
+
+        let item_display = SpriteBuilder::new(BaseBuilder::new())
+            .with_texture(item_texture)
+            .with_size(0.1)
+            .build(&mut scene.graph);
 
         let s = 0.8;
         let inventory_display = MeshBuilder::new(
@@ -557,10 +567,6 @@ impl Player {
         inventory.add_item(ItemKind::Medkit, 2);
         inventory.add_item(ItemKind::Medpack, 2);
         inventory.add_item(ItemKind::Ammo, 400);
-        inventory.add_item(ItemKind::Glock, 1);
-        inventory.add_item(ItemKind::Ak47, 1);
-        inventory.add_item(ItemKind::M4, 1);
-        inventory.add_item(ItemKind::PlasmaGun, 1);
         inventory.add_item(ItemKind::Grenade, 3);
 
         Self {
@@ -616,9 +622,10 @@ impl Player {
             run_factor: 0.0,
             target_run_factor: 0.0,
             target_velocity: Default::default(),
-            weapon_display: contextual_display,
+            weapon_display,
             last_health: 100.0,
             health_color_gradient: make_color_gradient(),
+            item_display,
         }
     }
 
@@ -1136,6 +1143,50 @@ impl Player {
                     .rewind();
             }
 
+            scene.graph[self.item_display].set_visibility(false);
+
+            for (item_handle, item) in context.items.pair_iter() {
+                let self_position = scene.graph[self.pivot].global_position();
+                let item_position = scene.graph[item.get_pivot()].global_position();
+
+                let distance = (item_position - self_position).norm();
+                if distance < 0.75 {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::ShowItemDisplay {
+                            item: item.get_kind(),
+                            count: item.stack_size,
+                        })
+                        .unwrap();
+
+                    if self.controller.action {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::PickUpItem {
+                                actor: self_handle,
+                                item: item_handle,
+                            })
+                            .unwrap();
+
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::SyncInventory)
+                            .unwrap();
+                    }
+
+                    let display = &mut scene.graph[self.item_display];
+                    display
+                        .local_transform_mut()
+                        .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
+                    display.set_visibility(true);
+
+                    break;
+                }
+            }
+
             if let Some(&current_weapon_handle) = self
                 .character
                 .weapons
@@ -1342,6 +1393,8 @@ impl Player {
                 }
             } else if button == scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;
+            } else if button == scheme.action.button {
+                self.controller.action = state == ElementState::Pressed;
             } else if button == scheme.inventory.button && state == ElementState::Pressed {
                 let inventory = &mut scene.graph[self.inventory_display];
                 let new_visibility = !inventory.visibility();

@@ -1,19 +1,21 @@
-use crate::item::ItemKind;
-use crate::player::Player;
-use crate::{gui::Gui, gui::UiNode, weapon::WeaponContainer};
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::gui::image::ImageBuilder;
-use rg3d::gui::VerticalAlignment;
+use crate::{
+    gui::{Gui, UiNode},
+    item::ItemKind,
+    player::Player,
+    weapon::WeaponContainer,
+};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
+    engine::resource_manager::ResourceManager,
     gui::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
+        image::ImageBuilder,
         message::{MessageDirection, TextMessage},
         text::TextBuilder,
         ttf::SharedFont,
         widget::WidgetBuilder,
-        HorizontalAlignment,
+        VerticalAlignment,
     },
     resource::texture::Texture,
     utils,
