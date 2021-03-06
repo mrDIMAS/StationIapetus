@@ -127,7 +127,7 @@ impl LowerBodyMachine {
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
         ) = rg3d::futures::join!(
-            resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_walking_lower_body.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
             resource_manager.request_model("data/animations/agent_jump.fbx"),
             resource_manager.request_model("data/animations/agent_falling.fbx"),
@@ -225,6 +225,7 @@ impl LowerBodyMachine {
         scene
             .animations
             .get_mut(walk_animation)
+            .set_speed(0.7)
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.4))
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.8));
 

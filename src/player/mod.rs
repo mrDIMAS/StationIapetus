@@ -522,6 +522,7 @@ impl Player {
             )))
             .with_diffuse_texture(display_texture)
             .build()])
+            .with_cast_shadows(false)
             .with_render_path(RenderPath::Forward)
             .build(&mut scene.graph);
         scene.graph.link_nodes(contextual_display, weapon_pivot);
@@ -555,7 +556,7 @@ impl Player {
 
         inventory.add_item(ItemKind::Medkit, 2);
         inventory.add_item(ItemKind::Medpack, 2);
-        inventory.add_item(ItemKind::Ammo, 200);
+        inventory.add_item(ItemKind::Ammo, 400);
         inventory.add_item(ItemKind::Glock, 1);
         inventory.add_item(ItemKind::Ak47, 1);
         inventory.add_item(ItemKind::M4, 1);

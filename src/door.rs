@@ -1,8 +1,8 @@
 use crate::actor::ActorContainer;
-use rg3d::core::algebra::{Isometry3, Translation3};
+use rg3d::core::color::Color;
 use rg3d::{
     core::{
-        algebra::Vector3,
+        algebra::{Isometry3, Translation3, Vector3},
         pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -12,15 +12,17 @@ use rg3d::{
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
 enum State {
-    Open = 0,
+    Opened = 0,
     Opening = 1,
-    Close = 2,
+    Closed = 2,
     Closing = 3,
+    Locked = 4,
+    Broken = 5,
 }
 
 impl Default for State {
     fn default() -> Self {
-        Self::Close
+        Self::Closed
     }
 }
 
@@ -31,10 +33,12 @@ impl State {
 
     pub fn from_id(id: u32) -> Result<Self, String> {
         match id {
-            0 => Ok(Self::Open),
+            0 => Ok(Self::Opened),
             1 => Ok(Self::Opening),
-            2 => Ok(Self::Close),
+            2 => Ok(Self::Closed),
             3 => Ok(Self::Closing),
+            4 => Ok(Self::Locked),
+            5 => Ok(Self::Broken),
             _ => Err(format!("Invalid door state id {}!", id)),
         }
     }
@@ -81,7 +85,7 @@ impl Door {
                 .traverse_handle_iter(node)
                 .filter(|&handle| graph[handle].is_light())
                 .collect(),
-            state: State::Close,
+            state: State::Closed,
             offset: 0.0,
             initial_position: graph[node].global_position(),
         }
@@ -89,6 +93,18 @@ impl Door {
 
     pub fn resolve(&mut self, scene: &Scene) {
         self.initial_position = scene.graph[self.node].global_position();
+    }
+
+    fn set_lights_color(&self, graph: &mut Graph, color: Color) {
+        for &light in self.lights.iter() {
+            graph[light].as_light_mut().set_color(color);
+        }
+    }
+
+    fn set_lights_enabled(&self, graph: &mut Graph, enabled: bool) {
+        for &light in self.lights.iter() {
+            graph[light].set_visibility(enabled);
+        }
     }
 }
 
@@ -121,10 +137,10 @@ impl DoorContainer {
             });
 
             if need_to_open {
-                if door.state == State::Close {
+                if door.state == State::Closed {
                     door.state = State::Opening;
                 }
-            } else if door.state == State::Open {
+            } else if door.state == State::Opened {
                 door.state = State::Closing;
             }
 
@@ -133,22 +149,36 @@ impl DoorContainer {
                     if door.offset < 0.75 {
                         door.offset += 1.0 * dt;
                         if door.offset >= 0.75 {
-                            door.state = State::Open;
+                            door.state = State::Opened;
                             door.offset = 0.75;
                         }
                     }
+
+                    door.set_lights_enabled(&mut scene.graph, false);
                 }
                 State::Closing => {
                     if door.offset > 0.0 {
                         door.offset -= 1.0 * dt;
                         if door.offset <= 0.0 {
-                            door.state = State::Close;
+                            door.state = State::Closed;
                             door.offset = 0.0;
                         }
                     }
+
+                    door.set_lights_enabled(&mut scene.graph, false);
                 }
-                _ => (),
-            }
+                State::Closed => {
+                    door.set_lights_enabled(&mut scene.graph, true);
+                    door.set_lights_color(&mut scene.graph, Color::opaque(0, 255, 0));
+                }
+                State::Locked => {
+                    door.set_lights_enabled(&mut scene.graph, true);
+                    door.set_lights_color(&mut scene.graph, Color::opaque(255, 0, 0));
+                }
+                State::Broken | State::Opened => {
+                    door.set_lights_enabled(&mut scene.graph, false);
+                }
+            };
 
             if let Some(body) = scene.physics_binder.body_of(door.node) {
                 let body = scene.physics.bodies.get_mut(body.into()).unwrap();
