@@ -16,6 +16,7 @@ use crate::{
     },
     CollisionGroups,
 };
+use rg3d::rand::Rng;
 use rg3d::{
     animation::{
         machine::{
@@ -330,6 +331,8 @@ pub struct Player {
     health_cylinder: Handle<Node>,
     last_health: f32,
     health_color_gradient: ColorGradient,
+    v_recoil: SmoothAngle,
+    h_recoil: SmoothAngle,
 }
 
 impl Visit for Player {
@@ -369,6 +372,8 @@ impl Visit for Player {
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
         self.item_display.visit("ItemDisplay", visitor)?;
+        self.v_recoil.visit("VRecoil", visitor)?;
+        self.h_recoil.visit("HRecoil", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -612,12 +617,12 @@ impl Player {
             weapon_yaw_correction: SmoothAngle {
                 angle: 0.0,
                 target: 30.0f32.to_radians(),
-                speed: 10.00,
+                speed: 10.00, // rad/s
             },
             weapon_pitch_correction: SmoothAngle {
                 angle: 0.0,
                 target: 10.0f32.to_radians(),
-                speed: 10.00,
+                speed: 10.00, // rad/s
             },
             in_air_time: 0.0,
             velocity: Default::default(),
@@ -628,6 +633,16 @@ impl Player {
             last_health: 100.0,
             health_color_gradient: make_color_gradient(),
             item_display,
+            v_recoil: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: 1.5, // rad/s
+            },
+            h_recoil: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: 1.5, // rad/s
+            },
         }
     }
 
@@ -1199,7 +1214,7 @@ impl Player {
                 {
                     let weapon = &context.weapons[current_weapon_handle];
                     weapon.laser_sight().set_visible(true, &mut scene.graph);
-                    context.scene.graph[self.weapon_display]
+                    scene.graph[self.weapon_display]
                         .set_visibility(true)
                         .local_transform_mut()
                         .set_position(weapon.definition.ammo_indicator_offset());
@@ -1223,15 +1238,31 @@ impl Player {
                                     direction: None,
                                 })
                                 .unwrap();
+
+                            self.v_recoil
+                                .set_target(weapon.definition.gen_v_recoil_angle());
+                            self.h_recoil
+                                .set_target(weapon.definition.gen_h_recoil_angle());
                         }
                     }
                 } else {
                     context.weapons[current_weapon_handle]
                         .laser_sight()
                         .set_visible(false, &mut scene.graph);
-                    context.scene.graph[self.weapon_display].set_visibility(false);
+                    scene.graph[self.weapon_display].set_visibility(false);
                 }
             }
+
+            self.v_recoil.update(context.time.delta);
+            self.h_recoil.update(context.time.delta);
+
+            let spine_transform = scene.graph[self.spine].local_transform_mut();
+            let rotation = **spine_transform.rotation();
+            spine_transform.set_rotation(
+                rotation
+                    * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
+                    * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
+            );
         } else {
             scene
                 .animations

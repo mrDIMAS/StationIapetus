@@ -9,6 +9,8 @@
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
             ammo_consumption_per_shot: 2,
+            v_recoil: (-2.0, 4.0),
+            h_recoil: (-1.0, 1.0),
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
@@ -19,6 +21,8 @@
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
             ammo_consumption_per_shot: 2,
+            v_recoil: (-2.0, 5.0),
+            h_recoil: (-1.0, 1.0),
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle.fbx",
@@ -29,6 +33,8 @@
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
             ammo_consumption_per_shot: 4,
+            v_recoil: (-0.3, 1.0),
+            h_recoil: (-1.0, 1.0),
         ),
         Glock: (
             model: "data/models/glock.FBX",
@@ -39,6 +45,8 @@
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),
             ammo_consumption_per_shot: 1,
+            v_recoil: (-1.0, 3.0),
+            h_recoil: (-1.0, 1.0),
         )
     }
 )

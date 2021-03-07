@@ -1,17 +1,20 @@
 //! Weapon related stuff.
 
-use crate::item::ItemKind;
-use crate::weapon::projectile::{Damage, ProjectileOwner};
 use crate::{
-    actor::Actor, actor::ActorContainer, character::HitBox, message::Message,
-    weapon::projectile::ProjectileKind, CollisionGroups, GameTime,
+    actor::{Actor, ActorContainer},
+    character::HitBox,
+    item::ItemKind,
+    message::Message,
+    weapon::projectile::{Damage, ProjectileKind, ProjectileOwner},
+    CollisionGroups, GameTime,
 };
+use rg3d::rand::Rng;
 use rg3d::{
     core::{
         algebra::{Matrix3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
-        math::{ray::Ray, Matrix4Ext, Vector3Ext},
+        math::{ray::Ray, Matrix4Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -205,8 +208,6 @@ pub struct Weapon {
     shot_point: Handle<Node>,
     muzzle_flash: Handle<Node>,
     shot_light: Handle<Node>,
-    offset: Vector3<f32>,
-    dest_offset: Vector3<f32>,
     last_shot_time: f64,
     shot_position: Vector3<f32>,
     owner: Handle<Actor>,
@@ -344,6 +345,8 @@ pub struct WeaponDefinition {
     pub pitch_correction: f32,
     pub ammo_indicator_offset: (f32, f32, f32),
     pub ammo_consumption_per_shot: u32,
+    pub v_recoil: (f32, f32),
+    pub h_recoil: (f32, f32),
 }
 
 impl WeaponDefinition {
@@ -353,6 +356,16 @@ impl WeaponDefinition {
             self.ammo_indicator_offset.1,
             self.ammo_indicator_offset.2,
         )
+    }
+
+    pub fn gen_v_recoil_angle(&self) -> f32 {
+        rg3d::rand::thread_rng()
+            .gen_range(self.v_recoil.0.to_radians()..self.v_recoil.1.to_radians())
+    }
+
+    pub fn gen_h_recoil_angle(&self) -> f32 {
+        rg3d::rand::thread_rng()
+            .gen_range(self.h_recoil.0.to_radians()..self.h_recoil.1.to_radians())
     }
 }
 
@@ -377,9 +390,7 @@ impl Default for Weapon {
         Self {
             kind: WeaponKind::M4,
             model: Handle::NONE,
-            offset: Vector3::default(),
             shot_point: Handle::NONE,
-            dest_offset: Vector3::default(),
             last_shot_time: 0.0,
             shot_position: Vector3::default(),
             owner: Handle::NONE,
@@ -401,8 +412,6 @@ impl Visit for Weapon {
         self.kind.visit("KindId", visitor)?;
         self.definition = Self::get_definition(self.kind);
         self.model.visit("Model", visitor)?;
-        self.offset.visit("Offset", visitor)?;
-        self.dest_offset.visit("DestOffset", visitor)?;
         self.last_shot_time.visit("LastShotTime", visitor)?;
         self.owner.visit("Owner", visitor)?;
         self.shot_point.visit("ShotPoint", visitor)?;
@@ -517,10 +526,7 @@ impl Weapon {
     }
 
     pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
-        self.offset.follow(&self.dest_offset, 0.2);
-
         let node = &mut scene.graph[self.model];
-        node.local_transform_mut().set_position(self.offset);
         self.shot_position = node.global_position();
 
         self.muzzle_flash_timer -= dt;
@@ -598,7 +604,6 @@ impl Weapon {
         resource_manager: ResourceManager,
         direction: Option<Vector3<f32>>,
     ) {
-        self.offset = Vector3::new(0.0, 0.0, -0.05);
         self.last_shot_time = time.elapsed;
 
         let position = self.get_shot_position(&scene.graph);

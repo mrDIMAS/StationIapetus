@@ -27,7 +27,7 @@ use rg3d::{
     event::Event,
     physics::{
         crossbeam,
-        geometry::{ContactEvent, InteractionGroups, IntersectionEvent},
+        geometry::{ContactEvent, IntersectionEvent},
         pipeline::ChannelEventCollector,
     },
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
@@ -697,7 +697,7 @@ impl Level {
         let character = self.actors.get_mut(actor);
         let scene = &engine.scenes[self.scene];
 
-        let mut drop_position = character.position(&scene.graph);
+        let drop_position = character.position(&scene.graph);
         let weapons = character
             .weapons()
             .iter()
