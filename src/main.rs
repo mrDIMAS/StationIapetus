@@ -471,6 +471,8 @@ impl Game {
 
         // Hide menu only of we successfully loaded a save.
         self.set_menu_visible(false);
+        self.death_screen
+            .set_visible(&mut self.engine.user_interface, false);
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
