@@ -2,14 +2,14 @@
     map: {
         Medpack: (
             model: "data/models/medkit.fbx",
-            scale: 1.0,
+            scale: 0.025,
             name: "Medpack",
             description: "Small-sized container with medical gel. Restores small amount of health",
             consumable: true
         ),
         Medkit: (
             model: "data/models/medkit.fbx",
-            scale: 1.0,
+            scale: 0.025,
             name: "Medkit",
             description: "Medium-sized container with medical gel. Restores medium amount of health",
             consumable: true

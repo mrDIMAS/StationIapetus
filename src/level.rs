@@ -597,17 +597,31 @@ impl Level {
 
     fn pick(&self, engine: &mut GameEngine, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
         let scene = &mut engine.scenes[self.scene];
+
+        let mut intersections = Vec::new();
         let ray = Ray::from_two_points(from, to);
-        let options = RayCastOptions {
-            ray,
-            max_len: std::f32::MAX,
-            groups: InteractionGroups::all(),
-            sort_results: true,
-        };
-        let mut query_buffer = Vec::default();
-        scene.physics.cast_ray(options, &mut query_buffer);
-        if let Some(pt) = query_buffer.first() {
-            pt.position.coords
+        scene.physics.cast_ray(
+            RayCastOptions {
+                ray,
+                max_len: ray.dir.norm(),
+                groups: Default::default(),
+                sort_results: true,
+            },
+            &mut intersections,
+        );
+
+        if let Some(intersection) = intersections.iter().find(|i| {
+            // Check only trimeshes
+            scene
+                .physics
+                .colliders
+                .get(i.collider.into())
+                .unwrap()
+                .shape()
+                .as_trimesh()
+                .is_some()
+        }) {
+            intersection.position.coords
         } else {
             from
         }
@@ -681,9 +695,9 @@ impl Level {
         count: u32,
     ) {
         let character = self.actors.get_mut(actor);
+        let scene = &engine.scenes[self.scene];
 
-        // TODO: Raycast and pick ground position.
-        let drop_position = character.position(&engine.scenes[self.scene].graph);
+        let mut drop_position = character.position(&scene.graph);
         let weapons = character
             .weapons()
             .iter()
