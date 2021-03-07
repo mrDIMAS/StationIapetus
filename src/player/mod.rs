@@ -1,20 +1,21 @@
-use crate::item::ItemKind;
-use crate::weapon::projectile::ProjectileOwner;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
     control_scheme::{ControlButton, ControlScheme},
     inventory::Inventory,
+    item::ItemKind,
     level::UpdateContext,
     message::Message,
     player::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
-    weapon::{projectile::ProjectileKind, WeaponContainer, WeaponKind},
+    weapon::{
+        projectile::{ProjectileKind, ProjectileOwner},
+        WeaponContainer, WeaponKind,
+    },
     CollisionGroups,
 };
-use rg3d::scene::sprite::SpriteBuilder;
 use rg3d::{
     animation::{
         machine::{
@@ -47,6 +48,7 @@ use rg3d::{
         mesh::{MeshBuilder, RenderPath},
         node::Node,
         physics::RayCastOptions,
+        sprite::SpriteBuilder,
         transform::TransformBuilder,
         ColliderHandle, Scene,
     },
@@ -1431,12 +1433,29 @@ impl Player {
                 || scene.animations[self.lower_body_machine.dying_animation].has_ended())
     }
 
-    pub fn resolve(&mut self, scene: &mut Scene, display_texture: Texture) {
+    pub fn resolve(
+        &mut self,
+        scene: &mut Scene,
+        display_texture: Texture,
+        inventory_texture: Texture,
+        item_texture: Texture,
+    ) {
         scene.graph[self.weapon_display]
             .as_mesh_mut()
             .surfaces_mut()
             .first_mut()
             .unwrap()
             .set_diffuse_texture(Some(display_texture));
+
+        scene.graph[self.inventory_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_diffuse_texture(Some(inventory_texture));
+
+        scene.graph[self.item_display]
+            .as_sprite_mut()
+            .set_texture(Some(item_texture));
     }
 }

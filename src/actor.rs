@@ -197,11 +197,18 @@ impl ActorContainer {
         &mut self,
         scene: &mut Scene,
         display_texture: Texture,
+        inventory_texture: Texture,
+        item_texture: Texture,
         control_scheme: Arc<RwLock<ControlScheme>>,
     ) {
         for actor in self.pool.iter_mut() {
             if let Actor::Player(player) = actor {
-                player.resolve(scene, display_texture.clone());
+                player.resolve(
+                    scene,
+                    display_texture.clone(),
+                    inventory_texture.clone(),
+                    item_texture.clone(),
+                );
                 player.set_control_scheme(control_scheme.clone());
             }
 

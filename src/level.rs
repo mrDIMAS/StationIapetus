@@ -1187,6 +1187,8 @@ impl Level {
         sender: Sender<Message>,
         control_scheme: Arc<RwLock<ControlScheme>>,
         display_texture: Texture,
+        inventory_texture: Texture,
+        item_texture: Texture,
     ) {
         self.set_message_sender(sender, engine);
         self.control_scheme = Some(control_scheme.clone());
@@ -1194,6 +1196,8 @@ impl Level {
         self.actors.resolve(
             &mut engine.scenes[self.scene],
             display_texture,
+            inventory_texture,
+            item_texture,
             control_scheme,
         );
 

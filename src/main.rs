@@ -479,6 +479,8 @@ impl Game {
                 self.events_sender.clone(),
                 self.control_scheme.clone(),
                 self.weapon_display.render_target.clone(),
+                self.inventory_interface.render_target.clone(),
+                self.item_display.render_target.clone(),
             );
         }
 
@@ -703,7 +705,6 @@ impl Game {
                 self.engine.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
-                    let graph = &self.engine.scenes[level.scene].graph;
                     let player =
                         if let Actor::Player(player) = level.actors_mut().get_mut(player_handle) {
                             player

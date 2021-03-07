@@ -28,7 +28,6 @@ use rg3d::{
         Control, HorizontalAlignment, Orientation, Thickness, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
-    scene::graph::Graph,
 };
 use std::{
     ops::{Deref, DerefMut},
