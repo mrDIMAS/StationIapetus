@@ -1398,15 +1398,17 @@ impl Player {
             } else if button == scheme.action.button {
                 self.controller.action = state == ElementState::Pressed;
             } else if button == scheme.inventory.button && state == ElementState::Pressed {
-                let inventory = &mut scene.graph[self.inventory_display];
-                let new_visibility = !inventory.visibility();
-                inventory.set_visibility(new_visibility);
-                if new_visibility {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::SyncInventory)
-                        .unwrap();
+                if !self.controller.aim {
+                    let inventory = &mut scene.graph[self.inventory_display];
+                    let new_visibility = !inventory.visibility();
+                    inventory.set_visibility(new_visibility);
+                    if new_visibility {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::SyncInventory)
+                            .unwrap();
+                    }
                 }
             }
         }
