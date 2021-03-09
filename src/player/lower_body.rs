@@ -225,7 +225,7 @@ impl LowerBodyMachine {
         scene
             .animations
             .get_mut(walk_animation)
-            .set_speed(0.7)
+            .set_speed(0.5)
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.4))
             .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.8));
 

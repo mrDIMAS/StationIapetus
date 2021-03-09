@@ -568,6 +568,7 @@ impl Game {
                             MessageDirection::ToWidget,
                             false,
                         ));
+                    self.menu.sync_to_model(&mut self.engine, true);
                 } else {
                     self.engine
                         .user_interface
@@ -629,6 +630,7 @@ impl Game {
                     self.destroy_level();
                     self.death_screen
                         .set_visible(&self.engine.user_interface, true);
+                    self.menu.sync_to_model(&mut self.engine, false);
                 }
                 Message::SetMusicVolume { volume } => {
                     self.menu_sound_context

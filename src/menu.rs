@@ -75,6 +75,7 @@ impl Menu {
                                             WidgetBuilder::new()
                                                 .on_column(0)
                                                 .on_row(1)
+                                                .with_enabled(false)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
                                         .with_text("Save Game")
@@ -187,6 +188,14 @@ impl Menu {
         }
 
         self.options_menu.process_input_event(engine, event);
+    }
+
+    pub fn sync_to_model(&mut self, engine: &mut GameEngine, level_loaded: bool) {
+        engine.user_interface.send_message(WidgetMessage::enabled(
+            self.btn_save_game,
+            MessageDirection::ToWidget,
+            level_loaded,
+        ));
     }
 
     pub fn handle_ui_message(
