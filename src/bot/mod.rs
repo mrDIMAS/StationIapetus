@@ -389,8 +389,9 @@ impl Bot {
         let mut closest_distance = std::f32::MAX;
 
         let mut query_buffer = Vec::default();
-        'target_loop: for desc in targets {
-            if desc.handle != self_handle && self.frustum.is_contains_point(desc.position) {
+        'target_loop: for desc in targets.iter().filter(|desc| desc.handle != self_handle) {
+            let distance = position.metric_distance(&desc.position);
+            if distance != 0.0 && distance < 1.6 || self.frustum.is_contains_point(desc.position) {
                 let ray = Ray::from_two_points(desc.position, position);
                 scene.physics.cast_ray(
                     RayCastOptions {
@@ -417,13 +418,12 @@ impl Bot {
                     }
                 }
 
-                let sqr_d = position.sqr_distance(&desc.position);
-                if sqr_d < closest_distance {
+                if distance < closest_distance {
                     self.target = Some(Target {
                         position: desc.position,
                         handle: desc.handle,
                     });
-                    closest_distance = sqr_d;
+                    closest_distance = distance;
                 }
             }
         }
