@@ -1,3 +1,5 @@
+use crate::door::DoorState;
+use crate::light::{Light, LightContainer};
 use crate::weapon::projectile::{Damage, ProjectileOwner};
 use crate::{
     actor::{Actor, ActorContainer},
@@ -68,6 +70,7 @@ pub struct Level {
     beam: Option<Arc<RwLock<SurfaceSharedData>>>,
     trails: ShotTrailContainer,
     doors: DoorContainer,
+    lights: LightContainer,
 }
 
 impl Default for Level {
@@ -92,6 +95,7 @@ impl Default for Level {
             beam: None,
             trails: Default::default(),
             doors: Default::default(),
+            lights: Default::default(),
         }
     }
 }
@@ -114,6 +118,7 @@ impl Visit for Level {
         self.navmesh.visit("Navmesh", visitor)?;
         self.trails.visit("Trails", visitor)?;
         self.doors.visit("Doors", visitor)?;
+        self.lights.visit("Lights", visitor)?;
 
         if visitor.is_reading() {
             self.beam = Some(make_beam());
@@ -222,6 +227,7 @@ pub struct AnalysisResult {
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
     doors: DoorContainer,
+    lights: LightContainer,
 }
 
 pub fn footstep_ray_check(
@@ -316,7 +322,22 @@ pub async fn analyze(
         }
 
         if node.tag() == "SideDoor" {
-            result.doors.add(Door::new(handle, &scene.graph));
+            result
+                .doors
+                .add(Door::new(handle, &scene.graph, DoorState::Closed));
+        }
+        if node.tag() == "SideDoorBroken" {
+            result
+                .doors
+                .add(Door::new(handle, &scene.graph, DoorState::Broken));
+        }
+        if node.tag() == "SideDoorLocked" {
+            result
+                .doors
+                .add(Door::new(handle, &scene.graph, DoorState::Locked));
+        }
+        if node.tag() == "FlashingLight" {
+            result.lights.add(Light::new(handle));
         }
     }
 
@@ -496,6 +517,7 @@ impl Level {
             mut spawn_points,
             player_spawn_position,
             doors,
+            lights,
         } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -529,6 +551,7 @@ impl Level {
             actors,
             weapons,
             items,
+            lights,
             death_zones,
             spawn_points,
             navmesh: scene.navmeshes.handle_from_index(0),
@@ -951,6 +974,7 @@ impl Level {
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
         self.doors.update(&self.actors, scene, time.delta);
+        self.lights.update(scene, time.delta);
     }
 
     fn shoot_ray(
@@ -1022,7 +1046,7 @@ impl Level {
                     .apply_force_at_point(
                         dir.try_normalize(std::f32::EPSILON)
                             .unwrap_or_default()
-                            .scale(10.0),
+                            .scale(30.0),
                         Point3::from(hit.position),
                         true,
                     );

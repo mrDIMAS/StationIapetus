@@ -11,7 +11,7 @@ use rg3d::{
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
-enum State {
+pub enum DoorState {
     Opened = 0,
     Opening = 1,
     Closed = 2,
@@ -20,13 +20,13 @@ enum State {
     Broken = 5,
 }
 
-impl Default for State {
+impl Default for DoorState {
     fn default() -> Self {
         Self::Closed
     }
 }
 
-impl State {
+impl DoorState {
     pub fn id(self) -> u32 {
         self as u32
     }
@@ -44,7 +44,7 @@ impl State {
     }
 }
 
-impl Visit for State {
+impl Visit for DoorState {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         let mut id = self.id();
         id.visit(name, visitor)?;
@@ -59,7 +59,7 @@ impl Visit for State {
 pub struct Door {
     node: Handle<Node>,
     lights: Vec<Handle<Node>>,
-    state: State,
+    state: DoorState,
     offset: f32,
     initial_position: Vector3<f32>,
 }
@@ -78,14 +78,14 @@ impl Visit for Door {
 }
 
 impl Door {
-    pub fn new(node: Handle<Node>, graph: &Graph) -> Self {
+    pub fn new(node: Handle<Node>, graph: &Graph, state: DoorState) -> Self {
         Self {
             node,
             lights: graph
                 .traverse_handle_iter(node)
                 .filter(|&handle| graph[handle].is_light())
                 .collect(),
-            state: State::Closed,
+            state,
             offset: 0.0,
             initial_position: graph[node].global_position(),
         }
@@ -127,55 +127,54 @@ impl DoorContainer {
     pub fn update(&mut self, actors: &ActorContainer, scene: &mut Scene, dt: f32) {
         for door in self.doors.iter_mut() {
             let node = &scene.graph[door.node];
-            let door_position = node.global_position();
             let door_side = node.look_vector();
 
             let need_to_open = actors.iter().any(|a| {
                 let actor_position = a.position(&scene.graph);
                 // TODO: Replace with triggers.
-                actor_position.metric_distance(&door_position) < 1.25
+                actor_position.metric_distance(&door.initial_position) < 1.25
             });
 
             if need_to_open {
-                if door.state == State::Closed {
-                    door.state = State::Opening;
+                if door.state == DoorState::Closed {
+                    door.state = DoorState::Opening;
                 }
-            } else if door.state == State::Opened {
-                door.state = State::Closing;
+            } else if door.state == DoorState::Opened {
+                door.state = DoorState::Closing;
             }
 
             match door.state {
-                State::Opening => {
+                DoorState::Opening => {
                     if door.offset < 0.75 {
                         door.offset += 1.0 * dt;
                         if door.offset >= 0.75 {
-                            door.state = State::Opened;
+                            door.state = DoorState::Opened;
                             door.offset = 0.75;
                         }
                     }
 
                     door.set_lights_enabled(&mut scene.graph, false);
                 }
-                State::Closing => {
+                DoorState::Closing => {
                     if door.offset > 0.0 {
                         door.offset -= 1.0 * dt;
                         if door.offset <= 0.0 {
-                            door.state = State::Closed;
+                            door.state = DoorState::Closed;
                             door.offset = 0.0;
                         }
                     }
 
                     door.set_lights_enabled(&mut scene.graph, false);
                 }
-                State::Closed => {
+                DoorState::Closed => {
                     door.set_lights_enabled(&mut scene.graph, true);
                     door.set_lights_color(&mut scene.graph, Color::opaque(0, 255, 0));
                 }
-                State::Locked => {
+                DoorState::Locked => {
                     door.set_lights_enabled(&mut scene.graph, true);
                     door.set_lights_color(&mut scene.graph, Color::opaque(255, 0, 0));
                 }
-                State::Broken | State::Opened => {
+                DoorState::Broken | DoorState::Opened => {
                     door.set_lights_enabled(&mut scene.graph, false);
                 }
             };

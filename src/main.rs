@@ -14,6 +14,7 @@ pub mod gui;
 pub mod inventory;
 pub mod item;
 pub mod level;
+pub mod light;
 pub mod menu;
 pub mod message;
 pub mod options_menu;
