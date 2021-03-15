@@ -1,0 +1,19 @@
+- [ ] Book shelfs
+- [ ] Cups
+- [ ] Books
+- [ ] Chairs
+- [ ] Pipes
+- [ ] Soda cans
+- [ ] Bottles
+- [ ] Card boxes
+- [ ] Electric boxes
+- [ ] Cameras
+- [ ] Lanterns
+- [ ] Elevators
+- [ ] Toolboxes
+- [ ] Shelfs
+- [ ] Vents
+- [ ] Machinery
+- [ ] Gas tanks
+- [x] Cabinets (1)
+- [x] Tables (1)
