@@ -108,6 +108,7 @@ pub async fn create_camera(
                 .build(),
         ),
     )
+    .with_z_far(20.0)
     .with_skybox(skybox)
     .build(graph)
 }

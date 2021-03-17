@@ -94,6 +94,9 @@ pub enum Message {
         feature: FeatureId,
         position: Vector3<f32>,
         sound_kind: SoundKind,
+        gain: f32,
+        rolloff_factor: f32,
+        radius: f32,
     },
     ShowWeapon {
         weapon: Handle<Weapon>,

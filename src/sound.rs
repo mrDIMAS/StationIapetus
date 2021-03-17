@@ -7,8 +7,7 @@ use rg3d::{
     },
     engine::resource_manager::ResourceManager,
     physics::geometry::FeatureId,
-    rand,
-    rand::seq::SliceRandom,
+    rand::{self, seq::SliceRandom},
     scene::{node::Node, ColliderHandle, Scene},
     sound::{
         context::{self, Context},
@@ -224,6 +223,9 @@ impl SoundManager {
                 feature,
                 position,
                 sound_kind,
+                gain,
+                rolloff_factor,
+                radius,
             } => {
                 let material = self
                     .sound_map
@@ -256,9 +258,9 @@ impl SoundManager {
                             self.play_sound(
                                 sound_list.choose(&mut rand::thread_rng()).unwrap().as_ref(),
                                 position,
-                                1.0,
-                                1.0,
-                                10.0,
+                                gain,
+                                rolloff_factor,
+                                radius,
                                 resource_manager,
                             )
                             .await;

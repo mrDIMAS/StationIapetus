@@ -258,6 +258,9 @@ pub fn footstep_ray_check(
                 feature: intersection.feature,
                 position: intersection.position.coords,
                 sound_kind: SoundKind::FootStep,
+                gain: 0.2,
+                rolloff_factor: 1.0,
+                radius: 0.3,
             })
             .unwrap();
     }
@@ -1020,6 +1023,9 @@ impl Level {
                     feature: hit.feature,
                     position: hit.position,
                     sound_kind: SoundKind::Impact,
+                    gain: 1.0,
+                    rolloff_factor: 1.0,
+                    radius: 2.0,
                 })
                 .unwrap();
 

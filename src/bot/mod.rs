@@ -1,5 +1,3 @@
-use crate::item::ItemKind;
-use crate::weapon::projectile::Damage;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -7,9 +5,10 @@ use crate::{
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
     character::{find_hit_boxes, Character},
+    item::ItemKind,
     level::{footstep_ray_check, UpdateContext},
     message::Message,
-    weapon::WeaponContainer,
+    weapon::{projectile::Damage, WeaponContainer},
     CollisionGroups, GameTime,
 };
 use rg3d::{
@@ -17,7 +16,7 @@ use rg3d::{
     core::{
         algebra::{Isometry3, Matrix4, Point3, Translation3, UnitQuaternion, Vector3},
         color::Color,
-        math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
+        math::{frustum::Frustum, ray::Ray, SmoothAngle},
         pool::Handle,
         rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
