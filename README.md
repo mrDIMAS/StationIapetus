@@ -15,8 +15,6 @@
 - **Store**: Steam
 - **Platforms**: Windows (7+), Linux (Ubuntu?), macOS
 
-![Gameplay video](pics/gameplay.gif?raw=true "Gameplay")
-
 ## Plot
 
 You're playing as a task force agent on a space prison near Saturn's satellite Iapetus. **The rest is yet 
@@ -26,7 +24,7 @@ to-be-decided.** The main source of inspiration is Dead Space series.
 
 Check latest gameplay video on my YouTube channel:
 
-[![Gameplay video](pics/youtube-preview.PNG?raw=true "Video")](https://www.youtube.com/watch?v=jHEEUJxrzj8)
+[![Gameplay video](pics/youtube-preview.PNG?raw=true "Video")](https://www.youtube.com/watch?v=DgQXyCw3in4)
 
 _Keep in mind that it can be different from the latest version!_
 
@@ -36,7 +34,6 @@ _Keep in mind that it can be different from the latest version!_
 ![Screenshot 2](pics/s2.jpg)
 ![Screenshot 3](pics/s3.jpg)
 ![Screenshot 4](pics/s4.jpg)
-![Screenshot 5](pics/s5.jpg)
 
 ## How to build
 

@@ -10,7 +10,7 @@
         Grenade: (
             damage: Splash(
                 radius: 2.0,
-                amount: 60.0,
+                amount: 80.0,
             ),
             speed: 0.0,
             lifetime: 10.0,

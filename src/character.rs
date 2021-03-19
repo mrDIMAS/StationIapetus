@@ -110,7 +110,7 @@ impl Character {
         if let Some(iterator) = physics.narrow_phase.contacts_with(body.colliders()[0]) {
             for (_, _, contact) in iterator {
                 for manifold in contact.manifolds.iter() {
-                    if manifold.local_n1.y > 0.7 {
+                    if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
                         return true;
                     }
                 }

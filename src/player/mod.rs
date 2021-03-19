@@ -675,21 +675,7 @@ impl Player {
             .unwrap()
             .set_color(self.health_color_gradient.get_color(self.health / 100.0));
 
-        let mut has_ground_contact = false;
-        if let Some(iterator) = scene
-            .physics
-            .narrow_phase
-            .contacts_with(self.collider.into())
-        {
-            'outer_loop: for (_, _, contact) in iterator {
-                for manifold in contact.manifolds.iter() {
-                    if manifold.local_n1.y > 0.7 {
-                        has_ground_contact = true;
-                        break 'outer_loop;
-                    }
-                }
-            }
-        }
+        let mut has_ground_contact = self.has_ground_contact(&scene.physics);
 
         let is_walking = self.controller.walk_backward
             || self.controller.walk_forward
