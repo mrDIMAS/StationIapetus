@@ -2,6 +2,10 @@ use crate::{
     gui::{Gui, UiNode},
     item::{Item, ItemKind},
 };
+use rg3d::core::color::Color;
+use rg3d::gui::border::BorderBuilder;
+use rg3d::gui::brush::Brush;
+use rg3d::gui::message::ImageMessage;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -28,7 +32,7 @@ impl ItemDisplay {
     pub const WIDTH: f32 = 128.0;
     pub const HEIGHT: f32 = 160.0;
 
-    pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
+    pub fn new(font: SharedFont) -> Self {
         let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
@@ -39,17 +43,27 @@ impl ItemDisplay {
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
-                .with_child({
-                    item_image = ImageBuilder::new(
+                .with_child(
+                    BorderBuilder::new(
                         WidgetBuilder::new()
-                            .with_width(128.0)
-                            .with_height(128.0)
-                            .on_row(0)
-                            .on_column(0),
+                            .with_foreground(Brush::Solid(Color::WHITE))
+                            .with_background(Brush::Solid(Color::opaque(120, 120, 120)))
+                            .with_child({
+                                item_image = ImageBuilder::new(
+                                    WidgetBuilder::new()
+                                        .with_background(Brush::Solid(Color::WHITE))
+                                        .with_foreground(Brush::Solid(Color::WHITE))
+                                        .with_width(128.0)
+                                        .with_height(128.0)
+                                        .on_row(0)
+                                        .on_column(0),
+                                )
+                                .build(&mut ui.build_ctx());
+                                item_image
+                            }),
                     )
-                    .build(&mut ui.build_ctx());
-                    item_image
-                })
+                    .build(&mut ui.build_ctx()),
+                )
                 .with_child({
                     item_name = TextBuilder::new(
                         WidgetBuilder::new()
@@ -76,7 +90,7 @@ impl ItemDisplay {
         }
     }
 
-    pub fn sync_to_model(&self, item: ItemKind, count: u32) {
+    pub fn sync_to_model(&self, resource_manager: ResourceManager, item: ItemKind, count: u32) {
         let definition = Item::get_definition(item);
 
         self.ui.send_message(TextMessage::text(
@@ -85,7 +99,13 @@ impl ItemDisplay {
             format!("{}-{}", definition.name, count),
         ));
 
-        // TODO: Sync image.
+        self.ui.send_message(ImageMessage::texture(
+            self.item_image,
+            MessageDirection::ToWidget,
+            Some(rg3d::utils::into_gui_texture(
+                resource_manager.request_texture(&definition.preview),
+            )),
+        ));
     }
 
     pub fn update(&mut self, delta: f32) {

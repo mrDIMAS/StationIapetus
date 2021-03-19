@@ -11,6 +11,7 @@ use crate::{
     message::Message,
     player::Player,
     sound::{SoundKind, SoundManager},
+    vector_to_quat,
     weapon::{
         projectile::{Projectile, ProjectileContainer, ProjectileKind},
         ray_hit, Weapon, WeaponContainer, WeaponKind,
@@ -291,11 +292,8 @@ pub async fn analyze(
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
         let name = node.name();
-        if name.starts_with("Medkit") {
-            items.push((ItemKind::Medkit, position));
-        } else if name.starts_with("Ammo") {
-            items.push((ItemKind::Ammo, position));
-        } else if name.starts_with("Zombie") {
+
+        if name.starts_with("Zombie") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
                 rotation: **node.local_transform().rotation(),
@@ -324,33 +322,43 @@ pub async fn analyze(
             }
         }
 
-        if node.tag() == "SideDoor" {
-            result
-                .doors
-                .add(Door::new(handle, &scene.graph, DoorState::Closed));
-        }
-        if node.tag() == "SideDoorBroken" {
-            result
-                .doors
-                .add(Door::new(handle, &scene.graph, DoorState::Broken));
-        }
-        if node.tag() == "SideDoorLocked" {
-            result
-                .doors
-                .add(Door::new(handle, &scene.graph, DoorState::Locked));
-        }
-        if node.tag() == "FlashingLight" {
-            result.lights.add(Light::new(handle));
+        match node.tag() {
+            "SideDoor" => {
+                result
+                    .doors
+                    .add(Door::new(handle, &scene.graph, DoorState::Closed));
+            }
+            "SideDoorBroken" => {
+                result
+                    .doors
+                    .add(Door::new(handle, &scene.graph, DoorState::Broken));
+            }
+            "SideDoorLocked" => {
+                result
+                    .doors
+                    .add(Door::new(handle, &scene.graph, DoorState::Locked));
+            }
+            "FlashingLight" => result.lights.add(Light::new(handle)),
+            "Medkit" => items.push((ItemKind::Medkit, position)),
+            "Medpack" => items.push((ItemKind::Medpack, position)),
+            "Ammo" => items.push((ItemKind::Ammo, position)),
+            "Grenade" => items.push((ItemKind::Grenade, position)),
+            "PlasmaGun" => items.push((ItemKind::PlasmaGun, position)),
+            "Ak47" => items.push((ItemKind::Ak47, position)),
+            "M4" => items.push((ItemKind::M4, position)),
+            "Glock" => items.push((ItemKind::Glock, position)),
+            _ => (),
         }
     }
 
     for (kind, position) in items {
         result.items.add(
-            Item::new(
-                kind,
-                position,
+            spawn_item(
                 scene,
                 resource_manager.clone(),
+                kind,
+                position,
+                true,
                 sender.clone(),
             )
             .await,
@@ -485,6 +493,51 @@ async fn add_bot(
     )
     .await;
     actors.add(Actor::Bot(bot))
+}
+
+async fn spawn_item(
+    scene: &mut Scene,
+    resource_manager: ResourceManager,
+    kind: ItemKind,
+    position: Vector3<f32>,
+    adjust_height: bool,
+    sender: Sender<Message>,
+) -> Item {
+    let position = if adjust_height {
+        pick(scene, position, position - Vector3::new(0.0, 1000.0, 0.0))
+    } else {
+        position
+    };
+    Item::new(kind, position, scene, resource_manager, sender).await
+}
+
+fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
+    let mut intersections = Vec::new();
+    let ray = Ray::from_two_points(from, to);
+    scene.physics.cast_ray(
+        RayCastOptions {
+            ray,
+            max_len: ray.dir.norm(),
+            groups: Default::default(),
+            sort_results: true,
+        },
+        &mut intersections,
+    );
+
+    if let Some(intersection) = intersections.iter().find(|i| {
+        // HACK: Check everything but capsules (helps correctly drop items from actors)
+        let shape = scene
+            .physics
+            .colliders
+            .get(i.collider.into())
+            .unwrap()
+            .shape();
+        shape.as_capsule().is_none()
+    }) {
+        intersection.position.coords
+    } else {
+        from
+    }
 }
 
 impl Level {
@@ -623,34 +676,7 @@ impl Level {
 
     fn pick(&self, engine: &mut GameEngine, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
         let scene = &mut engine.scenes[self.scene];
-
-        let mut intersections = Vec::new();
-        let ray = Ray::from_two_points(from, to);
-        scene.physics.cast_ray(
-            RayCastOptions {
-                ray,
-                max_len: ray.dir.norm(),
-                groups: Default::default(),
-                sort_results: true,
-            },
-            &mut intersections,
-        );
-
-        if let Some(intersection) = intersections.iter().find(|i| {
-            // Check only trimeshes
-            scene
-                .physics
-                .colliders
-                .get(i.collider.into())
-                .unwrap()
-                .shape()
-                .as_trimesh()
-                .is_some()
-        }) {
-            intersection.position.coords
-        } else {
-            from
-        }
+        pick(scene, from, to)
     }
 
     fn remove_weapon(&mut self, engine: &mut GameEngine, weapon: Handle<Weapon>) {
@@ -899,21 +925,18 @@ impl Level {
         position: Vector3<f32>,
         adjust_height: bool,
     ) {
-        let position = if adjust_height {
-            self.pick(engine, position, position - Vector3::new(0.0, 1000.0, 0.0))
-        } else {
-            position
-        };
         let scene = &mut engine.scenes[self.scene];
-        let item = Item::new(
-            kind,
-            position,
-            scene,
-            engine.resource_manager.clone(),
-            self.sender.as_ref().unwrap().clone(),
-        )
-        .await;
-        self.items.add(item);
+        self.items.add(
+            spawn_item(
+                scene,
+                engine.resource_manager.clone(),
+                kind,
+                position,
+                adjust_height,
+                self.sender.clone().unwrap(),
+            )
+            .await,
+        );
     }
 
     fn update_death_zones(&mut self, scene: &Scene) {
@@ -1011,7 +1034,7 @@ impl Level {
                         EffectKind::BulletImpact
                     },
                     position: hit.position,
-                    orientation: UnitQuaternion::face_towards(&hit.normal, &Vector3::y()),
+                    orientation: vector_to_quat(hit.normal),
                 })
                 .unwrap();
 

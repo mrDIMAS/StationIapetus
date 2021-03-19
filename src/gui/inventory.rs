@@ -8,6 +8,7 @@ use crate::{
     message::Message,
     player::Player,
 };
+use rg3d::engine::resource_manager::ResourceManager;
 use rg3d::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     gui::{
@@ -120,7 +121,12 @@ impl InventoryItemBuilder {
         self
     }
 
-    pub fn build(self, item: ItemKind, ctx: &mut BuildContext) -> Handle<UiNode> {
+    pub fn build(
+        self,
+        item: ItemKind,
+        resource_manager: ResourceManager,
+        ctx: &mut BuildContext,
+    ) -> Handle<UiNode> {
         let definition = Item::get_definition(item);
 
         let count;
@@ -142,6 +148,10 @@ impl InventoryItemBuilder {
                                                         .with_margin(Thickness::uniform(1.0))
                                                         .on_row(0),
                                                 )
+                                                .with_texture(rg3d::utils::into_gui_texture(
+                                                    resource_manager
+                                                        .request_texture(&definition.preview),
+                                                ))
                                                 .build(ctx),
                                             )
                                             .with_child(
@@ -315,7 +325,7 @@ impl InventoryInterface {
         }
     }
 
-    pub fn sync_to_model(&mut self, player: &Player) {
+    pub fn sync_to_model(&mut self, resource_manager: ResourceManager, player: &Player) {
         for &child in self.ui.node(self.items_panel).children() {
             self.ui
                 .send_message(WidgetMessage::remove(child, MessageDirection::ToWidget));
@@ -331,7 +341,7 @@ impl InventoryInterface {
                     .with_height(100.0),
             )
             .with_count(item.amount() as usize)
-            .build(item.kind(), ctx);
+            .build(item.kind(), resource_manager.clone(), ctx);
 
             self.ui.send_message(WidgetMessage::link(
                 widget,

@@ -1,4 +1,6 @@
 - [ ] Book shelfs
+- [x] Beds
+- [x] Toilets
 - [ ] Cups
 - [ ] Books
 - [ ] Chairs

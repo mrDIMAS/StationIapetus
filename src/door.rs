@@ -168,11 +168,11 @@ impl DoorContainer {
                 }
                 DoorState::Closed => {
                     door.set_lights_enabled(&mut scene.graph, true);
-                    door.set_lights_color(&mut scene.graph, Color::opaque(0, 255, 0));
+                    door.set_lights_color(&mut scene.graph, Color::opaque(0, 200, 0));
                 }
                 DoorState::Locked => {
                     door.set_lights_enabled(&mut scene.graph, true);
-                    door.set_lights_color(&mut scene.graph, Color::opaque(255, 0, 0));
+                    door.set_lights_color(&mut scene.graph, Color::opaque(200, 0, 0));
                 }
                 DoorState::Broken | DoorState::Opened => {
                     door.set_lights_enabled(&mut scene.graph, false);

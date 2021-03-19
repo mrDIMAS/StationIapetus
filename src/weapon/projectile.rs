@@ -3,12 +3,13 @@ use crate::{
     actor::ActorContainer,
     effects::EffectKind,
     message::Message,
+    vector_to_quat,
     weapon::{ray_hit, Hit, Weapon, WeaponContainer},
     GameTime,
 };
 use rg3d::{
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::Vector3,
         color::Color,
         math::Vector3Ext,
         pool::{Handle, Pool, PoolIteratorMut},
@@ -440,7 +441,7 @@ impl Projectile {
                 .send(Message::CreateEffect {
                     kind: effect_kind,
                     position: pos,
-                    orientation: UnitQuaternion::face_towards(&normal, &Vector3::y()),
+                    orientation: vector_to_quat(normal),
                 })
                 .unwrap();
 

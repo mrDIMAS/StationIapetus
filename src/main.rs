@@ -33,6 +33,8 @@ use crate::{
     menu::Menu,
     message::Message,
 };
+use rg3d::core::algebra::{UnitQuaternion, Vector3};
+use rg3d::dpi::LogicalSize;
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -139,6 +141,15 @@ impl<T: AsRef<str>> Index<T> for ModelMap {
     }
 }
 
+fn vector_to_quat(vec: Vector3<f32>) -> UnitQuaternion<f32> {
+    if vec.normalize() == Vector3::y() {
+        // Handle singularity when normal of impact point is collinear with Y axis.
+        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0)
+    } else {
+        UnitQuaternion::face_towards(&vec, &Vector3::y())
+    }
+}
+
 pub struct Game {
     menu: Menu,
     engine: GameEngine,
@@ -231,11 +242,14 @@ impl Game {
     pub fn run() {
         let events_loop = EventLoop::<()>::new();
 
-        let primary_monitor = events_loop.primary_monitor().unwrap();
-        let mut monitor_dimensions = primary_monitor.size();
-        monitor_dimensions.height = (monitor_dimensions.height as f32 * 0.7) as u32;
-        monitor_dimensions.width = (monitor_dimensions.width as f32 * 0.7) as u32;
-        let inner_size = monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor());
+        let inner_size = if let Some(primary_monitor) = events_loop.primary_monitor() {
+            let mut monitor_dimensions = primary_monitor.size();
+            monitor_dimensions.height = (monitor_dimensions.height as f32 * 0.7) as u32;
+            monitor_dimensions.width = (monitor_dimensions.width as f32 * 0.7) as u32;
+            monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor())
+        } else {
+            LogicalSize::new(1024.0, 768.0)
+        };
 
         let font: Font = Font::from_file(
             Path::new("data/ui/SquaresBold.ttf"),
@@ -313,7 +327,7 @@ impl Game {
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font.clone(), engine.resource_manager.clone()),
-            item_display: ItemDisplay::new(font, engine.resource_manager.clone()),
+            item_display: ItemDisplay::new(font),
             engine,
             level: None,
             debug_string: String::new(),
@@ -647,12 +661,17 @@ impl Game {
                 Message::SyncInventory => {
                     if let Some(ref mut level) = self.level {
                         if let Actor::Player(player) = level.actors().get(level.get_player()) {
-                            self.inventory_interface.sync_to_model(player);
+                            self.inventory_interface
+                                .sync_to_model(self.engine.resource_manager.clone(), player);
                         }
                     }
                 }
                 &Message::ShowItemDisplay { item, count } => {
-                    self.item_display.sync_to_model(item, count);
+                    self.item_display.sync_to_model(
+                        self.engine.resource_manager.clone(),
+                        item,
+                        count,
+                    );
                 }
                 _ => (),
             }
