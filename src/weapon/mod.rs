@@ -134,15 +134,15 @@ impl LaserSight {
                 .with_children(&[PointLightBuilder::new(
                     BaseLightBuilder::new(BaseBuilder::new())
                         .cast_shadows(false)
-                        .with_scatter_factor(Vector3::new(0.01, 0.01, 0.01))
+                        .with_scatter_enabled(false)
                         .with_color(color),
                 )
-                .with_radius(0.25)
+                .with_radius(0.30)
                 .build(&mut scene.graph)]),
         )
         .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
         .with_color(color)
-        .with_size(0.03)
+        .with_size(0.025)
         .build(&mut scene.graph);
 
         Self { ray, tip }
@@ -561,7 +561,7 @@ impl Weapon {
     }
 
     pub fn get_shot_direction(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.model].look_vector()
+        graph[self.model].look_vector().normalize()
     }
 
     pub fn get_kind(&self) -> WeaponKind {

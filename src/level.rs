@@ -1049,7 +1049,7 @@ impl Level {
                     sound_kind: SoundKind::Impact,
                     gain: 1.0,
                     rolloff_factor: 1.0,
-                    radius: 2.0,
+                    radius: 0.5,
                 })
                 .unwrap();
 
