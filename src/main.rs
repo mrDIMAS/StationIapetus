@@ -251,13 +251,23 @@ impl Game {
             LogicalSize::new(1024.0, 768.0)
         };
 
-        let font: Font = Font::from_file(
-            Path::new("data/ui/SquaresBold.ttf"),
-            31.0,
-            Font::default_char_set(),
-        )
-        .unwrap();
-        let font = SharedFont(Arc::new(Mutex::new(font)));
+        let font = SharedFont(Arc::new(Mutex::new(
+            Font::from_file(
+                Path::new("data/ui/SquaresBold.ttf"),
+                31.0,
+                Font::default_char_set(),
+            )
+            .unwrap(),
+        )));
+
+        let smaller_font = SharedFont(Arc::new(Mutex::new(
+            Font::from_file(
+                Path::new("data/ui/SquaresBold.ttf"),
+                20.0,
+                Font::default_char_set(),
+            )
+            .unwrap(),
+        )));
 
         let window_builder = rg3d::window::WindowBuilder::new()
             .with_title("Station Iapetus")
@@ -327,7 +337,7 @@ impl Game {
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font.clone(), engine.resource_manager.clone()),
-            item_display: ItemDisplay::new(font),
+            item_display: ItemDisplay::new(smaller_font),
             engine,
             level: None,
             debug_string: String::new(),

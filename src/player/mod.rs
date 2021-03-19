@@ -539,7 +539,7 @@ impl Player {
             .build(&mut scene.graph);
         scene.graph.link_nodes(weapon_display, weapon_pivot);
 
-        let item_display = SpriteBuilder::new(BaseBuilder::new())
+        let item_display = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.05))
             .with_texture(item_texture)
             .with_size(0.1)
             .build(&mut scene.graph);
