@@ -1,5 +1,7 @@
 use crate::message::Message;
 use crate::weapon::WeaponKind;
+use rg3d::core::color::Color;
+use rg3d::scene::sprite::SpriteBuilder;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -90,6 +92,8 @@ pub struct Item {
     kind: ItemKind,
     pivot: Handle<Node>,
     model: Handle<Node>,
+    spark: Handle<Node>,
+    spark_size_change_dir: f32,
     pub stack_size: u32,
     pub definition: &'static ItemDefinition,
     pub sender: Option<Sender<Message>>,
@@ -101,6 +105,8 @@ impl Default for Item {
             kind: ItemKind::Medkit,
             pivot: Default::default(),
             model: Default::default(),
+            spark: Default::default(),
+            spark_size_change_dir: 1.0,
             stack_size: 1,
             definition: Self::get_definition(ItemKind::Medkit),
             sender: None,
@@ -148,6 +154,7 @@ impl Item {
     ) -> Self {
         let definition = Self::get_definition(kind);
 
+        let spark;
         let model = resource_manager
             .request_model(&definition.model)
             .await
@@ -165,14 +172,21 @@ impl Item {
                     ))
                     .build(),
             )
+            .with_children(&[model, {
+                spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
+                    .with_size(0.04)
+                    .with_color(Color::from_rgba(255, 255, 255, 160))
+                    .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
+                    .build(&mut scene.graph);
+                spark
+            }])
             .build(&mut scene.graph);
-
-        scene.graph.link_nodes(model, pivot);
 
         Self {
             pivot,
             kind,
             model,
+            spark,
             sender: Some(sender),
             ..Default::default()
         }
@@ -193,6 +207,19 @@ impl Item {
     fn cleanup(&self, graph: &mut Graph) {
         graph.remove_node(self.pivot)
     }
+
+    fn update(&mut self, dt: f32, graph: &mut Graph) {
+        let spark = graph[self.spark].as_sprite_mut();
+        let new_size = spark.size() + 0.02 * self.spark_size_change_dir * dt;
+        spark.set_size(new_size);
+        let new_rotation = spark.rotation() + 20.0f32.to_radians() * dt;
+        spark.set_rotation(new_rotation);
+        if spark.size() >= 0.04 {
+            self.spark_size_change_dir = -1.0;
+        } else if spark.size() < 0.03 {
+            self.spark_size_change_dir = 1.0;
+        }
+    }
 }
 
 impl Visit for Item {
@@ -204,6 +231,9 @@ impl Visit for Item {
         self.model.visit("Model", visitor)?;
         self.pivot.visit("Pivot", visitor)?;
         self.stack_size.visit("StackSize", visitor)?;
+        self.spark.visit("Spark", visitor)?;
+        self.spark_size_change_dir
+            .visit("SparkSizeChangeDir", visitor)?;
 
         visitor.leave_region()
     }
@@ -261,5 +291,11 @@ impl ItemContainer {
     pub fn remove(&mut self, item: Handle<Item>, graph: &mut Graph) {
         self.pool[item].cleanup(graph);
         self.pool.free(item);
+    }
+
+    pub fn update(&mut self, dt: f32, graph: &mut Graph) {
+        for item in self.pool.iter_mut() {
+            item.update(dt, graph);
+        }
     }
 }

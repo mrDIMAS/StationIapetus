@@ -1001,6 +1001,7 @@ impl Level {
         self.update_game_ending(scene);
         self.doors.update(&self.actors, scene, time.delta);
         self.lights.update(scene, time.delta);
+        self.items.update(time.delta, &mut scene.graph);
     }
 
     fn shoot_ray(
