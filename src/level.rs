@@ -38,7 +38,7 @@ use rg3d::{
         base::BaseBuilder,
         mesh::{Mesh, MeshBuilder, RenderPath},
         node::Node,
-        physics::{Physics, RayCastOptions},
+        physics::RayCastOptions,
         transform::TransformBuilder,
         ColliderHandle, RigidBodyHandle, Scene,
     },
@@ -279,14 +279,22 @@ pub struct BodyImpactHandler {
 impl BodyImpactHandler {
     pub fn handle_impact(
         &mut self,
-        physics: &Physics,
+        scene: &Scene,
         handle: RigidBodyHandle,
         impact_point: Vector3<f32>,
         direction: Vector3<f32>,
     ) {
-        let body = physics.bodies.get(handle.into()).unwrap();
-        let axis = direction
-            .cross(&(impact_point - body.position().translation.vector))
+        let global_transform = scene.graph[scene.physics_binder.node_of(handle).unwrap()]
+            .global_transform()
+            .try_inverse()
+            .unwrap_or_default();
+        let local_impact_point = global_transform.transform_point(&Point3::from(impact_point));
+        let local_direction = global_transform.transform_vector(&direction);
+        // local_impact_point can be directly be used as vector because it is in
+        // local coordinates of rigid body.
+        let axis = local_impact_point
+            .coords
+            .cross(&local_direction)
             .normalize();
         let additional_rotation =
             UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), 24.0f32.to_radians());
@@ -1138,12 +1146,9 @@ impl Level {
                         .get(hit.collider.into())
                         .unwrap()
                         .parent();
-                    actor.impact_handler.handle_impact(
-                        &scene.physics,
-                        body.into(),
-                        hit.position,
-                        dir,
-                    );
+                    actor
+                        .impact_handler
+                        .handle_impact(scene, body.into(), hit.position, dir);
                 }
             }
 
