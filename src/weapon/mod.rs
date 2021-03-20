@@ -338,7 +338,7 @@ pub enum WeaponProjectile {
 #[derive(Deserialize)]
 pub struct WeaponDefinition {
     pub model: String,
-    pub shot_sound: String,
+    pub shot_sounds: Vec<String>,
     pub projectile: WeaponProjectile,
     pub shoot_interval: f64,
     pub yaw_correction: f32,
@@ -608,17 +608,23 @@ impl Weapon {
 
         let position = self.get_shot_position(&scene.graph);
 
-        self.sender
-            .as_ref()
-            .unwrap()
-            .send(Message::PlaySound {
-                path: PathBuf::from(self.definition.shot_sound.clone()),
-                position,
-                gain: 1.0,
-                rolloff_factor: 5.0,
-                radius: 3.0,
-            })
-            .unwrap();
+        if let Some(random_shot_sound) = self
+            .definition
+            .shot_sounds
+            .choose(&mut rg3d::rand::thread_rng())
+        {
+            self.sender
+                .as_ref()
+                .unwrap()
+                .send(Message::PlaySound {
+                    path: PathBuf::from(random_shot_sound.clone()),
+                    position,
+                    gain: 1.0,
+                    rolloff_factor: 5.0,
+                    radius: 3.0,
+                })
+                .unwrap();
+        }
 
         if self.muzzle_flash.is_some() {
             let muzzle_flash = &mut scene.graph[self.muzzle_flash];

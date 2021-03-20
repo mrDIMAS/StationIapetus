@@ -160,8 +160,8 @@ impl CameraController {
 
         self.target_camera_offset.z = if is_aiming { 0.2 } else { 0.8 };
 
-        self.check_occlusion(owner_collider, scene);
         self.update_shake(time.delta);
+        self.check_occlusion(owner_collider, scene);
 
         self.target_camera_offset += self.shake_offset;
 
@@ -232,7 +232,7 @@ impl CameraController {
 
     fn update_shake(&mut self, dt: f32) {
         let xy_range = -0.027..0.027;
-        let z_range = -0.05..0.01;
+        let z_range = 0.01..0.05;
         if self.shake_timer > 0.0 {
             self.shake_timer -= dt;
             let mut rnd = rand::thread_rng();

@@ -2,7 +2,12 @@
     map: {
         M4: (
             model: "data/models/m4.FBX",
-            shot_sound: "data/sounds/m4_shot.ogg",
+            shot_sounds: [
+                // Not M4 sounds, but ok.
+                "data/sounds/enfield_l85_shot_1.wav",
+                "data/sounds/enfield_l85_shot_2.wav",
+                "data/sounds/enfield_l85_shot_3.wav"
+            ],
             projectile: Ray(damage: Point(15.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
@@ -14,7 +19,11 @@
         ),
         Ak47: (
             model: "data/models/ak47.FBX",
-            shot_sound: "data/sounds/ak47.ogg",
+            shot_sounds: [
+                "data/sounds/akm_shot_1.wav",
+                "data/sounds/akm_shot_2.wav",
+                "data/sounds/akm_shot_3.wav",
+            ],
             projectile: Ray(damage: Point(17.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
@@ -26,7 +35,7 @@
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle.fbx",
-            shot_sound: "data/sounds/plasma_shot.ogg",
+            shot_sounds: ["data/sounds/plasma_shot.ogg"],
             projectile: Projectile(Plasma),
             shoot_interval: 0.25,
             yaw_correction: -4.0,
@@ -38,7 +47,11 @@
         ),
         Glock: (
             model: "data/models/glock.FBX",
-            shot_sound: "data/sounds/ak47.ogg",
+            shot_sounds: [
+                "data/sounds/glock_shot_1.wav",
+                "data/sounds/glock_shot_2.wav",
+                "data/sounds/glock_shot_3.wav"
+            ],
             projectile: Ray(damage: Point(10.0)),
             shoot_interval: 0.3,
             yaw_correction: -10.0,
