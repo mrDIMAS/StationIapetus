@@ -1,3 +1,4 @@
+use crate::level::BodyImpactHandler;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -132,6 +133,7 @@ pub struct Bot {
     hips: Handle<Node>,
     attack_animation_index: u32,
     agent: NavmeshAgent,
+    pub impact_handler: BodyImpactHandler,
 }
 
 impl Deref for Bot {
@@ -178,6 +180,7 @@ impl Default for Bot {
             hips: Default::default(),
             attack_animation_index: 0,
             agent: Default::default(),
+            impact_handler: Default::default(),
         }
     }
 }
@@ -723,6 +726,8 @@ impl Bot {
                 attack_animation_index: self.attack_animation_index,
             },
         );
+        self.impact_handler
+            .update_and_apply(context.time.delta, context.scene);
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
