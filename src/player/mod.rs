@@ -1,3 +1,4 @@
+use crate::player::camera::CameraController;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -29,7 +30,7 @@ use rg3d::{
         algebra::{Isometry3, UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
-        math::{self, ray::Ray, Matrix4Ext, SmoothAngle, Vector3Ext},
+        math::{self, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -40,14 +41,11 @@ use rg3d::{
         geometry::{ColliderBuilder, InteractionGroups},
     },
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
-    resource::{model::Model, texture::Texture, texture::TextureWrapMode},
+    resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
-        camera::{CameraBuilder, SkyBox},
-        graph::Graph,
         mesh::{MeshBuilder, RenderPath},
         node::Node,
-        physics::RayCastOptions,
         sprite::SpriteBuilder,
         transform::TransformBuilder,
         ColliderHandle, Scene,
@@ -58,60 +56,9 @@ use std::{
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
+mod camera;
 mod lower_body;
 mod upper_body;
-
-/// Creates a camera at given position with a skybox.
-pub async fn create_camera(
-    resource_manager: ResourceManager,
-    position: Vector3<f32>,
-    graph: &mut Graph,
-) -> Handle<Node> {
-    // Load skybox textures in parallel.
-    let (front, back, left, right, top, bottom) = rg3d::futures::join!(
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyFront2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyBack2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyLeft2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyRight2048.png"),
-        resource_manager.request_texture("data/textures/skyboxes/DarkStormy/DarkStormyUp2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyDown2048.png")
-    );
-
-    // Unwrap everything.
-    let skybox = SkyBox {
-        front: Some(front.unwrap()),
-        back: Some(back.unwrap()),
-        left: Some(left.unwrap()),
-        right: Some(right.unwrap()),
-        top: Some(top.unwrap()),
-        bottom: Some(bottom.unwrap()),
-    };
-
-    // Set S and T coordinate wrap mode, ClampToEdge will remove any possible seams on edges
-    // of the skybox.
-    for skybox_texture in skybox.textures().iter().filter_map(|t| t.clone()) {
-        let mut data = skybox_texture.data_ref();
-        data.set_s_wrap_mode(TextureWrapMode::ClampToEdge);
-        data.set_t_wrap_mode(TextureWrapMode::ClampToEdge);
-    }
-
-    // Camera is our eyes in the world - you won't see anything without it.
-    CameraBuilder::new(
-        BaseBuilder::new().with_local_transform(
-            TransformBuilder::new()
-                .with_local_position(position)
-                .build(),
-        ),
-    )
-    .with_z_far(20.0)
-    .with_skybox(skybox)
-    .build(graph)
-}
 
 pub struct WalkStateDefinition {
     state: Handle<State>,
@@ -300,9 +247,7 @@ impl Default for RequiredWeapon {
 #[derive(Default)]
 pub struct Player {
     character: Character,
-    camera_pivot: Handle<Node>,
-    camera_hinge: Handle<Node>,
-    camera: Handle<Node>,
+    camera_controller: CameraController,
     model: Handle<Node>,
     controller: InputController,
     lower_body_machine: LowerBodyMachine,
@@ -312,8 +257,6 @@ pub struct Player {
     spine: Handle<Node>,
     hips: Handle<Node>,
     move_speed: f32,
-    camera_offset: Vector3<f32>,
-    target_camera_offset: Vector3<f32>,
     collider: ColliderHandle,
     control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: RequiredWeapon,
@@ -340,9 +283,7 @@ impl Visit for Player {
         visitor.enter_region(name)?;
 
         self.character.visit("Character", visitor)?;
-        self.camera_pivot.visit("CameraPivot", visitor)?;
-        self.camera_hinge.visit("CameraHinge", visitor)?;
-        self.camera.visit("Camera", visitor)?;
+        self.camera_controller.visit("CameraController", visitor)?;
         self.model.visit("Model", visitor)?;
         self.lower_body_machine.visit("LowerBodyMachine", visitor)?;
         self.upper_body_machine.visit("UpperBodyMachine", visitor)?;
@@ -351,9 +292,7 @@ impl Visit for Player {
         self.hips.visit("Hips", visitor)?;
         self.spine.visit("Spine", visitor)?;
         self.move_speed.visit("MoveSpeed", visitor)?;
-        self.camera_offset.visit("CameraOffset", visitor)?;
-        self.target_camera_offset
-            .visit("TargetCameraOffset", visitor)?;
+
         self.collider.visit("Collider", visitor)?;
         self.weapon_origin.visit("WeaponOrigin", visitor)?;
         self.weapon_yaw_correction
@@ -409,31 +348,6 @@ impl Player {
     ) -> Self {
         let body_radius = 0.2;
         let body_height = 0.25;
-        let camera_offset = -0.8;
-
-        let camera;
-        let camera_hinge;
-        let camera_pivot = BaseBuilder::new()
-            .with_children(&[{
-                camera_hinge = BaseBuilder::new()
-                    .with_local_transform(
-                        TransformBuilder::new()
-                            .with_local_position(Vector3::new(-0.22, 0.25, 0.0))
-                            .build(),
-                    )
-                    .with_children(&[{
-                        camera = create_camera(
-                            resource_manager.clone(),
-                            Vector3::new(0.0, 0.0, camera_offset),
-                            &mut scene.graph,
-                        )
-                        .await;
-                        camera
-                    }])
-                    .build(&mut scene.graph);
-                camera_hinge
-            }])
-            .build(&mut scene.graph);
 
         let (model_resource, health_rig_resource) = rg3d::futures::join!(
             resource_manager.request_model("data/models/agent.rgs"),
@@ -586,14 +500,13 @@ impl Player {
                 inventory,
                 ..Default::default()
             },
+            camera_controller: CameraController::new(resource_manager.clone(), &mut scene.graph)
+                .await,
             inventory_display,
             weapon_origin,
             model: model_handle,
-            camera_pivot,
             controller: Default::default(),
             lower_body_machine: locomotion_machine,
-            camera_hinge,
-            camera,
             health_cylinder,
             upper_body_machine: combat_machine,
             spine: scene.graph.find_by_name(model_handle, "mixamorig:Spine"),
@@ -609,8 +522,6 @@ impl Player {
                 target: 0.0,
                 speed: 10.0,
             },
-            camera_offset: Vector3::new(0.0, 0.0, camera_offset),
-            target_camera_offset: Vector3::new(0.0, 0.0, camera_offset),
             collider,
             control_scheme: Some(control_scheme),
             weapon_change_direction: RequiredWeapon::None,
@@ -650,8 +561,8 @@ impl Player {
         self.control_scheme = Some(control_scheme);
     }
 
-    pub fn camera(&self) -> Handle<Node> {
-        self.camera
+    pub fn camera_controller(&self) -> &CameraController {
+        &self.camera_controller
     }
 
     pub fn can_be_removed(&self, _scene: &Scene) -> bool {
@@ -661,21 +572,13 @@ impl Player {
     pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
         let UpdateContext { time, scene, .. } = context;
 
-        let mut sound_context = scene.sound_context.state();
-        let listener = sound_context.listener_mut();
-        let camera = &scene.graph[self.camera];
-        let camera_position = camera.global_position();
-        listener.set_basis(camera.global_transform().basis());
-        listener.set_position(camera_position);
-        std::mem::drop(sound_context);
-
         let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
         mesh.surfaces_mut()
             .first_mut()
             .unwrap()
             .set_color(self.health_color_gradient.get_color(self.health / 100.0));
 
-        let mut has_ground_contact = self.has_ground_contact(&scene.physics);
+        let has_ground_contact = self.has_ground_contact(&scene.physics);
 
         let is_walking = self.controller.walk_backward
             || self.controller.walk_forward
@@ -872,7 +775,7 @@ impl Player {
             {
                 if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
                     let position = scene.graph[self.weapon_pivot].global_position();
-                    let direction = scene.graph[self.camera].look_vector();
+                    let direction = scene.graph[self.camera_controller.camera()].look_vector();
 
                     if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
                         self.sender
@@ -1062,72 +965,17 @@ impl Player {
                     );
             }
 
-            let ray_origin = scene.graph[self.camera_hinge].global_position();
-            let ray_end = scene.graph[self.camera].global_position();
-            let dir = (ray_end - ray_origin)
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_default()
-                .scale(10.0);
-            let ray = Ray {
-                origin: ray_origin,
-                dir,
-            };
-            let mut results = Vec::new();
-            scene.physics.cast_ray(
-                RayCastOptions {
-                    ray,
-                    max_len: ray.dir.norm(),
-                    groups: Default::default(),
-                    sort_results: true,
-                },
-                &mut results,
+            self.camera_controller.update(
+                position + self.velocity,
+                self.controller.pitch,
+                quat_yaw,
+                is_walking,
+                is_running,
+                self.controller.aim,
+                self.collider,
+                scene,
+                *time,
             );
-
-            if is_walking {
-                let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
-
-                self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
-                self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();
-            } else {
-                self.target_camera_offset.x = 0.0;
-                self.target_camera_offset.y = 0.0;
-            }
-
-            self.target_camera_offset.z = if self.controller.aim { 0.2 } else { 0.8 };
-
-            for result in results {
-                if result.collider != self.collider {
-                    let new_offset = (result.toi.min(0.8) - 0.2).max(0.1);
-                    if new_offset < self.target_camera_offset.z {
-                        self.target_camera_offset.z = new_offset;
-                    }
-                    break;
-                }
-            }
-
-            self.camera_offset.follow(&self.target_camera_offset, 0.2);
-
-            scene.graph[self.camera]
-                .local_transform_mut()
-                .set_position(Vector3::new(
-                    self.camera_offset.x,
-                    self.camera_offset.y,
-                    -self.camera_offset.z,
-                ));
-
-            scene.graph[self.camera_pivot]
-                .local_transform_mut()
-                .set_rotation(quat_yaw)
-                .set_position(position + self.velocity);
-
-            // Rotate camera hinge - this will make camera move up and down while look at character
-            // (well not exactly on character - on characters head)
-            scene.graph[self.camera_hinge]
-                .local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(
-                    &Vector3::x_axis(),
-                    self.controller.pitch,
-                ));
 
             if has_ground_contact {
                 self.in_air_time = 0.0;
@@ -1225,6 +1073,7 @@ impl Player {
                                 })
                                 .unwrap();
 
+                            self.camera_controller.request_shake_camera();
                             self.v_recoil
                                 .set_target(weapon.definition.gen_v_recoil_angle());
                             self.h_recoil
