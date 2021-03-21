@@ -181,7 +181,7 @@ impl LowerBodyMachine {
         clean_machine(&self.machine, scene)
     }
 
-    pub fn apply(&mut self, scene: &mut Scene, time: GameTime, input: LowerBodyMachineInput) {
+    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: LowerBodyMachineInput) {
         self.machine
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))
             .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.walk))
@@ -190,7 +190,7 @@ impl LowerBodyMachine {
             .set_parameter(Self::SCREAM_TO_IDLE, Parameter::Rule(!input.scream))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.dead))
-            .evaluate_pose(&scene.animations, time.delta)
+            .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
     }
 

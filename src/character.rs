@@ -79,18 +79,22 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
                 "HitBoxArm" => hit_boxes.push(HitBox {
                     collider,
                     damage_factor: 0.25,
+                    movement_speed_factor: 1.0,
                 }),
                 "HitBoxLeg" => hit_boxes.push(HitBox {
                     collider,
                     damage_factor: 0.35,
+                    movement_speed_factor: 0.5,
                 }),
                 "HitBoxBody" => hit_boxes.push(HitBox {
                     collider,
                     damage_factor: 0.60,
+                    movement_speed_factor: 0.75,
                 }),
                 "HitBoxHead" => hit_boxes.push(HitBox {
                     collider,
                     damage_factor: 1.0,
+                    movement_speed_factor: 0.1,
                 }),
                 _ => (),
             }
@@ -282,4 +286,5 @@ impl Character {
 pub struct HitBox {
     pub collider: ColliderHandle,
     pub damage_factor: f32,
+    pub movement_speed_factor: f32,
 }

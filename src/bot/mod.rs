@@ -1,4 +1,3 @@
-use crate::level::BodyImpactHandler;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -9,6 +8,7 @@ use crate::{
     item::ItemKind,
     level::{footstep_ray_check, UpdateContext},
     message::Message,
+    utils::BodyImpactHandler,
     weapon::{projectile::Damage, WeaponContainer},
     CollisionGroups, GameTime,
 };
@@ -504,6 +504,24 @@ impl Bot {
         self.target = Some(Target { position, handle });
     }
 
+    fn calculate_movement_speed_factor(&self, physics: &Physics) -> f32 {
+        let mut k = 1.0;
+
+        // Slowdown bot according to damaged body parts.
+        for hitbox in self.hit_boxes.iter() {
+            let body = physics
+                .colliders
+                .get(hitbox.collider.into())
+                .unwrap()
+                .parent();
+            if self.impact_handler.is_affected(body.into()) {
+                k = hitbox.movement_speed_factor.min(k);
+            }
+        }
+
+        k
+    }
+
     pub fn update(
         &mut self,
         self_handle: Handle<Actor>,
@@ -513,6 +531,7 @@ impl Bot {
         let mut is_moving = false;
         let mut can_aim = false;
         let mut in_close_combat = false;
+        let mut movement_speed_factor = 1.0;
 
         if self.is_dead() {
             for &animation in &[
@@ -539,6 +558,10 @@ impl Bot {
                 self.body = Default::default();
             }
         } else {
+            movement_speed_factor = self.calculate_movement_speed_factor(&context.scene.physics);
+            self.agent
+                .set_speed(self.definition.walk_speed * movement_speed_factor);
+
             self.select_target(self_handle, context.scene, targets);
             self.select_weapon(context.weapons);
 
@@ -707,16 +730,14 @@ impl Bot {
 
         self.lower_body_machine.apply(
             context.scene,
-            context.time,
+            context.time.delta * movement_speed_factor,
             LowerBodyMachineInput {
                 walk: is_moving,
                 scream: false,
                 dead: self.is_dead(),
             },
         );
-        self.upper_body_machine.apply(
-            context.scene,
-            context.time,
+        self.upper_body_machine.apply(r
             UpperBodyMachineInput {
                 attack: in_close_combat && self.attack_timeout <= 0.0,
                 walk: is_moving,
