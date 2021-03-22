@@ -469,7 +469,7 @@ impl InventoryInterface {
                                                 == 1
                                         {
                                             self.sender
-                                                .send(Message::GiveItem {
+                                                .send(Message::UseItem {
                                                     actor: player_handle,
                                                     kind: item.item,
                                                 })

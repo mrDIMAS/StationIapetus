@@ -774,42 +774,19 @@ impl Level {
         }
     }
 
-    async fn give_item(&mut self, engine: &mut GameEngine, actor: Handle<Actor>, kind: ItemKind) {
+    async fn use_item(&mut self, actor: Handle<Actor>, kind: ItemKind) {
         if self.actors.contains(actor) {
             let character = self.actors.get_mut(actor);
             match kind {
                 ItemKind::Medkit => character.heal(40.0),
                 ItemKind::Medpack => character.heal(20.0),
-                ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::Glock => {
-                    let weapon_kind = match kind {
-                        ItemKind::Ak47 => WeaponKind::Ak47,
-                        ItemKind::PlasmaGun => WeaponKind::PlasmaRifle,
-                        ItemKind::M4 => WeaponKind::M4,
-                        ItemKind::Glock => WeaponKind::Glock,
-                        _ => unreachable!(),
-                    };
-
-                    let mut found = false;
-                    for weapon_handle in character.weapons() {
-                        let weapon = &mut self.weapons[*weapon_handle];
-                        if weapon.get_kind() == weapon_kind {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if found {
-                        character.inventory_mut().add_item(ItemKind::Ammo, 20);
-                    } else {
-                        // Finally if actor does not have such weapon, give new one to him.
-                        self.give_new_weapon(engine, actor, weapon_kind).await;
-                    }
-                }
-                ItemKind::Ammo => {
-                    character.inventory_mut().add_item(ItemKind::Ammo, 20);
-                }
-                ItemKind::Grenade => {
-                    character.inventory_mut().add_item(ItemKind::Grenade, 1);
-                }
+                // Non-consumable items.
+                ItemKind::Ak47
+                | ItemKind::PlasmaGun
+                | ItemKind::M4
+                | ItemKind::Glock
+                | ItemKind::Ammo
+                | ItemKind::Grenade => (),
             }
         }
     }
@@ -840,7 +817,37 @@ impl Level {
                     radius: 2.0,
                 })
                 .unwrap();
-            self.give_item(engine, actor, kind).await;
+
+            let character = self.actors.get_mut(actor);
+
+            match kind {
+                ItemKind::Medkit => character.inventory_mut().add_item(ItemKind::Medkit, 1),
+                ItemKind::Medpack => character.inventory_mut().add_item(ItemKind::Medpack, 1),
+                ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::Glock => {
+                    let weapon_kind = kind.associated_weapon().unwrap();
+
+                    let mut found = false;
+                    for weapon_handle in character.weapons() {
+                        let weapon = &mut self.weapons[*weapon_handle];
+                        if weapon.get_kind() == weapon_kind {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if found {
+                        character.inventory_mut().add_item(ItemKind::Ammo, 20);
+                    } else {
+                        // Finally if actor does not have such weapon, give new one to him.
+                        self.give_new_weapon(engine, actor, weapon_kind).await;
+                    }
+                }
+                ItemKind::Ammo => {
+                    character.inventory_mut().add_item(ItemKind::Ammo, 20);
+                }
+                ItemKind::Grenade => {
+                    character.inventory_mut().add_item(ItemKind::Grenade, 1);
+                }
+            }
         }
     }
 
@@ -1199,8 +1206,8 @@ impl Level {
                 self.add_bot(engine, *kind, *position, *rotation).await;
             }
             &Message::RemoveActor { actor } => self.remove_actor(engine, actor).await,
-            &Message::GiveItem { actor, kind } => {
-                self.give_item(engine, actor, kind).await;
+            &Message::UseItem { actor, kind } => {
+                self.use_item(actor, kind).await;
             }
             &Message::PickUpItem { actor, item } => {
                 self.pickup_item(engine, actor, item).await;

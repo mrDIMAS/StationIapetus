@@ -49,7 +49,7 @@ pub enum Message {
     },
     /// Gives item of specified kind to a given actor. Basically it means that actor will take
     /// item and consume it immediately (heal itself, add ammo, etc.)
-    GiveItem {
+    UseItem {
         actor: Handle<Actor>,
         kind: ItemKind,
     },
