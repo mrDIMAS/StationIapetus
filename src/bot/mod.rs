@@ -737,7 +737,9 @@ impl Bot {
                 dead: self.is_dead(),
             },
         );
-        self.upper_body_machine.apply(r
+        self.upper_body_machine.apply(
+            context.scene,
+            context.time,
             UpperBodyMachineInput {
                 attack: in_close_combat && self.attack_timeout <= 0.0,
                 walk: is_moving,
