@@ -325,12 +325,6 @@ impl Visit for Player {
 fn make_color_gradient() -> ColorGradient {
     ColorGradientBuilder::new()
         .with_point(GradientPoint::new(0.0, Color::from_rgba(255, 0, 0, 200)))
-        .with_point(GradientPoint::new(0.2, Color::from_rgba(255, 0, 0, 200)))
-        .with_point(GradientPoint::new(0.3, Color::from_rgba(255, 200, 15, 200)))
-        .with_point(GradientPoint::new(0.4, Color::from_rgba(255, 200, 15, 200)))
-        .with_point(GradientPoint::new(0.5, Color::from_rgba(255, 100, 12, 200)))
-        .with_point(GradientPoint::new(0.7, Color::from_rgba(255, 100, 12, 200)))
-        .with_point(GradientPoint::new(0.8, Color::from_rgba(0, 255, 0, 200)))
         .with_point(GradientPoint::new(1.0, Color::from_rgba(0, 255, 0, 200)))
         .build()
 }

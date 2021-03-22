@@ -208,6 +208,9 @@ pub struct BotDefinition {
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
     pub close_combat_distance: f32,
+    pub pain_sounds: Vec<String>,
+    pub scream_sounds: Vec<String>,
+    pub idle_sounds: Vec<String>,
 
     // Animations.
     pub idle_animation: String,
@@ -728,9 +731,11 @@ impl Bot {
             }
         }
 
+        self.lower_body_machine
+            .set_walk_animation_speed(context.scene, movement_speed_factor);
         self.lower_body_machine.apply(
             context.scene,
-            context.time.delta * movement_speed_factor,
+            context.time.delta,
             LowerBodyMachineInput {
                 walk: is_moving,
                 scream: false,

@@ -16,6 +16,7 @@ use crate::{
     },
     GameEngine, GameTime,
 };
+use rg3d::core::rand::seq::SliceRandom;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -31,6 +32,7 @@ use rg3d::{
         geometry::{ContactEvent, IntersectionEvent},
         pipeline::ChannelEventCollector,
     },
+    rand,
     renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     resource::texture::Texture,
     scene::{
@@ -900,19 +902,40 @@ impl Level {
         if self.actors.contains(actor_handle)
             && (who.is_none() || who.is_some() && self.actors.contains(who))
         {
+            let scene = &engine.scenes[self.scene];
+
             let who_position = if who.is_some() {
-                let scene = &engine.scenes[self.scene];
                 Some(self.actors.get(who).position(&scene.graph))
             } else {
                 None
             };
             let actor = self.actors.get_mut(actor_handle);
-            if let Actor::Bot(bot) = actor {
-                if let Some(who_position) = who_position {
-                    bot.set_target(actor_handle, who_position);
+
+            if !actor.is_dead() {
+                if let Actor::Bot(bot) = actor {
+                    if let Some(who_position) = who_position {
+                        bot.set_target(actor_handle, who_position);
+                    }
+                }
+                actor.damage(amount);
+
+                match actor {
+                    Actor::Bot(bot) => {
+                        if let Some(grunt_sound) =
+                            bot.definition.pain_sounds.choose(&mut rand::thread_rng())
+                        {
+                            self.sender.as_ref().unwrap().send(Message::PlaySound {
+                                path: PathBuf::from(grunt_sound.clone()),
+                                position: actor.position(&scene.graph),
+                                gain: 0.8,
+                                rolloff_factor: 1.0,
+                                radius: 0.6,
+                            });
+                        }
+                    }
+                    Actor::Player(_) => {}
                 }
             }
-            actor.damage(amount);
         }
     }
 

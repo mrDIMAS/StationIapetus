@@ -1,0 +1,5 @@
+(
+    pain_sounds: [
+        "data/sounds/agent_pain_1.wav"
+    ],
+)

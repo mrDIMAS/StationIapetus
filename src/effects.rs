@@ -1,3 +1,4 @@
+use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
 /// TODO: These effects are legacy from rusty-shooter, at that moment, particle system editor
 /// didn't exist and there was just no other options, only to create effects by hand. Effects
 /// should be re-made in rusty-editor and loaded as resources.
@@ -51,12 +52,28 @@ fn create_bullet_impact(
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
     ParticleSystemBuilder::new(
-        BaseBuilder::new().with_lifetime(0.2).with_local_transform(
-            TransformBuilder::new()
-                .with_local_position(pos)
-                .with_local_rotation(orientation)
-                .build(),
-        ),
+        BaseBuilder::new()
+            .with_children(&[PointLightBuilder::new(
+                BaseLightBuilder::new(
+                    BaseBuilder::new().with_lifetime(0.1).with_local_transform(
+                        TransformBuilder::new()
+                            .with_local_position(Vector3::new(0.0, 0.0, 0.05))
+                            .build(),
+                    ),
+                )
+                .with_color(Color::opaque(255, 255, 200))
+                .with_scatter_enabled(false)
+                .cast_shadows(false),
+            )
+            .with_radius(0.5)
+            .build(graph)])
+            .with_lifetime(0.2)
+            .with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(pos)
+                    .with_local_rotation(orientation)
+                    .build(),
+            ),
     )
     .with_acceleration(Vector3::new(0.0, 0.0, 0.0))
     .with_color_over_lifetime_gradient({

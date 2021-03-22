@@ -145,11 +145,9 @@ impl SoundManager {
             .state()
             .add_effect(rg3d::sound::effects::Effect::Reverb(reverb));
 
-        let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
-            "data/sounds/IRC_1040_C.bin",
-            context::SAMPLE_RATE,
-        )
-        .unwrap();
+        let hrtf_sphere =
+            rg3d::sound::hrtf::HrirSphere::from_file("data/sounds/hrtf.bin", context::SAMPLE_RATE)
+                .unwrap();
         context
             .state()
             .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(

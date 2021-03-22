@@ -181,6 +181,10 @@ impl LowerBodyMachine {
         clean_machine(&self.machine, scene)
     }
 
+    pub fn set_walk_animation_speed(&self, scene: &mut Scene, speed: f32) {
+        scene.animations[self.walk_animation].set_speed(speed);
+    }
+
     pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: LowerBodyMachineInput) {
         self.machine
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))

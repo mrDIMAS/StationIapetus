@@ -26,7 +26,19 @@
             health: 1000.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            close_combat_distance: 0.9
+            close_combat_distance: 0.9,
+            pain_sounds: [
+                "data/sounds/mutant_pain_1.wav",
+                "data/sounds/mutant_pain_2.wav"
+            ],
+            scream_sounds: [
+                "data/sounds/mutant_scream_1.wav"
+            ],
+            idle_sounds: [
+                "data/sounds/mutant_idle_1.wav",
+                "data/sounds/mutant_idle_2.wav",
+                "data/sounds/mutant_idle_3.wav",
+            ],
         ),
         Parasite: (
             model: "data/models/parasite.rgs",
@@ -60,7 +72,18 @@
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            close_combat_distance: 0.45
+            close_combat_distance: 0.45,
+            pain_sounds: [
+                "data/sounds/parasite_pain_1.wav",
+                "data/sounds/parasite_pain_2.wav",
+                "data/sounds/parasite_pain_3.wav",
+                "data/sounds/parasite_pain_4.wav",
+            ],
+            scream_sounds: [],
+            idle_sounds: [
+                "data/sounds/parasite_idle_1.wav",
+                "data/sounds/parasite_idle_2.wav",
+            ],
         ),
         Zombie: (
             model: "data/models/zombie.rgs",
@@ -94,7 +117,14 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
-            close_combat_distance: 0.4
+            close_combat_distance: 0.4,
+            pain_sounds: [
+                "data/sounds/zombie_pain_1.wav",
+                "data/sounds/zombie_pain_2.wav",
+                "data/sounds/zombie_pain_3.wav",
+            ],
+            scream_sounds: [],
+            idle_sounds: [],
         )
     }
 )
