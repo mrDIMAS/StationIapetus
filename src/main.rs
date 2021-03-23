@@ -42,7 +42,6 @@ use rg3d::{
         Animation,
     },
     core::{
-        color::Color,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -284,7 +283,6 @@ impl Game {
         settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
         settings.spot_shadows_distance = 30.0;
         engine.renderer.set_quality_settings(&settings).unwrap();
-        engine.renderer.set_ambient_color(Color::opaque(45, 45, 45));
 
         let control_scheme = Arc::new(RwLock::new(ControlScheme::default()));
 
@@ -330,12 +328,12 @@ impl Game {
             menu_sound_context,
             music,
             running: true,
-            menu: Menu::new(
+            menu: rg3d::futures::executor::block_on(Menu::new(
                 &mut engine,
                 control_scheme.clone(),
                 tx.clone(),
                 font.clone(),
-            ),
+            )),
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
@@ -543,7 +541,7 @@ impl Game {
                 MessageDirection::ToWidget,
                 true,
             ));
-        self.menu.set_visible(&self.engine.user_interface, false);
+        self.menu.set_visible(&mut self.engine, false);
 
         let resource_manager = self.engine.resource_manager.clone();
         let control_scheme = self.control_scheme.clone();
@@ -567,8 +565,7 @@ impl Game {
     }
 
     pub fn set_menu_visible(&mut self, visible: bool) {
-        let ui = &mut self.engine.user_interface;
-        self.menu.set_visible(ui, visible);
+        self.menu.set_visible(&mut self.engine, visible);
     }
 
     pub fn is_any_menu_visible(&self) -> bool {
@@ -610,15 +607,20 @@ impl Game {
         }
 
         if let Some(ref mut level) = self.level {
-            level.update(&mut self.engine, time);
-            let player = level.get_player();
-            if player.is_some() {
-                if let Actor::Player(player) = level.actors().get(player) {
-                    self.weapon_display.sync_to_model(player, level.weapons());
+            let menu_visible = self.menu.is_visible(&self.engine.user_interface);
+            if !menu_visible {
+                level.update(&mut self.engine, time);
+                let player = level.get_player();
+                if player.is_some() {
+                    if let Actor::Player(player) = level.actors().get(player) {
+                        self.weapon_display.sync_to_model(player, level.weapons());
+                    }
                 }
             }
+            self.engine.scenes[level.scene].enabled = !menu_visible;
         }
 
+        self.menu.scene.update(&mut self.engine, time.delta);
         self.weapon_display.update(time.delta);
         self.inventory_interface.update(time.delta);
         self.item_display.update(time.delta);
@@ -667,7 +669,7 @@ impl Game {
                         .set_gain(*volume);
                 }
                 Message::ToggleMainMenu => {
-                    self.menu.set_visible(&self.engine.user_interface, true);
+                    self.menu.set_visible(&mut self.engine, true);
                     self.death_screen
                         .set_visible(&self.engine.user_interface, false);
                 }

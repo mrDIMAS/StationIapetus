@@ -1,3 +1,4 @@
+use crate::utils::create_camera;
 use crate::GameTime;
 use rg3d::{
     core::{
@@ -9,10 +10,8 @@ use rg3d::{
     },
     engine::resource_manager::ResourceManager,
     rand,
-    resource::texture::TextureWrapMode,
     scene::{
         base::BaseBuilder,
-        camera::{CameraBuilder, SkyBox},
         graph::Graph,
         node::Node,
         physics::{Intersection, RayCastOptions},
@@ -35,58 +34,6 @@ pub struct CameraController {
     query_buffer: Vec<Intersection>,
 }
 
-/// Creates a camera at given position with a skybox.
-async fn create_camera(
-    resource_manager: ResourceManager,
-    position: Vector3<f32>,
-    graph: &mut Graph,
-) -> Handle<Node> {
-    // Load skybox textures in parallel.
-    let (front, back, left, right, top, bottom) = rg3d::futures::join!(
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyFront2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyBack2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyLeft2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyRight2048.png"),
-        resource_manager.request_texture("data/textures/skyboxes/DarkStormy/DarkStormyUp2048.png"),
-        resource_manager
-            .request_texture("data/textures/skyboxes/DarkStormy/DarkStormyDown2048.png")
-    );
-
-    // Unwrap everything.
-    let skybox = SkyBox {
-        front: Some(front.unwrap()),
-        back: Some(back.unwrap()),
-        left: Some(left.unwrap()),
-        right: Some(right.unwrap()),
-        top: Some(top.unwrap()),
-        bottom: Some(bottom.unwrap()),
-    };
-
-    // Set S and T coordinate wrap mode, ClampToEdge will remove any possible seams on edges
-    // of the skybox.
-    for skybox_texture in skybox.textures().iter().filter_map(|t| t.clone()) {
-        let mut data = skybox_texture.data_ref();
-        data.set_s_wrap_mode(TextureWrapMode::ClampToEdge);
-        data.set_t_wrap_mode(TextureWrapMode::ClampToEdge);
-    }
-
-    // Camera is our eyes in the world - you won't see anything without it.
-    CameraBuilder::new(
-        BaseBuilder::new().with_local_transform(
-            TransformBuilder::new()
-                .with_local_position(position)
-                .build(),
-        ),
-    )
-    .with_z_far(20.0)
-    .with_skybox(skybox)
-    .build(graph)
-}
-
 impl CameraController {
     pub async fn new(resource_manager: ResourceManager, graph: &mut Graph) -> Self {
         let camera_offset = -0.8;
@@ -106,6 +53,7 @@ impl CameraController {
                             resource_manager.clone(),
                             Vector3::new(0.0, 0.0, camera_offset),
                             graph,
+                            20.0,
                         )
                         .await;
                         camera

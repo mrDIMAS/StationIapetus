@@ -1,7 +1,12 @@
+use crate::utils::create_camera;
 use crate::{
     control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, level::Level,
     message::Message, options_menu::OptionsMenu, GameEngine,
 };
+use rg3d::core::algebra::{UnitQuaternion, Vector3};
+use rg3d::core::color::Color;
+use rg3d::scene::node::Node;
+use rg3d::scene::Scene;
 use rg3d::{
     core::pool::Handle,
     event::{Event, WindowEvent},
@@ -18,6 +23,7 @@ use rg3d::{
 use std::sync::{mpsc::Sender, Arc, RwLock};
 
 pub struct Menu {
+    pub scene: MenuScene,
     sender: Sender<Message>,
     root: Handle<UiNode>,
     btn_new_game: Handle<UiNode>,
@@ -28,14 +34,64 @@ pub struct Menu {
     options_menu: OptionsMenu,
 }
 
+pub struct MenuScene {
+    scene: Handle<Scene>,
+    iapetus: Handle<Node>,
+    angle: f32,
+}
+
+impl MenuScene {
+    pub async fn new(engine: &mut GameEngine) -> Self {
+        let mut scene = Scene::from_file("data/levels/menu.rgs", engine.resource_manager.clone())
+            .await
+            .unwrap();
+
+        scene.ambient_lighting_color = Color::opaque(20, 20, 20);
+
+        let position = scene.graph[scene
+            .graph
+            .find_from_root(&mut |n| n.tag() == "CameraPoint")]
+        .global_position();
+
+        create_camera(
+            engine.resource_manager.clone(),
+            position,
+            &mut scene.graph,
+            200.0,
+        )
+        .await;
+
+        Self {
+            angle: 0.0,
+            iapetus: scene.graph.find_from_root(&mut |n| n.tag() == "Iapetus"),
+            scene: engine.scenes.add(scene),
+        }
+    }
+
+    pub fn update(&mut self, engine: &mut GameEngine, dt: f32) {
+        let scene = &mut engine.scenes[self.scene];
+
+        self.angle += 0.18 * dt;
+
+        scene.graph[self.iapetus]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::y_axis(),
+                self.angle.to_radians(),
+            ));
+    }
+}
+
 impl Menu {
-    pub fn new(
+    pub async fn new(
         engine: &mut GameEngine,
         control_scheme: Arc<RwLock<ControlScheme>>,
         sender: Sender<Message>,
         font: SharedFont,
     ) -> Self {
         let frame_size = engine.renderer.get_frame_size();
+
+        let scene = MenuScene::new(engine).await;
 
         let ctx = &mut engine.user_interface.build_ctx();
 
@@ -49,7 +105,7 @@ impl Menu {
                 .with_width(frame_size.0 as f32)
                 .with_height(frame_size.1 as f32)
                 .with_child(
-                    WindowBuilder::new(WidgetBuilder::new().on_row(1).on_column(1))
+                    WindowBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
                         .can_resize(false)
                         .can_minimize(false)
                         .can_close(false)
@@ -133,13 +189,12 @@ impl Menu {
         )
         .add_row(Row::stretch())
         .add_row(Row::strict(500.0))
-        .add_row(Row::stretch())
-        .add_column(Column::stretch())
         .add_column(Column::strict(400.0))
         .add_column(Column::stretch())
         .build(ctx);
 
         Self {
+            scene,
             sender: sender.clone(),
             root,
             btn_new_game,
@@ -151,14 +206,18 @@ impl Menu {
         }
     }
 
-    pub fn set_visible(&mut self, ui: &Gui, visible: bool) {
-        ui.send_message(WidgetMessage::visibility(
-            self.root,
-            MessageDirection::ToWidget,
-            visible,
-        ));
+    pub fn set_visible(&mut self, engine: &mut GameEngine, visible: bool) {
+        engine.scenes[self.scene.scene].enabled = visible;
+
+        engine
+            .user_interface
+            .send_message(WidgetMessage::visibility(
+                self.root,
+                MessageDirection::ToWidget,
+                visible,
+            ));
         if !visible {
-            ui.send_message(WindowMessage::close(
+            engine.user_interface.send_message(WindowMessage::close(
                 self.options_menu.window,
                 MessageDirection::ToWidget,
             ));

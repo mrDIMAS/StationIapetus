@@ -1,3 +1,11 @@
+use rg3d::core::pool::Handle;
+use rg3d::engine::resource_manager::ResourceManager;
+use rg3d::resource::texture::TextureWrapMode;
+use rg3d::scene::base::BaseBuilder;
+use rg3d::scene::camera::{CameraBuilder, SkyBox};
+use rg3d::scene::graph::Graph;
+use rg3d::scene::node::Node;
+use rg3d::scene::transform::TransformBuilder;
 use rg3d::{
     core::algebra::{Point3, Unit, UnitQuaternion, Vector3},
     scene::{RigidBodyHandle, Scene},
@@ -65,4 +73,52 @@ impl BodyImpactHandler {
     pub fn is_affected(&self, handle: RigidBodyHandle) -> bool {
         self.additional_rotations.contains_key(&handle)
     }
+}
+
+/// Creates a camera at given position with a skybox.
+pub async fn create_camera(
+    resource_manager: ResourceManager,
+    position: Vector3<f32>,
+    graph: &mut Graph,
+    z_far: f32,
+) -> Handle<Node> {
+    // Load skybox textures in parallel.
+    let (front, back, left, right, top, bottom) = rg3d::futures::join!(
+        resource_manager.request_texture("data/textures/skyboxes/space/front.png"),
+        resource_manager.request_texture("data/textures/skyboxes/space/back.png"),
+        resource_manager.request_texture("data/textures/skyboxes/space/left.png"),
+        resource_manager.request_texture("data/textures/skyboxes/space/right.png"),
+        resource_manager.request_texture("data/textures/skyboxes/space/top.png"),
+        resource_manager.request_texture("data/textures/skyboxes/space/bottom.png")
+    );
+
+    // Unwrap everything.
+    let skybox = SkyBox {
+        front: Some(front.unwrap()),
+        back: Some(back.unwrap()),
+        left: Some(left.unwrap()),
+        right: Some(right.unwrap()),
+        top: Some(top.unwrap()),
+        bottom: Some(bottom.unwrap()),
+    };
+
+    // Set S and T coordinate wrap mode, ClampToEdge will remove any possible seams on edges
+    // of the skybox.
+    for skybox_texture in skybox.textures().iter().filter_map(|t| t.clone()) {
+        let mut data = skybox_texture.data_ref();
+        data.set_s_wrap_mode(TextureWrapMode::ClampToEdge);
+        data.set_t_wrap_mode(TextureWrapMode::ClampToEdge);
+    }
+
+    // Camera is our eyes in the world - you won't see anything without it.
+    CameraBuilder::new(
+        BaseBuilder::new().with_local_transform(
+            TransformBuilder::new()
+                .with_local_position(position)
+                .build(),
+        ),
+    )
+    .with_z_far(z_far)
+    .with_skybox(skybox)
+    .build(graph)
 }

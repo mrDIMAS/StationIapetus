@@ -551,6 +551,8 @@ impl Level {
     ) -> (Level, Scene) {
         let mut scene = Scene::new();
 
+        scene.ambient_lighting_color = Color::opaque(45, 45, 45);
+
         let (proximity_events_sender, proximity_events_receiver) = crossbeam::channel::unbounded();
         let (contact_events_sender, contact_events_receiver) = crossbeam::channel::unbounded();
 
@@ -931,13 +933,17 @@ impl Level {
                         if let Some(grunt_sound) =
                             bot.definition.pain_sounds.choose(&mut rand::thread_rng())
                         {
-                            self.sender.as_ref().unwrap().send(Message::PlaySound {
-                                path: PathBuf::from(grunt_sound.clone()),
-                                position: actor.position(&scene.graph),
-                                gain: 0.8,
-                                rolloff_factor: 1.0,
-                                radius: 0.6,
-                            });
+                            self.sender
+                                .as_ref()
+                                .unwrap()
+                                .send(Message::PlaySound {
+                                    path: PathBuf::from(grunt_sound.clone()),
+                                    position: actor.position(&scene.graph),
+                                    gain: 0.8,
+                                    rolloff_factor: 1.0,
+                                    radius: 0.6,
+                                })
+                                .unwrap();
                         }
                     }
                     Actor::Player(_) => {}
