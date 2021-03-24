@@ -88,6 +88,10 @@ pub enum Message {
         rolloff_factor: f32,
         radius: f32,
     },
+    Play2DSound {
+        path: PathBuf,
+        gain: f32,
+    },
     /// Plays environment-specific sound. It also handles foot step sounds.
     PlayEnvironmentSound {
         collider: ColliderHandle,

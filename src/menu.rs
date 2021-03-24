@@ -7,6 +7,8 @@ use rg3d::core::algebra::{UnitQuaternion, Vector3};
 use rg3d::core::color::Color;
 use rg3d::scene::node::Node;
 use rg3d::scene::Scene;
+use rg3d::sound::source::generic::GenericSourceBuilder;
+use rg3d::sound::source::{SoundSource, Status};
 use rg3d::{
     core::pool::Handle,
     event::{Event, WindowEvent},
@@ -35,9 +37,10 @@ pub struct Menu {
 }
 
 pub struct MenuScene {
-    scene: Handle<Scene>,
+    pub scene: Handle<Scene>,
     iapetus: Handle<Node>,
     angle: f32,
+    pub music: Handle<SoundSource>,
 }
 
 impl MenuScene {
@@ -47,6 +50,24 @@ impl MenuScene {
             .unwrap();
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
+
+        let buffer = engine
+            .resource_manager
+            .request_sound_buffer(
+                "data/music/Pura Sombar - Tongues falling from an opened sky.ogg",
+                true,
+            )
+            .await
+            .unwrap();
+
+        let music = scene.sound_context.state().add_source(
+            GenericSourceBuilder::new(buffer.into())
+                .with_looping(true)
+                .with_status(Status::Playing)
+                .with_gain(0.5)
+                .build_source()
+                .unwrap(),
+        );
 
         let position = scene.graph[scene
             .graph
@@ -62,6 +83,7 @@ impl MenuScene {
         .await;
 
         Self {
+            music,
             angle: 0.0,
             iapetus: scene.graph.find_from_root(&mut |n| n.tag() == "Iapetus"),
             scene: engine.scenes.add(scene),

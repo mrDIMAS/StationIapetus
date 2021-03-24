@@ -36,6 +36,7 @@ use crate::{
 };
 use rg3d::core::algebra::{UnitQuaternion, Vector3};
 use rg3d::dpi::LogicalSize;
+use rg3d::gui::message::{ButtonMessage, UiMessageData};
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -69,6 +70,7 @@ use rg3d::{
         translate_event,
     },
 };
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     fs::File,
@@ -166,8 +168,6 @@ pub struct Game {
     events_sender: Sender<Message>,
     load_context: Option<Arc<Mutex<LoadContext>>>,
     loading_screen: LoadingScreen,
-    menu_sound_context: Context,
-    music: Handle<SoundSource>,
     death_screen: DeathScreen,
     weapon_display: WeaponDisplay,
     inventory_interface: InventoryInterface,
@@ -296,37 +296,12 @@ impl Game {
 
         let (tx, rx) = mpsc::channel();
 
-        let menu_sound_context = Context::new();
-
-        let buffer = rg3d::futures::executor::block_on(
-            engine
-                .resource_manager
-                .request_sound_buffer("data/sounds/Antonio_Bizarro_Berzerker.ogg", true),
-        )
-        .unwrap();
-        let music = menu_sound_context.state().add_source(
-            GenericSourceBuilder::new(buffer.into())
-                .with_looping(true)
-                .with_status(Status::Playing)
-                .with_gain(0.0)
-                .build_source()
-                .unwrap(),
-        );
-
-        engine
-            .sound_engine
-            .lock()
-            .unwrap()
-            .add_context(menu_sound_context.clone());
-
         let mut game = Game {
             loading_screen: LoadingScreen::new(
                 &mut engine.user_interface.build_ctx(),
                 inner_size.width,
                 inner_size.height,
             ),
-            menu_sound_context,
-            music,
             running: true,
             menu: rg3d::futures::executor::block_on(Menu::new(
                 &mut engine,
@@ -409,6 +384,15 @@ impl Game {
             .handle_ui_message(&mut self.engine, self.level.as_ref(), &message);
 
         self.death_screen.handle_ui_message(message);
+
+        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+            self.events_sender
+                .send(Message::Play2DSound {
+                    path: PathBuf::from("data/sounds/click.ogg"),
+                    gain: 0.8,
+                })
+                .unwrap();
+        }
     }
 
     fn render(&mut self, delta: f32) {
@@ -456,9 +440,6 @@ impl Game {
         // Visit engine state first.
         self.engine.visit("GameEngine", &mut visitor)?;
         self.level.visit("Level", &mut visitor)?;
-        self.menu_sound_context
-            .visit("MenuSoundContext", &mut visitor)?;
-        self.music.visit("Music", &mut visitor)?;
 
         // Debug output
         if let Ok(mut file) = File::create(Path::new("save.txt")) {
@@ -486,9 +467,6 @@ impl Game {
         );
         self.engine.visit("GameEngine", &mut visitor)?;
         self.level.visit("Level", &mut visitor)?;
-        self.menu_sound_context
-            .visit("MenuSoundContext", &mut visitor)?;
-        self.music.visit("Music", &mut visitor)?;
 
         Log::writeln(
             MessageKind::Information,
@@ -663,9 +641,10 @@ impl Game {
                     self.menu.sync_to_model(&mut self.engine, false);
                 }
                 Message::SetMusicVolume { volume } => {
-                    self.menu_sound_context
+                    self.engine.scenes[self.menu.scene.scene]
+                        .sound_context
                         .state()
-                        .source_mut(self.music)
+                        .source_mut(self.menu.scene.music)
                         .set_gain(*volume);
                 }
                 Message::ToggleMainMenu => {
@@ -687,6 +666,25 @@ impl Game {
                         item,
                         count,
                     );
+                }
+                Message::Play2DSound { path, gain } => {
+                    if let Ok(buffer) = rg3d::futures::executor::block_on(
+                        self.engine
+                            .resource_manager
+                            .request_sound_buffer(path, false),
+                    ) {
+                        if let Ok(shot_sound) = GenericSourceBuilder::new(buffer.into())
+                            .with_status(Status::Playing)
+                            .with_play_once(true)
+                            .with_gain(*gain)
+                            .build_source()
+                        {
+                            let mut state = self.engine.scenes[self.menu.scene.scene]
+                                .sound_context
+                                .state();
+                            state.add_source(shot_sound);
+                        }
+                    }
                 }
                 _ => (),
             }
