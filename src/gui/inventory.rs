@@ -67,20 +67,17 @@ impl Control<CustomUiMessage, CustomUiNode> for InventoryItem {
     ) {
         self.widget.handle_routed_message(ui, message);
 
-        match message.data() {
-            UiMessageData::User(msg) => {
-                let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
-                if message.destination() == self.handle() {
-                    self.is_selected = select;
+        if let UiMessageData::User(msg) = message.data() {
+            let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
+            if message.destination() == self.handle() {
+                self.is_selected = select;
 
-                    self.set_foreground(if select {
-                        Brush::Solid(Color::opaque(0, 0, 255))
-                    } else {
-                        Brush::Solid(Color::opaque(255, 255, 255))
-                    });
-                }
+                self.set_foreground(if select {
+                    Brush::Solid(Color::opaque(0, 0, 255))
+                } else {
+                    Brush::Solid(Color::opaque(255, 255, 255))
+                });
             }
-            _ => (),
         }
     }
 }
@@ -130,76 +127,69 @@ impl InventoryItemBuilder {
         let definition = Item::get_definition(item);
 
         let count;
-        let item =
-            InventoryItem {
-                widget: self
-                    .widget_builder
-                    .with_child(
-                        BorderBuilder::new(
-                            WidgetBuilder::new()
-                                .with_margin(Thickness::uniform(1.0))
-                                .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
-                                .with_child(
-                                    GridBuilder::new(
-                                        WidgetBuilder::new()
-                                            .with_child(
-                                                ImageBuilder::new(
-                                                    WidgetBuilder::new()
-                                                        .with_margin(Thickness::uniform(1.0))
-                                                        .on_row(0),
+        let body = BorderBuilder::new(
+            WidgetBuilder::new()
+                .with_margin(Thickness::uniform(1.0))
+                .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
+                .with_child(
+                    GridBuilder::new(
+                        WidgetBuilder::new()
+                            .with_child(
+                                ImageBuilder::new(
+                                    WidgetBuilder::new()
+                                        .with_margin(Thickness::uniform(1.0))
+                                        .on_row(0),
+                                )
+                                .with_texture(rg3d::utils::into_gui_texture(
+                                    resource_manager.request_texture(&definition.preview),
+                                ))
+                                .build(ctx),
+                            )
+                            .with_child(
+                                StackPanelBuilder::new(
+                                    WidgetBuilder::new()
+                                        .on_row(1)
+                                        .with_child(
+                                            TextBuilder::new(WidgetBuilder::new())
+                                                .with_horizontal_text_alignment(
+                                                    HorizontalAlignment::Center,
                                                 )
-                                                .with_texture(rg3d::utils::into_gui_texture(
-                                                    resource_manager
-                                                        .request_texture(&definition.preview),
-                                                ))
-                                                .build(ctx),
-                                            )
-                                            .with_child(
-                                                StackPanelBuilder::new(
-                                                    WidgetBuilder::new()
-                                                        .on_row(1)
-                                                        .with_child(
-                                                            TextBuilder::new(WidgetBuilder::new())
-                                                                .with_horizontal_text_alignment(
-                                                                    HorizontalAlignment::Center,
-                                                                )
-                                                                .with_vertical_text_alignment(
-                                                                    VerticalAlignment::Center,
-                                                                )
-                                                                .with_text(&definition.name)
-                                                                .build(ctx),
-                                                        )
-                                                        .with_child({
-                                                            count = TextBuilder::new(
-                                                                WidgetBuilder::new(),
-                                                            )
-                                                            .with_horizontal_text_alignment(
-                                                                HorizontalAlignment::Center,
-                                                            )
-                                                            .with_vertical_text_alignment(
-                                                                VerticalAlignment::Center,
-                                                            )
-                                                            .with_text(format!("x{}", self.count))
-                                                            .build(ctx);
-                                                            count
-                                                        }),
+                                                .with_vertical_text_alignment(
+                                                    VerticalAlignment::Center,
                                                 )
+                                                .with_text(&definition.name)
                                                 .build(ctx),
-                                            ),
-                                    )
-                                    .add_row(Row::stretch())
-                                    .add_row(Row::auto())
-                                    .add_column(Column::stretch())
-                                    .build(ctx),
-                                ),
-                        )
-                        .build(ctx),
+                                        )
+                                        .with_child({
+                                            count = TextBuilder::new(WidgetBuilder::new())
+                                                .with_horizontal_text_alignment(
+                                                    HorizontalAlignment::Center,
+                                                )
+                                                .with_vertical_text_alignment(
+                                                    VerticalAlignment::Center,
+                                                )
+                                                .with_text(format!("x{}", self.count))
+                                                .build(ctx);
+                                            count
+                                        }),
+                                )
+                                .build(ctx),
+                            ),
                     )
-                    .build(),
-                count,
-                is_selected: false,
-                item,
-            };
+                    .add_row(Row::stretch())
+                    .add_row(Row::auto())
+                    .add_column(Column::stretch())
+                    .build(ctx),
+                ),
+        )
+        .build(ctx);
+
+        let item = InventoryItem {
+            widget: self.widget_builder.with_child(body).build(),
+            count,
+            is_selected: false,
+            item,
+        };
 
         ctx.add_node(UiNode::User(CustomUiNode::InventoryItem(item)))
     }
@@ -430,122 +420,116 @@ impl InventoryInterface {
         self.ui.process_os_event(os_event);
 
         if self.is_enabled {
-            match *os_event {
-                OsEvent::KeyboardInput { button, state } => {
-                    if state == ButtonState::Pressed {
-                        // TODO: Add support for other input bindings.
-                        if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                self.try_move_selection(MoveDirection::Up);
-                            }
+            if let OsEvent::KeyboardInput { button, state } = *os_event {
+                if state == ButtonState::Pressed {
+                    // TODO: Add support for other input bindings.
+                    if let ControlButton::Key(key) = control_scheme.cursor_up.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            self.try_move_selection(MoveDirection::Up);
                         }
-                        if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                self.try_move_selection(MoveDirection::Down);
-                            }
+                    }
+                    if let ControlButton::Key(key) = control_scheme.cursor_down.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            self.try_move_selection(MoveDirection::Down);
                         }
-                        if let ControlButton::Key(key) = control_scheme.cursor_left.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                self.try_move_selection(MoveDirection::Left);
-                            }
+                    }
+                    if let ControlButton::Key(key) = control_scheme.cursor_left.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            self.try_move_selection(MoveDirection::Left);
                         }
-                        if let ControlButton::Key(key) = control_scheme.cursor_right.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                self.try_move_selection(MoveDirection::Right);
-                            }
+                    }
+                    if let ControlButton::Key(key) = control_scheme.cursor_right.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            self.try_move_selection(MoveDirection::Right);
                         }
-                        if let ControlButton::Key(key) = control_scheme.action.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                let selection = self.selection();
-                                if selection.is_some() {
-                                    if let UiNode::User(CustomUiNode::InventoryItem(item)) =
-                                        self.ui.node(selection)
-                                    {
-                                        let definition = Item::get_definition(item.item);
-                                        if definition.consumable
-                                            && player
-                                                .inventory_mut()
-                                                .try_extract_exact_items(item.item, 1)
-                                                == 1
-                                        {
-                                            self.sender
-                                                .send(Message::UseItem {
-                                                    actor: player_handle,
-                                                    kind: item.item,
-                                                })
-                                                .unwrap();
-                                            self.sender.send(Message::SyncInventory).unwrap();
-                                        }
-                                    } else {
-                                        unreachable!()
-                                    }
-                                }
-                            }
-                        }
-                        if let ControlButton::Key(key) = control_scheme.drop_item.button {
-                            if rg3d::utils::translate_key(key) == button {
-                                let selection = self.selection();
-                                if selection.is_some() {
-                                    if let UiNode::User(CustomUiNode::InventoryItem(item)) =
-                                        self.ui.node(selection)
+                    }
+                    if let ControlButton::Key(key) = control_scheme.action.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            let selection = self.selection();
+                            if selection.is_some() {
+                                if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                                    self.ui.node(selection)
+                                {
+                                    let definition = Item::get_definition(item.item);
+                                    if definition.consumable
+                                        && player
+                                            .inventory_mut()
+                                            .try_extract_exact_items(item.item, 1)
+                                            == 1
                                     {
                                         self.sender
-                                            .send(Message::DropItems {
+                                            .send(Message::UseItem {
                                                 actor: player_handle,
-                                                item: item.item,
-                                                count: 1,
+                                                kind: item.item,
                                             })
                                             .unwrap();
                                         self.sender.send(Message::SyncInventory).unwrap();
-                                    } else {
-                                        unreachable!()
                                     }
+                                } else {
+                                    unreachable!()
+                                }
+                            }
+                        }
+                    }
+                    if let ControlButton::Key(key) = control_scheme.drop_item.button {
+                        if rg3d::utils::translate_key(key) == button {
+                            let selection = self.selection();
+                            if selection.is_some() {
+                                if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                                    self.ui.node(selection)
+                                {
+                                    self.sender
+                                        .send(Message::DropItems {
+                                            actor: player_handle,
+                                            item: item.item,
+                                            count: 1,
+                                        })
+                                        .unwrap();
+                                    self.sender.send(Message::SyncInventory).unwrap();
+                                } else {
+                                    unreachable!()
                                 }
                             }
                         }
                     }
                 }
-                _ => (),
             }
         }
     }
 
     pub fn update(&mut self, delta: f32) {
         while let Some(message) = self.ui.poll_message() {
-            match message.data() {
-                UiMessageData::User(msg) => {
-                    let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
+            if let UiMessageData::User(msg) = message.data() {
+                let CustomUiMessage::InventoryItem(InventoryItemMessage::Select(select)) = *msg;
 
-                    if select {
-                        if let UiNode::User(CustomUiNode::InventoryItem(item)) =
-                            self.ui.node(message.destination())
-                        {
-                            let definition = Item::get_definition(item.item);
+                if select {
+                    if let UiNode::User(CustomUiNode::InventoryItem(item)) =
+                        self.ui.node(message.destination())
+                    {
+                        let definition = Item::get_definition(item.item);
 
-                            // Deselect every other item.
-                            for &item_handle in self.ui.node(self.items_panel).children() {
-                                if item_handle != message.destination() {
-                                    self.ui.send_message(UiMessage::user(
-                                        item_handle,
-                                        MessageDirection::ToWidget,
-                                        CustomUiMessage::InventoryItem(
-                                            InventoryItemMessage::Select(false),
-                                        ),
-                                    ));
-                                }
+                        // Deselect every other item.
+                        for &item_handle in self.ui.node(self.items_panel).children() {
+                            if item_handle != message.destination() {
+                                self.ui.send_message(UiMessage::user(
+                                    item_handle,
+                                    MessageDirection::ToWidget,
+                                    CustomUiMessage::InventoryItem(InventoryItemMessage::Select(
+                                        false,
+                                    )),
+                                ));
                             }
-
-                            self.ui.send_message(TextMessage::text(
-                                self.item_description,
-                                MessageDirection::ToWidget,
-                                definition.description.clone(),
-                            ));
-                        } else {
-                            unreachable!();
                         }
+
+                        self.ui.send_message(TextMessage::text(
+                            self.item_description,
+                            MessageDirection::ToWidget,
+                            definition.description.clone(),
+                        ));
+                    } else {
+                        unreachable!();
                     }
                 }
-                _ => (),
             }
         }
 

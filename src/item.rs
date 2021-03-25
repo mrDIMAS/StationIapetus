@@ -1,16 +1,17 @@
-use crate::message::Message;
-use crate::weapon::WeaponKind;
-use rg3d::core::color::Color;
-use rg3d::scene::sprite::SpriteBuilder;
+use crate::{message::Message, weapon::WeaponKind};
 use rg3d::{
     core::{
         algebra::Vector3,
+        color::Color,
         pool::{Handle, Pool, PoolIterator, PoolPairIterator},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
-    scene::{base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene},
+    scene::{
+        base::BaseBuilder, graph::Graph, node::Node, sprite::SpriteBuilder,
+        transform::TransformBuilder, Scene,
+    },
     sound::pool::PoolIteratorMut,
 };
 use serde::Deserialize;
@@ -124,7 +125,7 @@ pub struct ItemDefinition {
     pub preview: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct ItemDefinitionContainer {
     map: HashMap<ItemKind, ItemDefinition>,
 }

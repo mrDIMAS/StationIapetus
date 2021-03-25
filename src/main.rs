@@ -34,24 +34,26 @@ use crate::{
     menu::Menu,
     message::Message,
 };
-use rg3d::core::algebra::{UnitQuaternion, Vector3};
-use rg3d::dpi::LogicalSize;
-use rg3d::gui::message::{ButtonMessage, UiMessageData};
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
         Animation,
     },
     core::{
+        algebra::{UnitQuaternion, Vector3},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
+    dpi::LogicalSize,
     engine::{resource_manager::ResourceManager, Engine},
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     gui::{
         grid::{Column, GridBuilder, Row},
-        message::{MessageDirection, ProgressBarMessage, TextMessage, WidgetMessage},
+        message::{
+            ButtonMessage, MessageDirection, ProgressBarMessage, TextMessage, UiMessageData,
+            WidgetMessage,
+        },
         progress_bar::ProgressBarBuilder,
         text::TextBuilder,
         ttf::{Font, SharedFont},
@@ -61,22 +63,18 @@ use rg3d::{
     renderer::ShadowMapPrecision,
     resource::model::Model,
     scene::{node::Node, Scene},
-    sound::{
-        context::Context,
-        source::{generic::GenericSourceBuilder, SoundSource, Status},
-    },
+    sound::source::{generic::GenericSourceBuilder, Status},
     utils::{
         log::{Log, MessageKind},
         translate_event,
     },
 };
-use std::path::PathBuf;
 use std::{
     collections::HashMap,
     fs::File,
     io::Write,
     ops::Index,
-    path::Path,
+    path::{Path, PathBuf},
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex, RwLock,
@@ -312,7 +310,7 @@ impl Game {
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
-            weapon_display: WeaponDisplay::new(font.clone(), engine.resource_manager.clone()),
+            weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
             item_display: ItemDisplay::new(smaller_font),
             engine,
             level: None,
@@ -476,7 +474,7 @@ impl Game {
         // Hide menu only of we successfully loaded a save.
         self.set_menu_visible(false);
         self.death_screen
-            .set_visible(&mut self.engine.user_interface, false);
+            .set_visible(&self.engine.user_interface, false);
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {

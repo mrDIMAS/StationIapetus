@@ -1,16 +1,13 @@
-use crate::utils::create_camera;
 use crate::{
     control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, level::Level,
-    message::Message, options_menu::OptionsMenu, GameEngine,
+    message::Message, options_menu::OptionsMenu, utils::create_camera, GameEngine,
 };
-use rg3d::core::algebra::{UnitQuaternion, Vector3};
-use rg3d::core::color::Color;
-use rg3d::scene::node::Node;
-use rg3d::scene::Scene;
-use rg3d::sound::source::generic::GenericSourceBuilder;
-use rg3d::sound::source::{SoundSource, Status};
 use rg3d::{
-    core::pool::Handle,
+    core::{
+        algebra::{UnitQuaternion, Vector3},
+        color::Color,
+        pool::Handle,
+    },
     event::{Event, WindowEvent},
     gui::{
         button::ButtonBuilder,
@@ -21,6 +18,8 @@ use rg3d::{
         window::{WindowBuilder, WindowTitle},
         Thickness,
     },
+    scene::{node::Node, Scene},
+    sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
 use std::sync::{mpsc::Sender, Arc, RwLock};
 

@@ -1257,18 +1257,19 @@ impl Player {
                 self.controller.shoot = state == ElementState::Pressed;
             } else if button == scheme.action.button {
                 self.controller.action = state == ElementState::Pressed;
-            } else if button == scheme.inventory.button && state == ElementState::Pressed {
-                if !self.controller.aim {
-                    let inventory = &mut scene.graph[self.inventory_display];
-                    let new_visibility = !inventory.visibility();
-                    inventory.set_visibility(new_visibility);
-                    if new_visibility {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::SyncInventory)
-                            .unwrap();
-                    }
+            } else if button == scheme.inventory.button
+                && state == ElementState::Pressed
+                && !self.controller.aim
+            {
+                let inventory = &mut scene.graph[self.inventory_display];
+                let new_visibility = !inventory.visibility();
+                inventory.set_visibility(new_visibility);
+                if new_visibility {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SyncInventory)
+                        .unwrap();
                 }
             }
         }

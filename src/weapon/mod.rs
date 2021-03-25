@@ -369,7 +369,7 @@ impl WeaponDefinition {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct WeaponDefinitionContainer {
     map: HashMap<WeaponKind, WeaponDefinition>,
 }

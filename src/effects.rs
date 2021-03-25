@@ -1,7 +1,5 @@
 use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
-/// TODO: These effects are legacy from rusty-shooter, at that moment, particle system editor
-/// didn't exist and there was just no other options, only to create effects by hand. Effects
-/// should be re-made in rusty-editor and loaded as resources.
+
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -20,6 +18,10 @@ use rg3d::{
     },
 };
 use std::path::Path;
+
+/// TODO: These effects are legacy from rusty-shooter, at that moment, particle system editor
+/// didn't exist and there was just no other options, only to create effects by hand. Effects
+/// should be re-made in rusty-editor and loaded as resources.
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EffectKind {

@@ -236,7 +236,7 @@ pub struct ProjectileDefinition {
     impact_sound: String,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Default)]
 pub struct ProjectileDefinitionContainer {
     map: HashMap<ProjectileKind, ProjectileDefinition>,
 }

@@ -72,7 +72,7 @@ impl ItemDisplay {
                             .on_row(1)
                             .on_column(0),
                     )
-                    .with_font(font.clone())
+                    .with_font(font)
                     .build(&mut ui.build_ctx());
                     item_name
                 }),

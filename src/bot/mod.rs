@@ -9,7 +9,7 @@ use crate::{
     level::{footstep_ray_check, UpdateContext},
     message::Message,
     utils::BodyImpactHandler,
-    weapon::{projectile::Damage, WeaponContainer},
+    weapon::projectile::Damage,
     CollisionGroups, GameTime,
 };
 use rg3d::{
@@ -434,15 +434,6 @@ impl Bot {
         }
     }
 
-    fn select_weapon(&mut self, weapons: &WeaponContainer) {
-        if self.character.current_weapon().is_some() {
-            for (i, handle) in self.character.weapons().iter().enumerate() {
-                self.character.set_current_weapon(i);
-                break;
-            }
-        }
-    }
-
     pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
         for pts in self.agent.path().windows(2) {
             let a = pts[0];
@@ -566,7 +557,6 @@ impl Bot {
                 .set_speed(self.definition.walk_speed * movement_speed_factor);
 
             self.select_target(self_handle, context.scene, targets);
-            self.select_weapon(context.weapons);
 
             let body = context
                 .scene

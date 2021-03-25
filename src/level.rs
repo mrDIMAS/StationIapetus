@@ -676,11 +676,6 @@ impl Level {
         &self.weapons
     }
 
-    fn pick(&self, engine: &mut GameEngine, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
-        let scene = &mut engine.scenes[self.scene];
-        pick(scene, from, to)
-    }
-
     fn remove_weapon(&mut self, engine: &mut GameEngine, weapon: Handle<Weapon>) {
         for projectile in self.projectiles.iter_mut() {
             if let ProjectileOwner::Weapon(ref mut owner) = projectile.owner {
