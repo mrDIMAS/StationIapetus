@@ -48,6 +48,8 @@ pub struct OptionsMenu {
     sb_point_shadow_distance: Handle<UiNode>,
     sb_spot_shadow_distance: Handle<UiNode>,
     cb_use_light_scatter: Handle<UiNode>,
+    cb_fxaa: Handle<UiNode>,
+    cb_ssao: Handle<UiNode>,
     video_modes: Vec<VideoMode>,
     control_scheme: Arc<RwLock<ControlScheme>>,
     control_scheme_buttons: Vec<Handle<UiNode>>,
@@ -123,6 +125,8 @@ impl OptionsMenu {
         let cb_use_hrtf;
         let btn_reset_audio_settings;
         let cb_use_light_scatter;
+        let cb_fxaa;
+        let cb_ssao;
 
         let graphics_tab = TabDefinition {
             header: make_tab_header("Graphics", ctx),
@@ -261,8 +265,20 @@ impl OptionsMenu {
                                     cb_use_light_scatter =
                                         create_check_box(ctx, 8, 1, settings.light_scatter_enabled);
                                     cb_use_light_scatter
+                                })
+                                .with_child(make_text_mark("FXAA", 9, ctx))
+                                .with_child({
+                                    cb_fxaa = create_check_box(ctx, 9, 1, settings.fxaa);
+                                    cb_fxaa
+                                })
+                                .with_child(make_text_mark("SSAO", 10, ctx))
+                                .with_child({
+                                    cb_ssao = create_check_box(ctx, 10, 1, settings.fxaa);
+                                    cb_ssao
                                 }),
                         )
+                        .add_row(common_row)
+                        .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
@@ -477,6 +493,8 @@ impl OptionsMenu {
             cb_use_hrtf,
             btn_reset_audio_settings,
             cb_use_light_scatter,
+            cb_fxaa,
+            cb_ssao,
         }
     }
 
@@ -497,6 +515,8 @@ impl OptionsMenu {
         sync_check_box(self.cb_point_shadows, settings.point_shadows_enabled);
         sync_check_box(self.cb_soft_point_shadows, settings.point_soft_shadows);
         sync_check_box(self.cb_use_light_scatter, settings.light_scatter_enabled);
+        sync_check_box(self.cb_ssao, settings.use_ssao);
+        sync_check_box(self.cb_fxaa, settings.fxaa);
         sync_check_box(self.cb_mouse_y_inverse, control_scheme.mouse_y_inverse);
         let is_hrtf = if scene.is_some() {
             matches!(
@@ -670,6 +690,12 @@ impl OptionsMenu {
                     changed = true;
                 } else if message.destination() == self.cb_use_light_scatter {
                     settings.light_scatter_enabled = value;
+                    changed = true;
+                } else if message.destination() == self.cb_fxaa {
+                    settings.fxaa = value;
+                    changed = true;
+                } else if message.destination() == self.cb_ssao {
+                    settings.use_ssao = value;
                     changed = true;
                 }
             }
