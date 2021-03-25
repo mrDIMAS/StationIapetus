@@ -294,11 +294,23 @@ impl Menu {
             } else if message.destination() == self.btn_quit_game {
                 self.sender.send(Message::QuitGame).unwrap();
             } else if message.destination() == self.btn_settings {
-                engine.user_interface.send_message(WindowMessage::open(
-                    self.options_menu.window,
-                    MessageDirection::ToWidget,
-                    true,
-                ));
+                let is_visible = engine
+                    .user_interface
+                    .node(self.options_menu.window)
+                    .visibility();
+
+                if is_visible {
+                    engine.user_interface.send_message(WindowMessage::close(
+                        self.options_menu.window,
+                        MessageDirection::ToWidget,
+                    ));
+                } else {
+                    engine.user_interface.send_message(WindowMessage::open(
+                        self.options_menu.window,
+                        MessageDirection::ToWidget,
+                        true,
+                    ));
+                }
             }
         }
 

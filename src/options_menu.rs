@@ -1,9 +1,6 @@
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
-    gui::{
-        create_check_box, create_scroll_bar, create_scroll_viewer, BuildContext, GuiMessage,
-        ScrollBarData, UiNode,
-    },
+    gui::{create_check_box, create_scroll_bar, BuildContext, GuiMessage, ScrollBarData, UiNode},
     level::Level,
     message::Message,
     GameEngine,
@@ -15,11 +12,11 @@ use rg3d::{
         border::BorderBuilder,
         button::ButtonBuilder,
         decorator::DecoratorBuilder,
+        dropdown_list::DropdownListBuilder,
         grid::{Column, GridBuilder, Row},
-        list_view::ListViewBuilder,
         message::{
-            ButtonMessage, CheckBoxMessage, ListViewMessage, MessageDirection, ScrollBarMessage,
-            TextMessage, UiMessageData,
+            ButtonMessage, CheckBoxMessage, DropdownListMessage, MessageDirection,
+            ScrollBarMessage, TextMessage, UiMessageData,
         },
         node::UINode,
         scroll_viewer::ScrollViewerBuilder,
@@ -136,13 +133,12 @@ impl OptionsMenu {
                                 .with_margin(Thickness::uniform(5.0))
                                 .with_child(make_text_mark("Resolution", 0, ctx))
                                 .with_child({
-                                    lb_video_modes = ListViewBuilder::new(
+                                    lb_video_modes = DropdownListBuilder::new(
                                         WidgetBuilder::new()
                                             .on_column(1)
                                             .on_row(0)
                                             .with_margin(margin),
                                     )
-                                    .with_scroll_viewer(create_scroll_viewer(ctx))
                                     .with_items({
                                         let mut items = Vec::new();
                                         for video_mode in video_modes.iter() {
@@ -266,7 +262,7 @@ impl OptionsMenu {
                                     cb_use_light_scatter
                                 }),
                         )
-                        .add_row(Row::strict(200.0))
+                        .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
@@ -633,7 +629,7 @@ impl OptionsMenu {
                         .unwrap();
                 }
             }
-            UiMessageData::ListView(ListViewMessage::SelectionChanged(new_value)) => {
+            UiMessageData::DropdownList(DropdownListMessage::SelectionChanged(new_value)) => {
                 if message.destination() == self.lb_video_modes {
                     if let Some(index) = new_value {
                         let video_mode = self.video_modes[*index].clone();
