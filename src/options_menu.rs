@@ -447,6 +447,7 @@ impl OptionsMenu {
                 .with_max_size(Vector2::new(f32::INFINITY, 600.0))
                 .with_width(500.0),
         )
+        .can_minimize(false)
         .with_title(WindowTitle::text("Options"))
         .open(false)
         .with_content(tab_control)

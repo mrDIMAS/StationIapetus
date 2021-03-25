@@ -51,8 +51,8 @@ use rg3d::{
     gui::{
         grid::{Column, GridBuilder, Row},
         message::{
-            ButtonMessage, MessageDirection, ProgressBarMessage, TextMessage, UiMessageData,
-            WidgetMessage,
+            ButtonMessage, CheckBoxMessage, MessageDirection, ProgressBarMessage, TextMessage,
+            UiMessageData, WidgetMessage,
         },
         progress_bar::ProgressBarBuilder,
         text::TextBuilder,
@@ -383,7 +383,12 @@ impl Game {
 
         self.death_screen.handle_ui_message(message);
 
-        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+        if matches!(message.data(), UiMessageData::Button(ButtonMessage::Click))
+            || (matches!(
+                message.data(),
+                UiMessageData::CheckBox(CheckBoxMessage::Check(_))
+            ) && message.direction() == MessageDirection::FromWidget)
+        {
             self.events_sender
                 .send(Message::Play2DSound {
                     path: PathBuf::from("data/sounds/click.ogg"),
