@@ -8,6 +8,6 @@ edition = "2018"
 opt-level = 3
 
 [dependencies]
-rg3d = { path = "../rg3d" }
+rg3d = { path = "../rg3d", features = ["serde_integration"] }
 ron = "0.6.4"
 serde = "^1.0.0"

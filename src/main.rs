@@ -7,6 +7,7 @@ extern crate serde;
 pub mod actor;
 pub mod bot;
 pub mod character;
+pub mod config;
 pub mod control_scheme;
 pub mod door;
 pub mod effects;
@@ -25,6 +26,7 @@ pub mod weapon;
 
 use crate::{
     actor::Actor,
+    config::Config,
     control_scheme::ControlScheme,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, weapon_display::WeaponDisplay,
@@ -60,7 +62,6 @@ use rg3d::{
         widget::WidgetBuilder,
         HorizontalAlignment, VerticalAlignment,
     },
-    renderer::ShadowMapPrecision,
     resource::model::Model,
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, Status},
@@ -276,13 +277,40 @@ impl Game {
 
         let mut engine = GameEngine::new(window_builder, &events_loop, false).unwrap();
 
-        let mut settings = engine.renderer.get_quality_settings();
-        settings.point_shadow_map_precision = ShadowMapPrecision::Full;
-        settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
-        settings.spot_shadows_distance = 30.0;
-        engine.renderer.set_quality_settings(&settings).unwrap();
+        let mut control_scheme = ControlScheme::default();
 
-        let control_scheme = Arc::new(RwLock::new(ControlScheme::default()));
+        match Config::load() {
+            Ok(config) => {
+                match engine
+                    .renderer
+                    .set_quality_settings(&config.graphics_settings)
+                {
+                    Ok(_) => {
+                        Log::writeln(
+                            MessageKind::Information,
+                            "Graphics settings were applied correctly!".to_string(),
+                        );
+                    }
+                    Err(e) => Log::writeln(
+                        MessageKind::Error,
+                        format!("Failed to set graphics settings. Reason: {:?}", e),
+                    ),
+                }
+
+                control_scheme = config.controls;
+            }
+            Err(e) => {
+                Log::writeln(
+                    MessageKind::Error,
+                    format!(
+                        "Failed to load config. Recovering to default values... Reason: {:?}",
+                        e
+                    ),
+                );
+            }
+        }
+
+        let control_scheme = Arc::new(RwLock::new(control_scheme));
 
         let fixed_timestep = 1.0 / FIXED_FPS;
 

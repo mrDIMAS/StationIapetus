@@ -1,4 +1,5 @@
 use crate::{
+    config::Config,
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, BuildContext, GuiMessage, ScrollBarData, UiNode},
     level::Level,
@@ -608,6 +609,8 @@ impl OptionsMenu {
         let old_settings = engine.renderer.get_quality_settings();
         let mut settings = old_settings;
 
+        let mut changed = false;
+
         match message.data() {
             UiMessageData::ScrollBar(ScrollBarMessage::Value(new_value))
                 if message.direction() == MessageDirection::FromWidget =>
@@ -617,17 +620,22 @@ impl OptionsMenu {
                         .sound_engine
                         .lock()
                         .unwrap()
-                        .set_master_gain(*new_value)
+                        .set_master_gain(*new_value);
+                    changed = true;
                 } else if message.destination() == self.sb_point_shadow_distance {
                     settings.point_shadows_distance = *new_value;
+                    changed = true;
                 } else if message.destination() == self.sb_spot_shadow_distance {
                     settings.spot_shadows_distance = *new_value;
+                    changed = true;
                 } else if message.destination() == self.sb_mouse_sens {
                     self.control_scheme.write().unwrap().mouse_sens = *new_value;
+                    changed = true;
                 } else if message.destination() == self.sb_music_volume {
                     self.sender
                         .send(Message::SetMusicVolume { volume: *new_value })
                         .unwrap();
+                    changed = true;
                 }
             }
             UiMessageData::DropdownList(DropdownListMessage::SelectionChanged(new_value)) => {
@@ -636,7 +644,8 @@ impl OptionsMenu {
                         let video_mode = self.video_modes[*index].clone();
                         engine
                             .get_window()
-                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode)))
+                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode)));
+                        changed = true;
                     }
                 }
             }
@@ -646,25 +655,33 @@ impl OptionsMenu {
                 let mut control_scheme = self.control_scheme.write().unwrap();
                 if message.destination() == self.cb_point_shadows {
                     settings.point_shadows_enabled = value;
+                    changed = true;
                 } else if message.destination() == self.cb_spot_shadows {
                     settings.spot_shadows_enabled = value;
+                    changed = true;
                 } else if message.destination() == self.cb_soft_spot_shadows {
                     settings.spot_soft_shadows = value;
+                    changed = true;
                 } else if message.destination() == self.cb_soft_point_shadows {
                     settings.point_soft_shadows = value;
+                    changed = true;
                 } else if message.destination() == self.cb_mouse_y_inverse {
                     control_scheme.mouse_y_inverse = value;
+                    changed = true;
                 } else if message.destination() == self.cb_use_light_scatter {
                     settings.light_scatter_enabled = value;
+                    changed = true;
                 }
             }
             UiMessageData::Button(ButtonMessage::Click) => {
                 if message.destination() == self.btn_reset_control_scheme {
                     self.control_scheme.write().unwrap().reset();
                     self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                    changed = true;
                 } else if message.destination() == self.btn_reset_audio_settings {
                     engine.sound_engine.lock().unwrap().set_master_gain(1.0);
                     self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                    changed = true;
                 }
 
                 for (i, button) in self.control_scheme_buttons.iter().enumerate() {
@@ -690,6 +707,22 @@ impl OptionsMenu {
                     MessageKind::Error,
                     format!("Failed to set renderer quality settings! Reason: {:?}", err),
                 );
+            }
+        }
+
+        if changed {
+            match Config::save(
+                engine,
+                self.control_scheme.read().unwrap().clone(),
+                Default::default(),
+            ) {
+                Ok(_) => {
+                    Log::writeln(MessageKind::Information, "Settings saved!".to_string());
+                }
+                Err(e) => Log::writeln(
+                    MessageKind::Error,
+                    format!("Failed to save settings. Reason: {:?}", e),
+                ),
             }
         }
     }

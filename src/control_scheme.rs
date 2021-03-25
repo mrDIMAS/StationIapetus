@@ -1,6 +1,7 @@
 use rg3d::event::VirtualKeyCode;
+use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum ControlButton {
     Mouse(u16),
     Key(VirtualKeyCode),
@@ -26,11 +27,13 @@ impl ControlButton {
     }
 }
 
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ControlButtonDefinition {
     pub description: String,
     pub button: ControlButton,
 }
 
+#[derive(Deserialize, Serialize, Clone)]
 pub struct ControlScheme {
     pub move_forward: ControlButtonDefinition,
     pub move_backward: ControlButtonDefinition,
