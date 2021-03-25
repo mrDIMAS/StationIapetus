@@ -16,13 +16,13 @@ use crate::{
     },
     GameEngine, GameTime,
 };
-use rg3d::core::rand::seq::SliceRandom;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, PositionProvider},
         pool::Handle,
+        rand::seq::SliceRandom,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -1033,7 +1033,12 @@ impl Level {
         self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
-        self.doors.update(&self.actors, scene, time.delta);
+        self.doors.update(
+            &self.actors,
+            self.sender.clone().unwrap(),
+            scene,
+            time.delta,
+        );
         self.lights.update(scene, time.delta);
         self.items.update(time.delta, &mut scene.graph);
     }

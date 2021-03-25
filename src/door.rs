@@ -1,13 +1,14 @@
-use crate::actor::ActorContainer;
-use rg3d::core::color::Color;
+use crate::{actor::ActorContainer, message::Message};
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
+        color::Color,
         pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},
     },
     scene::{graph::Graph, node::Node, Scene},
 };
+use std::{path::PathBuf, sync::mpsc::Sender};
 
 #[derive(Copy, Clone, Eq, PartialEq)]
 #[repr(u32)]
@@ -62,6 +63,7 @@ pub struct Door {
     state: DoorState,
     offset: f32,
     initial_position: Vector3<f32>,
+    someone_nearby: bool,
 }
 
 impl Visit for Door {
@@ -72,6 +74,7 @@ impl Visit for Door {
         self.lights.visit("Lights", visitor)?;
         self.state.visit("State", visitor)?;
         self.offset.visit("Offset", visitor)?;
+        self.someone_nearby.visit("SomeoneNearby", visitor)?;
 
         visitor.leave_region()
     }
@@ -88,6 +91,7 @@ impl Door {
             state,
             offset: 0.0,
             initial_position: graph[node].global_position(),
+            someone_nearby: false,
         }
     }
 
@@ -124,29 +128,72 @@ impl DoorContainer {
         self.doors.spawn(door)
     }
 
-    pub fn update(&mut self, actors: &ActorContainer, scene: &mut Scene, dt: f32) {
+    pub fn update(
+        &mut self,
+        actors: &ActorContainer,
+        sender: Sender<Message>,
+        scene: &mut Scene,
+        dt: f32,
+    ) {
+        let speed = 0.35;
+
         for door in self.doors.iter_mut() {
             let node = &scene.graph[door.node];
             let door_side = node.look_vector();
 
-            let need_to_open = actors.iter().any(|a| {
+            let prev_someone_nearby = door.someone_nearby;
+
+            door.someone_nearby = actors.iter().any(|a| {
                 let actor_position = a.position(&scene.graph);
                 // TODO: Replace with triggers.
                 actor_position.metric_distance(&door.initial_position) < 1.25
             });
 
-            if need_to_open {
+            if door.someone_nearby {
                 if door.state == DoorState::Closed {
                     door.state = DoorState::Opening;
+
+                    sender
+                        .send(Message::PlaySound {
+                            path: PathBuf::from("data/sounds/door_open.ogg"),
+                            position: node.global_position(),
+                            gain: 1.0,
+                            rolloff_factor: 1.0,
+                            radius: 1.0,
+                        })
+                        .unwrap();
+                } else if door.state == DoorState::Locked
+                    && !prev_someone_nearby
+                    && door.someone_nearby
+                {
+                    sender
+                        .send(Message::PlaySound {
+                            path: PathBuf::from("data/sounds/door_deny.ogg"),
+                            position: node.global_position(),
+                            gain: 1.0,
+                            rolloff_factor: 1.0,
+                            radius: 1.0,
+                        })
+                        .unwrap();
                 }
             } else if door.state == DoorState::Opened {
                 door.state = DoorState::Closing;
+
+                sender
+                    .send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/door_close.ogg"),
+                        position: node.global_position(),
+                        gain: 1.0,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    })
+                    .unwrap();
             }
 
             match door.state {
                 DoorState::Opening => {
                     if door.offset < 0.75 {
-                        door.offset += 1.0 * dt;
+                        door.offset += speed * dt;
                         if door.offset >= 0.75 {
                             door.state = DoorState::Opened;
                             door.offset = 0.75;
@@ -157,7 +204,7 @@ impl DoorContainer {
                 }
                 DoorState::Closing => {
                     if door.offset > 0.0 {
-                        door.offset -= 1.0 * dt;
+                        door.offset -= speed * dt;
                         if door.offset <= 0.0 {
                             door.state = DoorState::Closed;
                             door.offset = 0.0;
