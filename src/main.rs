@@ -78,7 +78,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         mpsc::{self, Receiver, Sender},
-        Arc, Mutex, RwLock,
+        Arc, Mutex,
     },
     thread,
     time::{self, Duration, Instant},
@@ -161,7 +161,7 @@ pub struct Game {
     debug_string: String,
     last_tick_time: time::Instant,
     running: bool,
-    control_scheme: Arc<RwLock<ControlScheme>>,
+    control_scheme: ControlScheme,
     time: GameTime,
     events_receiver: Receiver<Message>,
     events_sender: Sender<Message>,
@@ -310,8 +310,6 @@ impl Game {
             }
         }
 
-        let control_scheme = Arc::new(RwLock::new(control_scheme));
-
         let fixed_timestep = 1.0 / FIXED_FPS;
 
         let time = GameTime {
@@ -331,7 +329,7 @@ impl Game {
             running: true,
             menu: rg3d::futures::executor::block_on(Menu::new(
                 &mut engine,
-                control_scheme.clone(),
+                &control_scheme,
                 tx.clone(),
                 font.clone(),
             )),
@@ -406,8 +404,12 @@ impl Game {
     }
 
     fn handle_ui_message(&mut self, message: &GuiMessage) {
-        self.menu
-            .handle_ui_message(&mut self.engine, self.level.as_ref(), &message);
+        self.menu.handle_ui_message(
+            &mut self.engine,
+            self.level.as_ref(),
+            &message,
+            &mut self.control_scheme,
+        );
 
         self.death_screen.handle_ui_message(message);
 
@@ -514,7 +516,6 @@ impl Game {
             level.resolve(
                 &mut self.engine,
                 self.events_sender.clone(),
-                self.control_scheme.clone(),
                 self.weapon_display.render_target.clone(),
                 self.inventory_interface.render_target.clone(),
                 self.item_display.render_target.clone(),
@@ -553,7 +554,6 @@ impl Game {
         self.menu.set_visible(&mut self.engine, false);
 
         let resource_manager = self.engine.resource_manager.clone();
-        let control_scheme = self.control_scheme.clone();
         let sender = self.events_sender.clone();
         let display_texture = self.weapon_display.render_target.clone();
         let inventory_texture = self.inventory_interface.render_target.clone();
@@ -562,7 +562,6 @@ impl Game {
         std::thread::spawn(move || {
             let level = rg3d::futures::executor::block_on(Level::new(
                 resource_manager,
-                control_scheme,
                 sender,
                 display_texture,
                 inventory_texture,
@@ -781,7 +780,7 @@ impl Game {
                         };
                     self.inventory_interface.process_os_event(
                         &event,
-                        &self.control_scheme.read().unwrap(),
+                        &self.control_scheme,
                         player_handle,
                         player,
                     );
@@ -795,6 +794,7 @@ impl Game {
                     event,
                     &mut self.engine.scenes[level.scene],
                     self.time.delta,
+                    &self.control_scheme,
                 );
             }
         }
@@ -817,7 +817,8 @@ impl Game {
             }
         }
 
-        self.menu.process_input_event(&mut self.engine, &event);
+        self.menu
+            .process_input_event(&mut self.engine, &event, &mut self.control_scheme);
     }
 }
 

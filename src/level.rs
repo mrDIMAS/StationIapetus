@@ -1,7 +1,7 @@
+use crate::control_scheme::ControlScheme;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
-    control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorState},
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
@@ -62,7 +62,6 @@ pub struct Level {
     spawn_points: Vec<SpawnPoint>,
     sender: Option<Sender<Message>>,
     pub navmesh: Handle<Navmesh>,
-    pub control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
@@ -87,7 +86,6 @@ impl Default for Level {
             spawn_points: Default::default(),
             sender: None,
             navmesh: Default::default(),
-            control_scheme: None,
             death_zones: Default::default(),
             time: 0.0,
             sound_manager: Default::default(),
@@ -383,7 +381,6 @@ async fn spawn_player(
     weapons: &mut WeaponContainer,
     sender: Sender<Message>,
     resource_manager: ResourceManager,
-    control_scheme: Arc<RwLock<ControlScheme>>,
     scene: &mut Scene,
     display_texture: Texture,
     inventory_texture: Texture,
@@ -394,7 +391,6 @@ async fn spawn_player(
         resource_manager.clone(),
         spawn_position,
         sender.clone(),
-        control_scheme,
         display_texture,
         inventory_texture,
         item_texture,
@@ -543,7 +539,6 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
 impl Level {
     pub async fn new(
         resource_manager: ResourceManager,
-        control_scheme: Arc<RwLock<ControlScheme>>,
         sender: Sender<Message>,
         display_texture: Texture,
         inventory_texture: Texture,
@@ -598,7 +593,6 @@ impl Level {
                 &mut weapons,
                 sender.clone(),
                 resource_manager.clone(),
-                control_scheme.clone(),
                 &mut scene,
                 display_texture,
                 inventory_texture,
@@ -615,7 +609,6 @@ impl Level {
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
-            control_scheme: Some(control_scheme),
             time: 0.0,
             contact_events_receiver: Some(contact_events_receiver),
             proximity_events_receiver: Some(proximity_events_receiver),
@@ -656,10 +649,16 @@ impl Level {
         self.player
     }
 
-    pub fn process_input_event(&mut self, event: &Event<()>, scene: &mut Scene, dt: f32) {
+    pub fn process_input_event(
+        &mut self,
+        event: &Event<()>,
+        scene: &mut Scene,
+        dt: f32,
+        control_scheme: &ControlScheme,
+    ) {
         if self.player.is_some() {
             if let Actor::Player(player) = self.actors.get_mut(self.player) {
-                player.process_input_event(event, dt, scene, &self.weapons);
+                player.process_input_event(event, dt, scene, &self.weapons, control_scheme);
             }
         }
     }
@@ -1301,20 +1300,17 @@ impl Level {
         &mut self,
         engine: &mut GameEngine,
         sender: Sender<Message>,
-        control_scheme: Arc<RwLock<ControlScheme>>,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
     ) {
         self.set_message_sender(sender, engine);
-        self.control_scheme = Some(control_scheme.clone());
 
         self.actors.resolve(
             &mut engine.scenes[self.scene],
             display_texture,
             inventory_texture,
             item_texture,
-            control_scheme,
         );
 
         let scene = &engine.scenes[self.scene];

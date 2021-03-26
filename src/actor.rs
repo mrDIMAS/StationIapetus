@@ -1,7 +1,4 @@
-use crate::{
-    bot::Bot, character::Character, control_scheme::ControlScheme, level::UpdateContext,
-    player::Player,
-};
+use crate::{bot::Bot, character::Character, level::UpdateContext, player::Player};
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -13,10 +10,7 @@ use rg3d::{
     resource::texture::Texture,
     scene::Scene,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::{Arc, RwLock},
-};
+use std::ops::{Deref, DerefMut};
 
 #[allow(clippy::large_enum_variant)]
 pub enum Actor {
@@ -199,7 +193,6 @@ impl ActorContainer {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
-        control_scheme: Arc<RwLock<ControlScheme>>,
     ) {
         for actor in self.pool.iter_mut() {
             if let Actor::Player(player) = actor {
@@ -209,7 +202,6 @@ impl ActorContainer {
                     inventory_texture.clone(),
                     item_texture.clone(),
                 );
-                player.set_control_scheme(control_scheme.clone());
             }
 
             actor.restore_hit_boxes(scene);

@@ -258,7 +258,6 @@ pub struct Player {
     hips: Handle<Node>,
     move_speed: f32,
     collider: ColliderHandle,
-    control_scheme: Option<Arc<RwLock<ControlScheme>>>,
     weapon_change_direction: RequiredWeapon,
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
@@ -335,7 +334,6 @@ impl Player {
         resource_manager: ResourceManager,
         position: Vector3<f32>,
         sender: Sender<Message>,
-        control_scheme: Arc<RwLock<ControlScheme>>,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
@@ -517,7 +515,6 @@ impl Player {
                 speed: 10.0,
             },
             collider,
-            control_scheme: Some(control_scheme),
             weapon_change_direction: RequiredWeapon::None,
             weapon_yaw_correction: SmoothAngle {
                 angle: 0.0,
@@ -549,10 +546,6 @@ impl Player {
                 speed: 1.5, // rad/s
             },
         }
-    }
-
-    pub fn set_control_scheme(&mut self, control_scheme: Arc<RwLock<ControlScheme>>) {
-        self.control_scheme = Some(control_scheme);
     }
 
     pub fn camera_controller(&self) -> &CameraController {
@@ -1110,10 +1103,8 @@ impl Player {
         dt: f32,
         scene: &mut Scene,
         weapons: &WeaponContainer,
+        control_scheme: &ControlScheme,
     ) {
-        let scheme = self.control_scheme.clone().unwrap();
-        let scheme = scheme.read().unwrap();
-
         let button_state = match event {
             Event::WindowEvent { event, .. } => {
                 if let WindowEvent::KeyboardInput { input, .. } = event {
@@ -1145,7 +1136,7 @@ impl Player {
                     Some((ControlButton::Mouse(button as u16), state))
                 }
                 DeviceEvent::MouseMotion { delta } => {
-                    let mouse_sens = scheme.mouse_sens * dt;
+                    let mouse_sens = control_scheme.mouse_sens * dt;
                     self.controller.yaw -= (delta.0 as f32) * mouse_sens;
                     self.controller.pitch = (self.controller.pitch + (delta.1 as f32) * mouse_sens)
                         .max(-90.0f32.to_radians())
@@ -1169,20 +1160,20 @@ impl Player {
         let mut weapon_change_direction = None;
 
         if let Some((button, state)) = button_state {
-            if button == scheme.aim.button {
+            if button == control_scheme.aim.button {
                 self.controller.aim = state == ElementState::Pressed;
                 if state == ElementState::Pressed {
                     scene.graph[self.inventory_display].set_visibility(false);
                 }
-            } else if button == scheme.move_forward.button {
+            } else if button == control_scheme.move_forward.button {
                 self.controller.walk_forward = state == ElementState::Pressed;
-            } else if button == scheme.move_backward.button {
+            } else if button == control_scheme.move_backward.button {
                 self.controller.walk_backward = state == ElementState::Pressed;
-            } else if button == scheme.move_left.button {
+            } else if button == control_scheme.move_left.button {
                 self.controller.walk_left = state == ElementState::Pressed;
-            } else if button == scheme.move_right.button {
+            } else if button == control_scheme.move_right.button {
                 self.controller.walk_right = state == ElementState::Pressed;
-            } else if button == scheme.jump.button {
+            } else if button == control_scheme.jump.button {
                 let jump_anim = scene.animations.get(self.lower_body_machine.jump_animation);
                 let can_jump = !jump_anim.is_enabled() || jump_anim.has_ended();
 
@@ -1201,9 +1192,9 @@ impl Player {
                 }
 
                 self.controller.jump = state == ElementState::Pressed && can_jump;
-            } else if button == scheme.run.button {
+            } else if button == control_scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
-            } else if button == scheme.flash_light.button {
+            } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
                     let current_weapon = self.current_weapon();
                     self.sender
@@ -1214,35 +1205,35 @@ impl Player {
                         })
                         .unwrap();
                 }
-            } else if button == scheme.grab_ak47.button && can_change_weapon {
+            } else if button == control_scheme.grab_ak47.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::Ak47) {
                     weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
                 }
-            } else if button == scheme.grab_m4.button && can_change_weapon {
+            } else if button == control_scheme.grab_m4.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::M4) {
                     weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::M4));
                 }
-            } else if button == scheme.grab_plasma_gun.button && can_change_weapon {
+            } else if button == control_scheme.grab_plasma_gun.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::PlasmaRifle) {
                     weapon_change_direction =
                         Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
                 }
-            } else if button == scheme.grab_pistol.button && can_change_weapon {
+            } else if button == control_scheme.grab_pistol.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::Glock) {
                     weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Glock));
                 }
-            } else if button == scheme.next_weapon.button {
+            } else if button == control_scheme.next_weapon.button {
                 if state == ElementState::Pressed
                     && self.current_weapon < self.weapons.len() as u32 - 1
                     && can_change_weapon
                 {
                     weapon_change_direction = Some(RequiredWeapon::Next);
                 }
-            } else if button == scheme.prev_weapon.button {
+            } else if button == control_scheme.prev_weapon.button {
                 if state == ElementState::Pressed && self.current_weapon > 0 && can_change_weapon {
                     weapon_change_direction = Some(RequiredWeapon::Previous);
                 }
-            } else if button == scheme.toss_grenade.button {
+            } else if button == control_scheme.toss_grenade.button {
                 if self.inventory.item_count(ItemKind::Grenade) > 0 {
                     self.controller.toss_grenade = state == ElementState::Pressed;
                     if state == ElementState::Pressed {
@@ -1253,11 +1244,11 @@ impl Player {
                             .rewind();
                     }
                 }
-            } else if button == scheme.shoot.button {
+            } else if button == control_scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;
-            } else if button == scheme.action.button {
+            } else if button == control_scheme.action.button {
                 self.controller.action = state == ElementState::Pressed;
-            } else if button == scheme.inventory.button
+            } else if button == control_scheme.inventory.button
                 && state == ElementState::Pressed
                 && !self.controller.aim
             {

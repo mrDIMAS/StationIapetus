@@ -33,7 +33,7 @@ use rg3d::{
     utils::log::{Log, MessageKind},
     window::Fullscreen,
 };
-use std::sync::{mpsc::Sender, Arc, RwLock};
+use std::sync::mpsc::Sender;
 
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
@@ -51,7 +51,6 @@ pub struct OptionsMenu {
     fxaa: Handle<UiNode>,
     ssao: Handle<UiNode>,
     available_video_modes: Vec<VideoMode>,
-    control_scheme: Arc<RwLock<ControlScheme>>,
     control_scheme_buttons: Vec<Handle<UiNode>>,
     active_control_button: Option<usize>,
     mouse_sens: Handle<UiNode>,
@@ -165,7 +164,7 @@ fn index_to_shadow_map_size(index: usize) -> usize {
 impl OptionsMenu {
     pub fn new(
         engine: &mut GameEngine,
-        control_scheme: Arc<RwLock<ControlScheme>>,
+        control_scheme: &ControlScheme,
         sender: Sender<Message>,
     ) -> Self {
         let video_modes: Vec<VideoMode> = engine
@@ -438,9 +437,7 @@ impl OptionsMenu {
                     .with_content({
                         let mut children = Vec::new();
 
-                        for (row, button) in
-                            control_scheme.read().unwrap().buttons().iter().enumerate()
-                        {
+                        for (row, button) in control_scheme.buttons().iter().enumerate() {
                             // Offset by total amount of rows that goes before
                             let row = row + 2;
 
@@ -467,7 +464,7 @@ impl OptionsMenu {
                                         ScrollBarData {
                                             min: 0.05,
                                             max: 2.0,
-                                            value: control_scheme.read().unwrap().mouse_sens,
+                                            value: control_scheme.mouse_sens,
                                             step: 0.05,
                                             row: 0,
                                             column: 1,
@@ -480,20 +477,14 @@ impl OptionsMenu {
                                 })
                                 .with_child(make_text_mark("Inverse Mouse Y", 1, ctx))
                                 .with_child({
-                                    mouse_y_inverse = create_check_box(
-                                        ctx,
-                                        1,
-                                        1,
-                                        control_scheme.read().unwrap().mouse_y_inverse,
-                                    );
+                                    mouse_y_inverse =
+                                        create_check_box(ctx, 1, 1, control_scheme.mouse_y_inverse);
                                     mouse_y_inverse
                                 })
                                 .with_child({
                                     reset_control_scheme = ButtonBuilder::new(
                                         WidgetBuilder::new()
-                                            .on_row(
-                                                2 + control_scheme.read().unwrap().buttons().len(),
-                                            )
+                                            .on_row(2 + control_scheme.buttons().len())
                                             .with_margin(margin),
                                     )
                                     .with_text("Reset")
@@ -507,7 +498,7 @@ impl OptionsMenu {
                         .add_row(common_row)
                         .add_row(common_row)
                         .add_rows(
-                            (0..control_scheme.read().unwrap().buttons().len())
+                            (0..control_scheme.buttons().len())
                                 .map(|_| common_row)
                                 .collect(),
                         )
@@ -548,7 +539,6 @@ impl OptionsMenu {
             point_shadow_distance,
             spot_shadow_distance,
             available_video_modes: video_modes,
-            control_scheme,
             control_scheme_buttons,
             active_control_button: None,
             mouse_sens,
@@ -564,9 +554,13 @@ impl OptionsMenu {
         }
     }
 
-    pub fn sync_to_model(&mut self, scene: Handle<Scene>, engine: &mut GameEngine) {
+    pub fn sync_to_model(
+        &mut self,
+        scene: Handle<Scene>,
+        engine: &mut GameEngine,
+        control_scheme: &ControlScheme,
+    ) {
         let ui = &mut engine.user_interface;
-        let control_scheme = self.control_scheme.read().unwrap();
         let settings = engine.renderer.get_quality_settings();
 
         let sync_check_box = |handle: Handle<UiNode>, value: bool| {
@@ -613,7 +607,7 @@ impl OptionsMenu {
         for (btn, def) in self
             .control_scheme_buttons
             .iter()
-            .zip(self.control_scheme.read().unwrap().buttons().iter())
+            .zip(control_scheme.buttons().iter())
         {
             if let UINode::Button(button) = ui.node(*btn) {
                 ui.send_message(TextMessage::text(
@@ -625,7 +619,12 @@ impl OptionsMenu {
         }
     }
 
-    pub fn process_input_event(&mut self, engine: &mut GameEngine, event: &Event<()>) {
+    pub fn process_input_event(
+        &mut self,
+        engine: &mut GameEngine,
+        event: &Event<()>,
+        control_scheme: &mut ControlScheme,
+    ) {
         if let Event::WindowEvent { event, .. } = event {
             let mut control_button = None;
 
@@ -673,8 +672,7 @@ impl OptionsMenu {
                         ));
                     }
 
-                    self.control_scheme.write().unwrap().buttons_mut()[active_control_button]
-                        .button = control_button;
+                    control_scheme.buttons_mut()[active_control_button].button = control_button;
 
                     self.active_control_button = None;
                 }
@@ -688,6 +686,7 @@ impl OptionsMenu {
         engine: &mut GameEngine,
         level: Option<&Level>,
         message: &GuiMessage,
+        control_scheme: &mut ControlScheme,
     ) {
         let old_settings = engine.renderer.get_quality_settings();
         let mut settings = old_settings;
@@ -712,7 +711,7 @@ impl OptionsMenu {
                     settings.spot_shadows_distance = *new_value;
                     changed = true;
                 } else if message.destination() == self.mouse_sens {
-                    self.control_scheme.write().unwrap().mouse_sens = *new_value;
+                    control_scheme.mouse_sens = *new_value;
                     changed = true;
                 } else if message.destination() == self.music_volume {
                     self.sender
@@ -754,7 +753,6 @@ impl OptionsMenu {
             UiMessageData::CheckBox(msg) => {
                 let CheckBoxMessage::Check(value) = msg;
                 let value = value.unwrap_or(false);
-                let mut control_scheme = self.control_scheme.write().unwrap();
                 if message.destination() == self.point_shadows {
                     settings.point_shadows_enabled = value;
                     changed = true;
@@ -783,12 +781,20 @@ impl OptionsMenu {
             }
             UiMessageData::Button(ButtonMessage::Click) => {
                 if message.destination() == self.reset_control_scheme {
-                    self.control_scheme.write().unwrap().reset();
-                    self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                    control_scheme.reset();
+                    self.sync_to_model(
+                        level.map_or(Default::default(), |m| m.scene),
+                        engine,
+                        control_scheme,
+                    );
                     changed = true;
                 } else if message.destination() == self.reset_audio_settings {
                     engine.sound_engine.lock().unwrap().set_master_gain(1.0);
-                    self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
+                    self.sync_to_model(
+                        level.map_or(Default::default(), |m| m.scene),
+                        engine,
+                        control_scheme,
+                    );
                     changed = true;
                 }
 
@@ -819,11 +825,7 @@ impl OptionsMenu {
         }
 
         if changed {
-            match Config::save(
-                engine,
-                self.control_scheme.read().unwrap().clone(),
-                Default::default(),
-            ) {
+            match Config::save(engine, control_scheme.clone(), Default::default()) {
                 Ok(_) => {
                     Log::writeln(MessageKind::Information, "Settings saved!".to_string());
                 }

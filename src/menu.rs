@@ -21,7 +21,7 @@ use rg3d::{
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
-use std::sync::{mpsc::Sender, Arc, RwLock};
+use std::sync::mpsc::Sender;
 
 pub struct Menu {
     pub scene: MenuScene,
@@ -106,7 +106,7 @@ impl MenuScene {
 impl Menu {
     pub async fn new(
         engine: &mut GameEngine,
-        control_scheme: Arc<RwLock<ControlScheme>>,
+        control_scheme: &ControlScheme,
         sender: Sender<Message>,
         font: SharedFont,
     ) -> Self {
@@ -249,7 +249,12 @@ impl Menu {
         ui.node(self.root).visibility()
     }
 
-    pub fn process_input_event(&mut self, engine: &mut GameEngine, event: &Event<()>) {
+    pub fn process_input_event(
+        &mut self,
+        engine: &mut GameEngine,
+        event: &Event<()>,
+        control_scheme: &mut ControlScheme,
+    ) {
         if let Event::WindowEvent {
             event: WindowEvent::Resized(new_size),
             ..
@@ -267,7 +272,8 @@ impl Menu {
             ));
         }
 
-        self.options_menu.process_input_event(engine, event);
+        self.options_menu
+            .process_input_event(engine, event, control_scheme);
     }
 
     pub fn sync_to_model(&mut self, engine: &mut GameEngine, level_loaded: bool) {
@@ -283,6 +289,7 @@ impl Menu {
         engine: &mut GameEngine,
         level: Option<&Level>,
         message: &GuiMessage,
+        control_scheme: &mut ControlScheme,
     ) {
         if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
             if message.destination() == self.btn_new_game {
@@ -314,6 +321,7 @@ impl Menu {
             }
         }
 
-        self.options_menu.handle_ui_event(engine, level, message);
+        self.options_menu
+            .handle_ui_event(engine, level, message, control_scheme);
     }
 }
