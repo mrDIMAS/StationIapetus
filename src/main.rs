@@ -30,7 +30,7 @@ use crate::{
     control_scheme::ControlScheme,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, weapon_display::WeaponDisplay,
-        BuildContext, CustomUiMessage, CustomUiNode, DeathScreen, GuiMessage, UINodeHandle, UiNode,
+        BuildContext, CustomUiMessage, CustomUiNode, DeathScreen, GuiMessage, UiNode, UiNodeHandle,
     },
     level::Level,
     menu::Menu,
@@ -157,7 +157,7 @@ pub struct Game {
     menu: Menu,
     engine: GameEngine,
     level: Option<Level>,
-    debug_text: UINodeHandle,
+    debug_text: UiNodeHandle,
     debug_string: String,
     last_tick_time: time::Instant,
     running: bool,

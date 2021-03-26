@@ -144,9 +144,9 @@ fn make_shadows_quality_drop_down(
 fn shadows_quality(size: usize) -> usize {
     if size < 256 {
         0
-    } else if size >= 256 && size < 512 {
+    } else if (256..512).contains(&size) {
         1
-    } else if size >= 512 && size < 1024 {
+    } else if (512..1024).contains(&size) {
         2
     } else {
         3
@@ -223,17 +223,15 @@ impl OptionsMenu {
                                     )
                                     .with_selected(0)
                                     .with_items({
-                                        let mut modes = Vec::new();
-                                        modes.push(
-                                            DecoratorBuilder::new(BorderBuilder::new(
+                                        let mut modes =
+                                            vec![DecoratorBuilder::new(BorderBuilder::new(
                                                 WidgetBuilder::new().with_child(
                                                     TextBuilder::new(WidgetBuilder::new())
                                                         .with_text("Windowed")
                                                         .build(ctx),
                                                 ),
                                             ))
-                                            .build(ctx),
-                                        );
+                                            .build(ctx)];
                                         modes.extend(video_modes.iter().map(|video_mode| {
                                             make_video_mode_item(video_mode, ctx)
                                         }));

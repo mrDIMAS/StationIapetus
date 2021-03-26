@@ -121,7 +121,7 @@ pub enum CustomUiMessage {
 impl MessageData for CustomUiMessage {}
 
 pub type UiNode = UINode<CustomUiMessage, CustomUiNode>;
-pub type UINodeHandle = Handle<UiNode>;
+pub type UiNodeHandle = Handle<UiNode>;
 pub type Gui = UserInterface<CustomUiMessage, CustomUiNode>;
 pub type GuiMessage = UiMessage<CustomUiMessage, CustomUiNode>;
 pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, CustomUiMessage, CustomUiNode>;
