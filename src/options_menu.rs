@@ -6,6 +6,7 @@ use crate::{
     message::Message,
     GameEngine,
 };
+use rg3d::renderer::ShadowMapPrecision;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
@@ -736,9 +737,19 @@ impl OptionsMenu {
                     }
                 } else if message.destination() == self.spot_shadows_quality {
                     settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
+                    if *index > 0 {
+                        settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
+                    } else {
+                        settings.spot_shadow_map_precision = ShadowMapPrecision::Half;
+                    }
                     changed = true;
                 } else if message.destination() == self.point_shadows_quality {
                     settings.point_shadow_map_size = index_to_shadow_map_size(*index);
+                    if *index > 0 {
+                        settings.point_shadow_map_precision = ShadowMapPrecision::Full;
+                    } else {
+                        settings.point_shadow_map_precision = ShadowMapPrecision::Half;
+                    }
                     changed = true;
                 }
             }
