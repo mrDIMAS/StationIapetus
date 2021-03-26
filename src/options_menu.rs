@@ -37,28 +37,29 @@ use std::sync::{mpsc::Sender, Arc, RwLock};
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
     sender: Sender<Message>,
-    sb_sound_volume: Handle<UiNode>,
-    pub sb_music_volume: Handle<UiNode>,
-    lb_video_modes: Handle<UiNode>,
-    cb_fullscreen: Handle<UiNode>,
-    cb_spot_shadows: Handle<UiNode>,
-    cb_soft_spot_shadows: Handle<UiNode>,
-    cb_point_shadows: Handle<UiNode>,
-    cb_soft_point_shadows: Handle<UiNode>,
-    sb_point_shadow_distance: Handle<UiNode>,
-    sb_spot_shadow_distance: Handle<UiNode>,
-    cb_use_light_scatter: Handle<UiNode>,
-    cb_fxaa: Handle<UiNode>,
-    cb_ssao: Handle<UiNode>,
-    video_modes: Vec<VideoMode>,
+    sound_volume: Handle<UiNode>,
+    pub music_volume: Handle<UiNode>,
+    video_mode: Handle<UiNode>,
+    spot_shadows: Handle<UiNode>,
+    soft_spot_shadows: Handle<UiNode>,
+    point_shadows: Handle<UiNode>,
+    soft_point_shadows: Handle<UiNode>,
+    point_shadow_distance: Handle<UiNode>,
+    spot_shadow_distance: Handle<UiNode>,
+    use_light_scatter: Handle<UiNode>,
+    fxaa: Handle<UiNode>,
+    ssao: Handle<UiNode>,
+    available_video_modes: Vec<VideoMode>,
     control_scheme: Arc<RwLock<ControlScheme>>,
     control_scheme_buttons: Vec<Handle<UiNode>>,
     active_control_button: Option<usize>,
-    sb_mouse_sens: Handle<UiNode>,
-    cb_mouse_y_inverse: Handle<UiNode>,
-    btn_reset_control_scheme: Handle<UiNode>,
-    cb_use_hrtf: Handle<UiNode>,
-    btn_reset_audio_settings: Handle<UiNode>,
+    mouse_sens: Handle<UiNode>,
+    mouse_y_inverse: Handle<UiNode>,
+    reset_control_scheme: Handle<UiNode>,
+    use_hrtf: Handle<UiNode>,
+    reset_audio_settings: Handle<UiNode>,
+    point_shadows_quality: Handle<UiNode>,
+    spot_shadows_quality: Handle<UiNode>,
 }
 
 fn make_text_mark(text: &str, row: usize, ctx: &mut BuildContext) -> Handle<UiNode> {
@@ -86,6 +87,80 @@ fn make_tab_header(text: &str, ctx: &mut BuildContext) -> Handle<UiNode> {
     .build(ctx)
 }
 
+fn make_video_mode_item(video_mode: &VideoMode, ctx: &mut BuildContext) -> Handle<UiNode> {
+    let size = video_mode.size();
+    let rate = video_mode.refresh_rate();
+    DecoratorBuilder::new(
+        BorderBuilder::new(
+            WidgetBuilder::new().with_child(
+                TextBuilder::new(WidgetBuilder::new())
+                    .with_text(format!("{} x {} @ {}Hz", size.width, size.height, rate).as_str())
+                    .with_vertical_text_alignment(VerticalAlignment::Center)
+                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .build(ctx),
+            ),
+        )
+        .with_stroke_thickness(Thickness {
+            left: 1.0,
+            top: 0.0,
+            right: 1.0,
+            bottom: 1.0,
+        }),
+    )
+    .build(ctx)
+}
+
+fn make_shadows_quality_drop_down(
+    ctx: &mut BuildContext,
+    row: usize,
+    current: usize,
+) -> Handle<UiNode> {
+    DropdownListBuilder::new(
+        WidgetBuilder::new()
+            .on_row(row)
+            .on_column(1)
+            .with_margin(Thickness::uniform(1.0)),
+    )
+    .with_items({
+        ["Low", "Medium", "High", "Ultra"]
+            .iter()
+            .map(|o| {
+                DecoratorBuilder::new(BorderBuilder::new(
+                    WidgetBuilder::new().with_child(
+                        TextBuilder::new(WidgetBuilder::new())
+                            .with_text(o)
+                            .build(ctx),
+                    ),
+                ))
+                .build(ctx)
+            })
+            .collect::<Vec<_>>()
+    })
+    .with_selected(current)
+    .build(ctx)
+}
+
+fn shadows_quality(size: usize) -> usize {
+    if size < 256 {
+        0
+    } else if size >= 256 && size < 512 {
+        1
+    } else if size >= 512 && size < 1024 {
+        2
+    } else {
+        3
+    }
+}
+
+fn index_to_shadow_map_size(index: usize) -> usize {
+    match index {
+        0 => 256,
+        1 => 512,
+        2 => 1024,
+        _ => 2048,
+    }
+}
+
 impl OptionsMenu {
     pub fn new(
         engine: &mut GameEngine,
@@ -108,25 +183,26 @@ impl OptionsMenu {
 
         let margin = Thickness::uniform(2.0);
 
-        let sb_sound_volume;
-        let sb_music_volume;
-        let lb_video_modes;
-        let cb_fullscreen;
-        let cb_spot_shadows;
-        let cb_soft_spot_shadows;
-        let cb_point_shadows;
-        let cb_soft_point_shadows;
-        let sb_point_shadow_distance;
-        let sb_spot_shadow_distance;
-        let sb_mouse_sens;
-        let cb_mouse_y_inverse;
-        let btn_reset_control_scheme;
+        let sound_volume;
+        let music_volume;
+        let video_mode;
+        let spot_shadows;
+        let soft_spot_shadows;
+        let point_shadows;
+        let soft_point_shadows;
+        let point_shadow_distance;
+        let spot_shadow_distance;
+        let mouse_sens;
+        let mouse_y_inverse;
+        let reset_control_scheme;
         let mut control_scheme_buttons = Vec::new();
-        let cb_use_hrtf;
-        let btn_reset_audio_settings;
-        let cb_use_light_scatter;
-        let cb_fxaa;
-        let cb_ssao;
+        let use_hrtf;
+        let reset_audio_settings;
+        let use_light_scatter;
+        let fxaa;
+        let ssao;
+        let point_shadows_quality;
+        let spot_shadows_quality;
 
         let graphics_tab = TabDefinition {
             header: make_tab_header("Graphics", ctx),
@@ -138,145 +214,135 @@ impl OptionsMenu {
                                 .with_margin(Thickness::uniform(5.0))
                                 .with_child(make_text_mark("Resolution", 0, ctx))
                                 .with_child({
-                                    lb_video_modes = DropdownListBuilder::new(
+                                    video_mode = DropdownListBuilder::new(
                                         WidgetBuilder::new()
                                             .on_column(1)
                                             .on_row(0)
                                             .with_margin(margin),
                                     )
+                                    .with_selected(0)
                                     .with_items({
-                                        let mut items = Vec::new();
-                                        for video_mode in video_modes.iter() {
-                                            let size = video_mode.size();
-                                            let rate = video_mode.refresh_rate();
-                                            let item = DecoratorBuilder::new(
-                                                BorderBuilder::new(
-                                                    WidgetBuilder::new().with_child(
-                                                        TextBuilder::new(
-                                                            WidgetBuilder::new()
-                                                                .on_column(0)
-                                                                .with_height(25.0)
-                                                                .with_width(200.0),
-                                                        )
-                                                        .with_text(
-                                                            format!(
-                                                                "{} x {} @ {}Hz",
-                                                                size.width, size.height, rate
-                                                            )
-                                                            .as_str(),
-                                                        )
-                                                        .with_vertical_text_alignment(
-                                                            VerticalAlignment::Center,
-                                                        )
-                                                        .with_horizontal_text_alignment(
-                                                            HorizontalAlignment::Center,
-                                                        )
+                                        let mut modes = Vec::new();
+                                        modes.push(
+                                            DecoratorBuilder::new(BorderBuilder::new(
+                                                WidgetBuilder::new().with_child(
+                                                    TextBuilder::new(WidgetBuilder::new())
+                                                        .with_text("Windowed")
                                                         .build(ctx),
-                                                    ),
-                                                )
-                                                .with_stroke_thickness(Thickness {
-                                                    left: 1.0,
-                                                    top: 0.0,
-                                                    right: 1.0,
-                                                    bottom: 1.0,
-                                                }),
-                                            )
-                                            .build(ctx);
-                                            items.push(item)
-                                        }
-                                        items
+                                                ),
+                                            ))
+                                            .build(ctx),
+                                        );
+                                        modes.extend(video_modes.iter().map(|video_mode| {
+                                            make_video_mode_item(video_mode, ctx)
+                                        }));
+                                        modes
                                     })
                                     .build(ctx);
-                                    lb_video_modes
-                                })
-                                .with_child(make_text_mark("Fullscreen", 1, ctx))
-                                .with_child({
-                                    cb_fullscreen = create_check_box(ctx, 1, 1, false);
-                                    cb_fullscreen
+                                    video_mode
                                 })
                                 // Spot Shadows Enabled
-                                .with_child(make_text_mark("Spot Shadows", 2, ctx))
+                                .with_child(make_text_mark("Spot Shadows", 1, ctx))
                                 .with_child({
-                                    cb_spot_shadows =
-                                        create_check_box(ctx, 2, 1, settings.spot_shadows_enabled);
-                                    cb_spot_shadows
+                                    spot_shadows =
+                                        create_check_box(ctx, 1, 1, settings.spot_shadows_enabled);
+                                    spot_shadows
                                 })
                                 // Soft Spot Shadows
-                                .with_child(make_text_mark("Soft Spot Shadows", 3, ctx))
+                                .with_child(make_text_mark("Soft Spot Shadows", 2, ctx))
                                 .with_child({
-                                    cb_soft_spot_shadows =
-                                        create_check_box(ctx, 3, 1, settings.spot_soft_shadows);
-                                    cb_soft_spot_shadows
+                                    soft_spot_shadows =
+                                        create_check_box(ctx, 2, 1, settings.spot_soft_shadows);
+                                    soft_spot_shadows
                                 })
                                 // Spot Shadows Distance
-                                .with_child(make_text_mark("Spot Shadows Distance", 4, ctx))
+                                .with_child(make_text_mark("Spot Shadows Distance", 3, ctx))
                                 .with_child({
-                                    sb_spot_shadow_distance = create_scroll_bar(
+                                    spot_shadow_distance = create_scroll_bar(
                                         ctx,
                                         ScrollBarData {
                                             min: 1.0,
                                             max: 15.0,
                                             value: settings.spot_shadows_distance,
                                             step: 0.25,
-                                            row: 4,
+                                            row: 3,
                                             column: 1,
                                             margin,
                                             show_value: true,
                                             orientation: Orientation::Horizontal,
                                         },
                                     );
-                                    sb_spot_shadow_distance
+                                    spot_shadow_distance
                                 })
                                 // Point Shadows Enabled
-                                .with_child(make_text_mark("Point Shadows", 5, ctx))
+                                .with_child(make_text_mark("Point Shadows", 4, ctx))
                                 .with_child({
-                                    cb_point_shadows =
-                                        create_check_box(ctx, 5, 1, settings.point_shadows_enabled);
-                                    cb_point_shadows
+                                    point_shadows =
+                                        create_check_box(ctx, 4, 1, settings.point_shadows_enabled);
+                                    point_shadows
                                 })
                                 // Soft Point Shadows
-                                .with_child(make_text_mark("Soft Point Shadows", 6, ctx))
+                                .with_child(make_text_mark("Soft Point Shadows", 5, ctx))
                                 .with_child({
-                                    cb_soft_point_shadows =
-                                        create_check_box(ctx, 6, 1, settings.point_soft_shadows);
-                                    cb_soft_point_shadows
+                                    soft_point_shadows =
+                                        create_check_box(ctx, 5, 1, settings.point_soft_shadows);
+                                    soft_point_shadows
                                 })
                                 // Point Shadows Distance
-                                .with_child(make_text_mark("Point Shadows Distance", 7, ctx))
+                                .with_child(make_text_mark("Point Shadows Distance", 6, ctx))
                                 .with_child({
-                                    sb_point_shadow_distance = create_scroll_bar(
+                                    point_shadow_distance = create_scroll_bar(
                                         ctx,
                                         ScrollBarData {
                                             min: 1.0,
                                             max: 15.0,
                                             value: settings.point_shadows_distance,
                                             step: 0.25,
-                                            row: 7,
+                                            row: 6,
                                             column: 1,
                                             margin,
                                             show_value: true,
                                             orientation: Orientation::Horizontal,
                                         },
                                     );
-                                    sb_point_shadow_distance
+                                    point_shadow_distance
                                 })
-                                .with_child(make_text_mark("Use Light Scatter", 8, ctx))
+                                .with_child(make_text_mark("Use Light Scatter", 7, ctx))
                                 .with_child({
-                                    cb_use_light_scatter =
-                                        create_check_box(ctx, 8, 1, settings.light_scatter_enabled);
-                                    cb_use_light_scatter
+                                    use_light_scatter =
+                                        create_check_box(ctx, 7, 1, settings.light_scatter_enabled);
+                                    use_light_scatter
                                 })
-                                .with_child(make_text_mark("FXAA", 9, ctx))
+                                .with_child(make_text_mark("FXAA", 8, ctx))
                                 .with_child({
-                                    cb_fxaa = create_check_box(ctx, 9, 1, settings.fxaa);
-                                    cb_fxaa
+                                    fxaa = create_check_box(ctx, 8, 1, settings.fxaa);
+                                    fxaa
                                 })
-                                .with_child(make_text_mark("SSAO", 10, ctx))
+                                .with_child(make_text_mark("SSAO", 9, ctx))
                                 .with_child({
-                                    cb_ssao = create_check_box(ctx, 10, 1, settings.fxaa);
-                                    cb_ssao
+                                    ssao = create_check_box(ctx, 9, 1, settings.fxaa);
+                                    ssao
+                                })
+                                .with_child(make_text_mark("Point Shadows Quality", 10, ctx))
+                                .with_child({
+                                    point_shadows_quality = make_shadows_quality_drop_down(
+                                        ctx,
+                                        10,
+                                        shadows_quality(settings.point_shadow_map_size),
+                                    );
+                                    point_shadows_quality
+                                })
+                                .with_child(make_text_mark("Spot Shadows Quality", 11, ctx))
+                                .with_child({
+                                    spot_shadows_quality = make_shadows_quality_drop_down(
+                                        ctx,
+                                        11,
+                                        shadows_quality(settings.spot_shadow_map_size),
+                                    );
+                                    spot_shadows_quality
                                 }),
                         )
+                        .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
@@ -305,7 +371,7 @@ impl OptionsMenu {
                             WidgetBuilder::new()
                                 .with_child(make_text_mark("Sound Volume", 0, ctx))
                                 .with_child({
-                                    sb_sound_volume = create_scroll_bar(
+                                    sound_volume = create_scroll_bar(
                                         ctx,
                                         ScrollBarData {
                                             min: 0.0,
@@ -319,11 +385,11 @@ impl OptionsMenu {
                                             orientation: Orientation::Horizontal,
                                         },
                                     );
-                                    sb_sound_volume
+                                    sound_volume
                                 })
                                 .with_child(make_text_mark("Music Volume", 1, ctx))
                                 .with_child({
-                                    sb_music_volume = create_scroll_bar(
+                                    music_volume = create_scroll_bar(
                                         ctx,
                                         ScrollBarData {
                                             min: 0.0,
@@ -337,20 +403,20 @@ impl OptionsMenu {
                                             orientation: Orientation::Horizontal,
                                         },
                                     );
-                                    sb_music_volume
+                                    music_volume
                                 })
                                 .with_child(make_text_mark("Use HRTF", 2, ctx))
                                 .with_child({
-                                    cb_use_hrtf = create_check_box(ctx, 2, 1, true);
-                                    cb_use_hrtf
+                                    use_hrtf = create_check_box(ctx, 2, 1, true);
+                                    use_hrtf
                                 })
                                 .with_child({
-                                    btn_reset_audio_settings = ButtonBuilder::new(
+                                    reset_audio_settings = ButtonBuilder::new(
                                         WidgetBuilder::new().on_row(4).with_margin(margin),
                                     )
                                     .with_text("Reset")
                                     .build(ctx);
-                                    btn_reset_audio_settings
+                                    reset_audio_settings
                                 }),
                         )
                         .add_row(common_row)
@@ -397,7 +463,7 @@ impl OptionsMenu {
                             WidgetBuilder::new()
                                 .with_child(make_text_mark("Mouse Sensitivity", 0, ctx))
                                 .with_child({
-                                    sb_mouse_sens = create_scroll_bar(
+                                    mouse_sens = create_scroll_bar(
                                         ctx,
                                         ScrollBarData {
                                             min: 0.05,
@@ -411,20 +477,20 @@ impl OptionsMenu {
                                             orientation: Orientation::Horizontal,
                                         },
                                     );
-                                    sb_mouse_sens
+                                    mouse_sens
                                 })
                                 .with_child(make_text_mark("Inverse Mouse Y", 1, ctx))
                                 .with_child({
-                                    cb_mouse_y_inverse = create_check_box(
+                                    mouse_y_inverse = create_check_box(
                                         ctx,
                                         1,
                                         1,
                                         control_scheme.read().unwrap().mouse_y_inverse,
                                     );
-                                    cb_mouse_y_inverse
+                                    mouse_y_inverse
                                 })
                                 .with_child({
-                                    btn_reset_control_scheme = ButtonBuilder::new(
+                                    reset_control_scheme = ButtonBuilder::new(
                                         WidgetBuilder::new()
                                             .on_row(
                                                 2 + control_scheme.read().unwrap().buttons().len(),
@@ -433,7 +499,7 @@ impl OptionsMenu {
                                     )
                                     .with_text("Reset")
                                     .build(ctx);
-                                    btn_reset_control_scheme
+                                    reset_control_scheme
                                 })
                                 .with_children(&children),
                         )
@@ -473,28 +539,29 @@ impl OptionsMenu {
         Self {
             sender,
             window: options_window,
-            sb_sound_volume,
-            sb_music_volume,
-            lb_video_modes,
-            cb_fullscreen,
-            cb_spot_shadows,
-            cb_soft_spot_shadows,
-            cb_point_shadows,
-            cb_soft_point_shadows,
-            sb_point_shadow_distance,
-            sb_spot_shadow_distance,
-            video_modes,
+            sound_volume,
+            music_volume,
+            video_mode,
+            spot_shadows,
+            soft_spot_shadows,
+            point_shadows,
+            soft_point_shadows,
+            point_shadow_distance,
+            spot_shadow_distance,
+            available_video_modes: video_modes,
             control_scheme,
             control_scheme_buttons,
             active_control_button: None,
-            sb_mouse_sens,
-            cb_mouse_y_inverse,
-            btn_reset_control_scheme,
-            cb_use_hrtf,
-            btn_reset_audio_settings,
-            cb_use_light_scatter,
-            cb_fxaa,
-            cb_ssao,
+            mouse_sens,
+            mouse_y_inverse,
+            reset_control_scheme,
+            use_hrtf,
+            reset_audio_settings,
+            point_shadows_quality,
+            use_light_scatter,
+            fxaa,
+            ssao,
+            spot_shadows_quality,
         }
     }
 
@@ -510,14 +577,14 @@ impl OptionsMenu {
                 Some(value),
             ));
         };
-        sync_check_box(self.cb_spot_shadows, settings.spot_shadows_enabled);
-        sync_check_box(self.cb_soft_spot_shadows, settings.spot_soft_shadows);
-        sync_check_box(self.cb_point_shadows, settings.point_shadows_enabled);
-        sync_check_box(self.cb_soft_point_shadows, settings.point_soft_shadows);
-        sync_check_box(self.cb_use_light_scatter, settings.light_scatter_enabled);
-        sync_check_box(self.cb_ssao, settings.use_ssao);
-        sync_check_box(self.cb_fxaa, settings.fxaa);
-        sync_check_box(self.cb_mouse_y_inverse, control_scheme.mouse_y_inverse);
+        sync_check_box(self.spot_shadows, settings.spot_shadows_enabled);
+        sync_check_box(self.soft_spot_shadows, settings.spot_soft_shadows);
+        sync_check_box(self.point_shadows, settings.point_shadows_enabled);
+        sync_check_box(self.soft_point_shadows, settings.point_soft_shadows);
+        sync_check_box(self.use_light_scatter, settings.light_scatter_enabled);
+        sync_check_box(self.ssao, settings.use_ssao);
+        sync_check_box(self.fxaa, settings.fxaa);
+        sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
         let is_hrtf = if scene.is_some() {
             matches!(
                 engine.scenes[scene].sound_context.state().renderer(),
@@ -527,7 +594,7 @@ impl OptionsMenu {
             false
         };
 
-        sync_check_box(self.cb_use_hrtf, is_hrtf);
+        sync_check_box(self.use_hrtf, is_hrtf);
 
         let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
             ui.send_message(ScrollBarMessage::value(
@@ -536,14 +603,11 @@ impl OptionsMenu {
                 value,
             ));
         };
+        sync_scroll_bar(self.point_shadow_distance, settings.point_shadows_distance);
+        sync_scroll_bar(self.spot_shadow_distance, settings.spot_shadows_distance);
+        sync_scroll_bar(self.mouse_sens, control_scheme.mouse_sens);
         sync_scroll_bar(
-            self.sb_point_shadow_distance,
-            settings.point_shadows_distance,
-        );
-        sync_scroll_bar(self.sb_spot_shadow_distance, settings.spot_shadows_distance);
-        sync_scroll_bar(self.sb_mouse_sens, control_scheme.mouse_sens);
-        sync_scroll_bar(
-            self.sb_sound_volume,
+            self.sound_volume,
             engine.sound_engine.lock().unwrap().master_gain(),
         );
 
@@ -635,76 +699,85 @@ impl OptionsMenu {
             UiMessageData::ScrollBar(ScrollBarMessage::Value(new_value))
                 if message.direction() == MessageDirection::FromWidget =>
             {
-                if message.destination() == self.sb_sound_volume {
+                if message.destination() == self.sound_volume {
                     engine
                         .sound_engine
                         .lock()
                         .unwrap()
                         .set_master_gain(*new_value);
                     changed = true;
-                } else if message.destination() == self.sb_point_shadow_distance {
+                } else if message.destination() == self.point_shadow_distance {
                     settings.point_shadows_distance = *new_value;
                     changed = true;
-                } else if message.destination() == self.sb_spot_shadow_distance {
+                } else if message.destination() == self.spot_shadow_distance {
                     settings.spot_shadows_distance = *new_value;
                     changed = true;
-                } else if message.destination() == self.sb_mouse_sens {
+                } else if message.destination() == self.mouse_sens {
                     self.control_scheme.write().unwrap().mouse_sens = *new_value;
                     changed = true;
-                } else if message.destination() == self.sb_music_volume {
+                } else if message.destination() == self.music_volume {
                     self.sender
                         .send(Message::SetMusicVolume { volume: *new_value })
                         .unwrap();
                     changed = true;
                 }
             }
-            UiMessageData::DropdownList(DropdownListMessage::SelectionChanged(new_value)) => {
-                if message.destination() == self.lb_video_modes {
-                    if let Some(index) = new_value {
-                        let video_mode = self.video_modes[*index].clone();
+            UiMessageData::DropdownList(DropdownListMessage::SelectionChanged(Some(index))) => {
+                if message.destination() == self.video_mode {
+                    // -1 here because we have Windowed item in the list.
+                    if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
                         engine
                             .get_window()
-                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode)));
+                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
+                        changed = true;
+                    } else {
+                        engine.get_window().set_fullscreen(None);
                         changed = true;
                     }
+                } else if message.destination() == self.spot_shadows_quality {
+                    settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
+                    changed = true;
+                } else if message.destination() == self.point_shadows_quality {
+                    settings.point_shadow_map_size = index_to_shadow_map_size(*index);
+                    changed = true;
                 }
             }
             UiMessageData::CheckBox(msg) => {
                 let CheckBoxMessage::Check(value) = msg;
                 let value = value.unwrap_or(false);
                 let mut control_scheme = self.control_scheme.write().unwrap();
-                if message.destination() == self.cb_point_shadows {
+                if message.destination() == self.point_shadows {
                     settings.point_shadows_enabled = value;
                     changed = true;
-                } else if message.destination() == self.cb_spot_shadows {
+                } else if message.destination() == self.spot_shadows {
                     settings.spot_shadows_enabled = value;
                     changed = true;
-                } else if message.destination() == self.cb_soft_spot_shadows {
+                } else if message.destination() == self.soft_spot_shadows {
                     settings.spot_soft_shadows = value;
                     changed = true;
-                } else if message.destination() == self.cb_soft_point_shadows {
+                } else if message.destination() == self.soft_point_shadows {
                     settings.point_soft_shadows = value;
                     changed = true;
-                } else if message.destination() == self.cb_mouse_y_inverse {
+                } else if message.destination() == self.mouse_y_inverse {
                     control_scheme.mouse_y_inverse = value;
                     changed = true;
-                } else if message.destination() == self.cb_use_light_scatter {
+                } else if message.destination() == self.use_light_scatter {
                     settings.light_scatter_enabled = value;
                     changed = true;
-                } else if message.destination() == self.cb_fxaa {
+                } else if message.destination() == self.fxaa {
                     settings.fxaa = value;
                     changed = true;
-                } else if message.destination() == self.cb_ssao {
+                } else if message.destination() == self.ssao {
                     settings.use_ssao = value;
                     changed = true;
                 }
             }
             UiMessageData::Button(ButtonMessage::Click) => {
-                if message.destination() == self.btn_reset_control_scheme {
+                if message.destination() == self.reset_control_scheme {
                     self.control_scheme.write().unwrap().reset();
                     self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
                     changed = true;
-                } else if message.destination() == self.btn_reset_audio_settings {
+                } else if message.destination() == self.reset_audio_settings {
                     engine.sound_engine.lock().unwrap().set_master_gain(1.0);
                     self.sync_to_model(level.map_or(Default::default(), |m| m.scene), engine);
                     changed = true;
