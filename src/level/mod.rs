@@ -1,7 +1,9 @@
-use crate::control_scheme::ControlScheme;
+use crate::level::arrival::ArrivalLevel;
+use crate::level::lab::LabLevel;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
+    control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorState},
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
@@ -24,6 +26,7 @@ use rg3d::{
         pool::Handle,
         rand::seq::SliceRandom,
         visitor::{Visit, VisitResult, Visitor},
+        VecExtensions,
     },
     engine::resource_manager::ResourceManager,
     event::Event,
@@ -46,12 +49,87 @@ use rg3d::{
     },
     utils::navmesh::Navmesh,
 };
+use std::ops::{Deref, DerefMut};
 use std::{
     path::{Path, PathBuf},
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
-pub struct Level {
+pub mod arrival;
+pub mod lab;
+
+pub enum Level {
+    Unknown,
+    Arrival(ArrivalLevel),
+    Lab(LabLevel),
+}
+
+impl Default for Level {
+    fn default() -> Self {
+        Self::Unknown
+    }
+}
+
+impl Level {
+    fn id(&self) -> u32 {
+        match self {
+            Level::Unknown => unreachable!(),
+            Level::Arrival(_) => 0,
+            Level::Lab(_) => 1,
+        }
+    }
+
+    fn from_id(id: u32) -> Result<Self, String> {
+        match id {
+            0 => Ok(Self::Arrival(Default::default())),
+            1 => Ok(Self::Lab(Default::default())),
+            _ => Err(format!("Invalid level id {}!", id)),
+        }
+    }
+}
+
+impl Visit for Level {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        visitor.enter_region(name)?;
+
+        let mut id = if visitor.is_reading() { 0 } else { self.id() };
+        id.visit("Id", visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(id)?;
+        }
+        match self {
+            Level::Unknown => unreachable!(),
+            Level::Arrival(v) => v.visit("Inner", visitor)?,
+            Level::Lab(v) => v.visit("Inner", visitor)?,
+        }
+
+        visitor.leave_region()
+    }
+}
+
+impl Deref for Level {
+    type Target = BaseLevel;
+
+    fn deref(&self) -> &Self::Target {
+        match self {
+            Level::Unknown => unreachable!(),
+            Level::Arrival(v) => v,
+            Level::Lab(v) => v,
+        }
+    }
+}
+
+impl DerefMut for Level {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        match self {
+            Level::Unknown => unreachable!(),
+            Level::Arrival(v) => v,
+            Level::Lab(v) => v,
+        }
+    }
+}
+
+pub struct BaseLevel {
     map_root: Handle<Node>,
     pub scene: Handle<Scene>,
     player: Handle<Actor>,
@@ -73,7 +151,7 @@ pub struct Level {
     lights: LightContainer,
 }
 
-impl Default for Level {
+impl Default for BaseLevel {
     fn default() -> Self {
         Self {
             map_root: Default::default(),
@@ -99,7 +177,7 @@ impl Default for Level {
     }
 }
 
-impl Visit for Level {
+impl Visit for BaseLevel {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
@@ -175,7 +253,7 @@ pub struct ShotTrailContainer {
 
 impl ShotTrailContainer {
     pub fn update(&mut self, dt: f32, scene: &mut Scene) {
-        for trail in self.container.iter_mut() {
+        self.container.retain_mut(|trail| {
             trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
             let k = 1.0 - trail.lifetime / trail.max_lifetime;
             let mesh: &mut Mesh = scene.graph[trail.node].as_mesh_mut();
@@ -191,9 +269,8 @@ impl ShotTrailContainer {
             if trail.lifetime >= trail.max_lifetime {
                 scene.remove_node(trail.node);
             }
-        }
-        self.container
-            .retain(|trail| trail.lifetime < trail.max_lifetime);
+            trail.lifetime < trail.max_lifetime
+        });
     }
 
     pub fn add(&mut self, trail: ShotTrail) {
@@ -345,6 +422,7 @@ pub async fn analyze(
             "Ak47" => items.push((ItemKind::Ak47, position)),
             "M4" => items.push((ItemKind::M4, position)),
             "Glock" => items.push((ItemKind::Glock, position)),
+            "MasterKey" => items.push((ItemKind::MasterKey, position)),
             _ => (),
         }
     }
@@ -536,14 +614,15 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
     }
 }
 
-impl Level {
+impl BaseLevel {
     pub async fn new(
+        map: &str,
         resource_manager: ResourceManager,
         sender: Sender<Message>,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
-    ) -> (Level, Scene) {
+    ) -> (Self, Scene) {
         let mut scene = Scene::new();
 
         scene.ambient_lighting_color = Color::opaque(45, 45, 45);
@@ -557,7 +636,7 @@ impl Level {
         ));
 
         let map_model = resource_manager
-            .request_model(Path::new("data/levels/arrival.rgs"))
+            .request_model(Path::new(map))
             .await
             .unwrap();
 
@@ -586,7 +665,7 @@ impl Level {
             .await;
         }
 
-        let level = Level {
+        let level = BaseLevel {
             player: spawn_player(
                 player_spawn_position,
                 &mut actors,
@@ -782,7 +861,8 @@ impl Level {
                 | ItemKind::M4
                 | ItemKind::Glock
                 | ItemKind::Ammo
-                | ItemKind::Grenade => (),
+                | ItemKind::Grenade
+                | ItemKind::MasterKey => (),
             }
         }
     }
@@ -842,6 +922,9 @@ impl Level {
                 }
                 ItemKind::Grenade => {
                     character.inventory_mut().add_item(ItemKind::Grenade, 1);
+                }
+                ItemKind::MasterKey => {
+                    character.inventory_mut().add_item(ItemKind::MasterKey, 1);
                 }
             }
         }

@@ -32,7 +32,7 @@ use crate::{
         inventory::InventoryInterface, item_display::ItemDisplay, weapon_display::WeaponDisplay,
         BuildContext, CustomUiMessage, CustomUiNode, DeathScreen, GuiMessage, UiNode, UiNodeHandle,
     },
-    level::Level,
+    level::{arrival::ArrivalLevel, Level},
     menu::Menu,
     message::Message,
 };
@@ -560,7 +560,7 @@ impl Game {
         let item_texture = self.item_display.render_target.clone();
 
         std::thread::spawn(move || {
-            let level = rg3d::futures::executor::block_on(Level::new(
+            let level = rg3d::futures::executor::block_on(ArrivalLevel::new(
                 resource_manager,
                 sender,
                 display_texture,
@@ -790,12 +790,8 @@ impl Game {
 
         if !self.is_any_menu_visible() {
             if let Some(ref mut level) = self.level {
-                level.process_input_event(
-                    event,
-                    &mut self.engine.scenes[level.scene],
-                    self.time.delta,
-                    &self.control_scheme,
-                );
+                let scene = &mut self.engine.scenes[level.scene];
+                level.process_input_event(event, scene, self.time.delta, &self.control_scheme);
             }
         }
     }

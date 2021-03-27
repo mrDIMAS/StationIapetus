@@ -6,7 +6,6 @@ use crate::{
     message::Message,
     GameEngine,
 };
-use rg3d::renderer::ShadowMapPrecision;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
@@ -29,6 +28,7 @@ use rg3d::{
         HorizontalAlignment, Orientation, Thickness, VerticalAlignment,
     },
     monitor::VideoMode,
+    renderer::ShadowMapPrecision,
     scene::Scene,
     utils::log::{Log, MessageKind},
     window::Fullscreen,

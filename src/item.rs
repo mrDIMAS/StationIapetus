@@ -31,6 +31,9 @@ pub enum ItemKind {
     Ak47,
     M4,
     Glock,
+
+    // Keys
+    MasterKey,
 }
 
 impl Default for ItemKind {
@@ -61,6 +64,7 @@ impl ItemKind {
             5 => Ok(ItemKind::Ak47),
             6 => Ok(ItemKind::M4),
             7 => Ok(ItemKind::Glock),
+            8 => Ok(ItemKind::MasterKey),
             _ => Err(format!("Unknown item kind {}", id)),
         }
     }
@@ -75,6 +79,7 @@ impl ItemKind {
             ItemKind::Ak47 => 5,
             ItemKind::M4 => 6,
             ItemKind::Glock => 7,
+            ItemKind::MasterKey => 8,
         }
     }
 
@@ -84,7 +89,11 @@ impl ItemKind {
             ItemKind::Ak47 => Some(WeaponKind::Ak47),
             ItemKind::M4 => Some(WeaponKind::M4),
             ItemKind::Glock => Some(WeaponKind::Glock),
-            ItemKind::Medkit | ItemKind::Medpack | ItemKind::Ammo | ItemKind::Grenade => None,
+            ItemKind::Medkit
+            | ItemKind::Medpack
+            | ItemKind::Ammo
+            | ItemKind::Grenade
+            | ItemKind::MasterKey => None,
         }
     }
 }

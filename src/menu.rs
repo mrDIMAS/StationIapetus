@@ -1,6 +1,7 @@
+use crate::level::Level;
 use crate::{
-    control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, level::Level,
-    message::Message, options_menu::OptionsMenu, utils::create_camera, GameEngine,
+    control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, message::Message,
+    options_menu::OptionsMenu, utils::create_camera, GameEngine,
 };
 use rg3d::{
     core::{
