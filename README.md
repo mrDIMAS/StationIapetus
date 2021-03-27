@@ -10,7 +10,7 @@
     - 3D models: 3Ds Max 2010, [mixamo.com](mixamo.com) (character models)
     - Materials/textures: Substance Painter, [textures.com](textures.com)
     - Animations: [mixamo.com](mixamo.com)
-- **Playable demo**: 29th of March
+- **Playable demo**: 18th of April 2021
 - **Release Date**: When it is done.
 - **Store**: Steam
 - **Platforms**: Windows (7+), Linux (Ubuntu?), macOS
