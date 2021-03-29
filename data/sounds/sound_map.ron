@@ -83,6 +83,7 @@
         "data/textures/metal_bare_white.jpg": Metal,
         "data/textures/metal_red.jpg": Metal,
         "data/textures/metal8.jpg": Metal,
+        "data/textures/MetalMesh_Base_Color.png": Metal,
         "data/textures/blocks17floor.tga": Stone,
         "data/textures/Ch10_1001_Diffuse.png": Flesh,
         "data/textures/Ch10_1002_Diffuse.png": Flesh,
