@@ -1,5 +1,7 @@
+use crate::config::SoundConfig;
 use crate::level::arrival::ArrivalLevel;
 use crate::level::lab::LabLevel;
+use crate::utils::use_hrtf;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -622,8 +624,18 @@ impl BaseLevel {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        sound_config: SoundConfig, // Using copy, instead of reference because of async.
     ) -> (Self, Scene) {
         let mut scene = Scene::new();
+
+        if sound_config.use_hrtf {
+            use_hrtf(scene.sound_context.clone())
+        } else {
+            scene
+                .sound_context
+                .state()
+                .set_renderer(rg3d::sound::renderer::Renderer::Default);
+        }
 
         scene.ambient_lighting_color = Color::opaque(45, 45, 45);
 

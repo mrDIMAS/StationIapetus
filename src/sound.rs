@@ -10,7 +10,7 @@ use rg3d::{
     rand::{self, seq::SliceRandom},
     scene::{node::Node, ColliderHandle, Scene},
     sound::{
-        context::{self, Context},
+        context::Context,
         effects::{BaseEffect, Effect, EffectInput},
         source::{generic::GenericSourceBuilder, spatial::SpatialSourceBuilder, Status},
     },
@@ -144,15 +144,6 @@ impl SoundManager {
         let reverb = context
             .state()
             .add_effect(rg3d::sound::effects::Effect::Reverb(reverb));
-
-        let hrtf_sphere =
-            rg3d::sound::hrtf::HrirSphere::from_file("data/sounds/hrtf.bin", context::SAMPLE_RATE)
-                .unwrap();
-        context
-            .state()
-            .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
-                rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
-            ));
 
         let sound_base = SoundBase::load();
 

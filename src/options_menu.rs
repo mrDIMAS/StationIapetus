@@ -1,8 +1,7 @@
 use crate::{
-    config::Config,
+    config::SoundConfig,
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, BuildContext, GuiMessage, ScrollBarData, UiNode},
-    level::Level,
     message::Message,
     GameEngine,
 };
@@ -29,7 +28,6 @@ use rg3d::{
     },
     monitor::VideoMode,
     renderer::ShadowMapPrecision,
-    scene::Scene,
     utils::log::{Log, MessageKind},
     window::Fullscreen,
 };
@@ -166,6 +164,7 @@ impl OptionsMenu {
         engine: &mut GameEngine,
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
+        sound_config: &SoundConfig,
     ) -> Self {
         let video_modes: Vec<VideoMode> = engine
             .get_window()
@@ -374,7 +373,7 @@ impl OptionsMenu {
                                         ScrollBarData {
                                             min: 0.0,
                                             max: 1.0,
-                                            value: 1.0,
+                                            value: sound_config.master_volume,
                                             step: 0.025,
                                             row: 0,
                                             column: 1,
@@ -392,7 +391,7 @@ impl OptionsMenu {
                                         ScrollBarData {
                                             min: 0.0,
                                             max: 1.0,
-                                            value: 0.0,
+                                            value: sound_config.music_volume,
                                             step: 0.025,
                                             row: 1,
                                             column: 1,
@@ -405,7 +404,7 @@ impl OptionsMenu {
                                 })
                                 .with_child(make_text_mark("Use HRTF", 2, ctx))
                                 .with_child({
-                                    use_hrtf = create_check_box(ctx, 2, 1, true);
+                                    use_hrtf = create_check_box(ctx, 2, 1, sound_config.use_hrtf);
                                     use_hrtf
                                 })
                                 .with_child({
@@ -556,9 +555,9 @@ impl OptionsMenu {
 
     pub fn sync_to_model(
         &mut self,
-        scene: Handle<Scene>,
         engine: &mut GameEngine,
         control_scheme: &ControlScheme,
+        sound_config: &SoundConfig,
     ) {
         let ui = &mut engine.user_interface;
         let settings = engine.renderer.get_quality_settings();
@@ -578,16 +577,7 @@ impl OptionsMenu {
         sync_check_box(self.ssao, settings.use_ssao);
         sync_check_box(self.fxaa, settings.fxaa);
         sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
-        let is_hrtf = if scene.is_some() {
-            matches!(
-                engine.scenes[scene].sound_context.state().renderer(),
-                rg3d::sound::renderer::Renderer::HrtfRenderer(_)
-            )
-        } else {
-            false
-        };
-
-        sync_check_box(self.use_hrtf, is_hrtf);
+        sync_check_box(self.use_hrtf, sound_config.use_hrtf);
 
         let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
             ui.send_message(ScrollBarMessage::value(
@@ -599,10 +589,8 @@ impl OptionsMenu {
         sync_scroll_bar(self.point_shadow_distance, settings.point_shadows_distance);
         sync_scroll_bar(self.spot_shadow_distance, settings.spot_shadows_distance);
         sync_scroll_bar(self.mouse_sens, control_scheme.mouse_sens);
-        sync_scroll_bar(
-            self.sound_volume,
-            engine.sound_engine.lock().unwrap().master_gain(),
-        );
+        sync_scroll_bar(self.sound_volume, sound_config.master_volume);
+        sync_scroll_bar(self.music_volume, sound_config.music_volume);
 
         for (btn, def) in self
             .control_scheme_buttons
@@ -684,9 +672,9 @@ impl OptionsMenu {
     pub fn handle_ui_event(
         &mut self,
         engine: &mut GameEngine,
-        level: Option<&Level>,
         message: &GuiMessage,
         control_scheme: &mut ControlScheme,
+        sound_config: &SoundConfig,
     ) {
         let old_settings = engine.renderer.get_quality_settings();
         let mut settings = old_settings;
@@ -698,11 +686,9 @@ impl OptionsMenu {
                 if message.direction() == MessageDirection::FromWidget =>
             {
                 if message.destination() == self.sound_volume {
-                    engine
-                        .sound_engine
-                        .lock()
-                        .unwrap()
-                        .set_master_gain(*new_value);
+                    self.sender
+                        .send(Message::SetMasterVolume(*new_value))
+                        .unwrap();
                     changed = true;
                 } else if message.destination() == self.point_shadow_distance {
                     settings.point_shadows_distance = *new_value;
@@ -715,7 +701,7 @@ impl OptionsMenu {
                     changed = true;
                 } else if message.destination() == self.music_volume {
                     self.sender
-                        .send(Message::SetMusicVolume { volume: *new_value })
+                        .send(Message::SetMusicVolume(*new_value))
                         .unwrap();
                     changed = true;
                 }
@@ -777,24 +763,19 @@ impl OptionsMenu {
                 } else if message.destination() == self.ssao {
                     settings.use_ssao = value;
                     changed = true;
+                } else if message.destination() == self.use_hrtf {
+                    changed = true;
+                    self.sender.send(Message::SetUseHrtf(value)).unwrap();
                 }
             }
             UiMessageData::Button(ButtonMessage::Click) => {
                 if message.destination() == self.reset_control_scheme {
                     control_scheme.reset();
-                    self.sync_to_model(
-                        level.map_or(Default::default(), |m| m.scene),
-                        engine,
-                        control_scheme,
-                    );
+                    self.sync_to_model(engine, control_scheme, sound_config);
                     changed = true;
                 } else if message.destination() == self.reset_audio_settings {
                     engine.sound_engine.lock().unwrap().set_master_gain(1.0);
-                    self.sync_to_model(
-                        level.map_or(Default::default(), |m| m.scene),
-                        engine,
-                        control_scheme,
-                    );
+                    self.sync_to_model(engine, control_scheme, sound_config);
                     changed = true;
                 }
 
@@ -825,15 +806,7 @@ impl OptionsMenu {
         }
 
         if changed {
-            match Config::save(engine, control_scheme.clone(), Default::default()) {
-                Ok(_) => {
-                    Log::writeln(MessageKind::Information, "Settings saved!".to_string());
-                }
-                Err(e) => Log::writeln(
-                    MessageKind::Error,
-                    format!("Failed to save settings. Reason: {:?}", e),
-                ),
-            }
+            self.sender.send(Message::SaveConfig).unwrap();
         }
     }
 }

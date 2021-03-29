@@ -4,37 +4,24 @@ use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 
-#[derive(Deserialize, Serialize)]
-pub struct LevelSoundConfig {
+#[derive(Deserialize, Serialize, Clone)]
+pub struct SoundConfig {
+    pub master_volume: f32,
     pub music_volume: f32,
     pub use_hrtf: bool,
 }
 
-impl Default for LevelSoundConfig {
+impl Default for SoundConfig {
     fn default() -> Self {
         Self {
+            master_volume: 1.0,
             music_volume: 0.5,
             use_hrtf: true,
         }
     }
 }
 
-#[derive(Deserialize, Serialize)]
-pub struct SoundConfig {
-    pub volume: f32,
-    pub level: LevelSoundConfig,
-}
-
-impl Default for SoundConfig {
-    fn default() -> Self {
-        Self {
-            volume: 1.0,
-            level: Default::default(),
-        }
-    }
-}
-
-#[derive(Deserialize, Serialize, Default)]
+#[derive(Deserialize, Serialize, Default, Clone)]
 pub struct Config {
     pub graphics_settings: QualitySettings,
     pub controls: ControlScheme,
@@ -70,15 +57,12 @@ impl Config {
     pub fn save(
         engine: &GameEngine,
         control_scheme: ControlScheme,
-        level_sound_config: LevelSoundConfig,
+        sound_config: SoundConfig,
     ) -> Result<(), ConfigError> {
         let config = Self {
             graphics_settings: engine.renderer.get_quality_settings(),
             controls: control_scheme,
-            sound: SoundConfig {
-                volume: engine.sound_engine.lock().unwrap().master_gain(),
-                level: level_sound_config,
-            },
+            sound: sound_config,
         };
         let file = File::create(Self::PATH)?;
         ron::ser::to_writer_pretty(file, &config, PrettyConfig::default())?;

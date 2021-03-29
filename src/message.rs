@@ -142,9 +142,6 @@ pub enum Message {
     StartNewGame,
     QuitGame,
     ToggleMainMenu,
-    SetMusicVolume {
-        volume: f32,
-    },
     EndMatch,
     SyncInventory,
     ShowItemDisplay {
@@ -156,4 +153,9 @@ pub enum Message {
         item: ItemKind,
         count: u32,
     },
+    SaveConfig,
+    // Sound-related messages.
+    SetMusicVolume(f32),
+    SetUseHrtf(bool),
+    SetMasterVolume(f32),
 }

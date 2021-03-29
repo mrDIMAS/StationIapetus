@@ -1,4 +1,4 @@
-use crate::level::Level;
+use crate::config::SoundConfig;
 use crate::{
     control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, message::Message,
     options_menu::OptionsMenu, utils::create_camera, GameEngine,
@@ -44,7 +44,7 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub async fn new(engine: &mut GameEngine) -> Self {
+    pub async fn new(engine: &mut GameEngine, sound_config: &SoundConfig) -> Self {
         let mut scene = Scene::from_file("data/levels/menu.rgs", engine.resource_manager.clone())
             .await
             .unwrap();
@@ -64,7 +64,7 @@ impl MenuScene {
             GenericSourceBuilder::new(buffer.into())
                 .with_looping(true)
                 .with_status(Status::Playing)
-                .with_gain(0.5)
+                .with_gain(sound_config.music_volume)
                 .build_source()
                 .unwrap(),
         );
@@ -110,10 +110,11 @@ impl Menu {
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
         font: SharedFont,
+        sound_config: &SoundConfig,
     ) -> Self {
         let frame_size = engine.renderer.get_frame_size();
 
-        let scene = MenuScene::new(engine).await;
+        let scene = MenuScene::new(engine, sound_config).await;
 
         let ctx = &mut engine.user_interface.build_ctx();
 
@@ -224,7 +225,7 @@ impl Menu {
             btn_save_game,
             btn_load_game,
             btn_quit_game,
-            options_menu: OptionsMenu::new(engine, control_scheme, sender),
+            options_menu: OptionsMenu::new(engine, control_scheme, sender, sound_config),
         }
     }
 
@@ -288,9 +289,9 @@ impl Menu {
     pub fn handle_ui_message(
         &mut self,
         engine: &mut GameEngine,
-        level: Option<&Level>,
         message: &GuiMessage,
         control_scheme: &mut ControlScheme,
+        sound_config: &SoundConfig,
     ) {
         if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
             if message.destination() == self.btn_new_game {
@@ -323,6 +324,6 @@ impl Menu {
         }
 
         self.options_menu
-            .handle_ui_event(engine, level, message, control_scheme);
+            .handle_ui_event(engine, message, control_scheme, sound_config);
     }
 }

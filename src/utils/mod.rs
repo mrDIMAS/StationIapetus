@@ -9,6 +9,7 @@ use rg3d::scene::transform::TransformBuilder;
 use rg3d::{
     core::algebra::{Point3, Unit, UnitQuaternion, Vector3},
     scene::{RigidBodyHandle, Scene},
+    sound,
 };
 use std::collections::HashMap;
 
@@ -121,4 +122,17 @@ pub async fn create_camera(
     .with_z_far(z_far)
     .with_skybox(skybox)
     .build(graph)
+}
+
+pub fn use_hrtf(context: sound::context::Context) {
+    let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
+        "data/sounds/hrtf.bin",
+        sound::context::SAMPLE_RATE,
+    )
+    .unwrap();
+    context
+        .state()
+        .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
+            rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
+        ));
 }

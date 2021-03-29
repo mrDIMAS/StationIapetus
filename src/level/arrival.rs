@@ -1,3 +1,4 @@
+use crate::config::SoundConfig;
 use crate::{
     level::{BaseLevel, Level},
     message::Message,
@@ -49,6 +50,7 @@ impl ArrivalLevel {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        sound_config: SoundConfig,
     ) -> (Level, Scene) {
         let (base_level, scene) = BaseLevel::new(
             "data/levels/arrival.rgs",
@@ -57,6 +59,7 @@ impl ArrivalLevel {
             display_texture,
             inventory_texture,
             item_texture,
+            sound_config,
         )
         .await;
 

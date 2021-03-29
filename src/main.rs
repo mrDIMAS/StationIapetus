@@ -24,6 +24,8 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
+use crate::config::SoundConfig;
+use crate::utils::use_hrtf;
 use crate::{
     actor::Actor,
     config::Config,
@@ -171,6 +173,10 @@ pub struct Game {
     weapon_display: WeaponDisplay,
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
+    // We're storing sound config separately because we can adjust sound
+    // setting in the options but don't have a level loaded. This field
+    // is data-model for options menu.
+    sound_config: SoundConfig,
 }
 
 struct LoadingScreen {
@@ -279,8 +285,12 @@ impl Game {
 
         let mut control_scheme = ControlScheme::default();
 
+        let mut sound_config = SoundConfig::default();
+
         match Config::load() {
             Ok(config) => {
+                sound_config = config.sound;
+
                 match engine
                     .renderer
                     .set_quality_settings(&config.graphics_settings)
@@ -320,6 +330,12 @@ impl Game {
 
         let (tx, rx) = mpsc::channel();
 
+        engine
+            .sound_engine
+            .lock()
+            .unwrap()
+            .set_master_gain(sound_config.master_volume);
+
         let mut game = Game {
             loading_screen: LoadingScreen::new(
                 &mut engine.user_interface.build_ctx(),
@@ -332,6 +348,7 @@ impl Game {
                 &control_scheme,
                 tx.clone(),
                 font.clone(),
+                &sound_config,
             )),
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
@@ -347,6 +364,7 @@ impl Game {
             inventory_interface: InventoryInterface::new(tx.clone()),
             events_receiver: rx,
             events_sender: tx,
+            sound_config,
         };
 
         game.create_debug_ui();
@@ -406,9 +424,9 @@ impl Game {
     fn handle_ui_message(&mut self, message: &GuiMessage) {
         self.menu.handle_ui_message(
             &mut self.engine,
-            self.level.as_ref(),
             &message,
             &mut self.control_scheme,
+            &self.sound_config,
         );
 
         self.death_screen.handle_ui_message(message);
@@ -558,6 +576,7 @@ impl Game {
         let display_texture = self.weapon_display.render_target.clone();
         let inventory_texture = self.inventory_interface.render_target.clone();
         let item_texture = self.item_display.render_target.clone();
+        let sound_config = self.sound_config.clone();
 
         std::thread::spawn(move || {
             let level = rg3d::futures::executor::block_on(ArrivalLevel::new(
@@ -566,6 +585,7 @@ impl Game {
                 display_texture,
                 inventory_texture,
                 item_texture,
+                sound_config,
             ));
 
             ctx.lock().unwrap().level = Some(level);
@@ -670,12 +690,52 @@ impl Game {
                         .set_visible(&self.engine.user_interface, true);
                     self.menu.sync_to_model(&mut self.engine, false);
                 }
-                Message::SetMusicVolume { volume } => {
+                Message::SetMusicVolume(volume) => {
+                    self.sound_config.music_volume = *volume;
+                    // TODO: Apply to sound manager of level when it will handle music!
                     self.engine.scenes[self.menu.scene.scene]
                         .sound_context
                         .state()
                         .source_mut(self.menu.scene.music)
                         .set_gain(*volume);
+                }
+                Message::SetUseHrtf(state) => {
+                    self.sound_config.use_hrtf = *state;
+                    // Hrtf is applied **only** to game scene!
+                    if let Some(level) = self.level.as_ref() {
+                        let scene = &self.engine.scenes[level.scene];
+                        if self.sound_config.use_hrtf {
+                            use_hrtf(scene.sound_context.clone())
+                        } else {
+                            scene
+                                .sound_context
+                                .state()
+                                .set_renderer(rg3d::sound::renderer::Renderer::Default);
+                        }
+                    }
+                }
+                Message::SetMasterVolume(volume) => {
+                    self.sound_config.master_volume = *volume;
+                    self.engine
+                        .sound_engine
+                        .lock()
+                        .unwrap()
+                        .set_master_gain(*volume);
+                }
+                Message::SaveConfig => {
+                    match Config::save(
+                        &self.engine,
+                        self.control_scheme.clone(),
+                        self.sound_config.clone(),
+                    ) {
+                        Ok(_) => {
+                            Log::writeln(MessageKind::Information, "Settings saved!".to_string());
+                        }
+                        Err(e) => Log::writeln(
+                            MessageKind::Error,
+                            format!("Failed to save settings. Reason: {:?}", e),
+                        ),
+                    }
                 }
                 Message::ToggleMainMenu => {
                     self.menu.set_visible(&mut self.engine, true);
