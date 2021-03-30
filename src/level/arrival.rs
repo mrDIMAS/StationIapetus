@@ -1,5 +1,6 @@
-use crate::config::SoundConfig;
+/// First level. Player just arrived to the station and start seeing weird things.
 use crate::{
+    config::SoundConfig,
     level::{BaseLevel, Level},
     message::Message,
 };

@@ -12,7 +12,7 @@ use crate::{
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
     weapon::{
-        projectile::{ProjectileKind, ProjectileOwner},
+        projectile::{ProjectileKind, Shooter},
         WeaponContainer, WeaponKind,
     },
     CollisionGroups,
@@ -773,7 +773,7 @@ impl Player {
                                 position,
                                 direction,
                                 initial_velocity: direction.scale(15.0),
-                                owner: ProjectileOwner::Actor(self_handle),
+                                shooter: Shooter::Actor(self_handle),
                             })
                             .unwrap();
                     }

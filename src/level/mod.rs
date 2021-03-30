@@ -1,6 +1,7 @@
 use crate::config::SoundConfig;
 use crate::level::arrival::ArrivalLevel;
 use crate::level::lab::LabLevel;
+use crate::level::turret::{ShootMode, Turret, TurretContainer};
 use crate::utils::use_hrtf;
 use crate::{
     actor::{Actor, ActorContainer},
@@ -15,7 +16,7 @@ use crate::{
     sound::{SoundKind, SoundManager},
     vector_to_quat,
     weapon::{
-        projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, ProjectileOwner},
+        projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit, Weapon, WeaponContainer, WeaponKind,
     },
     GameEngine, GameTime,
@@ -59,6 +60,7 @@ use std::{
 
 pub mod arrival;
 pub mod lab;
+pub mod turret;
 
 pub enum Level {
     Unknown,
@@ -151,6 +153,7 @@ pub struct BaseLevel {
     trails: ShotTrailContainer,
     doors: DoorContainer,
     lights: LightContainer,
+    turrets: TurretContainer,
 }
 
 impl Default for BaseLevel {
@@ -175,6 +178,7 @@ impl Default for BaseLevel {
             trails: Default::default(),
             doors: Default::default(),
             lights: Default::default(),
+            turrets: Default::default(),
         }
     }
 }
@@ -198,6 +202,7 @@ impl Visit for BaseLevel {
         self.trails.visit("Trails", visitor)?;
         self.doors.visit("Doors", visitor)?;
         self.lights.visit("Lights", visitor)?;
+        self.turrets.visit("Turrets", visitor)?;
 
         if visitor.is_reading() {
             self.beam = Some(make_beam());
@@ -306,6 +311,7 @@ pub struct AnalysisResult {
     player_spawn_position: Vector3<f32>,
     doors: DoorContainer,
     lights: LightContainer,
+    turrets: TurretContainer,
 }
 
 pub fn footstep_ray_check(
@@ -365,6 +371,7 @@ pub async fn analyze(
     let mut spawn_points = Vec::new();
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
+    let mut turrets = TurretContainer::default();
 
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
@@ -425,6 +432,9 @@ pub async fn analyze(
             "M4" => items.push((ItemKind::M4, position)),
             "Glock" => items.push((ItemKind::Glock, position)),
             "MasterKey" => items.push((ItemKind::MasterKey, position)),
+            "Turret" => {
+                turrets.add(Turret::new(handle, scene, ShootMode::Consecutive).await);
+            }
             _ => (),
         }
     }
@@ -451,6 +461,7 @@ pub async fn analyze(
     }
     result.spawn_points = spawn_points;
     result.player_spawn_position = player_spawn_position;
+    result.turrets = turrets;
 
     result
 }
@@ -662,6 +673,7 @@ impl BaseLevel {
             player_spawn_position,
             doors,
             lights,
+            turrets,
         } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -697,6 +709,7 @@ impl BaseLevel {
             lights,
             death_zones,
             spawn_points,
+            turrets,
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -768,7 +781,7 @@ impl BaseLevel {
 
     fn remove_weapon(&mut self, engine: &mut GameEngine, weapon: Handle<Weapon>) {
         for projectile in self.projectiles.iter_mut() {
-            if let ProjectileOwner::Weapon(ref mut owner) = projectile.owner {
+            if let Shooter::Weapon(ref mut owner) = projectile.owner {
                 // Reset owner because handle to weapon will be invalid after weapon freed.
                 if *owner == weapon {
                     *owner = Handle::NONE;
@@ -949,7 +962,7 @@ impl BaseLevel {
         position: Vector3<f32>,
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
-        owner: ProjectileOwner,
+        owner: Shooter,
     ) {
         let scene = &mut engine.scenes[self.scene];
         let projectile = Projectile::new(
@@ -1112,6 +1125,12 @@ impl BaseLevel {
         self.weapons.update(scene, &self.actors, time.delta);
         self.projectiles
             .update(scene, &self.actors, &self.weapons, time);
+        self.turrets.update(
+            scene,
+            &self.actors,
+            self.sender.as_ref().unwrap(),
+            time.delta,
+        );
         let mut ctx = UpdateContext {
             time,
             scene,
@@ -1135,7 +1154,7 @@ impl BaseLevel {
     fn shoot_ray(
         &mut self,
         engine: &mut GameEngine,
-        weapon: Handle<Weapon>,
+        shooter: Shooter,
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: Damage,
@@ -1146,7 +1165,7 @@ impl BaseLevel {
         let trail_len = if let Some(hit) = ray_hit(
             begin,
             end,
-            ProjectileOwner::Weapon(weapon),
+            shooter,
             &self.weapons,
             &self.actors,
             &mut scene.physics,
@@ -1320,7 +1339,7 @@ impl BaseLevel {
                 position,
                 direction,
                 initial_velocity,
-                owner,
+                shooter: owner,
             } => {
                 self.create_projectile(engine, kind, position, direction, initial_velocity, owner)
                     .await
@@ -1366,7 +1385,7 @@ impl BaseLevel {
                 adjust_height,
             } => self.spawn_item(engine, kind, position, adjust_height).await,
             Message::ShootRay {
-                weapon,
+                shooter: weapon,
                 begin,
                 end,
                 damage,

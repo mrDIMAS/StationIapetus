@@ -16,7 +16,7 @@ use crate::{
     item::{Item, ItemKind},
     sound::SoundKind,
     weapon::{
-        projectile::{Damage, ProjectileKind, ProjectileOwner},
+        projectile::{Damage, ProjectileKind, Shooter},
         Weapon, WeaponKind,
     },
 };
@@ -69,14 +69,14 @@ pub enum Message {
         position: Vector3<f32>,
         direction: Vector3<f32>,
         initial_velocity: Vector3<f32>,
-        owner: ProjectileOwner,
+        shooter: Shooter,
     },
     ShootWeapon {
         weapon: Handle<Weapon>,
         direction: Option<Vector3<f32>>,
     },
     ShootRay {
-        weapon: Handle<Weapon>,
+        shooter: Shooter,
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: Damage,

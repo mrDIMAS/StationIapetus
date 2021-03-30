@@ -5,7 +5,7 @@ use crate::{
     character::HitBox,
     item::ItemKind,
     message::Message,
-    weapon::projectile::{Damage, ProjectileKind, ProjectileOwner},
+    weapon::projectile::{Damage, ProjectileKind, Shooter},
     CollisionGroups, GameTime,
 };
 use rg3d::rand::Rng;
@@ -253,7 +253,7 @@ impl Eq for Hit {}
 pub fn ray_hit(
     begin: Vector3<f32>,
     end: Vector3<f32>,
-    owner: ProjectileOwner,
+    shooter: Shooter,
     weapons: &WeaponContainer,
     actors: &ActorContainer,
     physics: &mut Physics,
@@ -284,10 +284,10 @@ pub fn ray_hit(
                 if hit_box.collider == hit.collider {
                     is_hitbox_hit = true;
 
-                    let who = match owner {
-                        ProjectileOwner::None => Default::default(),
-                        ProjectileOwner::Actor(actor) => actor,
-                        ProjectileOwner::Weapon(weapon) => weapons[weapon].owner(),
+                    let who = match shooter {
+                        Shooter::None | Shooter::Turret(_) => Default::default(),
+                        Shooter::Actor(actor) => actor,
+                        Shooter::Weapon(weapon) => weapons[weapon].owner(),
                     };
 
                     // Ignore intersections with owners.
@@ -661,7 +661,7 @@ impl Weapon {
                     kind: projectile,
                     position,
                     direction,
-                    owner: ProjectileOwner::Weapon(self_handle),
+                    shooter: Shooter::Weapon(self_handle),
                     initial_velocity: Default::default(),
                 })
                 .unwrap(),
@@ -670,7 +670,7 @@ impl Weapon {
                     .as_ref()
                     .unwrap()
                     .send(Message::ShootRay {
-                        weapon: self_handle,
+                        shooter: Shooter::Weapon(self_handle),
                         begin: position,
                         end: position + direction.scale(1000.0),
                         damage,

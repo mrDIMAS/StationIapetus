@@ -1,4 +1,5 @@
 use crate::actor::Actor;
+use crate::level::turret::Turret;
 use crate::{
     actor::ActorContainer,
     effects::EffectKind,
@@ -62,24 +63,26 @@ impl ProjectileKind {
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
-pub enum ProjectileOwner {
+pub enum Shooter {
     None,
     Actor(Handle<Actor>),
     Weapon(Handle<Weapon>),
+    Turret(Handle<Turret>),
 }
 
-impl Default for ProjectileOwner {
+impl Default for Shooter {
     fn default() -> Self {
         Self::None
     }
 }
 
-impl ProjectileOwner {
+impl Shooter {
     fn id(&self) -> u32 {
         match self {
             Self::None => 0,
             Self::Actor(_) => 1,
             Self::Weapon(_) => 2,
+            Self::Turret(_) => 3,
         }
     }
 
@@ -88,12 +91,13 @@ impl ProjectileOwner {
             0 => Ok(Self::None),
             1 => Ok(Self::Actor(Default::default())),
             2 => Ok(Self::Weapon(Default::default())),
-            _ => Err(format!("Invalid projectile owner id {}!", id)),
+            3 => Ok(Self::Turret(Default::default())),
+            _ => Err(format!("Invalid shooter id {}!", id)),
         }
     }
 }
 
-impl Visit for ProjectileOwner {
+impl Visit for Shooter {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
@@ -103,9 +107,10 @@ impl Visit for ProjectileOwner {
             *self = Self::from_id(id)?;
         }
         match self {
-            ProjectileOwner::None => (),
-            ProjectileOwner::Actor(handle) => handle.visit("Handle", visitor)?,
-            ProjectileOwner::Weapon(handle) => handle.visit("Handle", visitor)?,
+            Shooter::None => (),
+            Shooter::Actor(handle) => handle.visit("Handle", visitor)?,
+            Shooter::Weapon(handle) => handle.visit("Handle", visitor)?,
+            Shooter::Turret(handle) => handle.visit("Handle", visitor)?,
         }
 
         visitor.leave_region()
@@ -196,7 +201,7 @@ pub struct Projectile {
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
-    pub owner: ProjectileOwner,
+    pub owner: Shooter,
     initial_velocity: Vector3<f32>,
     /// Position of projectile on the previous frame, it is used to simulate
     /// continuous intersection detection from fast moving projectiles.
@@ -264,7 +269,7 @@ impl Projectile {
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
-        owner: ProjectileOwner,
+        owner: Shooter,
         initial_velocity: Vector3<f32>,
         sender: Sender<Message>,
     ) -> Self {

@@ -1,5 +1,5 @@
-// TODO
-
+/// TODO - Implement and add plot.
+/// Second level - player enters laboratory.
 use crate::level::BaseLevel;
 use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 use std::ops::{Deref, DerefMut};
