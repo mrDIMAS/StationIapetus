@@ -54,10 +54,11 @@ mod lower_body;
 mod upper_body;
 
 #[derive(Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[repr(i32)]
 pub enum BotKind {
-    Mutant,
-    Parasite,
-    Zombie,
+    Mutant = 0,
+    Parasite = 1,
+    Zombie = 2,
 }
 
 impl BotKind {
@@ -71,11 +72,7 @@ impl BotKind {
     }
 
     pub fn id(self) -> i32 {
-        match self {
-            BotKind::Mutant => 0,
-            BotKind::Parasite => 1,
-            BotKind::Zombie => 2,
-        }
+        self as i32
     }
 
     pub fn description(self) -> &'static str {
@@ -85,6 +82,14 @@ impl BotKind {
             BotKind::Zombie => "Zombie",
         }
     }
+}
+
+#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
+#[repr(u32)]
+pub enum BotHostility {
+    Everyone = 0,
+    OtherSpecies = 1,
+    Player = 2,
 }
 
 #[derive(Debug)]
@@ -211,6 +216,7 @@ pub struct BotDefinition {
     pub pain_sounds: Vec<String>,
     pub scream_sounds: Vec<String>,
     pub idle_sounds: Vec<String>,
+    pub hostility: BotHostility,
 
     // Animations.
     pub idle_animation: String,

@@ -177,6 +177,7 @@ pub struct Game {
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
     sound_config: SoundConfig,
+    update_duration: Duration,
 }
 
 struct LoadingScreen {
@@ -365,6 +366,7 @@ impl Game {
             events_receiver: rx,
             events_sender: tx,
             sound_config,
+            update_duration: Default::default(),
         };
 
         game.create_debug_ui();
@@ -602,6 +604,8 @@ impl Game {
     }
 
     pub fn update(&mut self, time: GameTime) {
+        let last_time = std::time::Instant::now();
+
         let window = self.engine.get_window();
 
         window.set_cursor_visible(self.is_any_menu_visible());
@@ -655,6 +659,8 @@ impl Game {
         self.engine.update(time.delta);
 
         self.handle_messages(time);
+
+        self.update_duration = std::time::Instant::now() - last_time;
     }
 
     fn handle_messages(&mut self, time: GameTime) {
@@ -794,14 +800,17 @@ impl Game {
         use std::fmt::Write;
         write!(
             self.debug_string,
-            "Up time: {}\n{}{}",
+            "Up time: {}\n{}{}\nTotal Update Time: {:?}",
             elapsed,
             self.engine.renderer.get_statistics(),
             if let Some(level) = self.level.as_ref() {
-                self.engine.scenes[level.scene].performance_statistics
+                self.engine.scenes[level.scene]
+                    .performance_statistics
+                    .clone()
             } else {
                 Default::default()
-            }
+            },
+            self.update_duration
         )
         .unwrap();
 

@@ -39,6 +39,7 @@
                 "data/sounds/mutant_idle_2.wav",
                 "data/sounds/mutant_idle_3.wav",
             ],
+            hostility: Everyone,
         ),
         Parasite: (
             model: "data/models/parasite.rgs",
@@ -84,6 +85,7 @@
                 "data/sounds/parasite_idle_1.wav",
                 "data/sounds/parasite_idle_2.wav",
             ],
+            hostility: OtherSpecies,
         ),
         Zombie: (
             model: "data/models/zombie.rgs",
@@ -125,6 +127,7 @@
             ],
             scream_sounds: [],
             idle_sounds: [],
+            hostility: OtherSpecies,
         )
     }
 )
