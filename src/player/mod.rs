@@ -609,7 +609,7 @@ impl Player {
                 has_ground_contact: self.in_air_time <= 0.3,
                 run_factor: self.run_factor,
                 is_dead: self.is_dead(),
-                should_be_stunned,
+                should_be_stunned: false,
                 weapon_kind,
             },
             self.sender.clone().unwrap(),
@@ -681,8 +681,7 @@ impl Player {
             let can_move = self.lower_body_machine.machine.active_state()
                 != self.lower_body_machine.fall_state
                 && self.lower_body_machine.machine.active_state()
-                    != self.lower_body_machine.land_state
-                && !stunned;
+                    != self.lower_body_machine.land_state;
 
             let speed = if can_move {
                 math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta

@@ -171,7 +171,7 @@ impl Barrel {
                 shooter: Shooter::Turret(owner_handle),
                 begin: shoot_point.global_position(),
                 end: target_position,
-                damage: Damage::Point(0.0),
+                damage: Damage::Point(5.0),
             })
             .unwrap();
 
@@ -393,7 +393,7 @@ impl Turret {
             } else {
                 self.pitch.set_target(90.0f32.to_radians());
                 self.yaw
-                    .set_target(self.yaw.angle() + 10.0f32.to_radians() * dt);
+                    .set_target(self.yaw.angle() + 15.0f32.to_radians() * dt);
             }
 
             self.pitch.update(dt);

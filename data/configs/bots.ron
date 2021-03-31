@@ -90,14 +90,14 @@
             attack_animations: [
                 (
                     path: "data/animations/zombie_attack.fbx",
-                    timestamp: 1.5,
-                    damage: Point(10.0),
+                    timestamp: 1.3,
+                    damage: Point(20.0),
                     speed: 1.3
                 ),
                 (
                     path: "data/animations/zombie_attack_2.fbx",
-                    timestamp: 1.4,
-                    damage: Point(12.0),
+                    timestamp: 1.2,
+                    damage: Point(24.0),
                     speed: 1.3
                 ),
             ],
