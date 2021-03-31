@@ -1,7 +1,7 @@
 use crate::config::SoundConfig;
 use crate::level::arrival::ArrivalLevel;
 use crate::level::lab::LabLevel;
-use crate::level::turret::{ShootMode, Turret, TurretContainer};
+use crate::level::turret::{Hostility, ShootMode, Turret, TurretContainer};
 use crate::utils::use_hrtf;
 use crate::{
     actor::{Actor, ActorContainer},
@@ -433,7 +433,9 @@ pub async fn analyze(
             "Glock" => items.push((ItemKind::Glock, position)),
             "MasterKey" => items.push((ItemKind::MasterKey, position)),
             "Turret" => {
-                turrets.add(Turret::new(handle, scene, ShootMode::Consecutive).await);
+                turrets.add(
+                    Turret::new(handle, scene, ShootMode::Consecutive, Hostility::Player).await,
+                );
             }
             _ => (),
         }
@@ -1493,6 +1495,8 @@ impl BaseLevel {
         for death_zone in self.death_zones.iter() {
             drawing_context.draw_aabb(&death_zone.bounds, Color::opaque(0, 0, 200));
         }
+
+        self.turrets.debug_draw(&mut scene.drawing_context);
     }
 }
 
