@@ -80,11 +80,11 @@ impl Control<CustomUiMessage, CustomUiNode> for CustomUiNode {
         static_dispatch!(self, arrange_override, ui, final_size)
     }
 
-    fn arrange(&self, ui: &Gui, final_rect: &Rect<f32>) {
+    fn arrange(&self, ui: &Gui, final_rect: &Rect<f32>) -> bool {
         static_dispatch!(self, arrange, ui, final_rect)
     }
 
-    fn measure(&self, ui: &Gui, available_size: Vector2<f32>) {
+    fn measure(&self, ui: &Gui, available_size: Vector2<f32>) -> bool {
         static_dispatch!(self, measure, ui, available_size)
     }
 
