@@ -289,6 +289,10 @@ impl Turret {
 
                 let actor_position = actor.position(&scene.graph);
 
+                if !self.frustum.is_contains_point(actor_position) {
+                    continue 'target_loop;
+                }
+
                 let ray = Ray::from_two_points(actor_position, self_position);
                 scene.physics.cast_ray(
                     RayCastOptions {
@@ -340,76 +344,74 @@ impl Turret {
         if actors.contains(self.target) {
             let target_position = actors.get(self.target).position(&scene.graph);
 
-            if self.frustum.is_contains_point(target_position) {
-                let position = scene.graph[self.model].global_position();
+            let position = scene.graph[self.model].global_position();
 
-                let d = target_position - position;
+            let d = target_position - position;
 
-                // Aim horizontally.
-                let d_model_rel = scene.graph[self.model]
-                    .global_transform()
-                    .try_inverse()
-                    .unwrap_or_default()
-                    .transform_vector(&d);
-                self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
+            // Aim horizontally.
+            let d_model_rel = scene.graph[self.model]
+                .global_transform()
+                .try_inverse()
+                .unwrap_or_default()
+                .transform_vector(&d);
+            self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
 
-                // Aim vertically.
-                if let Some(d_body_rel) = scene.graph[self.body]
-                    .global_transform()
-                    .try_inverse()
-                    .unwrap_or_default()
-                    .transform_vector(&d)
-                    .try_normalize(f32::EPSILON)
-                {
-                    self.pitch.set_target(d_body_rel.dot(&Vector3::y()).acos());
-                }
+            // Aim vertically.
+            if let Some(d_body_rel) = scene.graph[self.body]
+                .global_transform()
+                .try_inverse()
+                .unwrap_or_default()
+                .transform_vector(&d)
+                .try_normalize(f32::EPSILON)
+            {
+                self.pitch.set_target(d_body_rel.dot(&Vector3::y()).acos());
+            }
 
-                if self.shoot_timer <= 0.0 {
-                    self.shoot_timer = 0.1;
+            if self.shoot_timer <= 0.0 {
+                self.shoot_timer = 0.1;
 
-                    match self.shoot_mode {
-                        ShootMode::Consecutive => {
-                            if let Some(barrel) = self.barrels.get_mut(self.barrel_index as usize) {
-                                barrel.shoot(self_handle, scene, target_position, sender);
-                                self.barrel_index += 1;
-                                if self.barrel_index >= self.barrels.len() as u32 {
-                                    self.barrel_index = 0;
-                                }
-                            }
-                        }
-                        ShootMode::Simultaneously => {
-                            for barrel in self.barrels.iter_mut() {
-                                barrel.shoot(self_handle, scene, target_position, sender);
+                match self.shoot_mode {
+                    ShootMode::Consecutive => {
+                        if let Some(barrel) = self.barrels.get_mut(self.barrel_index as usize) {
+                            barrel.shoot(self_handle, scene, target_position, sender);
+                            self.barrel_index += 1;
+                            if self.barrel_index >= self.barrels.len() as u32 {
+                                self.barrel_index = 0;
                             }
                         }
                     }
+                    ShootMode::Simultaneously => {
+                        for barrel in self.barrels.iter_mut() {
+                            barrel.shoot(self_handle, scene, target_position, sender);
+                        }
+                    }
                 }
-
-                for barrel in self.barrels.iter_mut() {
-                    barrel.update(scene);
-                }
-            } else {
-                self.pitch.set_target(90.0f32.to_radians());
-                self.yaw
-                    .set_target(self.yaw.angle() + 15.0f32.to_radians() * dt);
             }
 
-            self.pitch.update(dt);
-            self.yaw.update(dt);
-
-            scene.graph[self.body].local_transform_mut().set_rotation(
-                UnitQuaternion::from_axis_angle(
-                    &Vector3::y_axis(),
-                    90.0f32.to_radians() + self.yaw.angle(),
-                ),
-            );
-            scene.graph[self.barrel_stand]
-                .local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(
-                    &Vector3::z_axis(),
-                    self.pitch.angle() - std::f32::consts::FRAC_PI_2,
-                ));
+            for barrel in self.barrels.iter_mut() {
+                barrel.update(scene);
+            }
+        } else {
+            self.pitch.set_target(90.0f32.to_radians());
+            self.yaw
+                .set_target(self.yaw.angle() + 25.0f32.to_radians() * dt);
         }
+
+        self.pitch.update(dt);
+        self.yaw.update(dt);
+
+        scene.graph[self.body]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::y_axis(),
+                90.0f32.to_radians() + self.yaw.angle(),
+            ));
+        scene.graph[self.barrel_stand]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::z_axis(),
+                self.pitch.angle() - std::f32::consts::FRAC_PI_2,
+            ));
     }
 }
 

@@ -1158,6 +1158,11 @@ impl Player {
             ] {
                 scene.animations.get_mut(dying_animation).set_enabled(true);
             }
+
+            // Lock player on the place he died.
+            let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
+            body.set_angvel(Default::default(), true);
+            body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
         }
 
         self.camera_controller.update(
