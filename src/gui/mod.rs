@@ -7,7 +7,7 @@ use crate::{
     message::Message,
 };
 use rg3d::{
-    core::{algebra::Vector2, math::Rect, pool::Handle},
+    core::{algebra::Vector2, pool::Handle},
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -78,14 +78,6 @@ impl Control<CustomUiMessage, CustomUiNode> for CustomUiNode {
 
     fn arrange_override(&self, ui: &Gui, final_size: Vector2<f32>) -> Vector2<f32> {
         static_dispatch!(self, arrange_override, ui, final_size)
-    }
-
-    fn arrange(&self, ui: &Gui, final_rect: &Rect<f32>) -> bool {
-        static_dispatch!(self, arrange, ui, final_rect)
-    }
-
-    fn measure(&self, ui: &Gui, available_size: Vector2<f32>) -> bool {
-        static_dispatch!(self, measure, ui, available_size)
     }
 
     fn draw(&self, drawing_context: &mut DrawingContext) {
