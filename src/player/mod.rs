@@ -972,6 +972,13 @@ impl Player {
         }
     }
 
+    fn is_running(&self, scene: &Scene) -> bool {
+        !self.is_dead()
+            && self.controller.run
+            && !self.controller.aim
+            && !self.lower_body_machine.is_stunned(scene)
+    }
+
     pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
         let UpdateContext {
             time,
@@ -986,6 +993,7 @@ impl Player {
         let has_ground_contact = self.has_ground_contact(&scene.physics);
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
+        let position = **scene.graph[self.pivot].local_transform().position();
 
         self.update_animation_machines(
             time.delta,
@@ -996,11 +1004,11 @@ impl Player {
             weapons,
         );
 
+        let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
+
+        let is_running = self.is_running(scene);
+
         if !self.is_dead() {
-            let stunned = self.lower_body_machine.is_stunned(scene);
-
-            let is_running = self.controller.run && !self.controller.aim && !stunned;
-
             if is_running {
                 self.target_run_factor = 1.0;
             } else {
@@ -1008,16 +1016,12 @@ impl Player {
             }
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
-            let position = **scene.graph[self.pivot].local_transform().position();
-
             let can_move = self.can_move();
             self.update_velocity(scene, can_move, time.delta);
             let new_y_vel = self.handle_jump_signal(scene, time.delta);
             self.handle_weapon_grab_signal(self_handle, scene);
             self.handle_put_back_weapon_end_signal(scene);
             self.handle_toss_grenade_signal(self_handle, scene);
-
-            let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
 
             let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
             body.set_angvel(Default::default(), true);
@@ -1120,18 +1124,6 @@ impl Player {
 
             self.apply_weapon_angular_correction(scene, can_move, time.delta, weapons);
 
-            self.camera_controller.update(
-                position + self.velocity,
-                self.controller.pitch,
-                quat_yaw,
-                is_walking,
-                is_running,
-                self.controller.aim,
-                self.collider,
-                scene,
-                *time,
-            );
-
             if has_ground_contact {
                 self.in_air_time = 0.0;
             } else {
@@ -1167,6 +1159,18 @@ impl Player {
                 scene.animations.get_mut(dying_animation).set_enabled(true);
             }
         }
+
+        self.camera_controller.update(
+            position + self.velocity,
+            self.controller.pitch,
+            quat_yaw,
+            is_walking,
+            is_running,
+            self.controller.aim,
+            self.collider,
+            scene,
+            *time,
+        );
     }
 
     pub fn process_input_event(
