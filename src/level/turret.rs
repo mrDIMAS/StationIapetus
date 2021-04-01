@@ -315,9 +315,7 @@ impl Turret {
                     closest = handle;
                 }
             }
-            if closest.is_some() {
-                self.target = closest;
-            }
+            self.target = closest;
         }
     }
 

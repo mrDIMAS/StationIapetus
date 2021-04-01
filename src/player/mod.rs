@@ -1,3 +1,4 @@
+use crate::item::ItemContainer;
 use crate::player::camera::CameraController;
 use crate::{
     actor::Actor,
@@ -15,7 +16,7 @@ use crate::{
         projectile::{ProjectileKind, Shooter},
         WeaponContainer, WeaponKind,
     },
-    CollisionGroups,
+    CollisionGroups, GameTime,
 };
 use rg3d::{
     animation::{
@@ -556,41 +557,187 @@ impl Player {
         self.health <= 0.0
     }
 
-    pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
-        let UpdateContext { time, scene, .. } = context;
+    fn check_items(&self, self_handle: Handle<Actor>, scene: &mut Scene, items: &ItemContainer) {
+        for (item_handle, item) in items.pair_iter() {
+            let self_position = scene.graph[self.pivot].global_position();
+            let item_position = scene.graph[item.get_pivot()].global_position();
 
-        let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
-        mesh.surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .set_color(self.health_color_gradient.get_color(self.health / 100.0));
+            let distance = (item_position - self_position).norm();
+            if distance < 0.75 {
+                self.sender
+                    .as_ref()
+                    .unwrap()
+                    .send(Message::ShowItemDisplay {
+                        item: item.get_kind(),
+                        count: item.stack_size,
+                    })
+                    .unwrap();
 
-        let has_ground_contact = self.has_ground_contact(&scene.physics);
+                if self.controller.action {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::PickUpItem {
+                            actor: self_handle,
+                            item: item_handle,
+                        })
+                        .unwrap();
 
-        let is_walking = self.controller.walk_backward
-            || self.controller.walk_forward
-            || self.controller.walk_right
-            || self.controller.walk_left;
-        let is_jumping = has_ground_contact && self.controller.jump;
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SyncInventory)
+                        .unwrap();
+                }
 
-        let should_be_stunned = if self.last_health - self.health >= 15.0 {
-            for &animation in self
-                .lower_body_machine
-                .hit_reaction_animations()
-                .iter()
-                .chain(self.upper_body_machine.hit_reaction_animations().iter())
-            {
-                scene.animations[animation].set_enabled(true).rewind();
+                let display = &mut scene.graph[self.item_display];
+                display
+                    .local_transform_mut()
+                    .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
+                display.set_visibility(true);
+
+                break;
             }
+        }
+    }
 
-            self.last_health = self.health;
-            true
+    fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
+        let mut new_y_vel = None;
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.lower_body_machine.jump_animation)
+            .pop_event()
+        {
+            if event.signal_id == LowerBodyMachine::JUMP_SIGNAL
+                && (self.lower_body_machine.machine.active_transition()
+                    == self.lower_body_machine.idle_to_jump
+                    || self.lower_body_machine.machine.active_transition()
+                        == self.lower_body_machine.walk_to_jump
+                    || self.lower_body_machine.machine.active_state()
+                        == self.lower_body_machine.jump_state)
+            {
+                new_y_vel = Some(3.0 * dt);
+            }
+        }
+        new_y_vel
+    }
+
+    fn handle_weapon_grab_signal(&mut self, self_handle: Handle<Actor>, scene: &mut Scene) {
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.upper_body_machine.grab_animation)
+            .pop_event()
+        {
+            if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
+                match self.weapon_change_direction {
+                    RequiredWeapon::None => (),
+                    RequiredWeapon::Next => self.next_weapon(),
+                    RequiredWeapon::Previous => self.prev_weapon(),
+                    RequiredWeapon::Specific(kind) => {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::GrabWeapon {
+                                kind,
+                                actor: self_handle,
+                            })
+                            .unwrap();
+                    }
+                }
+
+                self.weapon_change_direction = RequiredWeapon::None;
+            }
+        }
+    }
+
+    fn handle_put_back_weapon_end_signal(&self, scene: &mut Scene) {
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.upper_body_machine.put_back_animation)
+            .pop_event()
+        {
+            if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
+                scene
+                    .animations
+                    .get_mut(self.upper_body_machine.grab_animation)
+                    .set_enabled(true);
+            }
+        }
+    }
+
+    fn handle_toss_grenade_signal(&mut self, self_handle: Handle<Actor>, scene: &mut Scene) {
+        while let Some(event) = scene
+            .animations
+            .get_mut(self.upper_body_machine.toss_grenade_animation)
+            .pop_event()
+        {
+            if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
+                let position = scene.graph[self.weapon_pivot].global_position();
+                let direction = scene.graph[self.camera_controller.camera()].look_vector();
+
+                if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::CreateProjectile {
+                            kind: ProjectileKind::Grenade,
+                            position,
+                            direction,
+                            initial_velocity: direction.scale(15.0),
+                            shooter: Shooter::Actor(self_handle),
+                        })
+                        .unwrap();
+                }
+            }
+        }
+    }
+
+    fn update_velocity(&mut self, scene: &Scene, can_move: bool, dt: f32) {
+        let pivot = &scene.graph[self.pivot];
+
+        let look_vector = pivot
+            .look_vector()
+            .try_normalize(std::f32::EPSILON)
+            .unwrap_or_else(Vector3::z);
+
+        let side_vector = pivot
+            .side_vector()
+            .try_normalize(std::f32::EPSILON)
+            .unwrap_or_else(Vector3::x);
+
+        self.target_velocity = Vector3::default();
+
+        if self.controller.walk_right {
+            self.target_velocity -= side_vector;
+        }
+        if self.controller.walk_left {
+            self.target_velocity += side_vector;
+        }
+        if self.controller.walk_forward {
+            self.target_velocity += look_vector;
+        }
+        if self.controller.walk_backward {
+            self.target_velocity -= look_vector;
+        }
+
+        let speed = if can_move {
+            math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * dt
         } else {
-            false
+            0.0
         };
 
-        let weapon_kind = if self.current_weapon().is_some() {
-            match context.weapons[self.current_weapon()].get_kind() {
+        self.target_velocity = self
+            .target_velocity
+            .try_normalize(f32::EPSILON)
+            .map(|v| v.scale(speed))
+            .unwrap_or_default();
+
+        self.velocity.follow(&self.target_velocity, 0.15);
+    }
+
+    fn current_weapon_kind(&self, weapons: &WeaponContainer) -> CombatWeaponKind {
+        if self.current_weapon().is_some() {
+            match weapons[self.current_weapon()].get_kind() {
                 WeaponKind::M4 | WeaponKind::Ak47 | WeaponKind::PlasmaRifle => {
                     CombatWeaponKind::Rifle
                 }
@@ -598,11 +745,60 @@ impl Player {
             }
         } else {
             CombatWeaponKind::Rifle
-        };
+        }
+    }
+
+    fn should_be_stunned(&self) -> bool {
+        self.last_health - self.health >= 15.0
+    }
+
+    fn stun(&mut self, scene: &mut Scene) {
+        for &animation in self
+            .lower_body_machine
+            .hit_reaction_animations()
+            .iter()
+            .chain(self.upper_body_machine.hit_reaction_animations().iter())
+        {
+            scene.animations[animation].set_enabled(true).rewind();
+        }
+
+        self.last_health = self.health;
+    }
+
+    fn is_walking(&self) -> bool {
+        self.controller.walk_backward
+            || self.controller.walk_forward
+            || self.controller.walk_right
+            || self.controller.walk_left
+    }
+
+    fn update_health_cylinder(&self, scene: &mut Scene) {
+        let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
+        mesh.surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_color(self.health_color_gradient.get_color(self.health / 100.0));
+    }
+
+    fn update_animation_machines(
+        &mut self,
+        dt: f32,
+        scene: &mut Scene,
+        is_walking: bool,
+        is_jumping: bool,
+        has_ground_contact: bool,
+        weapons: &WeaponContainer,
+    ) {
+        let weapon_kind = self.current_weapon_kind(weapons);
+
+        let should_be_stunned = self.should_be_stunned();
+        if should_be_stunned {
+            self.stun(scene);
+        }
 
         self.lower_body_machine.apply(
             scene,
-            time.delta,
+            dt,
             LowerBodyMachineInput {
                 is_walking,
                 is_jumping,
@@ -619,7 +815,7 @@ impl Player {
 
         self.upper_body_machine.apply(
             scene,
-            time.delta,
+            dt,
             self.hips,
             UpperBodyMachineInput {
                 is_walking,
@@ -634,6 +830,171 @@ impl Player {
                 should_be_stunned,
             },
         );
+    }
+
+    fn calculate_model_angle(&self) -> f32 {
+        if self.controller.aim {
+            if self.controller.walk_left {
+                if self.controller.walk_backward {
+                    -45.0
+                } else {
+                    45.0
+                }
+            } else if self.controller.walk_right {
+                if self.controller.walk_backward {
+                    45.0
+                } else {
+                    -45.0
+                }
+            } else {
+                0.0
+            }
+        } else if self.controller.walk_left {
+            if self.controller.walk_forward {
+                45.0
+            } else if self.controller.walk_backward {
+                135.0
+            } else {
+                90.0
+            }
+        } else if self.controller.walk_right {
+            if self.controller.walk_forward {
+                -45.0
+            } else if self.controller.walk_backward {
+                -135.0
+            } else {
+                -90.0
+            }
+        } else if self.controller.walk_backward {
+            180.0
+        } else {
+            0.0
+        }
+    }
+
+    fn update_shooting(&mut self, scene: &mut Scene, weapons: &WeaponContainer, time: GameTime) {
+        if let Some(&current_weapon_handle) = self
+            .character
+            .weapons
+            .get(self.character.current_weapon as usize)
+        {
+            if self.upper_body_machine.machine.active_state() == self.upper_body_machine.aim_state {
+                let weapon = &weapons[current_weapon_handle];
+                weapon.laser_sight().set_visible(true, &mut scene.graph);
+                scene.graph[self.weapon_display]
+                    .set_visibility(true)
+                    .local_transform_mut()
+                    .set_position(weapon.definition.ammo_indicator_offset());
+
+                if self.controller.shoot && weapon.can_shoot(time) {
+                    let ammo_per_shot = weapons[current_weapon_handle]
+                        .definition
+                        .ammo_consumption_per_shot;
+
+                    if self
+                        .inventory
+                        .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
+                        == ammo_per_shot
+                    {
+                        self.character
+                            .sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::ShootWeapon {
+                                weapon: current_weapon_handle,
+                                direction: None,
+                            })
+                            .unwrap();
+
+                        self.camera_controller.request_shake_camera();
+                        self.v_recoil
+                            .set_target(weapon.definition.gen_v_recoil_angle());
+                        self.h_recoil
+                            .set_target(weapon.definition.gen_h_recoil_angle());
+                    }
+                }
+            } else {
+                weapons[current_weapon_handle]
+                    .laser_sight()
+                    .set_visible(false, &mut scene.graph);
+                scene.graph[self.weapon_display].set_visibility(false);
+            }
+        }
+
+        self.v_recoil.update(time.delta);
+        self.h_recoil.update(time.delta);
+    }
+
+    fn can_move(&self) -> bool {
+        self.lower_body_machine.machine.active_state() != self.lower_body_machine.fall_state
+            && self.lower_body_machine.machine.active_state() != self.lower_body_machine.land_state
+    }
+
+    fn apply_weapon_angular_correction(
+        &mut self,
+        scene: &mut Scene,
+        can_move: bool,
+        dt: f32,
+        weapons: &WeaponContainer,
+    ) {
+        if self.controller.aim {
+            let (pitch_correction, yaw_correction) =
+                if let Some(weapon) = weapons.try_get(self.current_weapon()) {
+                    (
+                        weapon.definition.pitch_correction,
+                        weapon.definition.yaw_correction,
+                    )
+                } else {
+                    (-12.0f32, -4.0f32)
+                };
+
+            self.weapon_yaw_correction
+                .set_target(yaw_correction.to_radians());
+            self.weapon_pitch_correction
+                .set_target(pitch_correction.to_radians());
+        } else {
+            self.weapon_yaw_correction.set_target(30.0f32.to_radians());
+            self.weapon_pitch_correction.set_target(8.0f32.to_radians());
+        }
+
+        if can_move {
+            let yaw_correction_angle = self.weapon_yaw_correction.update(dt).angle();
+            let pitch_correction_angle = self.weapon_pitch_correction.update(dt).angle();
+            scene.graph[self.weapon_pivot]
+                .local_transform_mut()
+                .set_rotation(
+                    UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
+                        * UnitQuaternion::from_axis_angle(
+                            &Vector3::x_axis(),
+                            pitch_correction_angle,
+                        ),
+                );
+        }
+    }
+
+    pub fn update(&mut self, self_handle: Handle<Actor>, context: &mut UpdateContext) {
+        let UpdateContext {
+            time,
+            scene,
+            weapons,
+            items,
+            ..
+        } = context;
+
+        self.update_health_cylinder(scene);
+
+        let has_ground_contact = self.has_ground_contact(&scene.physics);
+        let is_walking = self.is_walking();
+        let is_jumping = has_ground_contact && self.controller.jump;
+
+        self.update_animation_machines(
+            time.delta,
+            scene,
+            is_walking,
+            is_jumping,
+            has_ground_contact,
+            weapons,
+        );
 
         if !self.is_dead() {
             let stunned = self.lower_body_machine.is_stunned(scene);
@@ -647,141 +1008,18 @@ impl Player {
             }
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
-            let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
+            let position = **scene.graph[self.pivot].local_transform().position();
 
-            let pivot = &scene.graph[self.pivot];
-
-            let look_vector = pivot
-                .look_vector()
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(Vector3::z);
-
-            let side_vector = pivot
-                .side_vector()
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(Vector3::x);
-
-            let position = **pivot.local_transform().position();
-
-            self.target_velocity = Vector3::default();
-
-            if self.controller.walk_right {
-                self.target_velocity -= side_vector;
-            }
-            if self.controller.walk_left {
-                self.target_velocity += side_vector;
-            }
-            if self.controller.walk_forward {
-                self.target_velocity += look_vector;
-            }
-            if self.controller.walk_backward {
-                self.target_velocity -= look_vector;
-            }
-
-            let can_move = self.lower_body_machine.machine.active_state()
-                != self.lower_body_machine.fall_state
-                && self.lower_body_machine.machine.active_state()
-                    != self.lower_body_machine.land_state;
-
-            let speed = if can_move {
-                math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * time.delta
-            } else {
-                0.0
-            };
-
-            self.target_velocity = self
-                .target_velocity
-                .try_normalize(std::f32::EPSILON)
-                .map(|v| v.scale(speed))
-                .unwrap_or_default();
-
-            self.velocity.follow(&self.target_velocity, 0.15);
-
-            let mut new_y_vel = None;
-            while let Some(event) = scene
-                .animations
-                .get_mut(self.lower_body_machine.jump_animation)
-                .pop_event()
-            {
-                if event.signal_id == LowerBodyMachine::JUMP_SIGNAL
-                    && (self.lower_body_machine.machine.active_transition()
-                        == self.lower_body_machine.idle_to_jump
-                        || self.lower_body_machine.machine.active_transition()
-                            == self.lower_body_machine.walk_to_jump
-                        || self.lower_body_machine.machine.active_state()
-                            == self.lower_body_machine.jump_state)
-                {
-                    new_y_vel = Some(3.0 * time.delta);
-                }
-            }
-
-            while let Some(event) = scene
-                .animations
-                .get_mut(self.upper_body_machine.grab_animation)
-                .pop_event()
-            {
-                if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
-                    match self.weapon_change_direction {
-                        RequiredWeapon::None => (),
-                        RequiredWeapon::Next => self.next_weapon(),
-                        RequiredWeapon::Previous => self.prev_weapon(),
-                        RequiredWeapon::Specific(kind) => {
-                            self.sender
-                                .as_ref()
-                                .unwrap()
-                                .send(Message::GrabWeapon {
-                                    kind,
-                                    actor: self_handle,
-                                })
-                                .unwrap();
-                        }
-                    }
-
-                    self.weapon_change_direction = RequiredWeapon::None;
-                }
-            }
-
-            while let Some(event) = scene
-                .animations
-                .get_mut(self.upper_body_machine.put_back_animation)
-                .pop_event()
-            {
-                if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
-                    scene
-                        .animations
-                        .get_mut(self.upper_body_machine.grab_animation)
-                        .set_enabled(true);
-                }
-            }
-
-            while let Some(event) = scene
-                .animations
-                .get_mut(self.upper_body_machine.toss_grenade_animation)
-                .pop_event()
-            {
-                if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
-                    let position = scene.graph[self.weapon_pivot].global_position();
-                    let direction = scene.graph[self.camera_controller.camera()].look_vector();
-
-                    if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::CreateProjectile {
-                                kind: ProjectileKind::Grenade,
-                                position,
-                                direction,
-                                initial_velocity: direction.scale(15.0),
-                                shooter: Shooter::Actor(self_handle),
-                            })
-                            .unwrap();
-                    }
-                }
-            }
+            let can_move = self.can_move();
+            self.update_velocity(scene, can_move, time.delta);
+            let new_y_vel = self.handle_jump_signal(scene, time.delta);
+            self.handle_weapon_grab_signal(self_handle, scene);
+            self.handle_put_back_weapon_end_signal(scene);
+            self.handle_toss_grenade_signal(self_handle, scene);
 
             let quat_yaw = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.controller.yaw);
 
-            body.wake_up(true);
+            let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
             body.set_angvel(Default::default(), true);
             if let Some(new_y_vel) = new_y_vel {
                 body.set_linvel(
@@ -819,43 +1057,7 @@ impl Player {
                 body.set_position(current_position, true);
 
                 // Apply additional rotation to model - it will turn in front of walking direction.
-                let angle: f32 = if self.controller.aim {
-                    if self.controller.walk_left {
-                        if self.controller.walk_backward {
-                            -45.0
-                        } else {
-                            45.0
-                        }
-                    } else if self.controller.walk_right {
-                        if self.controller.walk_backward {
-                            45.0
-                        } else {
-                            -45.0
-                        }
-                    } else {
-                        0.0
-                    }
-                } else if self.controller.walk_left {
-                    if self.controller.walk_forward {
-                        45.0
-                    } else if self.controller.walk_backward {
-                        135.0
-                    } else {
-                        90.0
-                    }
-                } else if self.controller.walk_right {
-                    if self.controller.walk_forward {
-                        -45.0
-                    } else if self.controller.walk_backward {
-                        -135.0
-                    } else {
-                        -90.0
-                    }
-                } else if self.controller.walk_backward {
-                    180.0
-                } else {
-                    0.0
-                };
+                let angle = self.calculate_model_angle();
 
                 self.model_yaw
                     .set_target(angle.to_radians())
@@ -916,40 +1118,7 @@ impl Player {
                 }
             }
 
-            if self.controller.aim {
-                let (pitch_correction, yaw_correction) =
-                    if let Some(weapon) = context.weapons.try_get(self.current_weapon()) {
-                        (
-                            weapon.definition.pitch_correction,
-                            weapon.definition.yaw_correction,
-                        )
-                    } else {
-                        (-12.0f32, -4.0f32)
-                    };
-
-                self.weapon_yaw_correction
-                    .set_target(yaw_correction.to_radians());
-                self.weapon_pitch_correction
-                    .set_target(pitch_correction.to_radians());
-            } else {
-                self.weapon_yaw_correction.set_target(30.0f32.to_radians());
-                self.weapon_pitch_correction.set_target(8.0f32.to_radians());
-            }
-
-            if can_move {
-                let yaw_correction_angle = self.weapon_yaw_correction.update(time.delta).angle();
-                let pitch_correction_angle =
-                    self.weapon_pitch_correction.update(time.delta).angle();
-                scene.graph[self.weapon_pivot]
-                    .local_transform_mut()
-                    .set_rotation(
-                        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw_correction_angle)
-                            * UnitQuaternion::from_axis_angle(
-                                &Vector3::x_axis(),
-                                pitch_correction_angle,
-                            ),
-                    );
-            }
+            self.apply_weapon_angular_correction(scene, can_move, time.delta, weapons);
 
             self.camera_controller.update(
                 position + self.velocity,
@@ -970,112 +1139,18 @@ impl Player {
             }
 
             if !has_ground_contact {
-                scene
-                    .animations
-                    .get_mut(self.lower_body_machine.land_animation)
-                    .rewind();
-                scene
-                    .animations
-                    .get_mut(self.upper_body_machine.land_animation)
-                    .rewind();
+                for &land_animation in &[
+                    self.lower_body_machine.land_animation,
+                    self.upper_body_machine.land_animation,
+                ] {
+                    scene.animations.get_mut(land_animation).rewind();
+                }
             }
 
             scene.graph[self.item_display].set_visibility(false);
 
-            for (item_handle, item) in context.items.pair_iter() {
-                let self_position = scene.graph[self.pivot].global_position();
-                let item_position = scene.graph[item.get_pivot()].global_position();
-
-                let distance = (item_position - self_position).norm();
-                if distance < 0.75 {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::ShowItemDisplay {
-                            item: item.get_kind(),
-                            count: item.stack_size,
-                        })
-                        .unwrap();
-
-                    if self.controller.action {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::PickUpItem {
-                                actor: self_handle,
-                                item: item_handle,
-                            })
-                            .unwrap();
-
-                        self.sender
-                            .as_ref()
-                            .unwrap()
-                            .send(Message::SyncInventory)
-                            .unwrap();
-                    }
-
-                    let display = &mut scene.graph[self.item_display];
-                    display
-                        .local_transform_mut()
-                        .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
-                    display.set_visibility(true);
-
-                    break;
-                }
-            }
-
-            if let Some(&current_weapon_handle) = self
-                .character
-                .weapons
-                .get(self.character.current_weapon as usize)
-            {
-                if self.upper_body_machine.machine.active_state()
-                    == self.upper_body_machine.aim_state
-                {
-                    let weapon = &context.weapons[current_weapon_handle];
-                    weapon.laser_sight().set_visible(true, &mut scene.graph);
-                    scene.graph[self.weapon_display]
-                        .set_visibility(true)
-                        .local_transform_mut()
-                        .set_position(weapon.definition.ammo_indicator_offset());
-
-                    if self.controller.shoot && weapon.can_shoot(context.time) {
-                        let ammo_per_shot = context.weapons[current_weapon_handle]
-                            .definition
-                            .ammo_consumption_per_shot;
-
-                        if self
-                            .inventory
-                            .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
-                            == ammo_per_shot
-                        {
-                            self.character
-                                .sender
-                                .as_ref()
-                                .unwrap()
-                                .send(Message::ShootWeapon {
-                                    weapon: current_weapon_handle,
-                                    direction: None,
-                                })
-                                .unwrap();
-
-                            self.camera_controller.request_shake_camera();
-                            self.v_recoil
-                                .set_target(weapon.definition.gen_v_recoil_angle());
-                            self.h_recoil
-                                .set_target(weapon.definition.gen_h_recoil_angle());
-                        }
-                    }
-                } else {
-                    context.weapons[current_weapon_handle]
-                        .laser_sight()
-                        .set_visible(false, &mut scene.graph);
-                    scene.graph[self.weapon_display].set_visibility(false);
-                }
-            }
-
-            self.v_recoil.update(context.time.delta);
-            self.h_recoil.update(context.time.delta);
+            self.check_items(self_handle, scene, items);
+            self.update_shooting(scene, weapons, *time);
 
             let spine_transform = scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
@@ -1085,14 +1160,12 @@ impl Player {
                     * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
             );
         } else {
-            scene
-                .animations
-                .get_mut(self.lower_body_machine.dying_animation)
-                .set_enabled(true);
-            scene
-                .animations
-                .get_mut(self.upper_body_machine.dying_animation)
-                .set_enabled(true);
+            for &dying_animation in &[
+                self.lower_body_machine.dying_animation,
+                self.upper_body_machine.dying_animation,
+            ] {
+                scene.animations.get_mut(dying_animation).set_enabled(true);
+            }
         }
     }
 
