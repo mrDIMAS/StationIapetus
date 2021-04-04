@@ -1,3 +1,4 @@
+use crate::item::ItemKind;
 use crate::{actor::ActorContainer, message::Message};
 use rg3d::{
     core::{
@@ -143,10 +144,16 @@ impl DoorContainer {
 
             let prev_someone_nearby = door.someone_nearby;
 
+            let mut closest_actor = None;
+
             door.someone_nearby = actors.iter().any(|a| {
                 let actor_position = a.position(&scene.graph);
                 // TODO: Replace with triggers.
-                actor_position.metric_distance(&door.initial_position) < 1.25
+                let close_enough = actor_position.metric_distance(&door.initial_position) < 1.25;
+                if close_enough {
+                    closest_actor = Some(a);
+                }
+                close_enough
             });
 
             if door.someone_nearby {
@@ -166,15 +173,33 @@ impl DoorContainer {
                     && !prev_someone_nearby
                     && door.someone_nearby
                 {
-                    sender
-                        .send(Message::PlaySound {
-                            path: PathBuf::from("data/sounds/door_deny.ogg"),
-                            position: node.global_position(),
-                            gain: 1.0,
-                            rolloff_factor: 1.0,
-                            radius: 1.0,
-                        })
-                        .unwrap();
+                    let should_be_unlocked = closest_actor
+                        .map(|a| a.inventory().item_count(ItemKind::MasterKey) > 0)
+                        .unwrap_or(false);
+
+                    if should_be_unlocked {
+                        door.state = DoorState::Closed;
+
+                        sender
+                            .send(Message::PlaySound {
+                                path: PathBuf::from("data/sounds/access_granted.ogg"),
+                                position: node.global_position(),
+                                gain: 1.0,
+                                rolloff_factor: 1.0,
+                                radius: 1.0,
+                            })
+                            .unwrap();
+                    } else {
+                        sender
+                            .send(Message::PlaySound {
+                                path: PathBuf::from("data/sounds/door_deny.ogg"),
+                                position: node.global_position(),
+                                gain: 1.0,
+                                rolloff_factor: 1.0,
+                                radius: 1.0,
+                            })
+                            .unwrap();
+                    }
                 }
             } else if door.state == DoorState::Opened {
                 door.state = DoorState::Closing;
