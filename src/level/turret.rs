@@ -171,7 +171,7 @@ impl Barrel {
                 shooter: Shooter::Turret(owner_handle),
                 begin: shoot_point.global_position(),
                 end: target_position,
-                damage: Damage::Point(5.0),
+                damage: Damage::Point(10.0),
             })
             .unwrap();
 
@@ -187,7 +187,7 @@ impl Barrel {
                 position: shoot_point.global_position(),
                 gain: 1.0,
                 rolloff_factor: 1.0,
-                radius: 1.0,
+                radius: 3.0,
             })
             .unwrap();
     }
@@ -274,10 +274,16 @@ impl Turret {
     fn select_target(&mut self, scene: &Scene, actors: &ActorContainer) {
         let self_position = scene.graph[self.model].global_position();
 
+        let self_body = scene.physics_binder.body_of(self.model);
+
         if !actors.contains(self.target) || !actors.get(self.target).is_dead() {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for (handle, actor) in actors.pair_iter() {
+                if actor.is_dead() {
+                    continue 'target_loop;
+                }
+
                 let is_player = matches!(actor, Actor::Player(_));
                 if self.hostility == Hostility::Player && !is_player
                     || self.hostility == Hostility::Monsters && is_player
@@ -304,9 +310,17 @@ impl Turret {
                     &mut query_buffer,
                 );
 
-                for hit in query_buffer.iter() {
+                'hit_loop: for hit in query_buffer.iter() {
+                    if let Some(body) = self_body {
+                        if scene.physics.bodies.get(body.into()).unwrap().colliders()[0]
+                            == hit.collider.into()
+                        {
+                            continue 'hit_loop;
+                        }
+                    }
+
                     let collider = scene.physics.colliders.get(hit.collider.into()).unwrap();
-                    if collider.shape().as_trimesh().is_some() {
+                    if collider.shape().as_capsule().is_none() {
                         self.target = Default::default();
                         // Target is behind something.
                         continue 'target_loop;
@@ -320,6 +334,8 @@ impl Turret {
                 }
             }
             self.target = closest;
+        } else if actors.get(self.target).is_dead() {
+            self.target = Default::default();
         }
     }
 
@@ -394,7 +410,7 @@ impl Turret {
         } else {
             self.pitch.set_target(90.0f32.to_radians());
             self.yaw
-                .set_target(self.yaw.angle() + 25.0f32.to_radians() * dt);
+                .set_target(self.yaw.angle() + 50.0f32.to_radians() * dt);
         }
 
         self.pitch.update(dt);

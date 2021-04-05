@@ -478,10 +478,9 @@ impl Player {
 
         let mut inventory = Inventory::new();
 
-        inventory.add_item(ItemKind::Medkit, 2);
         inventory.add_item(ItemKind::Medpack, 2);
-        inventory.add_item(ItemKind::Ammo, 400);
-        inventory.add_item(ItemKind::Grenade, 3);
+        inventory.add_item(ItemKind::Ammo, 100);
+        inventory.add_item(ItemKind::Grenade, 2);
 
         Self {
             character: Character {

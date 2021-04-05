@@ -1,3 +1,4 @@
+use crate::actor::TargetKind;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -120,7 +121,7 @@ impl Visit for Target {
 
 pub struct Bot {
     target: Option<Target>,
-    kind: BotKind,
+    pub kind: BotKind,
     model: Handle<Node>,
     character: Character,
     pub definition: &'static BotDefinition,
@@ -401,6 +402,24 @@ impl Bot {
 
         let mut query_buffer = Vec::default();
         'target_loop: for desc in targets.iter().filter(|desc| desc.handle != self_handle) {
+            match self.definition.hostility {
+                BotHostility::OtherSpecies => match desc.kind {
+                    TargetKind::Bot(kind) => {
+                        if kind == self.kind {
+                            continue 'target_loop;
+                        }
+                    }
+                    _ => (),
+                },
+                BotHostility::Player => match desc.kind {
+                    TargetKind::Bot(_) => {
+                        continue 'target_loop;
+                    }
+                    _ => (),
+                },
+                BotHostility::Everyone => {}
+            }
+
             let distance = position.metric_distance(&desc.position);
             if distance != 0.0 && distance < 1.6 || self.frustum.is_contains_point(desc.position) {
                 let ray = Ray::from_two_points(desc.position, position);

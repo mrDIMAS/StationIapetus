@@ -433,9 +433,8 @@ pub async fn analyze(
             "Glock" => items.push((ItemKind::Glock, position)),
             "MasterKey" => items.push((ItemKind::MasterKey, position)),
             "Turret" => {
-                turrets.add(
-                    Turret::new(handle, scene, ShootMode::Consecutive, Hostility::Player).await,
-                );
+                turrets
+                    .add(Turret::new(handle, scene, ShootMode::Consecutive, Hostility::All).await);
             }
             _ => (),
         }
@@ -494,12 +493,7 @@ async fn spawn_player(
         .get_mut(player)
         .set_position(&mut scene.physics, spawn_position);
 
-    let weapons_to_give = [
-        WeaponKind::M4,
-        WeaponKind::Ak47,
-        WeaponKind::PlasmaRifle,
-        WeaponKind::Glock,
-    ];
+    let weapons_to_give = [WeaponKind::Glock];
     for (i, &weapon) in weapons_to_give.iter().enumerate() {
         give_new_weapon(
             weapon,

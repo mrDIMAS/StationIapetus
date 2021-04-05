@@ -73,7 +73,7 @@
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
-            close_combat_distance: 0.45,
+            close_combat_distance: 0.5,
             pain_sounds: [
                 "data/sounds/parasite_pain_1.wav",
                 "data/sounds/parasite_pain_2.wav",
@@ -92,13 +92,13 @@
             attack_animations: [
                 (
                     path: "data/animations/zombie_attack.fbx",
-                    timestamp: 1.3,
+                    timestamp: 1.4,
                     damage: Point(20.0),
                     speed: 1.3
                 ),
                 (
                     path: "data/animations/zombie_attack_2.fbx",
-                    timestamp: 1.2,
+                    timestamp: 1.3,
                     damage: Point(24.0),
                     speed: 1.3
                 ),
@@ -119,7 +119,7 @@
             health: 100.0,
             v_aim_angle_hack: 12.0,
             can_use_weapons: false,
-            close_combat_distance: 0.4,
+            close_combat_distance: 0.5,
             pain_sounds: [
                 "data/sounds/zombie_pain_1.wav",
                 "data/sounds/zombie_pain_2.wav",

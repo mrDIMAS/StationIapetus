@@ -1,3 +1,4 @@
+use crate::bot::BotKind;
 use crate::{bot::Bot, character::Character, level::UpdateContext, player::Player};
 use rg3d::{
     core::{
@@ -97,6 +98,11 @@ impl Visit for Actor {
     }
 }
 
+pub enum TargetKind {
+    Player,
+    Bot(BotKind),
+}
+
 // Helper struct that used to hold information about possible target for bots
 // it contains all needed information to select suitable target. This is needed
 // because of borrowing rules that does not allows to have a mutable reference
@@ -105,6 +111,7 @@ pub struct TargetDescriptor {
     pub handle: Handle<Actor>,
     pub health: f32,
     pub position: Vector3<f32>,
+    pub kind: TargetKind,
 }
 
 #[derive(Default)]
@@ -159,6 +166,10 @@ impl ActorContainer {
                     handle,
                     health: actor.health,
                     position: actor.position(&context.scene.graph),
+                    kind: match actor {
+                        Actor::Bot(bot) => TargetKind::Bot(bot.kind),
+                        Actor::Player(_) => TargetKind::Player,
+                    },
                 });
             }
         }
