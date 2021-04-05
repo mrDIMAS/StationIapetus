@@ -356,7 +356,7 @@ fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {
         1.0,
         1.0,
         false,
-        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians()).to_homogeneous(),
+        &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians()).to_homogeneous(),
     )))
 }
 

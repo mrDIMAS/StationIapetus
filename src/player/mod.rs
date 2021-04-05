@@ -437,7 +437,7 @@ impl Player {
 
         let weapon_display = MeshBuilder::new(BaseBuilder::new())
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-                SurfaceSharedData::make_quad(Matrix4::new_scaling(0.07)),
+                SurfaceSharedData::make_quad(&Matrix4::new_scaling(0.07)),
             )))
             .with_diffuse_texture(display_texture)
             .build()])
@@ -464,7 +464,7 @@ impl Player {
         )
         .with_cast_shadows(false)
         .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-            SurfaceSharedData::make_quad(Matrix4::new_nonuniform_scaling(&Vector3::new(
+            SurfaceSharedData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
                 s,
                 3.0 / 4.0 * s,
                 s,
