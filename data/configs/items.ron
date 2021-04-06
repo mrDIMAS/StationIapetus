@@ -33,7 +33,7 @@
             preview: "data/ui/grenade_item.png"
         ),
         MasterKey: (
-            model: "data/models/master_key.fbx",
+            model: "data/models/master_key.FBX",
             scale: 1.0,
             name: "Master Key",
             description: "Master key that opens every door in the facility.",
