@@ -110,6 +110,7 @@ impl Menu {
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
         font: SharedFont,
+        show_debug_info: bool,
         sound_config: &SoundConfig,
     ) -> Self {
         let frame_size = engine.renderer.get_frame_size();
@@ -225,7 +226,13 @@ impl Menu {
             btn_save_game,
             btn_load_game,
             btn_quit_game,
-            options_menu: OptionsMenu::new(engine, control_scheme, sender, sound_config),
+            options_menu: OptionsMenu::new(
+                engine,
+                control_scheme,
+                sender,
+                show_debug_info,
+                sound_config,
+            ),
         }
     }
 
@@ -291,6 +298,7 @@ impl Menu {
         engine: &mut GameEngine,
         message: &GuiMessage,
         control_scheme: &mut ControlScheme,
+        show_debug_info: &mut bool,
         sound_config: &SoundConfig,
     ) {
         if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
@@ -323,7 +331,12 @@ impl Menu {
             }
         }
 
-        self.options_menu
-            .handle_ui_event(engine, message, control_scheme, sound_config);
+        self.options_menu.handle_ui_event(
+            engine,
+            message,
+            control_scheme,
+            show_debug_info,
+            sound_config,
+        );
     }
 }

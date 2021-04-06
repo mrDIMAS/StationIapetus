@@ -58,6 +58,7 @@ pub struct OptionsMenu {
     reset_audio_settings: Handle<UiNode>,
     point_shadows_quality: Handle<UiNode>,
     spot_shadows_quality: Handle<UiNode>,
+    show_debug_info: Handle<UiNode>,
 }
 
 fn make_text_mark(text: &str, row: usize, ctx: &mut BuildContext) -> Handle<UiNode> {
@@ -164,6 +165,7 @@ impl OptionsMenu {
         engine: &mut GameEngine,
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
+        show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
         let video_modes: Vec<VideoMode> = engine
@@ -202,6 +204,7 @@ impl OptionsMenu {
         let ssao;
         let point_shadows_quality;
         let spot_shadows_quality;
+        let show_debug_info;
 
         let graphics_tab = TabDefinition {
             header: make_tab_header("Graphics", ctx),
@@ -337,8 +340,15 @@ impl OptionsMenu {
                                         shadows_quality(settings.spot_shadow_map_size),
                                     );
                                     spot_shadows_quality
+                                })
+                                .with_child(make_text_mark("Show Debug Info", 12, ctx))
+                                .with_child({
+                                    show_debug_info =
+                                        create_check_box(ctx, 12, 1, show_debug_info_value);
+                                    show_debug_info
                                 }),
                         )
+                        .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
                         .add_row(common_row)
@@ -550,6 +560,7 @@ impl OptionsMenu {
             fxaa,
             ssao,
             spot_shadows_quality,
+            show_debug_info,
         }
     }
 
@@ -557,6 +568,7 @@ impl OptionsMenu {
         &mut self,
         engine: &mut GameEngine,
         control_scheme: &ControlScheme,
+        show_debug_info: bool,
         sound_config: &SoundConfig,
     ) {
         let ui = &mut engine.user_interface;
@@ -578,6 +590,7 @@ impl OptionsMenu {
         sync_check_box(self.fxaa, settings.fxaa);
         sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
         sync_check_box(self.use_hrtf, sound_config.use_hrtf);
+        sync_check_box(self.show_debug_info, show_debug_info);
 
         let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
             ui.send_message(ScrollBarMessage::value(
@@ -674,6 +687,7 @@ impl OptionsMenu {
         engine: &mut GameEngine,
         message: &GuiMessage,
         control_scheme: &mut ControlScheme,
+        show_debug_info: &mut bool,
         sound_config: &SoundConfig,
     ) {
         let old_settings = engine.renderer.get_quality_settings();
@@ -766,16 +780,19 @@ impl OptionsMenu {
                 } else if message.destination() == self.use_hrtf {
                     changed = true;
                     self.sender.send(Message::SetUseHrtf(value)).unwrap();
+                } else if message.destination() == self.show_debug_info {
+                    changed = true;
+                    *show_debug_info = value;
                 }
             }
             UiMessageData::Button(ButtonMessage::Click) => {
                 if message.destination() == self.reset_control_scheme {
                     control_scheme.reset();
-                    self.sync_to_model(engine, control_scheme, sound_config);
+                    self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
                     changed = true;
                 } else if message.destination() == self.reset_audio_settings {
                     engine.sound_engine.lock().unwrap().set_master_gain(1.0);
-                    self.sync_to_model(engine, control_scheme, sound_config);
+                    self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
                     changed = true;
                 }
 

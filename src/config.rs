@@ -26,6 +26,7 @@ pub struct Config {
     pub graphics_settings: QualitySettings,
     pub controls: ControlScheme,
     pub sound: SoundConfig,
+    pub show_debug_info: bool,
 }
 
 #[derive(Debug)]
@@ -58,11 +59,13 @@ impl Config {
         engine: &GameEngine,
         control_scheme: ControlScheme,
         sound_config: SoundConfig,
+        show_debug_info: bool,
     ) -> Result<(), ConfigError> {
         let config = Self {
             graphics_settings: engine.renderer.get_quality_settings(),
             controls: control_scheme,
             sound: sound_config,
+            show_debug_info,
         };
         let file = File::create(Self::PATH)?;
         ron::ser::to_writer_pretty(file, &config, PrettyConfig::default())?;

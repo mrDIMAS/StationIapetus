@@ -178,6 +178,7 @@ pub struct Game {
     // is data-model for options menu.
     sound_config: SoundConfig,
     update_duration: Duration,
+    show_debug_info: bool,
 }
 
 struct LoadingScreen {
@@ -285,11 +286,12 @@ impl Game {
         let mut engine = GameEngine::new(window_builder, &events_loop, false).unwrap();
 
         let mut control_scheme = ControlScheme::default();
-
         let mut sound_config = SoundConfig::default();
+        let mut show_debug_info = true;
 
         match Config::load() {
             Ok(config) => {
+                show_debug_info = config.show_debug_info;
                 sound_config = config.sound;
 
                 match engine
@@ -338,6 +340,7 @@ impl Game {
             .set_master_gain(sound_config.master_volume);
 
         let mut game = Game {
+            show_debug_info,
             loading_screen: LoadingScreen::new(
                 &mut engine.user_interface.build_ctx(),
                 inner_size.width,
@@ -349,6 +352,7 @@ impl Game {
                 &control_scheme,
                 tx.clone(),
                 font.clone(),
+                show_debug_info,
                 &sound_config,
             )),
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
@@ -428,6 +432,7 @@ impl Game {
             &mut self.engine,
             &message,
             &mut self.control_scheme,
+            &mut self.show_debug_info,
             &self.sound_config,
         );
 
@@ -733,6 +738,7 @@ impl Game {
                         &self.engine,
                         self.control_scheme.clone(),
                         self.sound_config.clone(),
+                        self.show_debug_info,
                     ) {
                         Ok(_) => {
                             Log::writeln(MessageKind::Information, "Settings saved!".to_string());
@@ -796,29 +802,39 @@ impl Game {
     }
 
     pub fn update_statistics(&mut self, elapsed: f64) {
-        self.debug_string.clear();
-        use std::fmt::Write;
-        write!(
-            self.debug_string,
-            "Up time: {}\n{}{}\nTotal Update Time: {:?}",
-            elapsed,
-            self.engine.renderer.get_statistics(),
-            if let Some(level) = self.level.as_ref() {
-                self.engine.scenes[level.scene]
-                    .performance_statistics
-                    .clone()
-            } else {
-                Default::default()
-            },
-            self.update_duration
-        )
-        .unwrap();
+        if self.show_debug_info {
+            self.debug_string.clear();
+            use std::fmt::Write;
+            write!(
+                self.debug_string,
+                "Up time: {:.1}\n{}{}\nTotal Update Time: {:?}",
+                elapsed,
+                self.engine.renderer.get_statistics(),
+                if let Some(level) = self.level.as_ref() {
+                    self.engine.scenes[level.scene]
+                        .performance_statistics
+                        .clone()
+                } else {
+                    Default::default()
+                },
+                self.update_duration
+            )
+            .unwrap();
 
-        self.engine.user_interface.send_message(TextMessage::text(
-            self.debug_text,
-            MessageDirection::ToWidget,
-            self.debug_string.clone(),
-        ));
+            self.engine.user_interface.send_message(TextMessage::text(
+                self.debug_text,
+                MessageDirection::ToWidget,
+                self.debug_string.clone(),
+            ));
+        }
+
+        self.engine
+            .user_interface
+            .send_message(WidgetMessage::visibility(
+                self.debug_text,
+                MessageDirection::ToWidget,
+                self.show_debug_info,
+            ));
     }
 
     pub fn limit_fps(&mut self, value: f64) {
