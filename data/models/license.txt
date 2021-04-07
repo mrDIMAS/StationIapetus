@@ -5,3 +5,4 @@ mutant.fbx - mixamo.com
 parasite.fbx - mixamo.com
 corpse.fbx - https://sketchfab.com/avelina.99
 covered_body.fbx - https://sketchfab.com/cmbasnett
+trolley.fbx - johnny83

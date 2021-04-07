@@ -164,7 +164,7 @@ impl DoorContainer {
                         .send(Message::PlaySound {
                             path: PathBuf::from("data/sounds/door_open.ogg"),
                             position: node.global_position(),
-                            gain: 1.0,
+                            gain: 0.6,
                             rolloff_factor: 1.0,
                             radius: 1.0,
                         })
@@ -208,7 +208,7 @@ impl DoorContainer {
                     .send(Message::PlaySound {
                         path: PathBuf::from("data/sounds/door_close.ogg"),
                         position: node.global_position(),
-                        gain: 1.0,
+                        gain: 0.6,
                         rolloff_factor: 1.0,
                         radius: 1.0,
                     })
