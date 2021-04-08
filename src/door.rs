@@ -136,7 +136,7 @@ impl DoorContainer {
         scene: &mut Scene,
         dt: f32,
     ) {
-        let speed = 0.35;
+        let speed = 0.55;
 
         for door in self.doors.iter_mut() {
             let node = &scene.graph[door.node];
