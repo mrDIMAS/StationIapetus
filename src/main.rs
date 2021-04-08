@@ -420,7 +420,11 @@ impl Game {
                     _ => (),
                 },
                 Event::LoopDestroyed => {
-                    rg3d::core::profiler::print();
+                    if let Ok(profiling_results) = rg3d::core::profiler::print() {
+                        if let Ok(mut file) = File::create("profiling.log") {
+                            let _ = writeln!(file, "{}", profiling_results);
+                        }
+                    }
                 }
                 _ => *control_flow = ControlFlow::Poll,
             }
