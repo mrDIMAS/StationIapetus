@@ -406,8 +406,6 @@ impl Game {
 
                     // Render at max speed
                     game.render(fixed_timestep);
-                    // Make sure to cap update rate to 60 FPS.
-                    game.limit_fps(FIXED_FPS as f64);
                 }
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => {
@@ -839,20 +837,6 @@ impl Game {
                 MessageDirection::ToWidget,
                 self.show_debug_info,
             ));
-    }
-
-    pub fn limit_fps(&mut self, value: f64) {
-        let current_time = time::Instant::now();
-        let render_call_duration = current_time
-            .duration_since(self.last_tick_time)
-            .as_secs_f64();
-        self.last_tick_time = current_time;
-        let desired_frame_time = 1.0 / value;
-        if render_call_duration < desired_frame_time {
-            thread::sleep(Duration::from_secs_f64(
-                desired_frame_time - render_call_duration,
-            ));
-        }
     }
 
     fn process_dispatched_event(&mut self, event: &Event<()>) {
