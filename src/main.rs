@@ -82,7 +82,6 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc, Mutex,
     },
-    thread,
     time::{self, Duration, Instant},
 };
 
@@ -161,7 +160,6 @@ pub struct Game {
     level: Option<Level>,
     debug_text: UiNodeHandle,
     debug_string: String,
-    last_tick_time: time::Instant,
     running: bool,
     control_scheme: ControlScheme,
     time: GameTime,
@@ -363,7 +361,6 @@ impl Game {
             engine,
             level: None,
             debug_string: String::new(),
-            last_tick_time: time::Instant::now(),
             time,
             load_context: None,
             inventory_interface: InventoryInterface::new(tx.clone()),
