@@ -1,7 +1,7 @@
 use crate::item::ItemKind;
 use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 
-#[derive(Default, Debug)]
+#[derive(Default, Debug, Clone)]
 pub struct ItemEntry {
     kind: ItemKind,
     amount: u32,
@@ -28,7 +28,7 @@ impl ItemEntry {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct Inventory {
     items: Vec<ItemEntry>,
 }

@@ -141,6 +141,7 @@ pub enum Message {
     LoadGame,
     StartNewGame,
     QuitGame,
+    LoadNextLevel,
     ToggleMainMenu,
     EndMatch,
     SyncInventory,

@@ -25,6 +25,9 @@ pub mod utils;
 pub mod weapon;
 
 use crate::config::SoundConfig;
+use crate::level::lab::LabLevel;
+use crate::level::LevelKind;
+use crate::player::PlayerPersistentData;
 use crate::utils::use_hrtf;
 use crate::{
     actor::Actor,
@@ -561,7 +564,11 @@ impl Game {
         }
     }
 
-    pub fn start_new_game(&mut self) {
+    pub fn load_level(
+        &mut self,
+        level_kind: LevelKind,
+        persistent_data: Option<PlayerPersistentData>,
+    ) {
         self.destroy_level();
 
         let ctx = Arc::new(Mutex::new(LoadContext { level: None }));
@@ -585,14 +592,28 @@ impl Game {
         let sound_config = self.sound_config.clone();
 
         std::thread::spawn(move || {
-            let level = rg3d::futures::executor::block_on(ArrivalLevel::new(
-                resource_manager,
-                sender,
-                display_texture,
-                inventory_texture,
-                item_texture,
-                sound_config,
-            ));
+            let level = {
+                match level_kind {
+                    LevelKind::Arrival => rg3d::futures::executor::block_on(ArrivalLevel::new(
+                        resource_manager,
+                        sender,
+                        display_texture,
+                        inventory_texture,
+                        item_texture,
+                        sound_config,
+                        persistent_data,
+                    )),
+                    LevelKind::Lab => rg3d::futures::executor::block_on(LabLevel::new(
+                        resource_manager,
+                        sender,
+                        display_texture,
+                        inventory_texture,
+                        item_texture,
+                        sound_config,
+                        persistent_data,
+                    )),
+                }
+            };
 
             ctx.lock().unwrap().level = Some(level);
         });
@@ -671,7 +692,7 @@ impl Game {
         while let Ok(message) = self.events_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.start_new_game();
+                    self.load_level(LevelKind::Arrival, None);
                 }
                 Message::SaveGame => match self.save_game() {
                     Ok(_) => {
@@ -688,6 +709,27 @@ impl Game {
                             MessageKind::Error,
                             format!("Failed to load saved game. Reason: {:?}", e),
                         );
+                    }
+                }
+                Message::LoadNextLevel => {
+                    if let Some(level) = self.level.as_ref() {
+                        let kind = match level {
+                            Level::Unknown => None,
+                            Level::Arrival(_) => Some(LevelKind::Lab),
+                            Level::Lab(_) => None,
+                        };
+
+                        if let Some(kind) = kind {
+                            let persistent_data = if let Actor::Player(player) =
+                                level.actors().get(level.get_player())
+                            {
+                                player.persistent_data(&level.weapons())
+                            } else {
+                                unreachable!()
+                            };
+
+                            self.load_level(kind, Some(persistent_data))
+                        }
                     }
                 }
                 Message::QuitGame => {

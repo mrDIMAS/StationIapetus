@@ -245,6 +245,14 @@ impl Default for RequiredWeapon {
     }
 }
 
+#[derive(Clone)]
+pub struct PlayerPersistentData {
+    pub inventory: Inventory,
+    pub health: f32,
+    pub current_weapon: u32,
+    pub weapons: Vec<WeaponKind>,
+}
+
 #[derive(Default)]
 pub struct Player {
     character: Character,
@@ -338,6 +346,7 @@ impl Player {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        persistent_data: Option<PlayerPersistentData>,
     ) -> Self {
         let body_radius = 0.2;
         let body_height = 0.25;
@@ -476,11 +485,21 @@ impl Player {
         .build(&mut scene.graph);
         scene.graph.link_nodes(inventory_display, pivot);
 
-        let mut inventory = Inventory::new();
+        let (health, inventory, current_weapon) = if let Some(persistent_data) = persistent_data {
+            (
+                persistent_data.health,
+                persistent_data.inventory,
+                persistent_data.current_weapon,
+            )
+        } else {
+            let mut inventory = Inventory::new();
 
-        inventory.add_item(ItemKind::Medpack, 2);
-        inventory.add_item(ItemKind::Ammo, 100);
-        inventory.add_item(ItemKind::Grenade, 2);
+            inventory.add_item(ItemKind::Medpack, 2);
+            inventory.add_item(ItemKind::Ammo, 100);
+            inventory.add_item(ItemKind::Grenade, 2);
+
+            (100.0, inventory, 0)
+        };
 
         Self {
             character: Character {
@@ -489,6 +508,8 @@ impl Player {
                 weapon_pivot,
                 sender: Some(sender),
                 hit_boxes: find_hit_boxes(pivot, scene),
+                health,
+                current_weapon,
                 inventory,
                 ..Default::default()
             },
@@ -545,6 +566,19 @@ impl Player {
                 target: 0.0,
                 speed: 1.5, // rad/s
             },
+        }
+    }
+
+    pub fn persistent_data(&self, weapons: &WeaponContainer) -> PlayerPersistentData {
+        PlayerPersistentData {
+            inventory: self.inventory.clone(),
+            health: self.health,
+            current_weapon: self.current_weapon,
+            weapons: self
+                .weapons
+                .iter()
+                .map(|w| weapons[*w].get_kind())
+                .collect::<Vec<_>>(),
         }
     }
 

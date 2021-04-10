@@ -1,3 +1,4 @@
+use crate::player::PlayerPersistentData;
 /// First level. Player just arrived to the station and start seeing weird things.
 use crate::{
     config::SoundConfig,
@@ -52,6 +53,7 @@ impl ArrivalLevel {
         inventory_texture: Texture,
         item_texture: Texture,
         sound_config: SoundConfig,
+        persistent_data: Option<PlayerPersistentData>,
     ) -> (Level, Scene) {
         let (base_level, scene) = BaseLevel::new(
             "data/levels/arrival.rgs",
@@ -61,6 +63,7 @@ impl ArrivalLevel {
             inventory_texture,
             item_texture,
             sound_config,
+            persistent_data,
         )
         .await;
 

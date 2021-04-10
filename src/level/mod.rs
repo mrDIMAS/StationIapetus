@@ -1,19 +1,22 @@
-use crate::config::SoundConfig;
-use crate::level::arrival::ArrivalLevel;
-use crate::level::lab::LabLevel;
-use crate::level::turret::{Hostility, ShootMode, Turret, TurretContainer};
-use crate::utils::use_hrtf;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
+    config::SoundConfig,
     control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorState},
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
+    level::{
+        arrival::ArrivalLevel,
+        lab::LabLevel,
+        trigger::{Trigger, TriggerContainer, TriggerKind},
+        turret::{Hostility, ShootMode, Turret, TurretContainer},
+    },
     light::{Light, LightContainer},
     message::Message,
-    player::Player,
+    player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
+    utils::use_hrtf,
     vector_to_quat,
     weapon::{
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
@@ -52,15 +55,21 @@ use rg3d::{
     },
     utils::navmesh::Navmesh,
 };
-use std::ops::{Deref, DerefMut};
 use std::{
+    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
 pub mod arrival;
 pub mod lab;
+pub mod trigger;
 pub mod turret;
+
+pub enum LevelKind {
+    Arrival,
+    Lab,
+}
 
 pub enum Level {
     Unknown,
@@ -154,6 +163,7 @@ pub struct BaseLevel {
     doors: DoorContainer,
     lights: LightContainer,
     turrets: TurretContainer,
+    triggers: TriggerContainer,
 }
 
 impl Default for BaseLevel {
@@ -179,6 +189,7 @@ impl Default for BaseLevel {
             doors: Default::default(),
             lights: Default::default(),
             turrets: Default::default(),
+            triggers: Default::default(),
         }
     }
 }
@@ -203,6 +214,7 @@ impl Visit for BaseLevel {
         self.doors.visit("Doors", visitor)?;
         self.lights.visit("Lights", visitor)?;
         self.turrets.visit("Turrets", visitor)?;
+        self.triggers.visit("Triggers", visitor)?;
 
         if visitor.is_reading() {
             self.beam = Some(make_beam());
@@ -312,6 +324,7 @@ pub struct AnalysisResult {
     doors: DoorContainer,
     lights: LightContainer,
     turrets: TurretContainer,
+    triggers: TriggerContainer,
 }
 
 pub fn footstep_ray_check(
@@ -372,6 +385,7 @@ pub async fn analyze(
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
     let mut turrets = TurretContainer::default();
+    let mut triggers = TriggerContainer::default();
 
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
@@ -436,6 +450,7 @@ pub async fn analyze(
                 turrets
                     .add(Turret::new(handle, scene, ShootMode::Consecutive, Hostility::All).await);
             }
+            "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             _ => (),
         }
     }
@@ -463,6 +478,7 @@ pub async fn analyze(
     result.spawn_points = spawn_points;
     result.player_spawn_position = player_spawn_position;
     result.turrets = turrets;
+    result.triggers = triggers;
 
     result
 }
@@ -477,6 +493,7 @@ async fn spawn_player(
     display_texture: Texture,
     inventory_texture: Texture,
     item_texture: Texture,
+    persistent_data: Option<PlayerPersistentData>,
 ) -> Handle<Actor> {
     let player = Player::new(
         scene,
@@ -486,6 +503,7 @@ async fn spawn_player(
         display_texture,
         inventory_texture,
         item_texture,
+        persistent_data.clone(),
     )
     .await;
     let player = actors.add(Actor::Player(player));
@@ -493,7 +511,12 @@ async fn spawn_player(
         .get_mut(player)
         .set_position(&mut scene.physics, spawn_position);
 
-    let weapons_to_give = [WeaponKind::Glock];
+    let weapons_to_give = if let Some(data) = persistent_data {
+        data.weapons
+    } else {
+        vec![WeaponKind::Glock]
+    };
+
     for (i, &weapon) in weapons_to_give.iter().enumerate() {
         give_new_weapon(
             weapon,
@@ -632,6 +655,7 @@ impl BaseLevel {
         inventory_texture: Texture,
         item_texture: Texture,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
+        persistent_data: Option<PlayerPersistentData>,
     ) -> (Self, Scene) {
         let mut scene = Scene::new();
 
@@ -670,6 +694,7 @@ impl BaseLevel {
             doors,
             lights,
             turrets,
+            triggers,
         } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -685,7 +710,7 @@ impl BaseLevel {
             .await;
         }
 
-        let level = BaseLevel {
+        let level = Self {
             player: spawn_player(
                 player_spawn_position,
                 &mut actors,
@@ -696,6 +721,7 @@ impl BaseLevel {
                 display_texture,
                 inventory_texture,
                 item_texture,
+                persistent_data,
             )
             .await,
             map_root,
@@ -706,6 +732,7 @@ impl BaseLevel {
             death_zones,
             spawn_points,
             turrets,
+            triggers,
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -1145,6 +1172,8 @@ impl BaseLevel {
         );
         self.lights.update(scene, time.delta);
         self.items.update(time.delta, &mut scene.graph);
+        self.triggers
+            .update(scene, &self.actors, self.sender.as_ref().unwrap());
     }
 
     fn shoot_ray(
