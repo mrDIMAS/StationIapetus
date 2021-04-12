@@ -13,7 +13,7 @@
 - **Playable demo**: 18th of April 2021
 - **Release Date**: When it is done.
 - **Store**: Steam
-- **Platforms**: Windows (7+), Linux (Ubuntu?), macOS
+- **Platforms**: Windows (7+), Linux (Ubuntu), macOS
 
 ## Plot
 
