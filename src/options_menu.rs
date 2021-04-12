@@ -168,13 +168,17 @@ impl OptionsMenu {
         show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let video_modes: Vec<VideoMode> = engine
-            .get_window()
-            .primary_monitor()
-            .unwrap()
-            .video_modes()
-            .filter(|vm| vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32)
-            .collect();
+        let video_modes: Vec<VideoMode> =
+            if let Some(monitor) = engine.get_window().current_monitor() {
+                monitor
+                    .video_modes()
+                    .filter(|vm| {
+                        vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
 
         let ctx = &mut engine.user_interface.build_ctx();
 
