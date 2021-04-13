@@ -194,6 +194,7 @@ impl Default for Bot {
 #[derive(Deserialize)]
 pub struct AttackAnimationDefinition {
     path: String,
+    stick_timestamp: f32,
     timestamp: f32,
     damage: Damage,
     speed: f32,
@@ -523,12 +524,17 @@ impl Bot {
         self.target = Some(Target { position, handle });
     }
 
-    fn calculate_movement_speed_factor(&self, physics: &Physics) -> f32 {
-        let mut k = 1.0;
+    fn calculate_movement_speed_factor(&self, scene: &Scene) -> f32 {
+        let mut k = if self.upper_body_machine.should_stick_to_target(scene) {
+            3.0
+        } else {
+            1.0
+        };
 
         // Slowdown bot according to damaged body parts.
         for hitbox in self.hit_boxes.iter() {
-            let body = physics
+            let body = scene
+                .physics
                 .colliders
                 .get(hitbox.collider.into())
                 .unwrap()
@@ -577,7 +583,7 @@ impl Bot {
                 self.body = Default::default();
             }
         } else {
-            movement_speed_factor = self.calculate_movement_speed_factor(&context.scene.physics);
+            movement_speed_factor = self.calculate_movement_speed_factor(context.scene);
             self.agent
                 .set_speed(self.definition.walk_speed * movement_speed_factor);
 

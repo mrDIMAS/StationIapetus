@@ -38,6 +38,7 @@ pub struct UpperBodyMachineInput {
 
 pub struct AttackAnimation {
     resource: Model,
+    stick_timestamp: f32,
     timestamp: f32,
     speed: f32,
 }
@@ -61,6 +62,10 @@ pub fn make_attack_state(
             scene.animations[animation]
                 .set_enabled(false)
                 .set_loop(false)
+                .add_signal(AnimationSignal::new(
+                    UpperBodyMachine::STICK_SIGNAL,
+                    desc.stick_timestamp,
+                ))
                 .add_signal(AnimationSignal::new(
                     UpperBodyMachine::HIT_SIGNAL,
                     desc.timestamp,
@@ -97,7 +102,8 @@ pub fn make_attack_state(
 }
 
 impl UpperBodyMachine {
-    pub const HIT_SIGNAL: u64 = 1;
+    pub const STICK_SIGNAL: u64 = 1;
+    pub const HIT_SIGNAL: u64 = 2;
 
     const ATTACK_TO_IDLE: &'static str = "AttackToIdle";
     const ATTACK_TO_WALK: &'static str = "AttackToWalk";
@@ -188,6 +194,7 @@ impl UpperBodyMachine {
                 .iter()
                 .map(|a| AttackAnimation {
                     resource: resources[&a.path].clone(),
+                    stick_timestamp: a.stick_timestamp,
                     timestamp: a.timestamp,
                     speed: a.speed,
                 })
@@ -393,6 +400,29 @@ impl UpperBodyMachine {
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.dead))
             .evaluate_pose(&scene.animations, time.delta)
             .apply(&mut scene.graph);
+    }
+
+    /// Returns true if bot started to perform a swing to hit a target. This flag is used to
+    /// modify speed of bot to speed it up if it too far away from the target.
+    pub fn should_stick_to_target(&self, scene: &Scene) -> bool {
+        for &handle in self.attack_animations.iter() {
+            let animation = &scene.animations[handle];
+            if !animation.has_ended() && animation.is_enabled() {
+                for signal in animation.signals() {
+                    if signal.id() == Self::HIT_SIGNAL
+                        && animation.get_time_position() > signal.time()
+                    {
+                        return false;
+                    }
+                    if signal.id() == Self::STICK_SIGNAL
+                        && animation.get_time_position() > signal.time()
+                    {
+                        return true;
+                    }
+                }
+            }
+        }
+        false
     }
 }
 
