@@ -197,7 +197,7 @@ pub struct Projectile {
     /// rockets, plasma balls could have rigid body to detect collisions with
     /// environment. Some projectiles do not have rigid body - they're ray-based -
     /// interaction with environment handled with ray cast.
-    body: RigidBodyHandle,
+    body: Option<RigidBodyHandle>,
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
@@ -300,10 +300,10 @@ impl Projectile {
                         .translation(position.x, position.y, position.z)
                         .build();
                     let body_handle = scene.physics.add_body(body);
-                    scene.physics.add_collider(collider, body_handle);
+                    scene.physics.add_collider(collider, &body_handle);
                     scene.physics_binder.bind(model, body_handle);
 
-                    (model, body_handle)
+                    (model, Some(body_handle))
                 }
                 ProjectileKind::Grenade => {
                     let resource = resource_manager
@@ -313,14 +313,14 @@ impl Projectile {
                     let model = resource.instantiate_geometry(scene);
                     let body = scene.graph.find_by_name(model, "Body");
                     let body_handle = scene.physics_binder.body_of(body).unwrap();
-                    let phys_body = scene.physics.bodies.get_mut(body_handle.into()).unwrap();
+                    let phys_body = scene.physics.body_mut(body_handle).unwrap();
                     phys_body.set_position(
                         Isometry3::translation(position.x, position.y, position.z),
                         true,
                     );
                     phys_body.set_linvel(initial_velocity, true);
 
-                    (model, body_handle)
+                    (model, Some(*body_handle))
                 }
             }
         };
@@ -358,9 +358,14 @@ impl Projectile {
         time: GameTime,
     ) {
         // Fetch current position of projectile.
-        let (position, collider) = if self.body.is_some() {
-            let body = scene.physics.bodies.get(self.body.into()).unwrap();
-            let collider: ColliderHandle = (*body.colliders().first().unwrap()).into();
+        let (position, collider) = if let Some(body) = self.body.as_ref() {
+            let body = scene.physics.body(body).unwrap();
+            let collider: ColliderHandle = scene
+                .physics
+                .collider_handle_map()
+                .key_of(body.colliders().first().unwrap())
+                .cloned()
+                .unwrap();
             (body.position().translation.vector, collider)
         } else {
             (
@@ -389,9 +394,9 @@ impl Projectile {
             let total_velocity = self.dir.scale(self.definition.speed);
 
             // Special case for projectiles with rigid body.
-            if self.body.is_some() {
+            if let Some(body) = self.body.as_ref() {
                 // Move rigid body explicitly.
-                let body = scene.physics.bodies.get_mut(self.body.into()).unwrap();
+                let body = scene.physics.body_mut(body).unwrap();
                 let position = Isometry3 {
                     rotation: Default::default(),
                     translation: Translation3 {
@@ -504,8 +509,8 @@ impl Projectile {
     }
 
     fn clean_up(&mut self, scene: &mut Scene) {
-        if self.body.is_some() {
-            scene.physics.remove_body(self.body);
+        if let Some(body) = self.body.as_ref() {
+            scene.physics.remove_body(body);
         }
         if self.model.is_some() {
             scene.graph.remove_node(self.model);

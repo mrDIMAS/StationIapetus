@@ -36,7 +36,7 @@ use rg3d::{
         node::Node,
         physics::{Physics, RayCastOptions},
         transform::TransformBuilder,
-        ColliderHandle, Scene, SceneDrawingContext,
+        Scene, SceneDrawingContext,
     },
     utils::{
         log::{Log, MessageKind},
@@ -308,7 +308,7 @@ impl Bot {
                     0xFFFF,
                 ))
                 .build(),
-            body,
+            &body,
         );
 
         scene.physics_binder.bind(pivot, body);
@@ -344,7 +344,7 @@ impl Bot {
         Self {
             character: Character {
                 pivot,
-                body,
+                body: Some(body),
                 weapon_pivot,
                 health: definition.health,
                 sender: Some(sender),
@@ -435,15 +435,20 @@ impl Bot {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    let collider = scene.physics.colliders.get(hit.collider.into()).unwrap();
-                    let body = collider.parent();
+                    let collider = scene.physics.collider(&hit.collider).unwrap();
+                    let body = scene
+                        .physics
+                        .body_handle_map()
+                        .key_of(&collider.parent())
+                        .cloned()
+                        .unwrap();
 
                     if collider.shape().as_trimesh().is_some() {
                         // Target is behind something.
                         continue 'target_loop;
                     } else {
                         // Prevent setting self as target.
-                        if self.character.body == body.into() {
+                        if self.character.body.map_or(false, |b| b == body) {
                             continue 'hit_loop;
                         }
                     }
@@ -507,10 +512,12 @@ impl Bot {
             .set_target(look_dir.x.atan2(look_dir.z))
             .update(time.delta);
 
-        let body = physics.bodies.get_mut(self.body.into()).unwrap();
-        let mut position = *body.position();
-        position.rotation = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), angle);
-        body.set_position(position, true);
+        if let Some(body) = self.body.as_ref() {
+            let body = physics.body_mut(body).unwrap();
+            let mut position = *body.position();
+            position.rotation = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), angle);
+            body.set_position(position, true);
+        }
     }
 
     fn update_agent(&mut self, navmesh: &mut Navmesh, time: GameTime) {
@@ -533,13 +540,8 @@ impl Bot {
 
         // Slowdown bot according to damaged body parts.
         for hitbox in self.hit_boxes.iter() {
-            let body = scene
-                .physics
-                .colliders
-                .get(hitbox.collider.into())
-                .unwrap()
-                .parent();
-            if self.impact_handler.is_affected(body.into()) {
+            let body = scene.physics.collider_parent(&hitbox.collider).unwrap();
+            if self.impact_handler.is_affected(*body) {
                 k = hitbox.movement_speed_factor.min(k);
             }
         }
@@ -578,9 +580,9 @@ impl Bot {
                     .set_enabled(false);
             }
 
-            if self.body.is_some() {
-                context.scene.physics.remove_body(self.body);
-                self.body = Default::default();
+            if let Some(body) = self.body.as_ref() {
+                context.scene.physics.remove_body(body);
+                self.body = None;
             }
         } else {
             movement_speed_factor = self.calculate_movement_speed_factor(context.scene);
@@ -592,8 +594,7 @@ impl Bot {
             let body = context
                 .scene
                 .physics
-                .bodies
-                .get_mut(self.character.body.into())
+                .body_mut(self.character.body.as_ref().unwrap())
                 .unwrap();
             let look_dir = match self.target.as_ref() {
                 None => {
@@ -700,10 +701,13 @@ impl Bot {
                         let begin = context.scene.graph[self.model].global_position()
                             + Vector3::new(0.0, 10.0, 0.0);
 
-                        let self_collider = if let Some(body) =
-                            context.scene.physics.bodies.get(self.body.into())
-                        {
-                            ColliderHandle::from(body.colliders()[0])
+                        let self_collider = if let Some(body) = self.body.as_ref() {
+                            *context
+                                .scene
+                                .physics
+                                .collider_handle_map()
+                                .key_of(&context.scene.physics.body(body).unwrap().colliders()[0])
+                                .unwrap()
                         } else {
                             Default::default()
                         };

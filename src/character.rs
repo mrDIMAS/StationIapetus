@@ -16,7 +16,7 @@ use std::sync::mpsc::Sender;
 
 pub struct Character {
     pub pivot: Handle<Node>,
-    pub body: RigidBodyHandle,
+    pub body: Option<RigidBodyHandle>,
     pub health: f32,
     pub weapons: Vec<Handle<Weapon>>,
     pub current_weapon: u32,
@@ -63,40 +63,37 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 
     for descendant in scene.graph.traverse_handle_iter(from) {
         if let Some(body) = scene.physics_binder.body_of(descendant) {
-            let collider = ColliderHandle::from(
-                *scene
+            if let Some(body) = scene.physics.body(body) {
+                let collider = scene
                     .physics
-                    .bodies
-                    .get(body.into())
-                    .unwrap()
-                    .colliders()
-                    .first()
-                    .unwrap(),
-            );
-
-            let node = &scene.graph[descendant];
-            match node.tag() {
-                "HitBoxArm" => hit_boxes.push(HitBox {
-                    collider,
-                    damage_factor: 0.25,
-                    movement_speed_factor: 1.0,
-                }),
-                "HitBoxLeg" => hit_boxes.push(HitBox {
-                    collider,
-                    damage_factor: 0.35,
-                    movement_speed_factor: 0.5,
-                }),
-                "HitBoxBody" => hit_boxes.push(HitBox {
-                    collider,
-                    damage_factor: 0.60,
-                    movement_speed_factor: 0.75,
-                }),
-                "HitBoxHead" => hit_boxes.push(HitBox {
-                    collider,
-                    damage_factor: 1.0,
-                    movement_speed_factor: 0.1,
-                }),
-                _ => (),
+                    .collider_handle_map()
+                    .key_of(body.colliders().first().unwrap())
+                    .cloned()
+                    .unwrap();
+                let node = &scene.graph[descendant];
+                match node.tag() {
+                    "HitBoxArm" => hit_boxes.push(HitBox {
+                        collider,
+                        damage_factor: 0.25,
+                        movement_speed_factor: 1.0,
+                    }),
+                    "HitBoxLeg" => hit_boxes.push(HitBox {
+                        collider,
+                        damage_factor: 0.35,
+                        movement_speed_factor: 0.5,
+                    }),
+                    "HitBoxBody" => hit_boxes.push(HitBox {
+                        collider,
+                        damage_factor: 0.60,
+                        movement_speed_factor: 0.75,
+                    }),
+                    "HitBoxHead" => hit_boxes.push(HitBox {
+                        collider,
+                        damage_factor: 1.0,
+                        movement_speed_factor: 0.1,
+                    }),
+                    _ => (),
+                }
             }
         }
     }
@@ -105,17 +102,15 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 }
 
 impl Character {
-    pub fn get_body(&self) -> RigidBodyHandle {
-        self.body
-    }
-
     pub fn has_ground_contact(&self, physics: &Physics) -> bool {
-        let body = physics.bodies.get(self.body.into()).unwrap();
-        if let Some(iterator) = physics.narrow_phase.contacts_with(body.colliders()[0]) {
-            for (_, _, contact) in iterator {
-                for manifold in contact.manifolds.iter() {
-                    if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
-                        return true;
+        if let Some(body) = self.body.as_ref() {
+            let body = physics.body(body).unwrap();
+            if let Some(iterator) = physics.narrow_phase.contacts_with(body.colliders()[0]) {
+                for (_, _, contact) in iterator {
+                    for manifold in contact.manifolds.iter() {
+                        if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
+                            return true;
+                        }
                     }
                 }
             }
@@ -128,10 +123,12 @@ impl Character {
     }
 
     pub fn set_position(&mut self, physics: &mut Physics, position: Vector3<f32>) {
-        let body = physics.bodies.get_mut(self.get_body().into()).unwrap();
-        let mut body_position = *body.position();
-        body_position.translation.vector = position;
-        body.set_position(body_position, true);
+        if let Some(body) = self.body.as_ref() {
+            let body = physics.body_mut(body).unwrap();
+            let mut body_position = *body.position();
+            body_position.translation.vector = position;
+            body.set_position(body_position, true);
+        }
     }
 
     pub fn position(&self, graph: &Graph) -> Vector3<f32> {
@@ -266,7 +263,9 @@ impl Character {
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
         scene.remove_node(self.pivot);
-        scene.physics.remove_body(self.body);
+        if let Some(body) = self.body.as_ref() {
+            scene.physics.remove_body(body);
+        }
     }
 
     pub fn restore_hit_boxes(&mut self, scene: &Scene) {

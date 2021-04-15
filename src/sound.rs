@@ -74,47 +74,54 @@ impl SoundMap {
         for node in nodes {
             let body = scene.physics_binder.body_of(node).unwrap();
 
-            if let Some(&collider) = scene
-                .physics
-                .bodies
-                .get(body.into())
-                .unwrap()
-                .colliders()
-                .first()
-            {
-                let mut ranges = Vec::new();
+            if let Some(body) = scene.physics.body(body) {
+                if let Some(&collider) = body.colliders().first() {
+                    let collider = scene
+                        .physics
+                        .collider_handle_map()
+                        .key_of(&collider)
+                        .cloned()
+                        .unwrap();
 
-                stack.clear();
-                stack.push(node);
+                    let mut ranges = Vec::new();
 
-                let mut triangle_offset = 0u32;
-                while let Some(handle) = stack.pop() {
-                    let descendant = &scene.graph[handle];
+                    stack.clear();
+                    stack.push(node);
 
-                    if let Node::Mesh(descendant_mesh) = descendant {
-                        for surface in descendant_mesh.surfaces() {
-                            let data = surface.data();
-                            let data = data.read().unwrap();
+                    let mut triangle_offset = 0u32;
+                    while let Some(handle) = stack.pop() {
+                        let descendant = &scene.graph[handle];
 
-                            if let Some(diffuse_texture) = surface.diffuse_texture() {
-                                let path =
-                                    diffuse_texture.state().path().to_string_lossy().to_string();
-                                if let Some(&material) = sound_base.texture_to_material.get(&path) {
-                                    ranges.push(TriangleRange {
-                                        range: triangle_offset
-                                            ..(triangle_offset + data.triangles().len() as u32),
-                                        material,
-                                    });
+                        if let Node::Mesh(descendant_mesh) = descendant {
+                            for surface in descendant_mesh.surfaces() {
+                                let data = surface.data();
+                                let data = data.read().unwrap();
+
+                                if let Some(diffuse_texture) = surface.diffuse_texture() {
+                                    let path = diffuse_texture
+                                        .state()
+                                        .path()
+                                        .to_string_lossy()
+                                        .to_string();
+                                    if let Some(&material) =
+                                        sound_base.texture_to_material.get(&path)
+                                    {
+                                        ranges.push(TriangleRange {
+                                            range: triangle_offset
+                                                ..(triangle_offset + data.triangles().len() as u32),
+                                            material,
+                                        });
+                                    }
                                 }
+                                triangle_offset += data.triangles().len() as u32;
                             }
-                            triangle_offset += data.triangles().len() as u32;
                         }
+
+                        stack.extend_from_slice(descendant.children());
                     }
 
-                    stack.extend_from_slice(descendant.children());
+                    sound_map.insert(collider, ranges);
                 }
-
-                sound_map.insert(collider.into(), ranges);
             }
         }
         Self { sound_map }

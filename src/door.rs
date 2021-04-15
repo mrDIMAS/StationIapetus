@@ -252,7 +252,7 @@ impl DoorContainer {
             };
 
             if let Some(body) = scene.physics_binder.body_of(door.node) {
-                let body = scene.physics.bodies.get_mut(body.into()).unwrap();
+                let body = scene.physics.body_mut(body).unwrap();
                 body.set_position(
                     Isometry3 {
                         translation: Translation3 {

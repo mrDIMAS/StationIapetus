@@ -632,12 +632,7 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
 
     if let Some(intersection) = intersections.iter().find(|i| {
         // HACK: Check everything but capsules (helps correctly drop items from actors)
-        let shape = scene
-            .physics
-            .colliders
-            .get(i.collider.into())
-            .unwrap()
-            .shape();
+        let shape = scene.physics.collider(&i.collider).unwrap().shape();
         shape.as_capsule().is_none()
     }) {
         intersection.position.coords
@@ -1239,11 +1234,10 @@ impl BaseLevel {
 
             let dir = hit.position - begin;
 
-            if let Some(collider) = scene.physics.colliders.get(hit.collider.into()) {
+            if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider) {
                 scene
                     .physics
-                    .bodies
-                    .get_mut(collider.parent())
+                    .body_mut(&collider_parent.clone())
                     .unwrap()
                     .apply_force_at_point(
                         dir.try_normalize(std::f32::EPSILON)
@@ -1256,15 +1250,10 @@ impl BaseLevel {
 
             if hit.actor.is_some() {
                 if let Actor::Bot(actor) = self.actors.get_mut(hit.actor) {
-                    let body = scene
-                        .physics
-                        .colliders
-                        .get(hit.collider.into())
-                        .unwrap()
-                        .parent();
+                    let body = scene.physics.collider_parent(&hit.collider).unwrap();
                     actor
                         .impact_handler
-                        .handle_impact(scene, body.into(), hit.position, dir);
+                        .handle_impact(scene, body.clone(), hit.position, dir);
                 }
             }
 
