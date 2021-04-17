@@ -5,6 +5,7 @@ use crate::{
     level::{BaseLevel, Level},
     message::Message,
 };
+use rg3d::core::color::Color;
 use rg3d::{
     core::visitor::{Visit, VisitResult, Visitor},
     engine::resource_manager::ResourceManager,
@@ -55,7 +56,7 @@ impl ArrivalLevel {
         sound_config: SoundConfig,
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Level, Scene) {
-        let (base_level, scene) = BaseLevel::new(
+        let (base_level, mut scene) = BaseLevel::new(
             "data/levels/arrival.rgs",
             resource_manager,
             sender,
@@ -66,6 +67,8 @@ impl ArrivalLevel {
             persistent_data,
         )
         .await;
+
+        scene.ambient_lighting_color = Color::opaque(35, 35, 35);
 
         (Level::Arrival(Self { level: base_level }), scene)
     }

@@ -663,8 +663,6 @@ impl BaseLevel {
                 .set_renderer(rg3d::sound::renderer::Renderer::Default);
         }
 
-        scene.ambient_lighting_color = Color::opaque(45, 45, 45);
-
         let (proximity_events_sender, proximity_events_receiver) = crossbeam::channel::unbounded();
         let (contact_events_sender, contact_events_receiver) = crossbeam::channel::unbounded();
 

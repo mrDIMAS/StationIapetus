@@ -4,6 +4,7 @@ use crate::{
     message::Message,
     player::PlayerPersistentData,
 };
+use rg3d::core::color::Color;
 use rg3d::{
     core::visitor::{Visit, VisitResult, Visitor},
     engine::resource_manager::ResourceManager,
@@ -57,7 +58,7 @@ impl LabLevel {
         sound_config: SoundConfig,
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Level, Scene) {
-        let (base_level, scene) = BaseLevel::new(
+        let (base_level, mut scene) = BaseLevel::new(
             "data/levels/lab.rgs",
             resource_manager,
             sender,
@@ -68,6 +69,8 @@ impl LabLevel {
             persistent_data,
         )
         .await;
+
+        scene.ambient_lighting_color = Color::opaque(30, 30, 30);
 
         (Level::Lab(Self { level: base_level }), scene)
     }
