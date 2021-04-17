@@ -57,6 +57,40 @@ impl Visit for DoorState {
     }
 }
 
+#[derive(Copy, Clone)]
+#[repr(C)]
+pub enum DoorDirection {
+    Side,
+    Up,
+}
+
+impl Default for DoorDirection {
+    fn default() -> Self {
+        Self::Side
+    }
+}
+
+impl Visit for DoorDirection {
+    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
+        let mut id = *self as u32;
+        id.visit(name, visitor)?;
+        if visitor.is_reading() {
+            *self = Self::from_id(id)?;
+        }
+        Ok(())
+    }
+}
+
+impl DoorDirection {
+    fn from_id(id: u32) -> Result<Self, String> {
+        match id {
+            0 => Ok(Self::Side),
+            1 => Ok(Self::Up),
+            _ => Err(format!("Invalid door direction id {}!", id)),
+        }
+    }
+}
+
 #[derive(Default)]
 pub struct Door {
     node: Handle<Node>,
@@ -65,6 +99,8 @@ pub struct Door {
     offset: f32,
     initial_position: Vector3<f32>,
     someone_nearby: bool,
+    open_direction: DoorDirection,
+    open_offset_amount: f32,
 }
 
 impl Visit for Door {
@@ -76,13 +112,21 @@ impl Visit for Door {
         self.state.visit("State", visitor)?;
         self.offset.visit("Offset", visitor)?;
         self.someone_nearby.visit("SomeoneNearby", visitor)?;
+        self.open_direction.visit("OpenDirection", visitor)?;
+        self.open_offset_amount.visit("OpenOffsetAmount", visitor)?;
 
         visitor.leave_region()
     }
 }
 
 impl Door {
-    pub fn new(node: Handle<Node>, graph: &Graph, state: DoorState) -> Self {
+    pub fn new(
+        node: Handle<Node>,
+        graph: &Graph,
+        state: DoorState,
+        open_direction: DoorDirection,
+        open_offset_amount: f32,
+    ) -> Self {
         Self {
             node,
             lights: graph
@@ -93,6 +137,8 @@ impl Door {
             offset: 0.0,
             initial_position: graph[node].global_position(),
             someone_nearby: false,
+            open_direction,
+            open_offset_amount,
         }
     }
 
@@ -140,7 +186,10 @@ impl DoorContainer {
 
         for door in self.doors.iter_mut() {
             let node = &scene.graph[door.node];
-            let door_side = node.look_vector();
+            let move_direction = match door.open_direction {
+                DoorDirection::Side => node.look_vector(),
+                DoorDirection::Up => node.up_vector(),
+            };
 
             let prev_someone_nearby = door.someone_nearby;
 
@@ -217,11 +266,11 @@ impl DoorContainer {
 
             match door.state {
                 DoorState::Opening => {
-                    if door.offset < 0.75 {
+                    if door.offset < door.open_offset_amount {
                         door.offset += speed * dt;
-                        if door.offset >= 0.75 {
+                        if door.offset >= door.open_offset_amount {
                             door.state = DoorState::Opened;
-                            door.offset = 0.75;
+                            door.offset = door.open_offset_amount;
                         }
                     }
 
@@ -257,7 +306,7 @@ impl DoorContainer {
                     Isometry3 {
                         translation: Translation3 {
                             vector: door.initial_position
-                                + door_side
+                                + move_direction
                                     .try_normalize(std::f32::EPSILON)
                                     .unwrap_or_default()
                                     .scale(door.offset),

@@ -1,3 +1,4 @@
+use crate::door::DoorDirection;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -422,19 +423,40 @@ pub async fn analyze(
 
         match node.tag() {
             "SideDoor" => {
-                result
-                    .doors
-                    .add(Door::new(handle, &scene.graph, DoorState::Closed));
+                result.doors.add(Door::new(
+                    handle,
+                    &scene.graph,
+                    DoorState::Closed,
+                    DoorDirection::Side,
+                    0.75,
+                ));
             }
             "SideDoorBroken" => {
-                result
-                    .doors
-                    .add(Door::new(handle, &scene.graph, DoorState::Broken));
+                result.doors.add(Door::new(
+                    handle,
+                    &scene.graph,
+                    DoorState::Broken,
+                    DoorDirection::Side,
+                    0.75,
+                ));
             }
             "SideDoorLocked" => {
-                result
-                    .doors
-                    .add(Door::new(handle, &scene.graph, DoorState::Locked));
+                result.doors.add(Door::new(
+                    handle,
+                    &scene.graph,
+                    DoorState::Locked,
+                    DoorDirection::Side,
+                    0.75,
+                ));
+            }
+            "UpDoor" => {
+                result.doors.add(Door::new(
+                    handle,
+                    &scene.graph,
+                    DoorState::Closed,
+                    DoorDirection::Up,
+                    1.35,
+                ));
             }
             "FlashingLight" => result.lights.add(Light::new(handle)),
             "Medkit" => items.push((ItemKind::Medkit, position)),
