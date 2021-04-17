@@ -865,7 +865,7 @@ impl BaseLevel {
         let character = self.actors.get_mut(actor);
         let scene = &engine.scenes[self.scene];
 
-        let drop_position = character.position(&scene.graph);
+        let drop_position = character.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
         let weapons = character
             .weapons()
             .iter()

@@ -3,8 +3,8 @@ use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 
 #[derive(Default, Debug, Clone)]
 pub struct ItemEntry {
-    kind: ItemKind,
-    amount: u32,
+    pub kind: ItemKind,
+    pub amount: u32,
 }
 
 impl Visit for ItemEntry {
@@ -46,6 +46,10 @@ impl Visit for Inventory {
 impl Inventory {
     pub fn new() -> Self {
         Self { items: vec![] }
+    }
+
+    pub fn from_inner(items: Vec<ItemEntry>) -> Self {
+        Self { items }
     }
 
     pub fn add_item(&mut self, item: ItemKind, count: u32) {

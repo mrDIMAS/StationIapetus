@@ -1,4 +1,5 @@
 use crate::actor::TargetKind;
+use crate::inventory::{Inventory, ItemEntry};
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -13,6 +14,7 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, GameTime,
 };
+use rg3d::core::rand::seq::IteratorRandom;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -29,6 +31,7 @@ use rg3d::{
         dynamics::{BodyStatus, CoefficientCombineRule, RigidBodyBuilder},
         geometry::{ColliderBuilder, InteractionGroups},
     },
+    rand,
     scene::{
         self,
         base::BaseBuilder,
@@ -341,6 +344,21 @@ impl Bot {
         let upper_body_machine =
             UpperBodyMachine::new(resource_manager.clone(), definition, model, scene, hips).await;
 
+        let possible_item = [
+            (ItemKind::Ammo, 10),
+            (ItemKind::Medkit, 1),
+            (ItemKind::Medpack, 1),
+        ];
+        let items =
+            if let Some((item, count)) = possible_item.iter().choose(&mut rand::thread_rng()) {
+                vec![ItemEntry {
+                    kind: *item,
+                    amount: *count,
+                }]
+            } else {
+                Default::default()
+            };
+
         Self {
             character: Character {
                 pivot,
@@ -349,6 +367,7 @@ impl Bot {
                 health: definition.health,
                 sender: Some(sender),
                 hit_boxes: find_hit_boxes(pivot, scene),
+                inventory: Inventory::from_inner(items),
                 ..Default::default()
             },
             hips,
@@ -581,6 +600,18 @@ impl Bot {
             }
 
             if let Some(body) = self.body.as_ref() {
+                for item in self.inventory.items() {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::DropItems {
+                            actor: self_handle,
+                            item: item.kind,
+                            count: item.amount,
+                        })
+                        .unwrap();
+                }
+
                 context.scene.physics.remove_body(body);
                 self.body = None;
             }
