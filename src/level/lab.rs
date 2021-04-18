@@ -55,6 +55,7 @@ impl LabLevel {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
         sound_config: SoundConfig,
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Level, Scene) {
@@ -65,6 +66,7 @@ impl LabLevel {
             display_texture,
             inventory_texture,
             item_texture,
+            journal_texture,
             sound_config,
             persistent_data,
         )

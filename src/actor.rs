@@ -204,6 +204,7 @@ impl ActorContainer {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
     ) {
         for actor in self.pool.iter_mut() {
             if let Actor::Player(player) = actor {
@@ -212,6 +213,7 @@ impl ActorContainer {
                     display_texture.clone(),
                     inventory_texture.clone(),
                     item_texture.clone(),
+                    journal_texture.clone(),
                 );
             }
 

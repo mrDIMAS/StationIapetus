@@ -46,6 +46,7 @@ pub struct ControlScheme {
     pub run: ControlButtonDefinition,
     pub aim: ControlButtonDefinition,
     pub toss_grenade: ControlButtonDefinition,
+    pub journal: ControlButtonDefinition,
     pub flash_light: ControlButtonDefinition,
     pub grab_ak47: ControlButtonDefinition,
     pub grab_m4: ControlButtonDefinition,
@@ -109,6 +110,10 @@ impl Default for ControlScheme {
                 description: "Toss Grenade".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::G),
             },
+            journal: ControlButtonDefinition {
+                description: "Journal".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::J),
+            },
             flash_light: ControlButtonDefinition {
                 description: "Flash Light".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::F),
@@ -164,7 +169,7 @@ impl Default for ControlScheme {
 }
 
 impl ControlScheme {
-    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 23] {
+    pub fn buttons_mut(&mut self) -> [&mut ControlButtonDefinition; 24] {
         [
             &mut self.move_forward,
             &mut self.move_backward,
@@ -180,6 +185,7 @@ impl ControlScheme {
             &mut self.aim,
             &mut self.inventory,
             &mut self.toss_grenade,
+            &mut self.journal,
             &mut self.flash_light,
             &mut self.grab_pistol,
             &mut self.grab_ak47,
@@ -192,7 +198,7 @@ impl ControlScheme {
         ]
     }
 
-    pub fn buttons(&self) -> [&ControlButtonDefinition; 23] {
+    pub fn buttons(&self) -> [&ControlButtonDefinition; 24] {
         [
             &self.move_forward,
             &self.move_backward,
@@ -208,6 +214,7 @@ impl ControlScheme {
             &self.aim,
             &self.inventory,
             &self.toss_grenade,
+            &self.journal,
             &self.flash_light,
             &self.grab_pistol,
             &self.grab_ak47,

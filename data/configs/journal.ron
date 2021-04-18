@@ -1,0 +1,8 @@
+(
+    map: {
+        CurrentSituation: (
+            title: "Current Situation",
+            text: "The situation with experiments is slowly getting out of control. Last few species were too aggressive and we have to eliminate them all.",
+        )
+    }
+)

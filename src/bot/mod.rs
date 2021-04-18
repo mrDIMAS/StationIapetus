@@ -460,7 +460,7 @@ impl Bot {
                         .cloned()
                         .unwrap();
 
-                    if collider.shape().as_trimesh().is_some() {
+                    if collider.shape().as_capsule().is_none() {
                         // Target is behind something.
                         continue 'target_loop;
                     } else {
@@ -645,7 +645,7 @@ impl Bot {
 
             self.update_frustum(position, &context.scene.graph);
 
-            let was_injured = (self.character.health - self.last_health).abs() > 30.0;
+            let was_injured = (self.character.health - self.last_health).abs() >= 25.0;
             if was_injured {
                 self.restoration_time = 0.8;
                 self.last_health = self.character.health;

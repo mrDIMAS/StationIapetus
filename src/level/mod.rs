@@ -525,6 +525,7 @@ async fn spawn_player(
     display_texture: Texture,
     inventory_texture: Texture,
     item_texture: Texture,
+    journal_texture: Texture,
     persistent_data: Option<PlayerPersistentData>,
 ) -> Handle<Actor> {
     let player = Player::new(
@@ -535,6 +536,7 @@ async fn spawn_player(
         display_texture,
         inventory_texture,
         item_texture,
+        journal_texture,
         persistent_data.clone(),
     )
     .await;
@@ -697,6 +699,7 @@ impl BaseLevel {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Self, Scene) {
@@ -768,6 +771,7 @@ impl BaseLevel {
                 display_texture,
                 inventory_texture,
                 item_texture,
+                journal_texture,
                 persistent_data,
             )
             .await,
@@ -1287,9 +1291,10 @@ impl BaseLevel {
             let dir = hit.position - begin;
 
             if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider) {
+                let body_handle = collider_parent.clone();
                 scene
                     .physics
-                    .body_mut(&collider_parent.clone())
+                    .body_mut(&body_handle)
                     .unwrap()
                     .apply_force_at_point(
                         dir.try_normalize(std::f32::EPSILON)
@@ -1485,6 +1490,7 @@ impl BaseLevel {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
     ) {
         self.set_message_sender(sender, engine);
 
@@ -1493,6 +1499,7 @@ impl BaseLevel {
             display_texture,
             inventory_texture,
             item_texture,
+            journal_texture,
         );
 
         let scene = &engine.scenes[self.scene];

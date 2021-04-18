@@ -145,6 +145,7 @@ pub enum Message {
     ToggleMainMenu,
     EndMatch,
     SyncInventory,
+    SyncJournal,
     ShowItemDisplay {
         item: ItemKind,
         count: u32,

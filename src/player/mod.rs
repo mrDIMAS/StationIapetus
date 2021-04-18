@@ -1,3 +1,4 @@
+use crate::gui::journal::Journal;
 use crate::item::ItemContainer;
 use crate::player::camera::CameraController;
 use crate::{
@@ -278,12 +279,14 @@ pub struct Player {
     target_velocity: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
+    journal_display: Handle<Node>,
     item_display: Handle<Node>,
     health_cylinder: Handle<Node>,
     last_health: f32,
     health_color_gradient: ColorGradient,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
+    pub journal: Journal,
 }
 
 impl Visit for Player {
@@ -316,11 +319,13 @@ impl Visit for Player {
             .visit("WeaponChangeDirection", visitor)?;
         self.weapon_display.visit("WeaponDisplay", visitor)?;
         self.inventory_display.visit("InventoryDisplay", visitor)?;
+        self.journal_display.visit("JournalDisplay", visitor)?;
         self.health_cylinder.visit("HealthCylinder", visitor)?;
         self.last_health.visit("LastHealth", visitor)?;
         self.item_display.visit("ItemDisplay", visitor)?;
         self.v_recoil.visit("VRecoil", visitor)?;
         self.h_recoil.visit("HRecoil", visitor)?;
+        self.journal.visit("Journal", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -346,6 +351,7 @@ impl Player {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
         persistent_data: Option<PlayerPersistentData>,
     ) -> Self {
         let body_radius = 0.2;
@@ -485,6 +491,30 @@ impl Player {
         .build(&mut scene.graph);
         scene.graph.link_nodes(inventory_display, pivot);
 
+        let journal_display = MeshBuilder::new(
+            BaseBuilder::new()
+                .with_depth_offset(0.2)
+                .with_visibility(false)
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(Vector3::new(-0.5, 0.1, 0.4))
+                        .build(),
+                ),
+        )
+        .with_cast_shadows(false)
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+            SurfaceSharedData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
+                s,
+                3.0 / 4.0 * s,
+                s,
+            ))),
+        )))
+        .with_diffuse_texture(journal_texture)
+        .build()])
+        .with_render_path(RenderPath::Forward)
+        .build(&mut scene.graph);
+        scene.graph.link_nodes(journal_display, pivot);
+
         let (health, inventory, current_weapon) = if let Some(persistent_data) = persistent_data {
             (
                 persistent_data.health,
@@ -566,6 +596,8 @@ impl Player {
                 target: 0.0,
                 speed: 1.5, // rad/s
             },
+            journal_display,
+            journal: Journal::new(),
         }
     }
 
@@ -1278,6 +1310,7 @@ impl Player {
                 self.controller.aim = state == ElementState::Pressed;
                 if state == ElementState::Pressed {
                     scene.graph[self.inventory_display].set_visibility(false);
+                    scene.graph[self.journal_display].set_visibility(false);
                 }
             } else if button == control_scheme.move_forward.button {
                 self.controller.walk_forward = state == ElementState::Pressed;
@@ -1366,6 +1399,8 @@ impl Player {
                 && state == ElementState::Pressed
                 && !self.controller.aim
             {
+                scene.graph[self.journal_display].set_visibility(false);
+
                 let inventory = &mut scene.graph[self.inventory_display];
                 let new_visibility = !inventory.visibility();
                 inventory.set_visibility(new_visibility);
@@ -1374,6 +1409,22 @@ impl Player {
                         .as_ref()
                         .unwrap()
                         .send(Message::SyncInventory)
+                        .unwrap();
+                }
+            } else if button == control_scheme.journal.button
+                && state == ElementState::Pressed
+                && !self.controller.aim
+            {
+                scene.graph[self.inventory_display].set_visibility(false);
+
+                let journal = &mut scene.graph[self.journal_display];
+                let new_visibility = !journal.visibility();
+                journal.set_visibility(new_visibility);
+                if new_visibility {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SyncJournal)
                         .unwrap();
                 }
             }
@@ -1407,6 +1458,7 @@ impl Player {
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
+        journal_texture: Texture,
     ) {
         scene.graph[self.weapon_display]
             .as_mesh_mut()
@@ -1421,6 +1473,13 @@ impl Player {
             .first_mut()
             .unwrap()
             .set_diffuse_texture(Some(inventory_texture));
+
+        scene.graph[self.journal_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .set_diffuse_texture(Some(journal_texture));
 
         scene.graph[self.item_display]
             .as_sprite_mut()

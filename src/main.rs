@@ -25,6 +25,7 @@ pub mod utils;
 pub mod weapon;
 
 use crate::config::SoundConfig;
+use crate::gui::journal::JournalDisplay;
 use crate::level::lab::LabLevel;
 use crate::level::LevelKind;
 use crate::player::PlayerPersistentData;
@@ -174,6 +175,7 @@ pub struct Game {
     weapon_display: WeaponDisplay,
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
+    journal_display: JournalDisplay,
     // We're storing sound config separately because we can adjust sound
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
@@ -360,7 +362,8 @@ impl Game {
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
-            item_display: ItemDisplay::new(smaller_font),
+            item_display: ItemDisplay::new(smaller_font.clone()),
+            journal_display: JournalDisplay::new(),
             engine,
             level: None,
             debug_string: String::new(),
@@ -480,6 +483,14 @@ impl Game {
             )
             .unwrap();
 
+        self.engine
+            .renderer
+            .render_ui_to_texture(
+                self.journal_display.render_target.clone(),
+                &mut self.journal_display.ui,
+            )
+            .unwrap();
+
         self.engine.render(delta).unwrap();
     }
 
@@ -546,6 +557,7 @@ impl Game {
                 self.weapon_display.render_target.clone(),
                 self.inventory_interface.render_target.clone(),
                 self.item_display.render_target.clone(),
+                self.journal_display.render_target.clone(),
             );
         }
 
@@ -589,6 +601,7 @@ impl Game {
         let display_texture = self.weapon_display.render_target.clone();
         let inventory_texture = self.inventory_interface.render_target.clone();
         let item_texture = self.item_display.render_target.clone();
+        let journal_texture = self.journal_display.render_target.clone();
         let sound_config = self.sound_config.clone();
 
         std::thread::spawn(move || {
@@ -600,6 +613,7 @@ impl Game {
                         display_texture,
                         inventory_texture,
                         item_texture,
+                        journal_texture,
                         sound_config,
                         persistent_data,
                     )),
@@ -609,6 +623,7 @@ impl Game {
                         display_texture,
                         inventory_texture,
                         item_texture,
+                        journal_texture,
                         sound_config,
                         persistent_data,
                     )),
@@ -671,6 +686,7 @@ impl Game {
                 if player.is_some() {
                     if let Actor::Player(player) = level.actors().get(player) {
                         self.weapon_display.sync_to_model(player, level.weapons());
+                        self.journal_display.update(time.delta, &player.journal);
                     }
                 }
             }
@@ -681,6 +697,7 @@ impl Game {
         self.weapon_display.update(time.delta);
         self.inventory_interface.update(time.delta);
         self.item_display.update(time.delta);
+
         self.engine.update(time.delta);
 
         self.handle_messages(time);
@@ -692,7 +709,7 @@ impl Game {
         while let Ok(message) = self.events_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(LevelKind::Arrival, None);
+                    self.load_level(LevelKind::Lab, None);
                 }
                 Message::SaveGame => match self.save_game() {
                     Ok(_) => {
@@ -803,6 +820,13 @@ impl Game {
                         }
                     }
                 }
+                Message::SyncJournal => {
+                    if let Some(ref mut level) = self.level {
+                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
+                            self.journal_display.sync_to_model(&player.journal);
+                        }
+                    }
+                }
                 &Message::ShowItemDisplay { item, count } => {
                     self.item_display.sync_to_model(
                         self.engine.resource_manager.clone(),
@@ -896,6 +920,8 @@ impl Game {
                         player_handle,
                         player,
                     );
+                    self.journal_display
+                        .process_os_event(&event, &self.control_scheme);
                 }
             }
         }

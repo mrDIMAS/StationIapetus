@@ -38,6 +38,7 @@ use std::{
 
 pub mod inventory;
 pub mod item_display;
+pub mod journal;
 pub mod weapon_display;
 
 #[derive(Debug, Clone)]
