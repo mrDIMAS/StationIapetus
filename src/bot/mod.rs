@@ -1,12 +1,11 @@
-use crate::actor::TargetKind;
-use crate::inventory::{Inventory, ItemEntry};
 use crate::{
-    actor::{Actor, TargetDescriptor},
+    actor::{Actor, TargetDescriptor, TargetKind},
     bot::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
     character::{find_hit_boxes, Character},
+    inventory::{Inventory, ItemEntry},
     item::ItemKind,
     level::{footstep_ray_check, UpdateContext},
     message::Message,
@@ -14,7 +13,6 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, GameTime,
 };
-use rg3d::core::rand::seq::IteratorRandom;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -22,7 +20,7 @@ use rg3d::{
         color::Color,
         math::{frustum::Frustum, ray::Ray, SmoothAngle},
         pool::Handle,
-        rand::Rng,
+        rand::{seq::IteratorRandom, Rng},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -647,13 +645,18 @@ impl Bot {
 
             self.update_frustum(position, &context.scene.graph);
 
-            let was_damaged = self.character.health < self.last_health;
-            if was_damaged {
+            let was_injured = (self.character.health - self.last_health).abs() > 30.0;
+            if was_injured {
                 self.restoration_time = 0.8;
+                self.last_health = self.character.health;
             }
 
-            can_aim = self.restoration_time <= 0.0;
-            self.last_health = self.character.health;
+            can_aim = self.restoration_time <= 0.0
+                && self
+                    .inventory
+                    .items()
+                    .iter()
+                    .any(|i| i.kind.associated_weapon().is_some());
 
             if !self.is_dead() && !in_close_combat && self.target.is_some() {
                 let mut vel = (self.move_target - position).scale(1.0 / context.time.delta);
@@ -675,15 +678,7 @@ impl Bot {
                 {
                     let weapon = *weapon;
 
-                    let ammo_per_shot =
-                        context.weapons[weapon].definition.ammo_consumption_per_shot;
-
-                    if context.weapons[weapon].can_shoot(context.time)
-                        && self
-                            .inventory
-                            .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
-                            == ammo_per_shot
-                    {
+                    if context.weapons[weapon].can_shoot(context.time) {
                         sender
                             .send(Message::ShootWeapon {
                                 weapon,
@@ -705,7 +700,10 @@ impl Bot {
                     .get_mut(current_attack_animation)
                     .pop_event()
                 {
-                    if event.signal_id == UpperBodyMachine::HIT_SIGNAL && in_close_combat {
+                    if event.signal_id == UpperBodyMachine::HIT_SIGNAL
+                        && in_close_combat
+                        && !self.can_shoot()
+                    {
                         sender
                             .send(Message::DamageActor {
                                 actor: target.handle,

@@ -251,15 +251,17 @@ impl SoundManager {
                 if let Some(material) = material {
                     if let Some(map) = self.sound_base.material_to_sound.get(&material) {
                         if let Some(sound_list) = map.get(&sound_kind) {
-                            self.play_sound(
-                                sound_list.choose(&mut rand::thread_rng()).unwrap().as_ref(),
-                                position,
-                                gain,
-                                rolloff_factor,
-                                radius,
-                                resource_manager,
-                            )
-                            .await;
+                            if let Some(sound) = sound_list.choose(&mut rand::thread_rng()) {
+                                self.play_sound(
+                                    sound.as_ref(),
+                                    position,
+                                    gain,
+                                    rolloff_factor,
+                                    radius,
+                                    resource_manager,
+                                )
+                                .await;
+                            }
                         }
                     }
                 }

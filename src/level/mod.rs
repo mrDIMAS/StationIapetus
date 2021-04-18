@@ -398,12 +398,14 @@ pub async fn analyze(
                 rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Zombie,
                 spawned: false,
+                with_gun: false,
             })
         } else if name.starts_with("Mutant") {
             spawn_points.push(SpawnPoint {
                 position: node.global_position(),
                 rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Mutant,
+                with_gun: false,
                 spawned: false,
             })
         } else if name.starts_with("Parasite") {
@@ -412,6 +414,7 @@ pub async fn analyze(
                 rotation: **node.local_transform().rotation(),
                 bot_kind: BotKind::Parasite,
                 spawned: false,
+                with_gun: false,
             })
         } else if name.starts_with("PlayerSpawnPoint") {
             player_spawn_position = node.global_position();
@@ -473,6 +476,13 @@ pub async fn analyze(
                     .add(Turret::new(handle, scene, ShootMode::Consecutive, Hostility::All).await);
             }
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
+            "ZombieWithGun" => spawn_points.push(SpawnPoint {
+                position: node.global_position(),
+                rotation: **node.local_transform().rotation(),
+                bot_kind: BotKind::Zombie,
+                spawned: false,
+                with_gun: true,
+            }),
             _ => (),
         }
     }
@@ -585,6 +595,8 @@ async fn spawn_bot(
     resource_manager: ResourceManager,
     sender: Sender<Message>,
     scene: &mut Scene,
+    weapon: Option<WeaponKind>,
+    weapons: &mut WeaponContainer,
 ) -> Handle<Actor> {
     spawn_point.spawned = true;
 
@@ -593,11 +605,25 @@ async fn spawn_bot(
         spawn_point.position,
         spawn_point.rotation,
         actors,
-        resource_manager,
-        sender,
+        resource_manager.clone(),
+        sender.clone(),
         scene,
     )
     .await;
+
+    if let Some(weapon) = weapon {
+        give_new_weapon(
+            weapon,
+            bot,
+            sender.clone(),
+            resource_manager.clone(),
+            true,
+            weapons,
+            actors,
+            scene,
+        )
+        .await
+    }
 
     bot
 }
@@ -721,6 +747,12 @@ impl BaseLevel {
                 resource_manager.clone(),
                 sender.clone(),
                 &mut scene,
+                if pt.with_gun {
+                    Some(WeaponKind::Ak47)
+                } else {
+                    None
+                },
+                &mut weapons,
             )
             .await;
         }
@@ -1387,6 +1419,8 @@ impl BaseLevel {
                         engine.resource_manager.clone(),
                         self.sender.clone().unwrap(),
                         &mut engine.scenes[self.scene],
+                        None,
+                        &mut self.weapons,
                     )
                     .await;
                 }
@@ -1537,6 +1571,7 @@ pub struct SpawnPoint {
     rotation: UnitQuaternion<f32>,
     bot_kind: BotKind,
     spawned: bool,
+    with_gun: bool,
 }
 
 impl Default for SpawnPoint {
@@ -1546,6 +1581,7 @@ impl Default for SpawnPoint {
             rotation: Default::default(),
             bot_kind: BotKind::Zombie,
             spawned: false,
+            with_gun: false,
         }
     }
 }
@@ -1557,6 +1593,7 @@ impl Visit for SpawnPoint {
         self.position.visit("Position", visitor)?;
         self.rotation.visit("Rotation", visitor)?;
         self.spawned.visit("Spawned", visitor)?;
+        self.with_gun.visit("WithGun", visitor)?;
 
         let mut kind_id = self.bot_kind.id();
         kind_id.visit("BotKind", visitor)?;

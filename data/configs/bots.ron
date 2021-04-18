@@ -23,7 +23,7 @@
             spine: "", // Empty because cannot use weapons.
             walk_speed: 0.7,
             scale: 1.0,
-            weapon_scale: 1.0,
+            weapon_scale: 130.0,
             health: 1000.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
@@ -72,7 +72,7 @@
             spine: "", // Empty because cannot use weapons.
             walk_speed: 2.8,
             scale: 1.0,
-            weapon_scale: 1.0,
+            weapon_scale: 130.0,
             health: 300.0,
             v_aim_angle_hack: 0.0,
             can_use_weapons: false,
@@ -120,10 +120,10 @@
             spine: "Spine",
             walk_speed: 1.2,
             scale: 1.0,
-            weapon_scale: 1.0,
+            weapon_scale: 130.0,
             health: 100.0,
             v_aim_angle_hack: 12.0,
-            can_use_weapons: false,
+            can_use_weapons: true,
             close_combat_distance: 0.5,
             pain_sounds: [
                 "data/sounds/zombie_pain_1.wav",
