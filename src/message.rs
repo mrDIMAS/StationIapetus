@@ -144,6 +144,7 @@ pub enum Message {
     LoadNextLevel,
     ToggleMainMenu,
     EndMatch,
+    EndGame,
     SyncInventory,
     SyncJournal,
     ShowItemDisplay {

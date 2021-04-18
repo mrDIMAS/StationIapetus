@@ -10,6 +10,7 @@ use std::sync::mpsc::Sender;
 
 pub enum TriggerKind {
     NextLevel,
+    EndGame,
 }
 
 impl Default for TriggerKind {
@@ -33,12 +34,14 @@ impl TriggerKind {
     fn id(&self) -> u32 {
         match self {
             TriggerKind::NextLevel => 0,
+            TriggerKind::EndGame => 1,
         }
     }
 
     fn from_id(id: u32) -> Result<Self, String> {
         match id {
             0 => Ok(Self::NextLevel),
+            1 => Ok(Self::EndGame),
             _ => Err(format!("Invalid trigger id {}!", id)),
         }
     }
@@ -101,6 +104,7 @@ impl TriggerContainer {
                 if actor_position.metric_distance(&position) < 1.0 {
                     match trigger.kind {
                         TriggerKind::NextLevel => sender.send(Message::LoadNextLevel).unwrap(),
+                        TriggerKind::EndGame => sender.send(Message::EndGame).unwrap(),
                     }
                 }
             }

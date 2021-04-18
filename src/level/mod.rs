@@ -476,6 +476,7 @@ pub async fn analyze(
                     .add(Turret::new(handle, scene, ShootMode::Consecutive, Hostility::All).await);
             }
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
+            "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
             "ZombieWithGun" => spawn_points.push(SpawnPoint {
                 position: node.global_position(),
                 rotation: **node.local_transform().rotation(),

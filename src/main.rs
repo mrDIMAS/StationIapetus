@@ -26,6 +26,7 @@ pub mod weapon;
 
 use crate::config::SoundConfig;
 use crate::gui::journal::JournalDisplay;
+use crate::gui::FinalScreen;
 use crate::level::lab::LabLevel;
 use crate::level::LevelKind;
 use crate::player::PlayerPersistentData;
@@ -172,6 +173,7 @@ pub struct Game {
     load_context: Option<Arc<Mutex<LoadContext>>>,
     loading_screen: LoadingScreen,
     death_screen: DeathScreen,
+    final_screen: FinalScreen,
     weapon_display: WeaponDisplay,
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
@@ -359,6 +361,7 @@ impl Game {
                 &sound_config,
             )),
             death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
+            final_screen: FinalScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
@@ -417,6 +420,21 @@ impl Game {
                     }
                     WindowEvent::Resized(new_size) => {
                         game.engine.renderer.set_frame_size(new_size.into());
+
+                        game.engine
+                            .user_interface
+                            .send_message(WidgetMessage::width(
+                                game.loading_screen.root,
+                                MessageDirection::ToWidget,
+                                new_size.width as f32,
+                            ));
+                        game.engine
+                            .user_interface
+                            .send_message(WidgetMessage::height(
+                                game.loading_screen.root,
+                                MessageDirection::ToWidget,
+                                new_size.height as f32,
+                            ));
                     }
                     _ => (),
                 },
@@ -442,6 +460,7 @@ impl Game {
         );
 
         self.death_screen.handle_ui_message(message);
+        self.final_screen.handle_ui_message(message);
 
         if matches!(message.data(), UiMessageData::Button(ButtonMessage::Click))
             || (matches!(
@@ -548,6 +567,8 @@ impl Game {
         self.set_menu_visible(false);
         self.death_screen
             .set_visible(&self.engine.user_interface, false);
+        self.final_screen
+            .set_visible(&self.engine.user_interface, false);
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
@@ -641,6 +662,7 @@ impl Game {
     pub fn is_any_menu_visible(&self) -> bool {
         self.menu.is_visible(&self.engine.user_interface)
             || self.death_screen.is_visible(&self.engine.user_interface)
+            || self.final_screen.is_visible(&self.engine.user_interface)
     }
 
     pub fn update(&mut self, time: GameTime) {
@@ -709,7 +731,7 @@ impl Game {
         while let Ok(message) = self.events_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(LevelKind::Lab, None);
+                    self.load_level(LevelKind::Arrival, None);
                 }
                 Message::SaveGame => match self.save_game() {
                     Ok(_) => {
@@ -756,6 +778,12 @@ impl Game {
                 Message::EndMatch => {
                     self.destroy_level();
                     self.death_screen
+                        .set_visible(&self.engine.user_interface, true);
+                    self.menu.sync_to_model(&mut self.engine, false);
+                }
+                Message::EndGame => {
+                    self.destroy_level();
+                    self.final_screen
                         .set_visible(&self.engine.user_interface, true);
                     self.menu.sync_to_model(&mut self.engine, false);
                 }
@@ -810,6 +838,8 @@ impl Game {
                 Message::ToggleMainMenu => {
                     self.menu.set_visible(&mut self.engine, true);
                     self.death_screen
+                        .set_visible(&self.engine.user_interface, false);
+                    self.final_screen
                         .set_visible(&self.engine.user_interface, false);
                 }
                 Message::SyncInventory => {

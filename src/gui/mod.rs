@@ -296,3 +296,107 @@ impl DeathScreen {
         ui.node(self.root).visibility()
     }
 }
+
+pub struct FinalScreen {
+    root: Handle<UiNode>,
+    exit_to_menu: Handle<UiNode>,
+    exit_game: Handle<UiNode>,
+    sender: Sender<Message>,
+}
+
+impl FinalScreen {
+    pub fn new(ui: &mut Gui, font: SharedFont, sender: Sender<Message>) -> Self {
+        let exit_to_menu;
+        let exit_game;
+        let root = BorderBuilder::new(
+            WidgetBuilder::new()
+                .with_visibility(false)
+                .with_width(ui.screen_size().x)
+                .with_height(ui.screen_size().y)
+                .with_background(Brush::Solid(Color::opaque(40, 40, 40)))
+                .with_child(
+                    GridBuilder::new(
+                        WidgetBuilder::new()
+                            .with_child(
+                                TextBuilder::new(
+                                    WidgetBuilder::new()
+                                        .with_foreground(Brush::Solid(Color::opaque(255, 255, 255)))
+                                        .on_row(0)
+                                        .on_column(0)
+                                        .with_horizontal_alignment(HorizontalAlignment::Center)
+                                        .with_vertical_alignment(VerticalAlignment::Bottom),
+                                )
+                                .with_text("Thanks for playing demo version of the game!")
+                                .with_font(font.clone())
+                                .build(&mut ui.build_ctx()),
+                            )
+                            .with_child(
+                                StackPanelBuilder::new(
+                                    WidgetBuilder::new()
+                                        .with_vertical_alignment(VerticalAlignment::Top)
+                                        .on_row(1)
+                                        .on_column(0)
+                                        .with_child({
+                                            exit_to_menu = ButtonBuilder::new(
+                                                WidgetBuilder::new()
+                                                    .with_width(300.0)
+                                                    .with_margin(Thickness::uniform(2.0)),
+                                            )
+                                            .with_text("Exit To Menu")
+                                            .with_font(font.clone())
+                                            .build(&mut ui.build_ctx());
+                                            exit_to_menu
+                                        })
+                                        .with_child({
+                                            exit_game = ButtonBuilder::new(
+                                                WidgetBuilder::new()
+                                                    .with_margin(Thickness::uniform(2.0))
+                                                    .with_width(300.0),
+                                            )
+                                            .with_text("Exit Game")
+                                            .with_font(font)
+                                            .build(&mut ui.build_ctx());
+                                            exit_game
+                                        }),
+                                )
+                                .build(&mut ui.build_ctx()),
+                            ),
+                    )
+                    .add_row(Row::stretch())
+                    .add_row(Row::stretch())
+                    .add_column(Column::stretch())
+                    .build(&mut ui.build_ctx()),
+                ),
+        )
+        .build(&mut ui.build_ctx());
+
+        Self {
+            root,
+            exit_to_menu,
+            exit_game,
+            sender,
+        }
+    }
+
+    pub fn handle_ui_message(&mut self, message: &GuiMessage) {
+        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+            if message.destination() == self.exit_to_menu {
+                self.sender.send(Message::ToggleMainMenu).unwrap();
+            } else if message.destination() == self.exit_game {
+                self.sender.send(Message::QuitGame).unwrap();
+            }
+        }
+    }
+
+    pub fn set_visible(&self, ui: &Gui, state: bool) {
+        ui.send_message(WidgetMessage::visibility(
+            self.root,
+            MessageDirection::ToWidget,
+            state,
+        ));
+    }
+
+    pub fn is_visible(&self, ui: &Gui) -> bool {
+        ui.node(self.root).visibility()
+    }
+}
