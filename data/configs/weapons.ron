@@ -53,7 +53,7 @@
                 "data/sounds/glock_shot_3.wav"
             ],
             projectile: Ray(damage: Point(10.0)),
-            shoot_interval: 0.15,
+            shoot_interval: 0.21,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),
