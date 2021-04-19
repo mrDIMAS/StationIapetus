@@ -583,6 +583,7 @@ impl Game {
         }
 
         self.time.elapsed = self.time.clock.elapsed().as_secs_f64();
+        self.menu.sync_to_model(&mut self.engine, true);
 
         Ok(())
     }

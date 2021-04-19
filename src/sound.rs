@@ -1,4 +1,5 @@
 use crate::message::Message;
+use rg3d::utils::log::{Log, MessageKind};
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -171,28 +172,31 @@ impl SoundManager {
         radius: f32,
         resource_manager: ResourceManager,
     ) {
-        let buffer = resource_manager
-            .request_sound_buffer(path, false)
-            .await
-            .unwrap();
-        let shot_sound = SpatialSourceBuilder::new(
-            GenericSourceBuilder::new(buffer.into())
-                .with_status(Status::Playing)
-                .with_play_once(true)
-                .with_gain(gain)
-                .build()
-                .unwrap(),
-        )
-        .with_position(position)
-        .with_radius(radius)
-        .with_rolloff_factor(rolloff_factor)
-        .build_source();
+        if let Ok(buffer) = resource_manager.request_sound_buffer(path, false).await {
+            let shot_sound = SpatialSourceBuilder::new(
+                GenericSourceBuilder::new(buffer.into())
+                    .with_status(Status::Playing)
+                    .with_play_once(true)
+                    .with_gain(gain)
+                    .build()
+                    .unwrap(),
+            )
+            .with_position(position)
+            .with_radius(radius)
+            .with_rolloff_factor(rolloff_factor)
+            .build_source();
 
-        let mut state = self.context.state();
-        let source = state.add_source(shot_sound);
-        state
-            .effect_mut(self.reverb)
-            .add_input(EffectInput::direct(source));
+            let mut state = self.context.state();
+            let source = state.add_source(shot_sound);
+            state
+                .effect_mut(self.reverb)
+                .add_input(EffectInput::direct(source));
+        } else {
+            Log::writeln(
+                MessageKind::Error,
+                format!("Unable to play sound {:?}", path),
+            );
+        }
     }
 
     pub async fn handle_message(&mut self, resource_manager: ResourceManager, message: &Message) {

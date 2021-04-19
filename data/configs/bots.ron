@@ -40,6 +40,9 @@
                 "data/sounds/mutant_idle_2.wav",
                 "data/sounds/mutant_idle_3.wav",
             ],
+            attack_sounds: [
+                "data/sounds/zombie_attack.ogg",
+            ],
             hostility: Everyone,
         ),
         Parasite: (
@@ -88,6 +91,9 @@
                 "data/sounds/parasite_idle_1.wav",
                 "data/sounds/parasite_idle_2.wav",
             ],
+            attack_sounds: [
+                "data/sounds/parasite_attack_1.ogg",
+            ],
             hostility: OtherSpecies,
         ),
         Zombie: (
@@ -129,6 +135,9 @@
                 "data/sounds/zombie_pain_1.wav",
                 "data/sounds/zombie_pain_2.wav",
                 "data/sounds/zombie_pain_3.wav",
+            ],
+            attack_sounds: [
+                "data/sounds/zombie_attack.ogg",
             ],
             scream_sounds: [],
             idle_sounds: [],

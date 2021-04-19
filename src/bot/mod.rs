@@ -219,6 +219,7 @@ pub struct BotDefinition {
     pub pain_sounds: Vec<String>,
     pub scream_sounds: Vec<String>,
     pub idle_sounds: Vec<String>,
+    pub attack_sounds: Vec<String>,
     pub hostility: BotHostility,
 
     // Animations.
@@ -714,6 +715,23 @@ impl Bot {
                                     .amount(),
                             })
                             .unwrap();
+
+                        if let Some(attack_sound) = self
+                            .definition
+                            .attack_sounds
+                            .iter()
+                            .choose(&mut rg3d::rand::thread_rng())
+                        {
+                            sender
+                                .send(Message::PlaySound {
+                                    path: attack_sound.clone().into(),
+                                    position,
+                                    gain: 1.0,
+                                    rolloff_factor: 1.0,
+                                    radius: 1.0,
+                                })
+                                .unwrap();
+                        }
                     }
                 }
             }

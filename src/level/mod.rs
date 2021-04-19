@@ -1011,14 +1011,14 @@ impl BaseLevel {
                         }
                     }
                     if found {
-                        character.inventory_mut().add_item(ItemKind::Ammo, 20);
+                        character.inventory_mut().add_item(ItemKind::Ammo, 24);
                     } else {
                         // Finally if actor does not have such weapon, give new one to him.
                         self.give_new_weapon(engine, actor, weapon_kind).await;
                     }
                 }
                 ItemKind::Ammo => {
-                    character.inventory_mut().add_item(ItemKind::Ammo, 20);
+                    character.inventory_mut().add_item(ItemKind::Ammo, 24);
                 }
                 ItemKind::Grenade => {
                     character.inventory_mut().add_item(ItemKind::Grenade, 1);
