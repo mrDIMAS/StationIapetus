@@ -118,6 +118,12 @@ pub struct JournalDisplay {
     current_message: Option<usize>,
 }
 
+impl Default for JournalDisplay {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl JournalDisplay {
     pub const WIDTH: f32 = 400.0;
     pub const HEIGHT: f32 = 300.0;
@@ -232,7 +238,7 @@ impl JournalDisplay {
                         self.ui.send_message(ListViewMessage::selection(
                             self.messages,
                             MessageDirection::ToWidget,
-                            self.current_message.clone(),
+                            self.current_message
                         ));
                     }
                 }
@@ -245,7 +251,7 @@ impl JournalDisplay {
                         self.ui.send_message(ListViewMessage::selection(
                             self.messages,
                             MessageDirection::ToWidget,
-                            self.current_message.clone(),
+                            self.current_message,
                         ));
                     }
                 }

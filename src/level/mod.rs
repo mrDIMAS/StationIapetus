@@ -1,10 +1,9 @@
-use crate::door::DoorDirection;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
     config::SoundConfig,
     control_scheme::ControlScheme,
-    door::{Door, DoorContainer, DoorState},
+    door::{Door, DoorContainer, DoorDirection, DoorState},
     effects::{self, EffectKind},
     item::{Item, ItemContainer, ItemKind},
     level::{
@@ -1292,7 +1291,7 @@ impl BaseLevel {
             let dir = hit.position - begin;
 
             if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider) {
-                let body_handle = collider_parent.clone();
+                let body_handle = *collider_parent;
                 scene
                     .physics
                     .body_mut(&body_handle)
@@ -1311,7 +1310,7 @@ impl BaseLevel {
                     let body = scene.physics.collider_parent(&hit.collider).unwrap();
                     actor
                         .impact_handler
-                        .handle_impact(scene, body.clone(), hit.position, dir);
+                        .handle_impact(scene, *body, hit.position, dir);
                 }
             }
 

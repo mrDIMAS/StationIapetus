@@ -1,15 +1,14 @@
-use crate::gui::journal::Journal;
-use crate::item::ItemContainer;
-use crate::player::camera::CameraController;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
     control_scheme::{ControlButton, ControlScheme},
+    gui::journal::Journal,
     inventory::Inventory,
-    item::ItemKind,
+    item::{ItemContainer, ItemKind},
     level::UpdateContext,
     message::Message,
     player::{
+        camera::CameraController,
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
@@ -1284,8 +1283,13 @@ impl Player {
                 DeviceEvent::MouseMotion { delta } => {
                     let mouse_sens = control_scheme.mouse_sens * dt;
                     self.controller.yaw -= (delta.0 as f32) * mouse_sens;
-                    let pitch_direction = if  control_scheme.mouse_y_inverse { -1.0 } else { 1.0 };
-                    self.controller.pitch = (self.controller.pitch + pitch_direction * (delta.1 as f32) * mouse_sens)
+                    let pitch_direction = if control_scheme.mouse_y_inverse {
+                        -1.0
+                    } else {
+                        1.0
+                    };
+                    self.controller.pitch = (self.controller.pitch
+                        + pitch_direction * (delta.1 as f32) * mouse_sens)
                         .max(-90.0f32.to_radians())
                         .min(90.0f32.to_radians());
                     None

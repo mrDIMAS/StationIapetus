@@ -1,13 +1,11 @@
-use crate::player::PlayerPersistentData;
-/// First level. Player just arrived to the station and start seeing weird things.
 use crate::{
-    config::SoundConfig,
-    level::{BaseLevel, Level},
-    message::Message,
+    config::SoundConfig, level::BaseLevel, message::Message, player::PlayerPersistentData,
 };
-use rg3d::core::color::Color;
 use rg3d::{
-    core::visitor::{Visit, VisitResult, Visitor},
+    core::{
+        color::Color,
+        visitor::{Visit, VisitResult, Visitor},
+    },
     engine::resource_manager::ResourceManager,
     resource::texture::Texture,
     scene::Scene,
@@ -16,6 +14,8 @@ use std::{
     ops::{Deref, DerefMut},
     sync::mpsc::Sender,
 };
+
+/// First level. Player just arrived to the station and start seeing weird things.
 
 #[derive(Default)]
 pub struct ArrivalLevel {
@@ -56,7 +56,7 @@ impl ArrivalLevel {
         journal_texture: Texture,
         sound_config: SoundConfig,
         persistent_data: Option<PlayerPersistentData>,
-    ) -> (Level, Scene) {
+    ) -> (Self, Scene) {
         let (base_level, mut scene) = BaseLevel::new(
             "data/levels/arrival.rgs",
             resource_manager,
@@ -72,6 +72,6 @@ impl ArrivalLevel {
 
         scene.ambient_lighting_color = Color::opaque(35, 35, 35);
 
-        (Level::Arrival(Self { level: base_level }), scene)
+        (Self { level: base_level }, scene)
     }
 }

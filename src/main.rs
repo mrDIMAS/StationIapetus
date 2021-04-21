@@ -24,24 +24,20 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
-use crate::config::SoundConfig;
-use crate::gui::journal::JournalDisplay;
-use crate::gui::FinalScreen;
-use crate::level::lab::LabLevel;
-use crate::level::LevelKind;
-use crate::player::PlayerPersistentData;
-use crate::utils::use_hrtf;
 use crate::{
     actor::Actor,
-    config::Config,
+    config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     gui::{
-        inventory::InventoryInterface, item_display::ItemDisplay, weapon_display::WeaponDisplay,
-        BuildContext, CustomUiMessage, CustomUiNode, DeathScreen, GuiMessage, UiNode, UiNodeHandle,
+        inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
+        weapon_display::WeaponDisplay, BuildContext, CustomUiMessage, CustomUiNode, DeathScreen,
+        FinalScreen, GuiMessage, UiNode, UiNodeHandle,
     },
-    level::{arrival::ArrivalLevel, Level},
+    level::{arrival::ArrivalLevel, lab::LabLevel, Level, LevelKind},
     menu::Menu,
     message::Message,
+    player::PlayerPersistentData,
+    utils::use_hrtf,
 };
 use rg3d::{
     animation::{
@@ -365,7 +361,7 @@ impl Game {
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
-            item_display: ItemDisplay::new(smaller_font.clone()),
+            item_display: ItemDisplay::new(smaller_font),
             journal_display: JournalDisplay::new(),
             engine,
             level: None,
@@ -629,26 +625,33 @@ impl Game {
         std::thread::spawn(move || {
             let level = {
                 match level_kind {
-                    LevelKind::Arrival => rg3d::futures::executor::block_on(ArrivalLevel::new(
-                        resource_manager,
-                        sender,
-                        display_texture,
-                        inventory_texture,
-                        item_texture,
-                        journal_texture,
-                        sound_config,
-                        persistent_data,
-                    )),
-                    LevelKind::Lab => rg3d::futures::executor::block_on(LabLevel::new(
-                        resource_manager,
-                        sender,
-                        display_texture,
-                        inventory_texture,
-                        item_texture,
-                        journal_texture,
-                        sound_config,
-                        persistent_data,
-                    )),
+                    LevelKind::Arrival => {
+                        let (arrival, scene) =
+                            rg3d::futures::executor::block_on(ArrivalLevel::new(
+                                resource_manager,
+                                sender,
+                                display_texture,
+                                inventory_texture,
+                                item_texture,
+                                journal_texture,
+                                sound_config,
+                                persistent_data,
+                            ));
+                        (Level::Arrival(arrival), scene)
+                    }
+                    LevelKind::Lab => {
+                        let (lab, scene) = rg3d::futures::executor::block_on(LabLevel::new(
+                            resource_manager,
+                            sender,
+                            display_texture,
+                            inventory_texture,
+                            item_texture,
+                            journal_texture,
+                            sound_config,
+                            persistent_data,
+                        ));
+                        (Level::Lab(lab), scene)
+                    }
                 }
             };
 

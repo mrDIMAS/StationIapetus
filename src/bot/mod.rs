@@ -422,19 +422,13 @@ impl Bot {
         let mut query_buffer = Vec::default();
         'target_loop: for desc in targets.iter().filter(|desc| desc.handle != self_handle) {
             match self.definition.hostility {
-                BotHostility::OtherSpecies => match desc.kind {
-                    TargetKind::Bot(kind) => {
-                        if kind == self.kind {
-                            continue 'target_loop;
-                        }
-                    }
-                    _ => (),
-                },
-                BotHostility::Player => match desc.kind {
-                    TargetKind::Bot(_) => {
+                BotHostility::OtherSpecies => if let TargetKind::Bot(kind) = desc.kind {
+                    if kind == self.kind {
                         continue 'target_loop;
                     }
-                    _ => (),
+                },
+                BotHostility::Player => if let TargetKind::Bot(_) = desc.kind {
+                    continue 'target_loop;
                 },
                 BotHostility::Everyone => {}
             }
