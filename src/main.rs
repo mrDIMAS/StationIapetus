@@ -262,20 +262,20 @@ impl Game {
         };
 
         let font = SharedFont(Arc::new(Mutex::new(
-            Font::from_file(
+            rg3d::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 31.0,
                 Font::default_char_set(),
-            )
+            ))
             .unwrap(),
         )));
 
         let smaller_font = SharedFont(Arc::new(Mutex::new(
-            Font::from_file(
+            rg3d::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 20.0,
                 Font::default_char_set(),
-            )
+            ))
             .unwrap(),
         )));
 
@@ -541,7 +541,8 @@ impl Game {
             "Attempting load a save...".to_owned(),
         );
 
-        let mut visitor = Visitor::load_binary(Path::new("save.bin"))?;
+        let mut visitor =
+            rg3d::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
 
         // Clean up.
         self.destroy_level();
