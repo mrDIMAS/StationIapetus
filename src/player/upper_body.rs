@@ -179,7 +179,7 @@ impl UpperBodyMachine {
             dying_animation_resource,
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
-        ) = rg3d::futures::join!(
+        ) = rg3d::core::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
             resource_manager.request_model("data/animations/agent_jump.fbx"),

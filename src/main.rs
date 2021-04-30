@@ -118,7 +118,7 @@ impl ModelMap {
         I::Item: AsRef<Path>,
     {
         Self {
-            map: rg3d::futures::future::join_all(
+            map: rg3d::core::futures::future::join_all(
                 paths
                     .into_iter()
                     .map(|path| resource_manager.request_model(path))
@@ -262,7 +262,7 @@ impl Game {
         };
 
         let font = SharedFont(Arc::new(Mutex::new(
-            rg3d::futures::executor::block_on(Font::from_file(
+            rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 31.0,
                 Font::default_char_set(),
@@ -271,7 +271,7 @@ impl Game {
         )));
 
         let smaller_font = SharedFont(Arc::new(Mutex::new(
-            rg3d::futures::executor::block_on(Font::from_file(
+            rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 20.0,
                 Font::default_char_set(),
@@ -348,7 +348,7 @@ impl Game {
                 inner_size.height,
             ),
             running: true,
-            menu: rg3d::futures::executor::block_on(Menu::new(
+            menu: rg3d::core::futures::executor::block_on(Menu::new(
                 &mut engine,
                 &control_scheme,
                 tx.clone(),
@@ -542,7 +542,7 @@ impl Game {
         );
 
         let mut visitor =
-            rg3d::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
+            rg3d::core::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
 
         // Clean up.
         self.destroy_level();
@@ -628,7 +628,7 @@ impl Game {
                 match level_kind {
                     LevelKind::Arrival => {
                         let (arrival, scene) =
-                            rg3d::futures::executor::block_on(ArrivalLevel::new(
+                            rg3d::core::futures::executor::block_on(ArrivalLevel::new(
                                 resource_manager,
                                 sender,
                                 display_texture,
@@ -641,7 +641,7 @@ impl Game {
                         (Level::Arrival(arrival), scene)
                     }
                     LevelKind::Lab => {
-                        let (lab, scene) = rg3d::futures::executor::block_on(LabLevel::new(
+                        let (lab, scene) = rg3d::core::futures::executor::block_on(LabLevel::new(
                             resource_manager,
                             sender,
                             display_texture,
@@ -870,7 +870,7 @@ impl Game {
                     );
                 }
                 Message::Play2DSound { path, gain } => {
-                    if let Ok(buffer) = rg3d::futures::executor::block_on(
+                    if let Ok(buffer) = rg3d::core::futures::executor::block_on(
                         self.engine
                             .resource_manager
                             .request_sound_buffer(path, false),
@@ -892,7 +892,7 @@ impl Game {
             }
 
             if let Some(ref mut level) = self.level {
-                rg3d::futures::executor::block_on(level.handle_message(
+                rg3d::core::futures::executor::block_on(level.handle_message(
                     &mut self.engine,
                     &message,
                     time,
