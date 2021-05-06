@@ -1,5 +1,6 @@
 use crate::utils::create_camera;
 use crate::GameTime;
+use rg3d::sound::context::SoundContext;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -18,7 +19,6 @@ use rg3d::{
         transform::TransformBuilder,
         ColliderHandle, Scene,
     },
-    sound,
 };
 
 #[derive(Default)]
@@ -169,7 +169,7 @@ impl CameraController {
         }
     }
 
-    fn update_listener(&self, graph: &Graph, context: sound::context::Context) {
+    fn update_listener(&self, graph: &Graph, context: SoundContext) {
         let mut sound_context = context.state();
         let listener = sound_context.listener_mut();
         let camera = &graph[self.camera];

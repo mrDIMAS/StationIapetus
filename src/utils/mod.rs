@@ -6,6 +6,7 @@ use rg3d::scene::camera::{CameraBuilder, SkyBox};
 use rg3d::scene::graph::Graph;
 use rg3d::scene::node::Node;
 use rg3d::scene::transform::TransformBuilder;
+use rg3d::sound::context::SoundContext;
 use rg3d::{
     core::algebra::{Point3, Unit, UnitQuaternion, Vector3},
     scene::{RigidBodyHandle, Scene},
@@ -124,7 +125,7 @@ pub async fn create_camera(
     .build(graph)
 }
 
-pub fn use_hrtf(context: sound::context::Context) {
+pub fn use_hrtf(context: SoundContext) {
     let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
         "data/sounds/hrtf.bin",
         sound::context::SAMPLE_RATE,

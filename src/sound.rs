@@ -11,7 +11,7 @@ use rg3d::{
     rand::{self, seq::SliceRandom},
     scene::{node::Node, ColliderHandle, Scene},
     sound::{
-        context::Context,
+        context::SoundContext,
         effects::{BaseEffect, Effect, EffectInput},
         source::{generic::GenericSourceBuilder, spatial::SpatialSourceBuilder, Status},
     },
@@ -135,14 +135,14 @@ impl SoundMap {
 
 #[derive(Default)]
 pub struct SoundManager {
-    context: Context,
+    context: SoundContext,
     reverb: Handle<Effect>,
     sound_base: SoundBase,
     sound_map: SoundMap,
 }
 
 impl SoundManager {
-    pub fn new(context: Context, scene: &Scene) -> Self {
+    pub fn new(context: SoundContext, scene: &Scene) -> Self {
         let mut base_effect = BaseEffect::default();
         base_effect.set_gain(0.7);
         let mut reverb = rg3d::sound::effects::reverb::Reverb::new(base_effect);
