@@ -35,6 +35,7 @@ use rg3d::{
         VecExtensions,
     },
     engine::resource_manager::ResourceManager,
+    engine::ColliderHandle,
     event::Event,
     physics::{
         crossbeam,
@@ -51,7 +52,7 @@ use rg3d::{
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
-        ColliderHandle, Scene,
+        Scene,
     },
     utils::navmesh::Navmesh,
 };

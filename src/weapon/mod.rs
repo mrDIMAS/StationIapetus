@@ -19,6 +19,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    engine::ColliderHandle,
     lazy_static::lazy_static,
     physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
@@ -31,7 +32,7 @@ use rg3d::{
         node::Node,
         physics::{Physics, RayCastOptions},
         sprite::SpriteBuilder,
-        ColliderHandle, Scene,
+        Scene,
     },
     utils::{
         self,

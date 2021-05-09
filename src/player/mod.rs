@@ -36,6 +36,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    engine::ColliderHandle,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     physics::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder},
@@ -49,7 +50,7 @@ use rg3d::{
         node::Node,
         sprite::SpriteBuilder,
         transform::TransformBuilder,
-        ColliderHandle, Scene,
+        Scene,
     },
 };
 use std::{

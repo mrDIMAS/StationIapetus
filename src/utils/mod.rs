@@ -1,16 +1,19 @@
-use rg3d::core::pool::Handle;
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::resource::texture::TextureWrapMode;
-use rg3d::scene::base::BaseBuilder;
-use rg3d::scene::camera::{CameraBuilder, SkyBox};
-use rg3d::scene::graph::Graph;
-use rg3d::scene::node::Node;
-use rg3d::scene::transform::TransformBuilder;
-use rg3d::sound::context::SoundContext;
 use rg3d::{
-    core::algebra::{Point3, Unit, UnitQuaternion, Vector3},
-    scene::{RigidBodyHandle, Scene},
-    sound,
+    core::{
+        algebra::{Point3, Unit, UnitQuaternion, Vector3},
+        pool::Handle,
+    },
+    engine::{resource_manager::ResourceManager, RigidBodyHandle},
+    resource::texture::TextureWrapMode,
+    scene::{
+        base::BaseBuilder,
+        camera::{CameraBuilder, SkyBox},
+        graph::Graph,
+        node::Node,
+        transform::TransformBuilder,
+        Scene,
+    },
+    sound::{self, context::SoundContext},
 };
 use std::collections::HashMap;
 

@@ -18,7 +18,8 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    scene::{node::Node, ColliderHandle, Scene},
+    engine::ColliderHandle,
+    scene::{node::Node, Scene},
 };
 use std::sync::mpsc::Sender;
 

@@ -18,6 +18,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    engine::{ColliderHandle, RigidBodyHandle},
     lazy_static::lazy_static,
     physics::{
         dynamics::{BodyStatus, RigidBodyBuilder},
@@ -31,7 +32,7 @@ use rg3d::{
         light::{BaseLightBuilder, PointLightBuilder},
         node::Node,
         sprite::SpriteBuilder,
-        ColliderHandle, RigidBodyHandle, Scene,
+        Scene,
     },
 };
 use serde::Deserialize;

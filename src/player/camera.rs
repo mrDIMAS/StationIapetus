@@ -10,6 +10,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    engine::ColliderHandle,
     rand,
     scene::{
         base::BaseBuilder,
@@ -17,7 +18,7 @@ use rg3d::{
         node::Node,
         physics::{Intersection, RayCastOptions},
         transform::TransformBuilder,
-        ColliderHandle, Scene,
+        Scene,
     },
 };
 

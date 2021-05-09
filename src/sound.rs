@@ -7,9 +7,10 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    engine::ColliderHandle,
     physics::geometry::FeatureId,
     rand::{self, seq::SliceRandom},
-    scene::{node::Node, ColliderHandle, Scene},
+    scene::{node::Node, Scene},
     sound::{
         context::SoundContext,
         effects::{BaseEffect, Effect, EffectInput},

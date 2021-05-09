@@ -3,14 +3,14 @@ use crate::{
     message::Message,
     weapon::{Weapon, WeaponContainer, WeaponKind},
 };
-use rg3d::scene::ColliderHandle;
 use rg3d::{
     core::{
         algebra::Vector3,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    scene::{graph::Graph, node::Node, physics::Physics, RigidBodyHandle, Scene},
+    engine::{ColliderHandle, RigidBodyHandle},
+    scene::{graph::Graph, node::Node, physics::Physics, Scene},
 };
 use std::sync::mpsc::Sender;
 
