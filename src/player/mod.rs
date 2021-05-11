@@ -18,6 +18,8 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::core::algebra::Translation3;
+use rg3d::core::math::UnitQuaternionExt;
 use rg3d::{
     animation::{
         machine::{
@@ -347,6 +349,7 @@ impl Player {
         scene: &mut Scene,
         resource_manager: ResourceManager,
         position: Vector3<f32>,
+        orientation: UnitQuaternion<f32>,
         sender: Sender<Message>,
         display_texture: Texture,
         inventory_texture: Texture,
@@ -385,7 +388,10 @@ impl Player {
         let body = scene.physics.add_body(
             RigidBodyBuilder::new_dynamic()
                 .lock_rotations()
-                .position(Isometry3::new(position, Default::default()))
+                .position(Isometry3 {
+                    translation: Translation3 { vector: position },
+                    rotation: orientation,
+                })
                 .build(),
         );
         let collider = scene.physics.add_collider(capsule, &body);
@@ -548,7 +554,10 @@ impl Player {
             inventory_display,
             weapon_origin,
             model: model_handle,
-            controller: Default::default(),
+            controller: InputController {
+                yaw: orientation.to_euler().y,
+                ..Default::default()
+            },
             lower_body_machine: locomotion_machine,
             health_cylinder,
             upper_body_machine: combat_machine,

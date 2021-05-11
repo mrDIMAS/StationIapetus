@@ -322,6 +322,7 @@ pub struct AnalysisResult {
     death_zones: Vec<DeathZone>,
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
+    player_spawn_orientation: UnitQuaternion<f32>,
     doors: DoorContainer,
     lights: LightContainer,
     turrets: TurretContainer,
@@ -385,6 +386,7 @@ pub async fn analyze(
     let mut spawn_points = Vec::new();
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
+    let mut player_spawn_orientation = Default::default();
     let mut turrets = TurretContainer::default();
     let mut triggers = TriggerContainer::default();
 
@@ -418,6 +420,7 @@ pub async fn analyze(
             })
         } else if name.starts_with("PlayerSpawnPoint") {
             player_spawn_position = node.global_position();
+            player_spawn_orientation = scene.graph.global_rotation(handle);
         } else if name.starts_with("DeathZone") {
             if let Node::Mesh(_) = node {
                 death_zones.push(handle);
@@ -510,6 +513,7 @@ pub async fn analyze(
     }
     result.spawn_points = spawn_points;
     result.player_spawn_position = player_spawn_position;
+    result.player_spawn_orientation = player_spawn_orientation;
     result.turrets = turrets;
     result.triggers = triggers;
 
@@ -518,6 +522,7 @@ pub async fn analyze(
 
 async fn spawn_player(
     spawn_position: Vector3<f32>,
+    orientation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
     weapons: &mut WeaponContainer,
     sender: Sender<Message>,
@@ -533,6 +538,7 @@ async fn spawn_player(
         scene,
         resource_manager.clone(),
         spawn_position,
+        orientation,
         sender.clone(),
         display_texture,
         inventory_texture,
@@ -736,6 +742,7 @@ impl BaseLevel {
             death_zones,
             mut spawn_points,
             player_spawn_position,
+            player_spawn_orientation,
             doors,
             lights,
             turrets,
@@ -764,6 +771,7 @@ impl BaseLevel {
         let level = Self {
             player: spawn_player(
                 player_spawn_position,
+                player_spawn_orientation,
                 &mut actors,
                 &mut weapons,
                 sender.clone(),
