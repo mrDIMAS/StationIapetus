@@ -276,7 +276,7 @@ impl Game {
 
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();
-        let mut show_debug_info = true;
+        let mut show_debug_info = false;
 
         match Config::load() {
             Ok(config) => {
