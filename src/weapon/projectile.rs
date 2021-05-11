@@ -1,13 +1,12 @@
-use crate::actor::Actor;
-use crate::level::turret::Turret;
 use crate::{
-    actor::ActorContainer,
+    actor::{Actor, ActorContainer},
     effects::EffectKind,
+    level::turret::Turret,
     message::Message,
-    vector_to_quat,
     weapon::{ray_hit, Hit, Weapon, WeaponContainer},
     GameTime,
 };
+use rg3d::core::math::vector_to_quat;
 use rg3d::{
     core::{
         algebra::Vector3,

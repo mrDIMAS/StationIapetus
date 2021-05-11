@@ -16,6 +16,7 @@ use rg3d::{
     physics::geometry::InteractionGroups,
     scene::{node::Node, physics::RayCastOptions, Scene, SceneDrawingContext},
 };
+use std::iter::FromIterator;
 use std::{
     ops::{Index, IndexMut},
     path::PathBuf,
@@ -109,6 +110,7 @@ pub struct Turret {
     yaw: SmoothAngle,
     pitch: SmoothAngle,
     target_check_timer: f32,
+    projector: Handle<Node>,
 }
 
 impl Visit for Turret {
@@ -128,6 +130,7 @@ impl Visit for Turret {
         self.yaw.visit("Yaw", visitor)?;
         self.target_check_timer
             .visit("TargetRayCheckTimer", visitor)?;
+        self.projector.visit("Projector", visitor)?;
 
         visitor.leave_region()
     }
@@ -210,11 +213,13 @@ impl Turret {
     ) -> Self {
         let stand = scene.graph.find_by_name(model, "Body");
         let barrel_stand = scene.graph.find_by_name(model, "BarrelStand");
+        let projector = scene.graph.find_by_name(model, "Projector");
 
         Self {
             body: stand,
             model,
             barrel_stand,
+            projector,
             barrels: scene
                 .graph
                 .traverse_handle_iter(barrel_stand)
@@ -412,10 +417,22 @@ impl Turret {
             for barrel in self.barrels.iter_mut() {
                 barrel.update(scene);
             }
+
+            if self.projector.is_some() {
+                scene.graph[self.projector]
+                    .as_light_mut()
+                    .set_color(Color::opaque(255, 0, 0));
+            }
         } else {
             self.pitch.set_target(90.0f32.to_radians());
             self.yaw
                 .set_target(self.yaw.angle() + 50.0f32.to_radians() * dt);
+
+            if self.projector.is_some() {
+                scene.graph[self.projector]
+                    .as_light_mut()
+                    .set_color(Color::opaque(255, 127, 40));
+            }
         }
 
         self.pitch.update(dt);
@@ -490,5 +507,13 @@ impl Visit for TurretContainer {
         self.pool.visit("Pool", visitor)?;
 
         visitor.leave_region()
+    }
+}
+
+impl FromIterator<Turret> for TurretContainer {
+    fn from_iter<T: IntoIterator<Item = Turret>>(iter: T) -> Self {
+        Self {
+            pool: Pool::from_iter(iter),
+        }
     }
 }

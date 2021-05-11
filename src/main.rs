@@ -45,7 +45,6 @@ use rg3d::{
         Animation,
     },
     core::{
-        algebra::{UnitQuaternion, Vector3},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -141,17 +140,6 @@ impl<T: AsRef<str>> Index<T> for ModelMap {
 
     fn index(&self, index: T) -> &Self::Output {
         self.map.get(index.as_ref()).unwrap()
-    }
-}
-
-fn vector_to_quat(vec: Vector3<f32>) -> UnitQuaternion<f32> {
-    let dot = vec.normalize().dot(&Vector3::y());
-
-    if dot.abs() > 1.0 - 10.0 * std::f32::EPSILON {
-        // Handle singularity when normal of impact point is collinear with Y axis.
-        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), -dot.signum() * 90.0f32.to_radians())
-    } else {
-        UnitQuaternion::face_towards(&vec, &Vector3::y())
     }
 }
 

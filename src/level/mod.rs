@@ -17,13 +17,13 @@ use crate::{
     player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
-    vector_to_quat,
     weapon::{
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit, Weapon, WeaponContainer, WeaponKind,
     },
     GameEngine, GameTime,
 };
+use rg3d::core::math::vector_to_quat;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
