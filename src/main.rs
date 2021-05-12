@@ -419,6 +419,21 @@ impl Game {
                                 MessageDirection::ToWidget,
                                 new_size.height as f32,
                             ));
+
+                        game.engine
+                            .user_interface
+                            .send_message(WidgetMessage::width(
+                                game.death_screen.root,
+                                MessageDirection::ToWidget,
+                                new_size.width as f32,
+                            ));
+                        game.engine
+                            .user_interface
+                            .send_message(WidgetMessage::height(
+                                game.death_screen.root,
+                                MessageDirection::ToWidget,
+                                new_size.height as f32,
+                            ));
                     }
                     _ => (),
                 },

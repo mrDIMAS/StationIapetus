@@ -179,7 +179,7 @@ pub fn create_scroll_viewer(ctx: &mut BuildContext) -> Handle<UiNode> {
 }
 
 pub struct DeathScreen {
-    root: Handle<UiNode>,
+    pub root: Handle<UiNode>,
     load_game: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
     exit_game: Handle<UiNode>,
