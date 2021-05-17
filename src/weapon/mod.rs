@@ -23,7 +23,7 @@ use rg3d::{
     lazy_static::lazy_static,
     physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
-    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
+    scene::mesh::surface::{SurfaceBuilder, SurfaceData},
     scene::{
         base::BaseBuilder,
         graph::Graph,
@@ -114,7 +114,7 @@ impl LaserSight {
 
         let ray = MeshBuilder::new(BaseBuilder::new().with_visibility(false))
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-                SurfaceSharedData::make_cylinder(
+                SurfaceData::make_cylinder(
                     6,
                     1.0,
                     1.0,

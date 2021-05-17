@@ -43,8 +43,8 @@ use rg3d::{
         pipeline::ChannelEventCollector,
     },
     rand,
-    renderer::surface::{SurfaceBuilder, SurfaceSharedData},
     resource::texture::Texture,
+    scene::mesh::surface::{SurfaceBuilder, SurfaceData},
     scene::{
         self,
         base::BaseBuilder,
@@ -159,7 +159,7 @@ pub struct BaseLevel {
     sound_manager: SoundManager,
     proximity_events_receiver: Option<crossbeam::channel::Receiver<IntersectionEvent>>,
     contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
-    beam: Option<Arc<RwLock<SurfaceSharedData>>>,
+    beam: Option<Arc<RwLock<SurfaceData>>>,
     trails: ShotTrailContainer,
     doors: DoorContainer,
     lights: LightContainer,
@@ -365,8 +365,8 @@ pub fn footstep_ray_check(
     }
 }
 
-fn make_beam() -> Arc<RwLock<SurfaceSharedData>> {
-    Arc::new(RwLock::new(SurfaceSharedData::make_cylinder(
+fn make_beam() -> Arc<RwLock<SurfaceData>> {
+    Arc::new(RwLock::new(SurfaceData::make_cylinder(
         6,
         1.0,
         1.0,
