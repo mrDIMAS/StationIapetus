@@ -296,7 +296,7 @@ impl Turret {
                     continue;
                 }
 
-                let mut query_buffer = ArrayVec::<[_; 128]>::new();
+                let mut query_buffer = ArrayVec::<_, 128>::new();
 
                 let actor_position = actor.position(&scene.graph);
 

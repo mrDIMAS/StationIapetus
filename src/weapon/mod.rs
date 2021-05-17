@@ -156,7 +156,7 @@ impl LaserSight {
         direction: Vector3<f32>,
         ignore_collider: ColliderHandle,
     ) {
-        let mut intersections = ArrayVec::<[_; 64]>::new();
+        let mut intersections = ArrayVec::<_, 64>::new();
 
         let ray = &mut scene.graph[self.ray];
         let max_toi = 100.0;
