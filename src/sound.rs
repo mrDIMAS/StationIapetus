@@ -110,12 +110,13 @@ impl SoundMap {
                                     {
                                         ranges.push(TriangleRange {
                                             range: triangle_offset
-                                                ..(triangle_offset + data.triangles().len() as u32),
+                                                ..(triangle_offset
+                                                    + data.geometry_buffer.len() as u32),
                                             material,
                                         });
                                     }
                                 }
-                                triangle_offset += data.triangles().len() as u32;
+                                triangle_offset += data.geometry_buffer.len() as u32;
                             }
                         }
 
