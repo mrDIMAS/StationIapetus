@@ -165,7 +165,7 @@ impl LaserSight {
             RayCastOptions {
                 ray: Ray::new(position, direction.scale(max_toi)),
                 max_len: max_toi,
-                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u16)),
+                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
                 sort_results: true,
             },
             &mut intersections,
@@ -269,7 +269,7 @@ pub fn ray_hit(
         RayCastOptions {
             ray,
             max_len: ray.dir.norm(),
-            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u16)),
+            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
             sort_results: true,
         },
         &mut query_buffer,

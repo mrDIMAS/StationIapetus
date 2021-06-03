@@ -379,7 +379,7 @@ impl Player {
 
         let capsule = ColliderBuilder::capsule_y(body_height, body_radius)
             .collision_groups(InteractionGroups::new(
-                CollisionGroups::ActorCapsule as u16,
+                CollisionGroups::ActorCapsule as u32,
                 0xFFFF,
             ))
             .friction_combine_rule(CoefficientCombineRule::Min)

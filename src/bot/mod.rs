@@ -26,7 +26,7 @@ use rg3d::{
     engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
     physics::{
-        dynamics::{BodyStatus, CoefficientCombineRule, RigidBodyBuilder},
+        dynamics::{CoefficientCombineRule, RigidBodyBuilder, RigidBodyType},
         geometry::{ColliderBuilder, InteractionGroups},
     },
     rand,
@@ -293,7 +293,7 @@ impl Bot {
             .build(&mut scene.graph);
 
         let body = scene.physics.add_body(
-            RigidBodyBuilder::new(BodyStatus::Dynamic)
+            RigidBodyBuilder::new(RigidBodyType::Dynamic)
                 .lock_rotations()
                 .position(Isometry3 {
                     translation: Translation3 { vector: position },
@@ -306,7 +306,7 @@ impl Bot {
                 .friction(0.0)
                 .friction_combine_rule(CoefficientCombineRule::Min)
                 .collision_groups(InteractionGroups::new(
-                    CollisionGroups::ActorCapsule as u16,
+                    CollisionGroups::ActorCapsule as u32,
                     0xFFFF,
                 ))
                 .build(),
@@ -422,14 +422,18 @@ impl Bot {
         let mut query_buffer = Vec::default();
         'target_loop: for desc in targets.iter().filter(|desc| desc.handle != self_handle) {
             match self.definition.hostility {
-                BotHostility::OtherSpecies => if let TargetKind::Bot(kind) = desc.kind {
-                    if kind == self.kind {
+                BotHostility::OtherSpecies => {
+                    if let TargetKind::Bot(kind) = desc.kind {
+                        if kind == self.kind {
+                            continue 'target_loop;
+                        }
+                    }
+                }
+                BotHostility::Player => {
+                    if let TargetKind::Bot(_) = desc.kind {
                         continue 'target_loop;
                     }
-                },
-                BotHostility::Player => if let TargetKind::Bot(_) = desc.kind {
-                    continue 'target_loop;
-                },
+                }
                 BotHostility::Everyone => {}
             }
 
@@ -451,7 +455,7 @@ impl Bot {
                     let body = scene
                         .physics
                         .body_handle_map()
-                        .key_of(&collider.parent())
+                        .key_of(&collider.parent().unwrap())
                         .cloned()
                         .unwrap();
 

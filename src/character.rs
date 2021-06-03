@@ -105,12 +105,11 @@ impl Character {
     pub fn has_ground_contact(&self, physics: &Physics) -> bool {
         if let Some(body) = self.body.as_ref() {
             let body = physics.body(body).unwrap();
-            if let Some(iterator) = physics.narrow_phase.contacts_with(body.colliders()[0]) {
-                for (_, _, contact) in iterator {
-                    for manifold in contact.manifolds.iter() {
-                        if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
-                            return true;
-                        }
+
+            for contact in physics.narrow_phase.contacts_with(body.colliders()[0]) {
+                for manifold in contact.manifolds.iter() {
+                    if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
+                        return true;
                     }
                 }
             }

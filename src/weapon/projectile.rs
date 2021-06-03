@@ -20,7 +20,7 @@ use rg3d::{
     engine::{ColliderHandle, RigidBodyHandle},
     lazy_static::lazy_static,
     physics::{
-        dynamics::{BodyStatus, RigidBodyBuilder},
+        dynamics::{RigidBodyBuilder, RigidBodyType},
         geometry::ColliderBuilder,
         na::{Isometry3, Translation3},
     },
@@ -296,8 +296,8 @@ impl Projectile {
                     .build(&mut scene.graph);
 
                     let collider = ColliderBuilder::ball(size).sensor(true).build();
-                    let body = RigidBodyBuilder::new(BodyStatus::Kinematic)
-                        .translation(position.x, position.y, position.z)
+                    let body = RigidBodyBuilder::new(RigidBodyType::KinematicPositionBased)
+                        .translation(position)
                         .build();
                     let body_handle = scene.physics.add_body(body);
                     scene.physics.add_collider(collider, &body_handle);
