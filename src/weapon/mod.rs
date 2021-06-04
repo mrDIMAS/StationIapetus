@@ -539,10 +539,11 @@ impl Weapon {
         let mut ignored_collider = Default::default();
         if actors.contains(self.owner) {
             if let Some(body) = actors.get(self.owner).body.as_ref() {
-                if let Some(body) = scene.physics.body(body) {
+                if let Some(body) = scene.physics.bodies.get(body) {
                     ignored_collider = scene
                         .physics
-                        .collider_handle_map()
+                        .colliders
+                        .handle_map()
                         .key_of(&body.colliders()[0])
                         .cloned()
                         .unwrap();

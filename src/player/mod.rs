@@ -1097,7 +1097,7 @@ impl Player {
             self.handle_put_back_weapon_end_signal(scene);
             self.handle_toss_grenade_signal(self_handle, scene);
 
-            let body = scene.physics.body_mut(&self.body.unwrap()).unwrap();
+            let body = scene.physics.bodies.get_mut(&self.body.unwrap()).unwrap();
             body.set_angvel(Default::default(), true);
             if let Some(new_y_vel) = new_y_vel {
                 body.set_linvel(
@@ -1234,7 +1234,7 @@ impl Player {
             }
 
             // Lock player on the place he died.
-            let body = scene.physics.body_mut(&self.body.unwrap()).unwrap();
+            let body = scene.physics.bodies.get_mut(&self.body.unwrap()).unwrap();
             body.set_angvel(Default::default(), true);
             body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
         }

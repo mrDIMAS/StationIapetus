@@ -63,10 +63,11 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 
     for descendant in scene.graph.traverse_handle_iter(from) {
         if let Some(body) = scene.physics_binder.body_of(descendant) {
-            if let Some(body) = scene.physics.body(body) {
+            if let Some(body) = scene.physics.bodies.get(body) {
                 let collider = scene
                     .physics
-                    .collider_handle_map()
+                    .colliders
+                    .handle_map()
                     .key_of(body.colliders().first().unwrap())
                     .cloned()
                     .unwrap();
@@ -104,7 +105,7 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 impl Character {
     pub fn has_ground_contact(&self, physics: &Physics) -> bool {
         if let Some(body) = self.body.as_ref() {
-            let body = physics.body(body).unwrap();
+            let body = physics.bodies.get(body).unwrap();
 
             for contact in physics.narrow_phase.contacts_with(body.colliders()[0]) {
                 for manifold in contact.manifolds.iter() {
@@ -123,7 +124,7 @@ impl Character {
 
     pub fn set_position(&mut self, physics: &mut Physics, position: Vector3<f32>) {
         if let Some(body) = self.body.as_ref() {
-            let body = physics.body_mut(body).unwrap();
+            let body = physics.bodies.get_mut(body).unwrap();
             let mut body_position = *body.position();
             body_position.translation.vector = position;
             body.set_position(body_position, true);

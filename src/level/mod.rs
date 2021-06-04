@@ -689,7 +689,7 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
 
     if let Some(intersection) = intersections.iter().find(|i| {
         // HACK: Check everything but capsules (helps correctly drop items from actors)
-        let shape = scene.physics.collider(&i.collider).unwrap().shape();
+        let shape = scene.physics.colliders.get(&i.collider).unwrap().shape();
         shape.as_capsule().is_none()
     }) {
         intersection.position.coords
@@ -1303,7 +1303,8 @@ impl BaseLevel {
                 let body_handle = *collider_parent;
                 scene
                     .physics
-                    .body_mut(&body_handle)
+                    .bodies
+                    .get_mut(&body_handle)
                     .unwrap()
                     .apply_force_at_point(
                         dir.try_normalize(std::f32::EPSILON)

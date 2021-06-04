@@ -319,8 +319,9 @@ impl Turret {
                     if let Some(body) = self_body {
                         if scene
                             .physics
-                            .collider_handle_map()
-                            .key_of(&scene.physics.body(body).unwrap().colliders()[0])
+                            .colliders
+                            .handle_map()
+                            .key_of(&scene.physics.bodies.get(body).unwrap().colliders()[0])
                             .cloned()
                             .unwrap()
                             == hit.collider
@@ -329,7 +330,7 @@ impl Turret {
                         }
                     }
 
-                    let collider = scene.physics.collider(&hit.collider).unwrap();
+                    let collider = scene.physics.colliders.get(&hit.collider).unwrap();
                     if collider.shape().as_capsule().is_none() {
                         self.target = Default::default();
                         // Target is behind something.

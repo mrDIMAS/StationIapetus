@@ -76,11 +76,12 @@ impl SoundMap {
         for node in nodes {
             let body = scene.physics_binder.body_of(node).unwrap();
 
-            if let Some(body) = scene.physics.body(body) {
+            if let Some(body) = scene.physics.bodies.get(body) {
                 if let Some(&collider) = body.colliders().first() {
                     let collider = scene
                         .physics
-                        .collider_handle_map()
+                        .colliders
+                        .handle_map()
                         .key_of(&collider)
                         .cloned()
                         .unwrap();

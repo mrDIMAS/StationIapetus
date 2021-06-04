@@ -313,7 +313,7 @@ impl Projectile {
                     let model = resource.instantiate_geometry(scene);
                     let body = scene.graph.find_by_name(model, "Body");
                     let body_handle = scene.physics_binder.body_of(body).unwrap();
-                    let phys_body = scene.physics.body_mut(body_handle).unwrap();
+                    let phys_body = scene.physics.bodies.get_mut(body_handle).unwrap();
                     phys_body.set_position(
                         Isometry3::translation(position.x, position.y, position.z),
                         true,
@@ -359,10 +359,11 @@ impl Projectile {
     ) {
         // Fetch current position of projectile.
         let (position, collider) = if let Some(body) = self.body.as_ref() {
-            let body = scene.physics.body(body).unwrap();
+            let body = scene.physics.bodies.get(body).unwrap();
             let collider: ColliderHandle = scene
                 .physics
-                .collider_handle_map()
+                .colliders
+                .handle_map()
                 .key_of(body.colliders().first().unwrap())
                 .cloned()
                 .unwrap();
@@ -396,7 +397,7 @@ impl Projectile {
             // Special case for projectiles with rigid body.
             if let Some(body) = self.body.as_ref() {
                 // Move rigid body explicitly.
-                let body = scene.physics.body_mut(body).unwrap();
+                let body = scene.physics.bodies.get_mut(body).unwrap();
                 let position = Isometry3 {
                     rotation: Default::default(),
                     translation: Translation3 {
