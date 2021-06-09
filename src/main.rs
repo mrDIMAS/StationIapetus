@@ -878,7 +878,8 @@ impl Game {
                             .resource_manager
                             .request_sound_buffer(path, false),
                     ) {
-                        if let Ok(shot_sound) = GenericSourceBuilder::new(buffer.into())
+                        if let Ok(shot_sound) = GenericSourceBuilder::new()
+                            .with_buffer(buffer.into())
                             .with_status(Status::Playing)
                             .with_play_once(true)
                             .with_gain(*gain)

@@ -177,7 +177,8 @@ impl SoundManager {
     ) {
         if let Ok(buffer) = resource_manager.request_sound_buffer(path, false).await {
             let shot_sound = SpatialSourceBuilder::new(
-                GenericSourceBuilder::new(buffer.into())
+                GenericSourceBuilder::new()
+                    .with_buffer(buffer.into())
                     .with_status(Status::Playing)
                     .with_play_once(true)
                     .with_gain(gain)
