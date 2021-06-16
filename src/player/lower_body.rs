@@ -7,6 +7,7 @@ use crate::{
         make_hit_reaction_state, make_walk_state, HitReactionStateDefinition, WalkStateDefinition,
     },
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
@@ -21,6 +22,7 @@ use rg3d::{
     engine::ColliderHandle,
     scene::{node::Node, Scene},
 };
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 #[derive(Default)]
@@ -128,15 +130,42 @@ impl LowerBodyMachine {
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
         ) = rg3d::core::futures::join!(
-            resource_manager.request_model("data/animations/agent_walking_lower_body.fbx"),
-            resource_manager.request_model("data/animations/agent_idle.fbx"),
-            resource_manager.request_model("data/animations/agent_jump.fbx"),
-            resource_manager.request_model("data/animations/agent_falling.fbx"),
-            resource_manager.request_model("data/animations/agent_landing.fbx"),
-            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
-            resource_manager.request_model("data/animations/agent_dying.fbx"),
-            resource_manager.request_model("data/animations/agent_hit_reaction_rifle.fbx"),
-            resource_manager.request_model("data/animations/agent_hit_reaction_pistol.fbx"),
+            resource_manager.request_model(
+                "data/animations/agent_walking_lower_body.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_idle.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_jump.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_falling.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_landing.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_run_rifle.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_dying.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_hit_reaction_rifle.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/animations/agent_hit_reaction_pistol.fbx",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
         );
 
         let HitReactionStateDefinition {

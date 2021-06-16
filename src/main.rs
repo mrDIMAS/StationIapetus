@@ -39,6 +39,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -120,7 +121,14 @@ impl ModelMap {
             map: rg3d::core::futures::future::join_all(
                 paths
                     .into_iter()
-                    .map(|path| resource_manager.request_model(path))
+                    .map(|path| {
+                        resource_manager.request_model(
+                            path,
+                            MaterialSearchOptions::MaterialsDirectory(PathBuf::from(
+                                "data/textures",
+                            )),
+                        )
+                    })
                     .collect::<Vec<_>>(),
             )
             .await

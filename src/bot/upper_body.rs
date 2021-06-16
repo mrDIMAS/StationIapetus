@@ -2,6 +2,7 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     create_play_animation_state, GameTime, ModelMap,
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{
@@ -17,6 +18,7 @@ use rg3d::{
     resource::model::Model,
     scene::{node::Node, Scene},
 };
+use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct UpperBodyMachine {
@@ -143,7 +145,10 @@ impl UpperBodyMachine {
         let aim_animation_resource =
             if definition.can_use_weapons && !definition.aim_animation.is_empty() {
                 resource_manager
-                    .request_model(&definition.aim_animation)
+                    .request_model(
+                        &definition.aim_animation,
+                        MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+                    )
                     .await
                     .ok()
             } else {

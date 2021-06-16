@@ -1,4 +1,5 @@
 use crate::{message::Message, weapon::WeaponKind};
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -15,6 +16,7 @@ use rg3d::{
     sound::pool::PoolIteratorMut,
 };
 use serde::Deserialize;
+use std::path::PathBuf;
 use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
@@ -166,7 +168,10 @@ impl Item {
 
         let spark;
         let model = resource_manager
-            .request_model(&definition.model)
+            .request_model(
+                &definition.model,
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+            )
             .await
             .unwrap()
             .instantiate_geometry(scene);

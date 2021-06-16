@@ -3,6 +3,7 @@ use crate::{
     control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, message::Message,
     options_menu::OptionsMenu, utils::create_camera, GameEngine,
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -22,6 +23,7 @@ use rg3d::{
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
+use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 pub struct Menu {
@@ -45,9 +47,13 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub async fn new(engine: &mut GameEngine, sound_config: &SoundConfig) -> Self {
-        let mut scene = Scene::from_file("data/levels/menu.rgs", engine.resource_manager.clone())
-            .await
-            .unwrap();
+        let mut scene = Scene::from_file(
+            "data/levels/menu.rgs",
+            engine.resource_manager.clone(),
+            &MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+        )
+        .await
+        .unwrap();
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 

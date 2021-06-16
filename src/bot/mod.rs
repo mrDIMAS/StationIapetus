@@ -13,6 +13,7 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, GameTime,
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -45,6 +46,7 @@ use rg3d::{
     },
 };
 use serde::Deserialize;
+use std::path::PathBuf;
 use std::{
     collections::HashMap,
     fs::File,
@@ -266,7 +268,10 @@ impl Bot {
         let body_radius = 0.16;
 
         let model = resource_manager
-            .request_model(&definition.model)
+            .request_model(
+                &definition.model,
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+            )
             .await
             .unwrap()
             .instantiate_geometry(scene);

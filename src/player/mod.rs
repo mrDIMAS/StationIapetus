@@ -20,6 +20,7 @@ use crate::{
 };
 use rg3d::core::algebra::Translation3;
 use rg3d::core::math::UnitQuaternionExt;
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{
@@ -55,6 +56,7 @@ use rg3d::{
         Scene,
     },
 };
+use std::path::PathBuf;
 use std::{
     ops::{Deref, DerefMut},
     sync::{mpsc::Sender, Arc, RwLock},
@@ -361,8 +363,14 @@ impl Player {
         let body_height = 0.25;
 
         let (model_resource, health_rig_resource) = rg3d::core::futures::join!(
-            resource_manager.request_model("data/models/agent.rgs"),
-            resource_manager.request_model("data/models/health_rig.FBX"),
+            resource_manager.request_model(
+                "data/models/agent.rgs",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
+            resource_manager.request_model(
+                "data/models/health_rig.FBX",
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+            ),
         );
 
         let model_resource = model_resource.unwrap();

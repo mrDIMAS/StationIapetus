@@ -24,6 +24,7 @@ use crate::{
     GameEngine, GameTime,
 };
 use rg3d::core::math::vector_to_quat;
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -730,7 +731,10 @@ impl BaseLevel {
         ));
 
         let map_model = resource_manager
-            .request_model(Path::new(map))
+            .request_model(
+                Path::new(map),
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+            )
             .await
             .unwrap();
 

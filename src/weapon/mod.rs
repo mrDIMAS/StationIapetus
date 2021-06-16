@@ -8,6 +8,7 @@ use crate::{
     weapon::projectile::{Damage, ProjectileKind, Shooter},
     CollisionGroups, GameTime,
 };
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::rand::Rng;
 use rg3d::{
     core::{
@@ -440,7 +441,10 @@ impl Weapon {
         let definition = Self::get_definition(kind);
 
         let model = resource_manager
-            .request_model(&definition.model)
+            .request_model(
+                &definition.model,
+                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+            )
             .await
             .unwrap()
             .instantiate_geometry(scene);

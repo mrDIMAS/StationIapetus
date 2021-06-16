@@ -7,6 +7,7 @@ use crate::{
     GameTime,
 };
 use rg3d::core::math::vector_to_quat;
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -307,7 +308,12 @@ impl Projectile {
                 }
                 ProjectileKind::Grenade => {
                     let resource = resource_manager
-                        .request_model("data/models/grenade.rgs")
+                        .request_model(
+                            "data/models/grenade.rgs",
+                            MaterialSearchOptions::MaterialsDirectory(PathBuf::from(
+                                "data/textures",
+                            )),
+                        )
                         .await
                         .unwrap();
                     let model = resource.instantiate_geometry(scene);
