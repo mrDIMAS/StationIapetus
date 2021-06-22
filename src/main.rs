@@ -517,7 +517,7 @@ impl Game {
             )
             .unwrap();
 
-        self.engine.render(delta).unwrap();
+        self.engine.render().unwrap();
     }
 
     fn debug_render(&mut self) {
