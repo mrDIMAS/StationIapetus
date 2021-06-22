@@ -1318,7 +1318,8 @@ impl Player {
         };
 
         let can_change_weapon = self.weapon_change_direction.is_none()
-            && scene.animations[self.upper_body_machine.grab_animation].has_ended();
+            && scene.animations[self.upper_body_machine.grab_animation].has_ended()
+            && self.weapons.len() > 1;
 
         let current_weapon_kind = if self.current_weapon().is_some() {
             Some(weapons[self.current_weapon()].get_kind())
@@ -1394,7 +1395,7 @@ impl Player {
                 }
             } else if button == control_scheme.next_weapon.button {
                 if state == ElementState::Pressed
-                    && self.current_weapon < self.weapons.len() as u32 - 1
+                    && self.current_weapon < self.weapons.len().saturating_sub(1) as u32
                     && can_change_weapon
                 {
                     weapon_change_direction = Some(RequiredWeapon::Next);
