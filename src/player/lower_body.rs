@@ -2,15 +2,13 @@ use crate::{
     create_play_animation_state,
     level::footstep_ray_check,
     message::Message,
-    player::upper_body::CombatWeaponKind,
-    player::{
-        make_hit_reaction_state, make_walk_state, HitReactionStateDefinition, WalkStateDefinition,
-    },
+    player::{make_hit_reaction_state, upper_body::CombatWeaponKind, HitReactionStateDefinition},
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
-        machine::{Machine, Parameter, State, Transition},
+        machine::{
+            blend_nodes::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+        },
         Animation, AnimationSignal,
     },
     core::{
@@ -18,12 +16,50 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
+    engine::{resource_manager::ResourceManager, ColliderHandle},
+    resource::model::Model,
     scene::{node::Node, Scene},
 };
-use std::path::PathBuf;
 use std::sync::mpsc::Sender;
+
+struct WalkStateDefinition {
+    state: Handle<State>,
+    walk_animation: Handle<Animation>,
+    run_animation: Handle<Animation>,
+}
+
+fn make_walk_state(
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+    walk_animation_resource: Model,
+    run_animation_resource: Model,
+    walk_factor: String,
+    run_factor: String,
+) -> WalkStateDefinition {
+    let walk_animation = *walk_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
+
+    let run_animation = *run_animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
+
+    let walk_node = machine.add_node(PoseNode::make_blend_animations(vec![
+        BlendPose::new(PoseWeight::Parameter(walk_factor), walk_animation_node),
+        BlendPose::new(PoseWeight::Parameter(run_factor), run_animation_node),
+    ]));
+
+    WalkStateDefinition {
+        state: machine.add_state(State::new("Walk", walk_node)),
+        walk_animation,
+        run_animation,
+    }
+}
 
 #[derive(Default)]
 pub struct LowerBodyMachine {
@@ -132,39 +168,22 @@ impl LowerBodyMachine {
         ) = rg3d::core::futures::join!(
             resource_manager.request_model(
                 "data/animations/agent_walking_lower_body.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                Default::default()
             ),
-            resource_manager.request_model(
-                "data/animations/agent_idle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_jump.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_falling.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_landing.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_run_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_dying.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
+            resource_manager.request_model("data/animations/agent_idle.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_jump.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_falling.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_landing.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_run_rifle.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_dying.fbx", Default::default()),
             resource_manager.request_model(
                 "data/animations/agent_hit_reaction_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                Default::default()
             ),
             resource_manager.request_model(
                 "data/animations/agent_hit_reaction_pistol.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                Default::default()
             ),
         );
 

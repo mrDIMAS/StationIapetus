@@ -403,7 +403,7 @@ impl Game {
                     }
 
                     // Render at max speed
-                    game.render(fixed_timestep);
+                    game.render();
                 }
                 Event::WindowEvent { event, .. } => match event {
                     WindowEvent::CloseRequested => {
@@ -484,7 +484,7 @@ impl Game {
         }
     }
 
-    fn render(&mut self, delta: f32) {
+    fn render(&mut self) {
         self.engine
             .renderer
             .render_ui_to_texture(

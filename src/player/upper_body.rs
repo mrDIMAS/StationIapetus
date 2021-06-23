@@ -1,14 +1,12 @@
 use crate::{
     create_play_animation_state,
-    player::{
-        make_hit_reaction_state, make_walk_state, HitReactionStateDefinition, WalkStateDefinition,
-    },
+    player::{make_hit_reaction_state, HitReactionStateDefinition},
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{
-            blend_nodes::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+            blend_nodes::BlendPose, blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode,
+            PoseWeight, State, Transition,
         },
         Animation, AnimationSignal,
     },
@@ -17,9 +15,137 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    resource::model::Model,
     scene::{node::Node, Scene},
 };
-use std::path::PathBuf;
+
+pub struct IdleStateDefinition {
+    state: Handle<State>,
+    idle_animation: Handle<Animation>,
+    idle_pistol_animation: Handle<Animation>,
+}
+
+impl IdleStateDefinition {
+    pub fn new(
+        machine: &mut Machine,
+        scene: &mut Scene,
+        model: Handle<Node>,
+        idle_animation_resource: Model,
+        idle_pistol_animation_resource: Model,
+        index_parameter: String,
+    ) -> Self {
+        let idle_animation = *idle_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let idle_animation_node = machine.add_node(PoseNode::make_play_animation(idle_animation));
+
+        let idle_pistol_animation = *idle_pistol_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        scene.animations[idle_pistol_animation].set_speed(0.25);
+        let idle_pistol_animation_node =
+            machine.add_node(PoseNode::make_play_animation(idle_pistol_animation));
+
+        let idle_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+            index_parameter,
+            vec![
+                IndexedBlendInput {
+                    blend_time: 0.1,
+                    pose_source: idle_animation_node,
+                },
+                IndexedBlendInput {
+                    blend_time: 0.1,
+                    pose_source: idle_pistol_animation_node,
+                },
+            ],
+        ));
+
+        Self {
+            state: machine.add_state(State::new("Idle", idle_node)),
+            idle_animation,
+            idle_pistol_animation,
+        }
+    }
+}
+
+struct WalkStateDefinition {
+    state: Handle<State>,
+    walk_animation: Handle<Animation>,
+    walk_pistol_animation: Handle<Animation>,
+    run_animation: Handle<Animation>,
+    run_pistol_animation: Handle<Animation>,
+}
+
+impl WalkStateDefinition {
+    fn new(
+        machine: &mut Machine,
+        scene: &mut Scene,
+        model: Handle<Node>,
+        walk_animation_resource: Model,
+        walk_pistol_animation_resource: Model,
+        run_animation_resource: Model,
+        run_pistol_animation_resource: Model,
+        index: String,
+    ) -> Self {
+        let walk_animation = *walk_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
+
+        let walk_pistol_animation = *walk_pistol_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let walk_pistol_animation_node =
+            machine.add_node(PoseNode::make_play_animation(walk_pistol_animation));
+
+        let run_animation = *run_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
+
+        let run_pistol_animation = *run_pistol_animation_resource
+            .retarget_animations(model, scene)
+            .get(0)
+            .unwrap();
+        let run_pistol_animation_node =
+            machine.add_node(PoseNode::make_play_animation(run_pistol_animation));
+
+        let walk_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+            index,
+            vec![
+                IndexedBlendInput {
+                    blend_time: 0.5,
+                    pose_source: walk_animation_node,
+                },
+                IndexedBlendInput {
+                    blend_time: 0.5,
+                    pose_source: walk_pistol_animation_node,
+                },
+                IndexedBlendInput {
+                    blend_time: 0.5,
+                    pose_source: run_animation_node,
+                },
+                IndexedBlendInput {
+                    blend_time: 0.5,
+                    pose_source: run_pistol_animation_node,
+                },
+            ],
+        ));
+
+        Self {
+            state: machine.add_state(State::new("Walk", walk_node)),
+            walk_animation,
+            walk_pistol_animation,
+            run_animation,
+            run_pistol_animation,
+        }
+    }
+}
 
 #[derive(Default)]
 pub struct UpperBodyMachine {
@@ -149,10 +275,9 @@ impl UpperBodyMachine {
     const HIT_REACTION_TO_DYING: &'static str = "HitReactionToDying";
     const HIT_REACTION_TO_AIM: &'static str = "HitReactionToAim";
 
-    const RUN_FACTOR: &'static str = "RunFactor";
-    const WALK_FACTOR: &'static str = "WalkFactor";
-
     const HIT_REACTION_WEAPON_KIND: &'static str = "HitReactionWeaponKind";
+    const IDLE_STATE_WEAPON_KIND: &'static str = "IdleStateWeaponKind";
+    const WALK_STATE_WEAPON_KIND: &'static str = "IdleStateWeaponKind";
 
     // Signals unique per animation so there can be equal numbers across multiple animations.
     pub const GRAB_WEAPON_SIGNAL: u64 = 1;
@@ -168,7 +293,9 @@ impl UpperBodyMachine {
 
         let (
             walk_animation_resource,
+            walk_pistol_animation_resource,
             idle_animation_resource,
+            idle_pistol_animation_resource,
             jump_animation_resource,
             falling_animation_resource,
             landing_animation_resource,
@@ -178,65 +305,42 @@ impl UpperBodyMachine {
             put_back_animation_resource,
             grab_animation_resource,
             run_animation_resource,
+            run_pistol_animation_resource,
             dying_animation_resource,
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
         ) = rg3d::core::futures::join!(
-            resource_manager.request_model(
-                "data/animations/agent_walk_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_idle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_jump.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_falling.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_landing.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_aim_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_aim_pistol.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_toss_grenade.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_put_back.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_grab.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_run_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_dying.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
-            ),
+            resource_manager
+                .request_model("data/animations/agent_walk_rifle.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_idle_pistol.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_idle.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_idle_pistol.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_jump.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_falling.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_landing.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_aim_rifle.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_aim_pistol.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_toss_grenade.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_put_back.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_grab.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_run_rifle.fbx", Default::default()),
+            resource_manager
+                .request_model("data/animations/agent_run_pistol.fbx", Default::default()),
+            resource_manager.request_model("data/animations/agent_dying.fbx", Default::default()),
             resource_manager.request_model(
                 "data/animations/agent_hit_reaction_rifle.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                Default::default()
             ),
             resource_manager.request_model(
                 "data/animations/agent_hit_reaction_pistol.fbx",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                Default::default()
             ),
         );
 
@@ -289,12 +393,17 @@ impl UpperBodyMachine {
             model,
         );
 
-        let (idle_animation, idle_state) = create_play_animation_state(
-            idle_animation_resource.unwrap(),
-            "Idle",
+        let IdleStateDefinition {
+            state: idle_state,
+            idle_animation,
+            idle_pistol_animation,
+        } = IdleStateDefinition::new(
             &mut machine,
             scene,
             model,
+            idle_animation_resource.unwrap(),
+            idle_pistol_animation_resource.unwrap(),
+            Self::IDLE_STATE_WEAPON_KIND.to_owned(),
         );
 
         let (jump_animation, jump_state) = create_play_animation_state(
@@ -348,15 +457,18 @@ impl UpperBodyMachine {
         let WalkStateDefinition {
             walk_animation,
             state: walk_state,
+            walk_pistol_animation,
             run_animation,
-        } = make_walk_state(
+            run_pistol_animation,
+        } = WalkStateDefinition::new(
             &mut machine,
             scene,
             model,
             walk_animation_resource.unwrap(),
+            walk_pistol_animation_resource.unwrap(),
             run_animation_resource.unwrap(),
-            Self::WALK_FACTOR.to_owned(),
-            Self::RUN_FACTOR.to_owned(),
+            run_pistol_animation_resource.unwrap(),
+            Self::WALK_STATE_WEAPON_KIND.to_owned(),
         );
 
         // Some animations must not be looped.
@@ -692,13 +804,16 @@ impl UpperBodyMachine {
                 aim_rifle_animation,
                 toss_grenade_animation,
                 walk_animation,
+                walk_pistol_animation,
                 idle_animation,
+                idle_pistol_animation,
                 jump_animation,
                 fall_animation,
                 land_animation,
                 grab_animation,
                 put_back_animation,
                 run_animation,
+                run_pistol_animation,
                 dying_animation,
                 hit_reaction_rifle_animation,
                 hit_reaction_pistol_animation,
@@ -879,8 +994,10 @@ impl UpperBodyMachine {
             .set_parameter(Self::TOSS_GRENADE_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::GRAB_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::PUT_BACK_TO_DYING, Parameter::Rule(input.is_dead))
-            .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
-            .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
+            .set_parameter(
+                Self::WALK_STATE_WEAPON_KIND,
+                Parameter::Index(index + if input.run_factor > 0.1 { 2 } else { 0 }),
+            )
             .set_parameter(
                 Self::TOSS_GRENADE_TO_AIM,
                 Parameter::Rule(
@@ -895,6 +1012,7 @@ impl UpperBodyMachine {
                 Self::AIM_TO_TOSS_GRENADE,
                 Parameter::Rule(input.toss_grenade && input.is_aiming),
             )
+            .set_parameter(Self::IDLE_STATE_WEAPON_KIND, Parameter::Index(index))
             .evaluate_pose(&scene.animations, dt)
             .apply_with(&mut scene.graph, |node, handle, pose| {
                 if handle == hips_handle {

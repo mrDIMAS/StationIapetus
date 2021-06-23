@@ -18,92 +18,50 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
-use rg3d::core::algebra::Translation3;
-use rg3d::core::math::UnitQuaternionExt;
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
-        machine::{
-            blend_nodes::{BlendPose, IndexedBlendInput},
-            Machine, PoseNode, PoseWeight, State,
-        },
+        machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
     },
     core::{
-        algebra::Matrix4,
-        algebra::{Isometry3, UnitQuaternion, Vector3},
+        algebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
-        math::{self, SmoothAngle, Vector3Ext},
+        math::{self, SmoothAngle, UnitQuaternionExt, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
+    engine::{
+        resource_manager::{MaterialSearchOptions, ResourceManager},
+        ColliderHandle,
+    },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     physics::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder},
         geometry::{ColliderBuilder, InteractionGroups},
     },
     resource::{model::Model, texture::Texture},
-    scene::mesh::surface::{SurfaceBuilder, SurfaceData},
     scene::{
         base::BaseBuilder,
-        mesh::{MeshBuilder, RenderPath},
+        mesh::{
+            surface::{SurfaceBuilder, SurfaceData},
+            MeshBuilder, RenderPath,
+        },
         node::Node,
         sprite::SpriteBuilder,
         transform::TransformBuilder,
         Scene,
     },
 };
-use std::path::PathBuf;
 use std::{
     ops::{Deref, DerefMut},
+    path::PathBuf,
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
 mod camera;
 mod lower_body;
 mod upper_body;
-
-pub struct WalkStateDefinition {
-    state: Handle<State>,
-    walk_animation: Handle<Animation>,
-    run_animation: Handle<Animation>,
-}
-
-pub fn make_walk_state(
-    machine: &mut Machine,
-    scene: &mut Scene,
-    model: Handle<Node>,
-    walk_animation_resource: Model,
-    run_animation_resource: Model,
-    walk_factor: String,
-    run_factor: String,
-) -> WalkStateDefinition {
-    let walk_animation = *walk_animation_resource
-        .retarget_animations(model, scene)
-        .get(0)
-        .unwrap();
-    let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
-
-    let run_animation = *run_animation_resource
-        .retarget_animations(model, scene)
-        .get(0)
-        .unwrap();
-    let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
-
-    let walk_node = machine.add_node(PoseNode::make_blend_animations(vec![
-        BlendPose::new(PoseWeight::Parameter(walk_factor), walk_animation_node),
-        BlendPose::new(PoseWeight::Parameter(run_factor), run_animation_node),
-    ]));
-
-    WalkStateDefinition {
-        state: machine.add_state(State::new("Walk", walk_node)),
-        walk_animation,
-        run_animation,
-    }
-}
 
 pub struct HitReactionStateDefinition {
     state: Handle<State>,
