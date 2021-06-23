@@ -597,7 +597,12 @@ impl Player {
         self.health <= 0.0
     }
 
-    fn check_items(&self, self_handle: Handle<Actor>, scene: &mut Scene, items: &ItemContainer) {
+    fn check_items(
+        &mut self,
+        self_handle: Handle<Actor>,
+        scene: &mut Scene,
+        items: &ItemContainer,
+    ) {
         for (item_handle, item) in items.pair_iter() {
             let self_position = scene.graph[self.pivot].global_position();
             let item_position = scene.graph[item.get_pivot()].global_position();
@@ -628,6 +633,8 @@ impl Player {
                         .unwrap()
                         .send(Message::SyncInventory)
                         .unwrap();
+
+                    self.controller.action = false;
                 }
 
                 let display = &mut scene.graph[self.item_display];
