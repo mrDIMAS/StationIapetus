@@ -2,6 +2,7 @@ use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui::{Gui, UiNode},
 };
+use rg3d::gui::formatted_text::WrapMode;
 use rg3d::gui::message::{TextMessage, UiMessageData};
 use rg3d::{
     core::{
@@ -147,7 +148,7 @@ impl JournalDisplay {
                                 objective =
                                     TextBuilder::new(WidgetBuilder::new().on_row(0).on_column(0))
                                         .with_text("Investigate the reasons why connection with the station was lost.")
-                                        .with_wrap(true)
+                                        .with_wrap(WrapMode::Word)
                                         .build(&mut ui.build_ctx());
                                 objective
                             })
@@ -170,7 +171,7 @@ impl JournalDisplay {
                                             .with_content({
                                                 message_text =
                                                     TextBuilder::new(WidgetBuilder::new())
-                                                        .with_wrap(true)
+                                                        .with_wrap(WrapMode::Word)
                                                         .build(&mut ui.build_ctx());
                                                 message_text
                                             })
@@ -238,7 +239,7 @@ impl JournalDisplay {
                         self.ui.send_message(ListViewMessage::selection(
                             self.messages,
                             MessageDirection::ToWidget,
-                            self.current_message
+                            self.current_message,
                         ));
                     }
                 }

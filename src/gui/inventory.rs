@@ -9,6 +9,7 @@ use crate::{
     player::Player,
 };
 use rg3d::engine::resource_manager::ResourceManager;
+use rg3d::gui::formatted_text::WrapMode;
 use rg3d::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     gui::{
@@ -279,7 +280,7 @@ impl InventoryInterface {
                                                                         TextBuilder::new(
                                                                             WidgetBuilder::new(),
                                                                         )
-                                                                        .with_wrap(true)
+                                                                        .with_wrap(WrapMode::Word)
                                                                         .build(&mut ui.build_ctx());
                                                                     item_description
                                                                 }),
