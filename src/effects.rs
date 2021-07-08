@@ -1,4 +1,4 @@
-use rg3d::scene::light::{BaseLightBuilder, PointLightBuilder};
+use rg3d::scene::light::{point::PointLightBuilder, BaseLightBuilder};
 
 use rg3d::{
     core::{

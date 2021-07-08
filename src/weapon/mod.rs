@@ -28,7 +28,7 @@ use rg3d::{
     scene::{
         base::BaseBuilder,
         graph::Graph,
-        light::{BaseLightBuilder, PointLightBuilder, SpotLightBuilder},
+        light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
         mesh::{MeshBuilder, RenderPath},
         node::Node,
         physics::{Physics, RayCastOptions},
