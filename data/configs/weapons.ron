@@ -1,7 +1,7 @@
 (
     map: {
         M4: (
-            model: "data/models/m4.FBX",
+            model: "data/models/m4/m4.FBX",
             shot_sounds: [
                 // Not M4 sounds, but ok.
                 "data/sounds/enfield_l85_shot_1.wav",
@@ -18,7 +18,7 @@
             h_recoil: (-1.0, 1.0),
         ),
         Ak47: (
-            model: "data/models/ak47.FBX",
+            model: "data/models/ak47/ak47.FBX",
             shot_sounds: [
                 "data/sounds/akm_shot_1.wav",
                 "data/sounds/akm_shot_2.wav",
@@ -34,7 +34,7 @@
             h_recoil: (-1.0, 1.0),
         ),
         PlasmaRifle: (
-            model: "data/models/plasma_rifle.fbx",
+            model: "data/models/plasma_rifle/plasma_rifle.fbx",
             shot_sounds: ["data/sounds/plasma_shot.ogg"],
             projectile: Projectile(Plasma),
             shoot_interval: 0.25,
@@ -46,7 +46,7 @@
             h_recoil: (-1.0, 1.0),
         ),
         Glock: (
-            model: "data/models/glock.FBX",
+            model: "data/models/glock/glock.FBX",
             shot_sounds: [
                 "data/sounds/glock_shot_1.wav",
                 "data/sounds/glock_shot_2.wav",

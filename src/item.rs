@@ -168,10 +168,7 @@ impl Item {
 
         let spark;
         let model = resource_manager
-            .request_model(
-                &definition.model,
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
-            )
+            .request_model(&definition.model, MaterialSearchOptions::RecursiveUp)
             .await
             .unwrap()
             .instantiate_geometry(scene);

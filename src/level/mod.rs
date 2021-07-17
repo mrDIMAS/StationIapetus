@@ -731,10 +731,7 @@ impl BaseLevel {
         ));
 
         let map_model = resource_manager
-            .request_model(
-                Path::new(map),
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
-            )
+            .request_model(Path::new(map), MaterialSearchOptions::UsePathDirectly)
             .await
             .unwrap();
 

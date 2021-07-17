@@ -50,7 +50,7 @@ impl MenuScene {
         let mut scene = Scene::from_file(
             "data/levels/menu.rgs",
             engine.resource_manager.clone(),
-            &MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+            &MaterialSearchOptions::UsePathDirectly,
         )
         .await
         .unwrap();
