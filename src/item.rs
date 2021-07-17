@@ -16,7 +16,6 @@ use rg3d::{
     sound::pool::PoolIteratorMut,
 };
 use serde::Deserialize;
-use std::path::PathBuf;
 use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]

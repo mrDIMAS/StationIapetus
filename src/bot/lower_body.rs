@@ -185,9 +185,9 @@ impl LowerBodyMachine {
 
         Self {
             machine,
-            walk_state,
             walk_animation,
             dying_animation,
+            walk_state,
         }
     }
 

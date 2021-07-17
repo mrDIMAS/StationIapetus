@@ -23,7 +23,6 @@ use rg3d::{
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
-use std::path::PathBuf;
 use std::sync::mpsc::Sender;
 
 pub struct Menu {
