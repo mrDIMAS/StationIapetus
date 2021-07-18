@@ -2,7 +2,6 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     create_play_animation_state, GameTime, ModelMap,
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{
@@ -14,11 +13,10 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     resource::model::Model,
     scene::{node::Node, Scene},
 };
-use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct UpperBodyMachine {
@@ -147,7 +145,7 @@ impl UpperBodyMachine {
                 resource_manager
                     .request_model(
                         &definition.aim_animation,
-                        MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures")),
+                        MaterialSearchOptions::RecursiveUp,
                     )
                     .await
                     .ok()

@@ -2,7 +2,6 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     create_play_animation_state,
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
@@ -12,10 +11,9 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     scene::{node::Node, Scene},
 };
-use std::path::PathBuf;
 
 #[derive(Default)]
 pub struct LowerBodyMachine {
@@ -70,19 +68,19 @@ impl LowerBodyMachine {
         ) = rg3d::core::futures::join!(
             resource_manager.request_model(
                 &definition.idle_animation,
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                MaterialSearchOptions::RecursiveUp
             ),
             resource_manager.request_model(
                 &definition.walk_animation,
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                MaterialSearchOptions::RecursiveUp
             ),
             resource_manager.request_model(
                 &definition.scream_animation,
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                MaterialSearchOptions::RecursiveUp
             ),
             resource_manager.request_model(
                 &definition.dying_animation,
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                MaterialSearchOptions::RecursiveUp
             ),
         );
 

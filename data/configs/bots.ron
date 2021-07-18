@@ -1,7 +1,7 @@
 (
     map: {
         Mutant: (
-            model: "data/models/mutant.rgs",
+            model: "data/models/mutant/mutant.rgs",
             attack_animations: [
                 (
                     path: "data/animations/mutant_attack_swipe.fbx",
@@ -46,7 +46,7 @@
             hostility: Everyone,
         ),
         Parasite: (
-            model: "data/models/parasite.rgs",
+            model: "data/models/parasite/parasite.rgs",
             attack_animations: [
                 (
                     path: "data/animations/parasite_attack.fbx",
@@ -97,7 +97,7 @@
             hostility: OtherSpecies,
         ),
         Zombie: (
-            model: "data/models/zombie.rgs",
+            model: "data/models/zombie/zombie.rgs",
             attack_animations: [
                 (
                     path: "data/animations/zombie_attack.fbx",

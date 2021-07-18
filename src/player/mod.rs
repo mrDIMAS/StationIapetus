@@ -55,7 +55,6 @@ use rg3d::{
 };
 use std::{
     ops::{Deref, DerefMut},
-    path::PathBuf,
     sync::{mpsc::Sender, Arc, RwLock},
 };
 
@@ -322,12 +321,12 @@ impl Player {
 
         let (model_resource, health_rig_resource) = rg3d::core::futures::join!(
             resource_manager.request_model(
-                "data/models/agent.rgs",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                "data/models/agent/agent.rgs",
+                MaterialSearchOptions::UsePathDirectly
             ),
             resource_manager.request_model(
                 "data/models/health_rig.FBX",
-                MaterialSearchOptions::MaterialsDirectory(PathBuf::from("data/textures"))
+                MaterialSearchOptions::RecursiveUp
             ),
         );
 

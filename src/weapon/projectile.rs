@@ -310,9 +310,7 @@ impl Projectile {
                     let resource = resource_manager
                         .request_model(
                             "data/models/grenade.rgs",
-                            MaterialSearchOptions::MaterialsDirectory(PathBuf::from(
-                                "data/textures",
-                            )),
+                            MaterialSearchOptions::UsePathDirectly,
                         )
                         .await
                         .unwrap();
