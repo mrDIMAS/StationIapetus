@@ -6,34 +6,21 @@ use crate::{
     weapon::{ray_hit, Hit, Weapon, WeaponContainer},
     GameTime,
 };
-use rg3d::core::math::vector_to_quat;
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
-        color::Color,
-        math::Vector3Ext,
+        math::{vector_to_quat, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
-        rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
-    engine::{ColliderHandle, RigidBodyHandle},
+    engine::{
+        resource_manager::{MaterialSearchOptions, ResourceManager},
+        ColliderHandle, RigidBodyHandle,
+    },
     lazy_static::lazy_static,
-    physics::{
-        dynamics::{RigidBodyBuilder, RigidBodyType},
-        geometry::ColliderBuilder,
-        na::{Isometry3, Translation3},
-    },
+    physics::na::{Isometry3, Translation3},
     rand,
-    scene::{
-        base::BaseBuilder,
-        graph::Graph,
-        light::{point::PointLightBuilder, BaseLightBuilder},
-        node::Node,
-        sprite::SpriteBuilder,
-        Scene,
-    },
+    scene::{graph::Graph, node::Node, Scene},
 };
 use serde::Deserialize;
 use std::{
@@ -240,6 +227,7 @@ pub struct ProjectileDefinition {
     /// However projectile still could have rigid body to detect collisions.
     is_kinematic: bool,
     impact_sound: String,
+    model: String,
 }
 
 #[derive(Deserialize, Default)]
@@ -276,62 +264,26 @@ impl Projectile {
     ) -> Self {
         let definition = Self::get_definition(kind);
 
-        let (model, body) = {
-            match &kind {
-                ProjectileKind::Plasma => {
-                    let size = rand::thread_rng().gen_range(0.09..0.12);
-
-                    let color = Color::opaque(0, 162, 232);
-                    let model = SpriteBuilder::new(
-                        BaseBuilder::new().with_children(&[PointLightBuilder::new(
-                            BaseLightBuilder::new(BaseBuilder::new()).with_color(color),
-                        )
-                        .with_radius(1.5)
-                        .build(&mut scene.graph)]),
-                    )
-                    .with_size(size)
-                    .with_color(color)
-                    .with_texture(
-                        resource_manager.request_texture("data/particles/plasma_ball.png"),
-                    )
-                    .build(&mut scene.graph);
-
-                    let collider = ColliderBuilder::ball(size).sensor(true).build();
-                    let body = RigidBodyBuilder::new(RigidBodyType::KinematicPositionBased)
-                        .translation(position)
-                        .build();
-                    let body_handle = scene.physics.add_body(body);
-                    scene.physics.add_collider(collider, &body_handle);
-                    scene.physics_binder.bind(model, body_handle);
-
-                    (model, Some(body_handle))
-                }
-                ProjectileKind::Grenade => {
-                    let resource = resource_manager
-                        .request_model(
-                            "data/models/grenade.rgs",
-                            MaterialSearchOptions::UsePathDirectly,
-                        )
-                        .await
-                        .unwrap();
-                    let model = resource.instantiate_geometry(scene);
-                    let body = scene.graph.find_by_name(model, "Body");
-                    let body_handle = scene.physics_binder.body_of(body).unwrap();
-                    let phys_body = scene.physics.bodies.get_mut(body_handle).unwrap();
-                    phys_body.set_position(
-                        Isometry3::translation(position.x, position.y, position.z),
-                        true,
-                    );
-                    phys_body.set_linvel(initial_velocity, true);
-
-                    (model, Some(*body_handle))
-                }
-            }
-        };
+        let resource = resource_manager
+            .request_model(
+                definition.model.clone(),
+                MaterialSearchOptions::UsePathDirectly,
+            )
+            .await
+            .unwrap();
+        let model = resource.instantiate_geometry(scene);
+        let body = scene.graph.find_by_name(model, "Projectile");
+        let body_handle = scene.physics_binder.body_of(body).unwrap();
+        let phys_body = scene.physics.bodies.get_mut(body_handle).unwrap();
+        phys_body.set_position(
+            Isometry3::translation(position.x, position.y, position.z),
+            true,
+        );
+        phys_body.set_linvel(initial_velocity, true);
 
         Self {
             lifetime: definition.lifetime,
-            body,
+            body: Some(*body_handle),
             initial_velocity,
             dir: dir
                 .try_normalize(std::f32::EPSILON)

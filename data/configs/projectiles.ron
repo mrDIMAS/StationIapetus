@@ -6,6 +6,7 @@
             lifetime: 10.0,
             is_kinematic: true,
             impact_sound: "data/sounds/bullet_impact_concrete.ogg",
+            model: "data/models/plasma.rgs"
         ),
         Grenade: (
             damage: Splash(
@@ -16,6 +17,7 @@
             lifetime: 10.0,
             is_kinematic: false,
             impact_sound: "data/sounds/explosion.wav",
+            model: "data/models/grenade/grenade.rgs",
         )
     }
 )
