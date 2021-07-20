@@ -1,8 +1,0 @@
-Body.fbx - CC BY - https://sketchfab.com/shedmon
-zombie.fbx - mixamo.com
-agent.fbx - mixamo.com
-mutant.fbx - mixamo.com
-parasite.fbx - mixamo.com
-corpse.fbx - https://sketchfab.com/avelina.99
-covered_body.fbx - https://sketchfab.com/cmbasnett
-trolley.fbx - johnny83
