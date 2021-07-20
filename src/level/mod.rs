@@ -1114,25 +1114,31 @@ impl BaseLevel {
                 }
                 actor.damage(amount);
 
-                match actor {
-                    Actor::Bot(bot) => {
-                        if let Some(grunt_sound) =
-                            bot.definition.pain_sounds.choose(&mut rand::thread_rng())
-                        {
-                            self.sender
-                                .as_ref()
-                                .unwrap()
-                                .send(Message::PlaySound {
-                                    path: PathBuf::from(grunt_sound.clone()),
-                                    position: actor.position(&scene.graph),
-                                    gain: 0.8,
-                                    rolloff_factor: 1.0,
-                                    radius: 0.6,
-                                })
-                                .unwrap();
+                // Prevent spamming with grunt sounds.
+                if actor.last_grunt_sound_play_health - actor.health > 20.0 {
+                    actor.last_grunt_sound_play_health = actor.health;
+                    match actor {
+                        Actor::Bot(bot) => {
+                            if let Some(grunt_sound) =
+                                bot.definition.pain_sounds.choose(&mut rand::thread_rng())
+                            {
+                                self.sender
+                                    .as_ref()
+                                    .unwrap()
+                                    .send(Message::PlaySound {
+                                        path: PathBuf::from(grunt_sound.clone()),
+                                        position: actor.position(&scene.graph),
+                                        gain: 0.8,
+                                        rolloff_factor: 1.0,
+                                        radius: 0.6,
+                                    })
+                                    .unwrap();
+                            }
+                        }
+                        Actor::Player(_) => {
+                            // TODO: Add player sounds.
                         }
                     }
-                    Actor::Player(_) => {}
                 }
             }
         }

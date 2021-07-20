@@ -1,10 +1,6 @@
 use crate::message::Message;
 use rg3d::{
-    core::{
-        algebra::Vector3,
-        pool::Handle,
-        visitor::{Visit, VisitResult, Visitor},
-    },
+    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     engine::{resource_manager::ResourceManager, ColliderHandle},
     physics::geometry::FeatureId,
     rand::{self, seq::SliceRandom},
@@ -180,11 +176,13 @@ impl SoundMap {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct SoundManager {
     context: SoundContext,
     reverb: Handle<Effect>,
+    #[visit(skip)]
     sound_base: SoundBase,
+    #[visit(skip)]
     sound_map: SoundMap,
 }
 
@@ -349,16 +347,5 @@ impl SoundManager {
     pub fn resolve(&mut self, scene: &Scene) {
         self.sound_base = SoundBase::load();
         self.sound_map = SoundMap::new(scene, &self.sound_base);
-    }
-}
-
-impl Visit for SoundManager {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.context.visit("Context", visitor)?;
-        self.reverb.visit("Reverb", visitor)?;
-
-        visitor.leave_region()
     }
 }

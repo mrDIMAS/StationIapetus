@@ -1,27 +1,27 @@
-use crate::inventory::Inventory;
 use crate::{
+    inventory::Inventory,
     message::Message,
     weapon::{Weapon, WeaponContainer, WeaponKind},
 };
 use rg3d::{
-    core::{
-        algebra::Vector3,
-        pool::Handle,
-        visitor::{Visit, VisitResult, Visitor},
-    },
+    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     engine::{ColliderHandle, RigidBodyHandle},
     scene::{graph::Graph, node::Node, physics::Physics, Scene},
 };
 use std::sync::mpsc::Sender;
 
+#[derive(Visit)]
 pub struct Character {
     pub pivot: Handle<Node>,
     pub body: Option<RigidBodyHandle>,
     pub health: f32,
+    pub last_grunt_sound_play_health: f32,
     pub weapons: Vec<Handle<Weapon>>,
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
+    #[visit(skip)]
     pub sender: Option<Sender<Message>>,
+    #[visit(skip)]
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
 }
@@ -32,6 +32,7 @@ impl Default for Character {
             pivot: Handle::NONE,
             body: Default::default(),
             health: 100.0,
+            last_grunt_sound_play_health: 100.0,
             weapons: Vec::new(),
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
@@ -39,22 +40,6 @@ impl Default for Character {
             hit_boxes: Default::default(),
             inventory: Default::default(),
         }
-    }
-}
-
-impl Visit for Character {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pivot.visit("Pivot", visitor)?;
-        self.body.visit("Body", visitor)?;
-        self.health.visit("Health", visitor)?;
-        self.weapons.visit("Weapons", visitor)?;
-        self.current_weapon.visit("CurrentWeapon", visitor)?;
-        self.weapon_pivot.visit("WeaponPivot", visitor)?;
-        self.inventory.visit("Inventory", visitor)?;
-
-        visitor.leave_region()
     }
 }
 
