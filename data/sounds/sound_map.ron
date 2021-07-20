@@ -55,40 +55,71 @@
         }
     },
     texture_to_material: {
-        "data/textures/barrel.jpg": Metal,
-        "data/textures/Cabinet_Base_Color.jpg": Metal,
-        "data/textures/Chair_Base_Color.png": Metal,
-        "data/textures/floor_metal.jpg": Metal,
-        "data/textures/Glock_BaseColor.png": Metal,
-        "data/textures/Hatch_Base_Color.png": Metal,
-        "data/textures/LightBody_Base_Color.png": Metal,
-        "data/textures/LightEmissionGrid_Base_Color.png": Metal,
-        "data/textures/M4_Body.png": Metal,
-        "data/textures/M4_Magazine.png": Metal,
-        "data/textures/M4_Sight.png": Metal,
-        "data/textures/Medkit_Base_Color.png": Metal,
-        "data/textures/mesh_round.png": Metal,
-        "data/textures/MetalDoor_Base_Color.png": Metal,
-        "data/textures/MetalDoorFrame_Base_Color.png": Metal,
-        "data/textures/MetalFloor_Base_Color.png": Metal,
-        "data/textures/MetalFrame_Base_Color.png": Metal,
-        "data/textures/MetalPlate_Base_Color.png": Metal,
-        "data/textures/plasma_gun.png": Metal,
-        "data/textures/Railing_Base_Color.png": Metal,
-        "data/textures/SupplyBox_Base_Color.png": Metal,
-        "data/textures/Table_Base_Color.png": Metal,
-        "data/textures/Vent_Base_Color.png": Metal,
-        "data/textures/mesh.png": Metal,
-        "data/textures/metal_bare.jpg": Metal,
-        "data/textures/metal_bare_white.jpg": Metal,
-        "data/textures/metal_red.jpg": Metal,
-        "data/textures/metal8.jpg": Metal,
-        "data/textures/MetalMesh_Base_Color.png": Metal,
-        "data/textures/blocks17floor.tga": Stone,
-        "data/textures/Ch10_1001_Diffuse.png": Flesh,
-        "data/textures/Ch10_1002_Diffuse.png": Flesh,
-        "data/textures/Ch15_1001_Diffuse.png": Flesh,
-        "data/textures/Mutant_diffuse.png": Flesh,
-        "data/textures/parasiteZombie_diffuse.png": Flesh,
+        "data/models/barrel/barrel.jpg": Metal,
+
+        "data/models/cabinet/Cabinet_Base_Color.jpg": Metal,
+        "data/models/cabinet/Railing_Base_Color.png": Metal,
+        "data/models/cabinet/Shelf_Base_Color.png": Metal,
+
+        "data/models/chair/Chair_Base_Color.png": Metal,
+
+        "data/models/starship_light/LightBody_Base_Color.png": Metal,
+        "data/models/starship_light/LightEmissionGrid_Base_Color.png": Metal,
+
+        "data/models/starship_door/MetalDoor_Base_Color.png": Metal,
+
+        "data/models/starship_door_frame/MetalDoorFrame_Base_Color.png": Metal,
+
+        "data/models/starship_parts/mesh_round.png": Metal,
+        "data/models/starship_parts/floor_metal.jpg": Metal,
+        "data/models/starship_parts/Hatch_Base_Color.png": Metal,
+        "data/models/starship_parts/MetalFloor_Base_Color.png": Metal,
+        "data/models/starship_parts/MetalFrame_Base_Color.png": Metal,
+        "data/models/starship_parts/MetalPlate_Base_Color.png": Metal,
+        "data/models/starship_parts/SteelPlate_Base_Color.png": Metal,
+        "data/models/starship_parts/ThreadplatePlate_Base_Color.png": Metal,
+        "data/models/starship_parts/Vent_Base_Color.png": Metal,
+        "data/models/starship_parts/mesh.png": Metal,
+        "data/models/starship_parts/metal_bare.jpg": Metal,
+        "data/models/starship_parts/metal_bare_white.jpg": Metal,
+        "data/models/starship_parts/metal_red.jpg": Metal,
+        "data/models/starship_parts/metal8.jpg": Metal,
+
+        "data/models/lab_parts/LabCeiling_BaseColor.png": Metal,
+        "data/models/lab_parts/LabFloor2_BaseColor.png": Metal,
+        "data/models/lab_parts/LabFloor_BaseColor.png": Metal,
+        "data/models/lab_parts/LabPanel_BaseColor.png": Metal,
+        "data/models/lab_parts/LabPanel2_BaseColor.png": Metal,
+        "data/models/lab_parts/LabRoomFloor_BaseColor.png": Metal,
+        "data/models/lab_parts/LabRoomWall_BaseColor.png": Metal,
+
+        "data/models/lab_table/LabTable_Base_Color.png": Metal,
+
+        "data/models/lab_hatch_door/LabHatchDoor_Base_Color.png": Metal,
+
+        "data/models/lab_hatch/LabHatch_Base_Color.png": Metal,
+
+        "data/models/supply_box/SupplyBox_Base_Color.png": Metal,
+
+        "data/models/turret/Turret_BaseColor.jpg": Metal,
+
+        "data/models/table/Table_Base_Color.png": Metal,
+
+        "data/models/container/Container_Base.png": Metal,
+
+        "data/models/pipe_bent/PipeBent_Base_Color.png": Metal,
+
+        "data/models/pipe_straight/PipeStraight_Base_Color.png": Metal,
+
+        "data/models/mesh_fence/MetalMesh_Base_Color.png": Metal,
+
+        "data/models/zombie/Ch10_1001_Diffuse.png": Flesh,
+        "data/models/zombie/Ch10_1002_Diffuse.png": Flesh,
+
+        "data/models/agent/Ch15_1001_Diffuse.png": Flesh,
+
+        "data/models/mutant/Mutant_diffuse.png": Flesh,
+
+        "data/models/parasite/parasiteZombie_diffuse.png": Flesh,
     }
 )

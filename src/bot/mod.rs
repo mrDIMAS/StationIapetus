@@ -746,7 +746,7 @@ impl Bot {
                 {
                     if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
                         let begin = context.scene.graph[self.model].global_position()
-                            + Vector3::new(0.0, 10.0, 0.0);
+                            + Vector3::new(0.0, 0.5, 0.0);
 
                         let self_collider = if let Some(body) = self.body.as_ref() {
                             *context

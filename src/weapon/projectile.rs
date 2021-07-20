@@ -19,7 +19,6 @@ use rg3d::{
     },
     lazy_static::lazy_static,
     physics::na::{Isometry3, Translation3},
-    rand,
     scene::{graph::Graph, node::Node, Scene},
 };
 use serde::Deserialize;

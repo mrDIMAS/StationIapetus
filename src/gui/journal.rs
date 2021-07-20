@@ -1,3 +1,5 @@
+#![allow(dead_code)] // TODO
+
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui::{Gui, UiNode},

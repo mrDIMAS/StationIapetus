@@ -1,13 +1,11 @@
 use crate::message::Message;
-use rg3d::utils::log::{Log, MessageKind};
 use rg3d::{
     core::{
         algebra::Vector3,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
+    engine::{resource_manager::ResourceManager, ColliderHandle},
     physics::geometry::FeatureId,
     rand::{self, seq::SliceRandom},
     scene::{node::Node, Scene},
@@ -16,9 +14,10 @@ use rg3d::{
         effects::{BaseEffect, Effect, EffectInput},
         source::{generic::GenericSourceBuilder, spatial::SpatialSourceBuilder, Status},
     },
+    utils::log::{Log, MessageKind},
 };
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File, ops::Range, path::Path, time::Duration};
+use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf, time::Duration};
 
 #[derive(Debug)]
 pub struct TriangleRange {
@@ -44,14 +43,36 @@ pub enum SoundKind {
 
 #[derive(Deserialize, Debug, Default)]
 pub struct SoundBase {
-    material_to_sound: HashMap<MaterialType, HashMap<SoundKind, Vec<String>>>,
-    texture_to_material: HashMap<String, MaterialType>,
+    material_to_sound: HashMap<MaterialType, HashMap<SoundKind, Vec<PathBuf>>>,
+    texture_to_material: HashMap<PathBuf, MaterialType>,
 }
 
 impl SoundBase {
     pub fn load() -> Self {
         let file = File::open("data/sounds/sound_map.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
+        let mut base: Self = ron::de::from_reader(file).unwrap();
+        // Canonicalize paths to remove \ and / differences and remove prefixes like ./ etc.
+        base.texture_to_material = base
+            .texture_to_material
+            .iter()
+            .filter_map(|(path, material_type)| match path.canonicalize() {
+                Ok(canonicalized) => Some((canonicalized, material_type.clone())),
+                Err(e) => {
+                    Log::writeln(
+                        MessageKind::Error,
+                        format!(
+                            "[Sound Manager]: Failed to \
+                                            canonicalize path {}! Reason: {}",
+                            path.display(),
+                            e
+                        ),
+                    );
+
+                    None
+                }
+            })
+            .collect::<HashMap<_, _>>();
+        base
     }
 }
 
@@ -64,16 +85,16 @@ impl SoundMap {
     pub fn new(scene: &Scene, sound_base: &SoundBase) -> Self {
         let mut sound_map = HashMap::new();
 
-        let mut nodes = Vec::new();
+        let mut nodes_with_physics = Vec::new();
         for (handle, _) in scene.graph.pair_iter() {
             if scene.physics_binder.body_of(handle).is_some() {
-                nodes.push(handle)
+                nodes_with_physics.push(handle)
             }
         }
 
         let mut stack = Vec::new();
 
-        for node in nodes {
+        for node in nodes_with_physics {
             let body = scene.physics_binder.body_of(node).unwrap();
 
             if let Some(body) = scene.physics.bodies.get(body) {
@@ -101,22 +122,45 @@ impl SoundMap {
                                 let data = data.read().unwrap();
 
                                 if let Some(diffuse_texture) = surface.diffuse_texture() {
-                                    let path = diffuse_texture
-                                        .state()
-                                        .path()
-                                        .to_string_lossy()
-                                        .to_string();
-                                    if let Some(&material) =
-                                        sound_base.texture_to_material.get(&path)
-                                    {
-                                        ranges.push(TriangleRange {
-                                            range: triangle_offset
-                                                ..(triangle_offset
-                                                    + data.geometry_buffer.len() as u32),
-                                            material,
-                                        });
+                                    let state = diffuse_texture.state();
+                                    match state.path().canonicalize() {
+                                        Ok(path) => {
+                                            if let Some(&material) =
+                                                sound_base.texture_to_material.get(&*path)
+                                            {
+                                                ranges.push(TriangleRange {
+                                                    range: triangle_offset
+                                                        ..(triangle_offset
+                                                            + data.geometry_buffer.len() as u32),
+                                                    material,
+                                                });
+                                            } else {
+                                                Log::writeln(
+                                                    MessageKind::Warning,
+                                                    format!(
+                                                        "[Sound Manager]: A texture {} does not have \
+                                        respective mapping in sound map! \
+                                        Environment sounds (footsteps, impact, etc.) \
+                                        won't play for this texture!",
+                                                        path.display()
+                                                    ),
+                                                );
+                                            }
+                                        }
+                                        Err(e) => {
+                                            Log::writeln(
+                                                MessageKind::Error,
+                                                format!(
+                                                    "[Sound Manager]: Failed to \
+                                            canonicalize path {}! Reason: {}",
+                                                    state.path().display(),
+                                                    e
+                                                ),
+                                            );
+                                        }
                                     }
                                 }
+
                                 triangle_offset += data.geometry_buffer.len() as u32;
                             }
                         }
@@ -270,8 +314,32 @@ impl SoundManager {
                                 )
                                 .await;
                             }
+                        } else {
+                            Log::writeln(
+                                MessageKind::Warning,
+                                format!(
+                                    "Unable to play environment sound: there \
+                                is no respective mapping for {:?} sound kind!",
+                                    sound_kind
+                                ),
+                            );
                         }
+                    } else {
+                        Log::writeln(
+                            MessageKind::Warning,
+                            format!(
+                                "Unable to play environment sound: there \
+                                is no respective mapping for {:?} material!",
+                                material
+                            ),
+                        );
                     }
+                } else {
+                    Log::writeln(
+                        MessageKind::Warning,
+                        "Unable to play environment sound: unable to fetch material type!"
+                            .to_owned(),
+                    );
                 }
             }
             _ => {}

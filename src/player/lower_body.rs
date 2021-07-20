@@ -521,7 +521,7 @@ impl LowerBodyMachine {
             .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
 
-        let begin = scene.graph[self.model].global_position() + Vector3::new(0.0, 10.0, 0.0);
+        let begin = scene.graph[self.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
 
         while let Some((walking, evt)) = scene
             .animations
