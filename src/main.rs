@@ -762,6 +762,9 @@ impl Game {
         while let Ok(message) = self.events_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
+                    self.load_level(LevelKind::Arrival, None);
+                }
+                Message::LoadTestbed => {
                     self.load_level(LevelKind::Testbed, None);
                 }
                 Message::SaveGame => match self.save_game() {

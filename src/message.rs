@@ -140,6 +140,7 @@ pub enum Message {
     /// Loads game state from a file. TODO: Add filename field.
     LoadGame,
     StartNewGame,
+    LoadTestbed,
     QuitGame,
     LoadNextLevel,
     ToggleMainMenu,

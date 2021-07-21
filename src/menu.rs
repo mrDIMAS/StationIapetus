@@ -4,6 +4,7 @@ use crate::{
     options_menu::OptionsMenu, utils::create_camera, GameEngine,
 };
 use rg3d::engine::resource_manager::MaterialSearchOptions;
+use rg3d::gui::HorizontalAlignment;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -29,6 +30,7 @@ pub struct Menu {
     pub scene: MenuScene,
     sender: Sender<Message>,
     root: Handle<UiNode>,
+    btn_load_test_bed: Handle<UiNode>,
     btn_new_game: Handle<UiNode>,
     btn_save_game: Handle<UiNode>,
     btn_settings: Handle<UiNode>,
@@ -125,6 +127,7 @@ impl Menu {
 
         let ctx = &mut engine.user_interface.build_ctx();
 
+        let btn_load_test_bed;
         let btn_new_game;
         let btn_settings;
         let btn_save_game;
@@ -134,6 +137,21 @@ impl Menu {
             WidgetBuilder::new()
                 .with_width(frame_size.0 as f32)
                 .with_height(frame_size.1 as f32)
+                .with_child({
+                    btn_load_test_bed = ButtonBuilder::new(
+                        WidgetBuilder::new()
+                            .with_width(300.0)
+                            .with_height(64.0)
+                            .with_horizontal_alignment(HorizontalAlignment::Center)
+                            .on_column(1)
+                            .on_row(0)
+                            .with_margin(Thickness::uniform(4.0)),
+                    )
+                    .with_text("Load Testbed")
+                    .with_font(font.clone())
+                    .build(ctx);
+                    btn_load_test_bed
+                })
                 .with_child(
                     WindowBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
                         .can_resize(false)
@@ -232,6 +250,7 @@ impl Menu {
             btn_save_game,
             btn_load_game,
             btn_quit_game,
+            btn_load_test_bed,
             options_menu: OptionsMenu::new(
                 engine,
                 control_scheme,
@@ -316,6 +335,8 @@ impl Menu {
                 self.sender.send(Message::LoadGame).unwrap();
             } else if message.destination() == self.btn_quit_game {
                 self.sender.send(Message::QuitGame).unwrap();
+            } else if message.destination() == self.btn_load_test_bed {
+                self.sender.send(Message::LoadTestbed).unwrap();
             } else if message.destination() == self.btn_settings {
                 let is_visible = engine
                     .user_interface
