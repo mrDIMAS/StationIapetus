@@ -587,7 +587,7 @@ async fn give_new_weapon(
     scene: &mut Scene,
 ) {
     if actors.contains(actor) {
-        let mut weapon = Weapon::new(kind, resource_manager, scene, sender.clone()).await;
+        let mut weapon = Weapon::from_kind(kind, resource_manager, scene, sender.clone()).await;
         weapon.set_owner(actor);
         let weapon_model = weapon.get_model();
         scene.graph[weapon_model].set_visibility(visible);
@@ -969,6 +969,7 @@ impl BaseLevel {
                 | ItemKind::PlasmaGun
                 | ItemKind::M4
                 | ItemKind::Glock
+                | ItemKind::RailGun
                 | ItemKind::Ammo
                 | ItemKind::Grenade
                 | ItemKind::MasterKey => (),
@@ -1008,7 +1009,11 @@ impl BaseLevel {
             match kind {
                 ItemKind::Medkit => character.inventory_mut().add_item(ItemKind::Medkit, 1),
                 ItemKind::Medpack => character.inventory_mut().add_item(ItemKind::Medpack, 1),
-                ItemKind::Ak47 | ItemKind::PlasmaGun | ItemKind::M4 | ItemKind::Glock => {
+                ItemKind::Ak47
+                | ItemKind::PlasmaGun
+                | ItemKind::M4
+                | ItemKind::Glock
+                | ItemKind::RailGun => {
                     let weapon_kind = kind.associated_weapon().unwrap();
 
                     let mut found = false;

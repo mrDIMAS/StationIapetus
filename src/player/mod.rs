@@ -784,9 +784,10 @@ impl Player {
     fn current_weapon_kind(&self, weapons: &WeaponContainer) -> CombatWeaponKind {
         if self.current_weapon().is_some() {
             match weapons[self.current_weapon()].get_kind() {
-                WeaponKind::M4 | WeaponKind::Ak47 | WeaponKind::PlasmaRifle => {
-                    CombatWeaponKind::Rifle
-                }
+                WeaponKind::M4
+                | WeaponKind::Ak47
+                | WeaponKind::PlasmaRifle
+                | WeaponKind::RailGun => CombatWeaponKind::Rifle,
                 WeaponKind::Glock => CombatWeaponKind::Pistol,
             }
         } else {

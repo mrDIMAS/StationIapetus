@@ -1,13 +1,12 @@
 use crate::{message::Message, weapon::WeaponKind};
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
         color::Color,
         pool::{Handle, Pool, PoolIterator, PoolPairIterator},
-        visitor::{Visit, VisitResult, Visitor},
+        visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     lazy_static::lazy_static,
     scene::{
         base::BaseBuilder, graph::Graph, node::Node, sprite::SpriteBuilder,
@@ -18,7 +17,7 @@ use rg3d::{
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
 pub enum ItemKind {
     Medkit,
     Medpack,
@@ -32,6 +31,7 @@ pub enum ItemKind {
     Ak47,
     M4,
     Glock,
+    RailGun,
 
     // Keys
     MasterKey,
@@ -43,53 +43,14 @@ impl Default for ItemKind {
     }
 }
 
-impl Visit for ItemKind {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut kind = self.id();
-        kind.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(kind)?;
-        }
-        Ok(())
-    }
-}
-
 impl ItemKind {
-    fn from_id(id: u32) -> Result<ItemKind, String> {
-        match id {
-            0 => Ok(ItemKind::Medkit),
-            1 => Ok(ItemKind::Ammo),
-            2 => Ok(ItemKind::Medpack),
-            3 => Ok(ItemKind::Grenade),
-            4 => Ok(ItemKind::PlasmaGun),
-            5 => Ok(ItemKind::Ak47),
-            6 => Ok(ItemKind::M4),
-            7 => Ok(ItemKind::Glock),
-            8 => Ok(ItemKind::MasterKey),
-            _ => Err(format!("Unknown item kind {}", id)),
-        }
-    }
-
-    fn id(self) -> u32 {
-        match self {
-            ItemKind::Medkit => 0,
-            ItemKind::Ammo => 1,
-            ItemKind::Medpack => 2,
-            ItemKind::Grenade => 3,
-            ItemKind::PlasmaGun => 4,
-            ItemKind::Ak47 => 5,
-            ItemKind::M4 => 6,
-            ItemKind::Glock => 7,
-            ItemKind::MasterKey => 8,
-        }
-    }
-
     pub fn associated_weapon(&self) -> Option<WeaponKind> {
         match self {
             ItemKind::PlasmaGun => Some(WeaponKind::PlasmaRifle),
             ItemKind::Ak47 => Some(WeaponKind::Ak47),
             ItemKind::M4 => Some(WeaponKind::M4),
             ItemKind::Glock => Some(WeaponKind::Glock),
+            ItemKind::RailGun => Some(WeaponKind::RailGun),
             ItemKind::Medkit
             | ItemKind::Medpack
             | ItemKind::Ammo
