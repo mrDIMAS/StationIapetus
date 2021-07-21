@@ -16,8 +16,9 @@ use crate::{
     item::{Item, ItemKind},
     sound::SoundKind,
     weapon::{
+        definition::WeaponKind,
         projectile::{Damage, ProjectileKind, Shooter},
-        Weapon, WeaponKind,
+        Weapon,
     },
 };
 use rg3d::{

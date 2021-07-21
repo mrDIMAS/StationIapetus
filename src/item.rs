@@ -1,4 +1,4 @@
-use crate::{message::Message, weapon::WeaponKind};
+use crate::{message::Message, weapon::definition::WeaponKind};
 use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{

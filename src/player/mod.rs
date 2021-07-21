@@ -13,8 +13,9 @@ use crate::{
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
     weapon::{
+        definition::WeaponKind,
         projectile::{ProjectileKind, Shooter},
-        WeaponContainer, WeaponKind,
+        WeaponContainer,
     },
     CollisionGroups, GameTime,
 };

@@ -3,36 +3,35 @@
 use crate::{
     actor::{Actor, ActorContainer},
     character::HitBox,
-    item::ItemKind,
     message::Message,
-    weapon::projectile::{Damage, ProjectileKind, Shooter},
+    weapon::{
+        definition::{WeaponDefinition, WeaponKind, WeaponProjectile},
+        projectile::Shooter,
+        sight::LaserSight,
+    },
     CollisionGroups, GameTime,
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
-use rg3d::rand::Rng;
 use rg3d::{
     core::{
-        algebra::{Matrix3, UnitQuaternion, Vector3},
-        arrayvec::ArrayVec,
+        algebra::{Matrix3, Vector3},
         color::Color,
         math::{ray::Ray, Matrix4Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
-    lazy_static::lazy_static,
+    engine::{
+        resource_manager::{MaterialSearchOptions, ResourceManager},
+        ColliderHandle,
+    },
     physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
-    scene::mesh::surface::{SurfaceBuilder, SurfaceData},
     scene::{
         base::BaseBuilder,
         graph::Graph,
         light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
-        mesh::{MeshBuilder, RenderPath},
+        mesh::RenderPath,
         node::Node,
         physics::{Physics, RayCastOptions},
-        sprite::SpriteBuilder,
         Scene,
     },
     utils::{
@@ -40,171 +39,16 @@ use rg3d::{
         log::{Log, MessageKind},
     },
 };
-use serde::Deserialize;
 use std::{
-    collections::HashMap,
-    fs::File,
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
     path::PathBuf,
-    sync::{mpsc::Sender, Arc, RwLock},
+    sync::mpsc::Sender,
 };
 
+pub mod definition;
 pub mod projectile;
-
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
-#[repr(u32)]
-pub enum WeaponKind {
-    M4 = 0,
-    Ak47 = 1,
-    PlasmaRifle = 2,
-    Glock = 3,
-    RailGun = 4,
-}
-
-impl Default for WeaponKind {
-    fn default() -> Self {
-        Self::M4
-    }
-}
-
-impl WeaponKind {
-    pub fn id(self) -> u32 {
-        self as u32
-    }
-
-    pub fn new(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(WeaponKind::M4),
-            1 => Ok(WeaponKind::Ak47),
-            2 => Ok(WeaponKind::PlasmaRifle),
-            3 => Ok(WeaponKind::Glock),
-            _ => Err(format!("unknown weapon kind {}", id)),
-        }
-    }
-
-    pub fn associated_item(&self) -> ItemKind {
-        match self {
-            WeaponKind::M4 => ItemKind::M4,
-            WeaponKind::Ak47 => ItemKind::Ak47,
-            WeaponKind::PlasmaRifle => ItemKind::PlasmaGun,
-            WeaponKind::Glock => ItemKind::Glock,
-            WeaponKind::RailGun => ItemKind::RailGun,
-        }
-    }
-}
-
-impl Visit for WeaponKind {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = self.id();
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::new(id)?;
-        }
-        VisitResult::Ok(())
-    }
-}
-
-#[derive(Default)]
-pub struct LaserSight {
-    ray: Handle<Node>,
-    tip: Handle<Node>,
-}
-
-impl LaserSight {
-    pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
-        let color = Color::from_rgba(0, 162, 232, 200);
-
-        let ray = MeshBuilder::new(BaseBuilder::new().with_visibility(false))
-            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
-                SurfaceData::make_cylinder(
-                    6,
-                    1.0,
-                    1.0,
-                    false,
-                    &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
-                        .to_homogeneous(),
-                ),
-            )))
-            .with_color(color)
-            .build()])
-            .with_cast_shadows(false)
-            .with_render_path(RenderPath::Forward)
-            .build(&mut scene.graph);
-
-        let tip = SpriteBuilder::new(
-            BaseBuilder::new()
-                .with_visibility(false)
-                .with_children(&[PointLightBuilder::new(
-                    BaseLightBuilder::new(BaseBuilder::new())
-                        .cast_shadows(false)
-                        .with_scatter_enabled(false)
-                        .with_color(color),
-                )
-                .with_radius(0.30)
-                .build(&mut scene.graph)]),
-        )
-        .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
-        .with_color(color)
-        .with_size(0.025)
-        .build(&mut scene.graph);
-
-        Self { ray, tip }
-    }
-
-    pub fn update(
-        &self,
-        scene: &mut Scene,
-        position: Vector3<f32>,
-        direction: Vector3<f32>,
-        ignore_collider: ColliderHandle,
-    ) {
-        let mut intersections = ArrayVec::<_, 64>::new();
-
-        let ray = &mut scene.graph[self.ray];
-        let max_toi = 100.0;
-
-        scene.physics.cast_ray(
-            RayCastOptions {
-                ray: Ray::new(position, direction.scale(max_toi)),
-                max_len: max_toi,
-                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
-                sort_results: true,
-            },
-            &mut intersections,
-        );
-
-        if let Some(result) = intersections
-            .into_iter()
-            .find(|i| i.collider != ignore_collider)
-        {
-            ray.local_transform_mut()
-                .set_position(position)
-                .set_rotation(UnitQuaternion::face_towards(&direction, &Vector3::y()))
-                .set_scale(Vector3::new(0.0012, 0.0012, result.toi));
-
-            scene.graph[self.tip]
-                .local_transform_mut()
-                .set_position(result.position.coords - direction.scale(0.02));
-        }
-    }
-
-    pub fn set_visible(&self, visibility: bool, graph: &mut Graph) {
-        graph[self.tip].set_visibility(visibility);
-        graph[self.ray].set_visibility(visibility);
-    }
-}
-
-impl Visit for LaserSight {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.ray.visit("Ray", visitor)?;
-        self.tip.visit("Tip", visitor)?;
-
-        visitor.leave_region()
-    }
-}
+pub mod sight;
 
 pub struct Weapon {
     kind: WeaponKind,
@@ -330,65 +174,6 @@ pub fn ray_hit(
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub enum WeaponProjectile {
-    Projectile(ProjectileKind),
-    /// For high-speed "projectiles".
-    Ray {
-        damage: Damage,
-    },
-}
-
-#[derive(Deserialize)]
-pub struct WeaponDefinition {
-    pub model: String,
-    pub shot_sounds: Vec<String>,
-    pub projectile: WeaponProjectile,
-    pub shoot_interval: f64,
-    pub yaw_correction: f32,
-    pub pitch_correction: f32,
-    pub ammo_indicator_offset: (f32, f32, f32),
-    pub ammo_consumption_per_shot: u32,
-    pub v_recoil: (f32, f32),
-    pub h_recoil: (f32, f32),
-}
-
-impl WeaponDefinition {
-    pub fn ammo_indicator_offset(&self) -> Vector3<f32> {
-        Vector3::new(
-            self.ammo_indicator_offset.0,
-            self.ammo_indicator_offset.1,
-            self.ammo_indicator_offset.2,
-        )
-    }
-
-    pub fn gen_v_recoil_angle(&self) -> f32 {
-        rg3d::rand::thread_rng()
-            .gen_range(self.v_recoil.0.to_radians()..self.v_recoil.1.to_radians())
-    }
-
-    pub fn gen_h_recoil_angle(&self) -> f32 {
-        rg3d::rand::thread_rng()
-            .gen_range(self.h_recoil.0.to_radians()..self.h_recoil.1.to_radians())
-    }
-}
-
-#[derive(Deserialize, Default)]
-pub struct WeaponDefinitionContainer {
-    map: HashMap<WeaponKind, WeaponDefinition>,
-}
-
-impl WeaponDefinitionContainer {
-    pub fn new() -> Self {
-        let file = File::open("data/configs/weapons.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
-    }
-}
-
-lazy_static! {
-    static ref DEFINITIONS: WeaponDefinitionContainer = WeaponDefinitionContainer::new();
-}
-
 impl Default for Weapon {
     fn default() -> Self {
         Self {
@@ -431,7 +216,7 @@ impl Visit for Weapon {
 
 impl Weapon {
     pub fn get_definition(kind: WeaponKind) -> &'static WeaponDefinition {
-        DEFINITIONS.map.get(&kind).unwrap()
+        definition::DEFINITIONS.map.get(&kind).unwrap()
     }
 
     pub async fn new(
@@ -690,8 +475,7 @@ impl Weapon {
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
         scene.graph.remove_node(self.model);
-        scene.graph.remove_node(self.laser_sight.ray);
-        scene.graph.remove_node(self.laser_sight.tip);
+        self.laser_sight.clean_up(scene);
     }
 }
 

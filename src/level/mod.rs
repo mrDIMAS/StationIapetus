@@ -19,8 +19,9 @@ use crate::{
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
     weapon::{
+        definition::WeaponKind,
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
-        ray_hit, Weapon, WeaponContainer, WeaponKind,
+        ray_hit, Weapon, WeaponContainer,
     },
     GameEngine, GameTime,
 };

@@ -1,7 +1,7 @@
 use crate::{
     inventory::Inventory,
     message::Message,
-    weapon::{Weapon, WeaponContainer, WeaponKind},
+    weapon::{definition::WeaponKind, Weapon, WeaponContainer},
 };
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
