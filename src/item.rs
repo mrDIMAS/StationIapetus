@@ -1,12 +1,13 @@
 use crate::{message::Message, weapon::WeaponKind};
+use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
         color::Color,
         pool::{Handle, Pool, PoolIterator, PoolPairIterator},
-        visitor::prelude::*,
+        visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
     scene::{
         base::BaseBuilder, graph::Graph, node::Node, sprite::SpriteBuilder,

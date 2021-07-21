@@ -560,7 +560,7 @@ async fn give_new_weapon(
     scene: &mut Scene,
 ) {
     if actors.contains(actor) {
-        let mut weapon = Weapon::from_kind(kind, resource_manager, scene, sender.clone()).await;
+        let mut weapon = Weapon::new(kind, resource_manager, scene, sender.clone()).await;
         weapon.set_owner(actor);
         let weapon_model = weapon.get_model();
         scene.graph[weapon_model].set_visibility(visible);
@@ -942,8 +942,8 @@ impl BaseLevel {
                 | ItemKind::PlasmaGun
                 | ItemKind::M4
                 | ItemKind::Glock
-                | ItemKind::RailGun
                 | ItemKind::Ammo
+                | ItemKind::RailGun
                 | ItemKind::Grenade
                 | ItemKind::MasterKey => (),
             }
