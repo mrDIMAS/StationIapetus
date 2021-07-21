@@ -114,7 +114,10 @@ lazy_static! {
 
 impl Item {
     pub fn get_definition(kind: ItemKind) -> &'static ItemDefinition {
-        DEFINITIONS.map.get(&kind).unwrap()
+        DEFINITIONS
+            .map
+            .get(&kind)
+            .expect(&format!("No definition for {:?} weapon!", kind))
     }
 
     pub async fn new(

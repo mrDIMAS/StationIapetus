@@ -62,7 +62,7 @@
             h_recoil: (-1.0, 1.0),
         ),
         RailGun: (
-            model: "data/models/rail_gun/rail_gun.FBX",
+            model: "data/models/rail_gun/Sniper_Railgun.fbx",
             shot_sounds: [ ],
             projectile: Ray(damage: Point(10.0)),
             shoot_interval: 0.21,

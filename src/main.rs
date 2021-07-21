@@ -24,6 +24,7 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
+use crate::level::testbed::TestbedLevel;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -664,6 +665,20 @@ impl Game {
                         ));
                         (Level::Lab(lab), scene)
                     }
+                    LevelKind::Testbed => {
+                        let (lab, scene) =
+                            rg3d::core::futures::executor::block_on(TestbedLevel::new(
+                                resource_manager,
+                                sender,
+                                display_texture,
+                                inventory_texture,
+                                item_texture,
+                                journal_texture,
+                                sound_config,
+                                persistent_data,
+                            ));
+                        (Level::Testbed(lab), scene)
+                    }
                 }
             };
 
@@ -747,7 +762,7 @@ impl Game {
         while let Ok(message) = self.events_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(LevelKind::Arrival, None);
+                    self.load_level(LevelKind::Testbed, None);
                 }
                 Message::SaveGame => match self.save_game() {
                     Ok(_) => {
@@ -772,6 +787,7 @@ impl Game {
                             Level::Unknown => None,
                             Level::Arrival(_) => Some(LevelKind::Lab),
                             Level::Lab(_) => None,
+                            Level::Testbed(_) => None,
                         };
 
                         if let Some(kind) = kind {

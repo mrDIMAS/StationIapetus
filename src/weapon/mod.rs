@@ -92,6 +92,19 @@ impl WeaponKind {
     }
 }
 
+pub trait WeaponTrait {
+    fn shoot(
+        &mut self,
+        self_handle: Handle<Weapon>,
+        scene: &mut Scene,
+        time: GameTime,
+        resource_manager: ResourceManager,
+        direction: Option<Vector3<f32>>,
+    );
+
+    fn clean_up(&mut self, scene: &mut Scene);
+}
+
 #[derive(Visit)]
 pub enum Weapon {
     M4(M4),

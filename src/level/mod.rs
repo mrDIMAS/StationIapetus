@@ -1,3 +1,4 @@
+use crate::level::testbed::TestbedLevel;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -23,20 +24,20 @@ use crate::{
     },
     GameEngine, GameTime,
 };
-use rg3d::core::math::vector_to_quat;
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
-        math::{aabb::AxisAlignedBoundingBox, ray::Ray, PositionProvider},
+        math::{aabb::AxisAlignedBoundingBox, ray::Ray, vector_to_quat, PositionProvider},
         pool::Handle,
         rand::seq::SliceRandom,
-        visitor::{Visit, VisitResult, Visitor},
+        visitor::prelude::*,
         VecExtensions,
     },
-    engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
+    engine::{
+        resource_manager::{MaterialSearchOptions, ResourceManager},
+        ColliderHandle,
+    },
     event::Event,
     physics::{
         crossbeam,
@@ -45,11 +46,13 @@ use rg3d::{
     },
     rand,
     resource::texture::Texture,
-    scene::mesh::surface::{SurfaceBuilder, SurfaceData},
     scene::{
         self,
         base::BaseBuilder,
-        mesh::{Mesh, MeshBuilder, RenderPath},
+        mesh::{
+            surface::{SurfaceBuilder, SurfaceData},
+            Mesh, MeshBuilder, RenderPath,
+        },
         node::Node,
         physics::RayCastOptions,
         transform::TransformBuilder,
@@ -65,60 +68,27 @@ use std::{
 
 pub mod arrival;
 pub mod lab;
+pub mod testbed;
 pub mod trigger;
 pub mod turret;
 
 pub enum LevelKind {
     Arrival,
     Lab,
+    Testbed,
 }
 
+#[derive(Visit)]
 pub enum Level {
     Unknown,
     Arrival(ArrivalLevel),
     Lab(LabLevel),
+    Testbed(TestbedLevel),
 }
 
 impl Default for Level {
     fn default() -> Self {
         Self::Unknown
-    }
-}
-
-impl Level {
-    fn id(&self) -> u32 {
-        match self {
-            Level::Unknown => unreachable!(),
-            Level::Arrival(_) => 0,
-            Level::Lab(_) => 1,
-        }
-    }
-
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Arrival(Default::default())),
-            1 => Ok(Self::Lab(Default::default())),
-            _ => Err(format!("Invalid level id {}!", id)),
-        }
-    }
-}
-
-impl Visit for Level {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut id = if visitor.is_reading() { 0 } else { self.id() };
-        id.visit("Id", visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        match self {
-            Level::Unknown => unreachable!(),
-            Level::Arrival(v) => v.visit("Inner", visitor)?,
-            Level::Lab(v) => v.visit("Inner", visitor)?,
-        }
-
-        visitor.leave_region()
     }
 }
 
@@ -130,6 +100,7 @@ impl Deref for Level {
             Level::Unknown => unreachable!(),
             Level::Arrival(v) => v,
             Level::Lab(v) => v,
+            Level::Testbed(v) => v,
         }
     }
 }
@@ -140,6 +111,7 @@ impl DerefMut for Level {
             Level::Unknown => unreachable!(),
             Level::Arrival(v) => v,
             Level::Lab(v) => v,
+            Level::Testbed(v) => v,
         }
     }
 }
@@ -474,6 +446,7 @@ pub async fn analyze(
             "Ak47" => items.push((ItemKind::Ak47, position)),
             "M4" => items.push((ItemKind::M4, position)),
             "Glock" => items.push((ItemKind::Glock, position)),
+            "RailGun" => items.push((ItemKind::RailGun, position)),
             "MasterKey" => items.push((ItemKind::MasterKey, position)),
             "Turret" => {
                 turrets

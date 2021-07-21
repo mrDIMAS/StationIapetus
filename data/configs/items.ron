@@ -72,5 +72,13 @@
             consumable: false,
             preview: "data/ui/glock.png"
         ),
+        RailGun: (
+            model: "data/models/rail_gun/Sniper_Railgun.fbx",
+            scale: 1.0,
+            name: "Rail Gun",
+            description: "Sniper rifle based on rail gun principle.",
+            consumable: false,
+            preview: "data/ui/glock.png"
+        ),
     }
 )
