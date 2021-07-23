@@ -28,7 +28,7 @@ use rg3d::{
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
 
-#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
+#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Visit)]
 #[repr(u32)]
 pub enum JournalEntryKind {
     CurrentSituation,
@@ -37,26 +37,6 @@ pub enum JournalEntryKind {
 impl Default for JournalEntryKind {
     fn default() -> Self {
         Self::CurrentSituation
-    }
-}
-
-impl JournalEntryKind {
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::CurrentSituation),
-            _ => Err(format!("Invalid journal entry kind {}!", id)),
-        }
-    }
-}
-
-impl Visit for JournalEntryKind {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = *self as u32;
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
     }
 }
 
@@ -89,7 +69,7 @@ impl JournalEntryKind {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Journal {
     messages: Vec<JournalEntryKind>,
 }
@@ -99,16 +79,6 @@ impl Journal {
         Self {
             messages: vec![JournalEntryKind::CurrentSituation],
         }
-    }
-}
-
-impl Visit for Journal {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.messages.visit("Messages", visitor)?;
-
-        visitor.leave_region()
     }
 }
 

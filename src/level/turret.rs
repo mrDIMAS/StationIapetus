@@ -24,7 +24,7 @@ use std::{
     sync::mpsc::Sender,
 };
 
-#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord, Visit)]
 #[repr(u32)]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
@@ -39,28 +39,7 @@ impl Default for ShootMode {
     }
 }
 
-impl ShootMode {
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Consecutive),
-            1 => Ok(Self::Simultaneously),
-            _ => Err(format!("Invalid shoot mode id {}!", id)),
-        }
-    }
-}
-
-impl Visit for ShootMode {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = *self as u32;
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord)]
+#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord, Visit)]
 #[repr(u32)]
 pub enum Hostility {
     Player,
@@ -74,29 +53,7 @@ impl Default for Hostility {
     }
 }
 
-impl Hostility {
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Player),
-            1 => Ok(Self::Monsters),
-            2 => Ok(Self::All),
-            _ => Err(format!("Invalid shoot mode id {}!", id)),
-        }
-    }
-}
-
-impl Visit for Hostility {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = *self as u32;
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Turret {
     model: Handle<Node>,
     body: Handle<Node>,
@@ -114,48 +71,12 @@ pub struct Turret {
     projector: Handle<Node>,
 }
 
-impl Visit for Turret {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.model.visit("Model", visitor)?;
-        self.body.visit("Body", visitor)?;
-        self.barrels.visit("Barrels", visitor)?;
-        self.barrel_stand.visit("BarrelStand", visitor)?;
-        self.shoot_mode.visit("ShootMode", visitor)?;
-        self.target.visit("Target", visitor)?;
-        self.barrel_index.visit("BarrelIndex", visitor)?;
-        self.shoot_timer.visit("ShootTimer", visitor)?;
-        self.hostility.visit("Hostility", visitor)?;
-        self.pitch.visit("Pitch", visitor)?;
-        self.yaw.visit("Yaw", visitor)?;
-        self.target_check_timer
-            .visit("TargetRayCheckTimer", visitor)?;
-        self.projector.visit("Projector", visitor)?;
-
-        visitor.leave_region()
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
     initial_position: Vector3<f32>,
     offset: Vector3<f32>,
-}
-
-impl Visit for Barrel {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.handle.visit("Handle", visitor)?;
-        self.shoot_point.visit("ShootPoint", visitor)?;
-        self.offset.visit("Offset", visitor)?;
-        self.initial_position.visit("InitialPosition", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl Barrel {
@@ -456,7 +377,7 @@ impl Turret {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct TurretContainer {
     pool: Pool<Turret>,
 }
@@ -500,16 +421,6 @@ impl Index<Handle<Turret>> for TurretContainer {
 impl IndexMut<Handle<Turret>> for TurretContainer {
     fn index_mut(&mut self, index: Handle<Turret>) -> &mut Self::Output {
         &mut self.pool[index]
-    }
-}
-
-impl Visit for TurretContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pool.visit("Pool", visitor)?;
-
-        visitor.leave_region()
     }
 }
 

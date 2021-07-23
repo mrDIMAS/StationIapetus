@@ -1,21 +1,10 @@
 use crate::item::ItemKind;
 use rg3d::core::visitor::{Visit, VisitResult, Visitor};
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, Debug, Clone, Visit)]
 pub struct ItemEntry {
     pub kind: ItemKind,
     pub amount: u32,
-}
-
-impl Visit for ItemEntry {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.kind.visit("Kind", visitor)?;
-        self.amount.visit("Amount", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl ItemEntry {
@@ -28,19 +17,9 @@ impl ItemEntry {
     }
 }
 
-#[derive(Default, Clone)]
+#[derive(Default, Clone, Visit)]
 pub struct Inventory {
     items: Vec<ItemEntry>,
-}
-
-impl Visit for Inventory {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.items.visit("Items", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl Inventory {

@@ -68,8 +68,8 @@
         RailGun: (
             model: "data/models/rail_gun/Sniper_Railgun.fbx",
             shot_sounds: [ ],
-            projectile: Ray(damage: Point(10.0)),
-            shoot_interval: 0.21,
+            projectile: Ray(damage: Point(90.0)),
+            shoot_interval: 2.0,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),

@@ -9,7 +9,7 @@ use rg3d::{
     scene::{node::Node, Scene},
 };
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Light {
     node: Handle<Node>,
     timer: f32,
@@ -33,18 +33,7 @@ impl Light {
     }
 }
 
-impl Visit for Light {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.node.visit("Node", visitor)?;
-        self.timer.visit("Timer", visitor)?;
-
-        visitor.leave_region()
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct LightContainer {
     lights: Pool<Light>,
 }
@@ -58,15 +47,5 @@ impl LightContainer {
         for light in self.lights.iter_mut() {
             light.update(scene, dt);
         }
-    }
-}
-
-impl Visit for LightContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.lights.visit("Lights", visitor)?;
-
-        visitor.leave_region()
     }
 }

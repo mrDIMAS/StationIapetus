@@ -18,7 +18,7 @@ use std::{
 /// TODO - Implement and add plot.
 /// Second level - player enters laboratory.
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct LabLevel {
     level: BaseLevel,
 }
@@ -34,16 +34,6 @@ impl Deref for LabLevel {
 impl DerefMut for LabLevel {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.level
-    }
-}
-
-impl Visit for LabLevel {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.level.visit("Level", visitor)?;
-
-        visitor.leave_region()
     }
 }
 

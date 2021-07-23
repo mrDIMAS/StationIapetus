@@ -215,6 +215,7 @@ impl Visit for Item {
     }
 }
 
+#[derive(Visit)]
 pub struct ItemContainer {
     pool: Pool<Item>,
 }
@@ -222,16 +223,6 @@ pub struct ItemContainer {
 impl Default for ItemContainer {
     fn default() -> Self {
         Self::new()
-    }
-}
-
-impl Visit for ItemContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pool.visit("Pool", visitor)?;
-
-        visitor.leave_region()
     }
 }
 

@@ -22,7 +22,7 @@ use rg3d::{
     },
 };
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct CameraController {
     camera_pivot: Handle<Node>,
     camera_hinge: Handle<Node>,
@@ -32,6 +32,7 @@ pub struct CameraController {
     shake_offset: Vector3<f32>,
     target_shake_offset: Vector3<f32>,
     shake_timer: f32,
+    #[visit(skip)]
     query_buffer: Vec<Intersection>,
 }
 
@@ -195,24 +196,5 @@ impl CameraController {
             self.target_shake_offset = Vector3::new(0.0, 0.0, 0.0);
         }
         self.shake_offset.follow(&self.target_shake_offset, 0.5);
-    }
-}
-
-impl Visit for CameraController {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.camera_pivot.visit("CameraPivot", visitor)?;
-        self.camera_hinge.visit("CameraHinge", visitor)?;
-        self.camera.visit("Camera", visitor)?;
-        self.camera_offset.visit("CameraOffset", visitor)?;
-        self.target_camera_offset
-            .visit("TargetCameraOffset", visitor)?;
-        self.shake_offset.visit("ShakeOffset", visitor)?;
-        self.target_shake_offset
-            .visit("TargetShakeOffset", visitor)?;
-        self.shake_timer.visit("ShakeTimer", visitor)?;
-
-        visitor.leave_region()
     }
 }

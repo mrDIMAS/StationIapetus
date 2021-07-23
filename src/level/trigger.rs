@@ -8,6 +8,7 @@ use rg3d::{
 };
 use std::sync::mpsc::Sender;
 
+#[derive(Visit)]
 pub enum TriggerKind {
     NextLevel,
     EndGame,
@@ -19,35 +20,7 @@ impl Default for TriggerKind {
     }
 }
 
-impl Visit for TriggerKind {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = self.id();
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
-    }
-}
-
-impl TriggerKind {
-    fn id(&self) -> u32 {
-        match self {
-            TriggerKind::NextLevel => 0,
-            TriggerKind::EndGame => 1,
-        }
-    }
-
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::NextLevel),
-            1 => Ok(Self::EndGame),
-            _ => Err(format!("Invalid trigger id {}!", id)),
-        }
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Trigger {
     node: Handle<Node>,
     kind: TriggerKind,
@@ -59,30 +32,9 @@ impl Trigger {
     }
 }
 
-impl Visit for Trigger {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.node.visit("Node", visitor)?;
-        self.kind.visit("Kind", visitor)?;
-
-        visitor.leave_region()
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct TriggerContainer {
     pool: Pool<Trigger>,
-}
-
-impl Visit for TriggerContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pool.visit("Pool", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl TriggerContainer {

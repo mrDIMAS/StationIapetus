@@ -147,7 +147,7 @@ impl WalkStateDefinition {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct UpperBodyMachine {
     pub machine: Machine,
     pub aim_state: Handle<State>,
@@ -177,32 +177,6 @@ fn disable_leg_tracks(
         false,
         &scene.graph,
     )
-}
-
-impl Visit for UpperBodyMachine {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.machine.visit("Machine", visitor)?;
-        self.aim_state.visit("AimState", visitor)?;
-        self.toss_grenade_animation
-            .visit("TossGrenadeAnimation", visitor)?;
-        self.jump_animation.visit("JumpAnimation", visitor)?;
-        self.walk_animation.visit("WalkAnimation", visitor)?;
-        self.run_animation.visit("RunAnimation", visitor)?;
-        self.put_back_state.visit("PutBackState", visitor)?;
-        self.land_animation.visit("LandAnimation", visitor)?;
-        self.toss_grenade_state.visit("TossGrenadeState", visitor)?;
-        self.put_back_animation.visit("PutBackAnimation", visitor)?;
-        self.grab_animation.visit("GrabAnimation", visitor)?;
-        self.dying_animation.visit("DyingAnimation", visitor)?;
-        self.hit_reaction_pistol_animation
-            .visit("HitReactionPistolAnimation", visitor)?;
-        self.hit_reaction_rifle_animation
-            .visit("HitReactionRifleAnimation", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]

@@ -17,7 +17,7 @@ use std::{
 
 /// First level. Player just arrived to the station and start seeing weird things.
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct ArrivalLevel {
     level: BaseLevel,
 }
@@ -33,16 +33,6 @@ impl Deref for ArrivalLevel {
 impl DerefMut for ArrivalLevel {
     fn deref_mut(&mut self) -> &mut Self::Target {
         &mut self.level
-    }
-}
-
-impl Visit for ArrivalLevel {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.level.visit("Level", visitor)?;
-
-        visitor.leave_region()
     }
 }
 

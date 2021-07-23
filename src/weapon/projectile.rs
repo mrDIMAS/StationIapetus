@@ -49,7 +49,7 @@ impl ProjectileKind {
     }
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit)]
 pub enum Shooter {
     None,
     Actor(Handle<Actor>),
@@ -63,48 +63,7 @@ impl Default for Shooter {
     }
 }
 
-impl Shooter {
-    fn id(&self) -> u32 {
-        match self {
-            Self::None => 0,
-            Self::Actor(_) => 1,
-            Self::Weapon(_) => 2,
-            Self::Turret(_) => 3,
-        }
-    }
-
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::None),
-            1 => Ok(Self::Actor(Default::default())),
-            2 => Ok(Self::Weapon(Default::default())),
-            3 => Ok(Self::Turret(Default::default())),
-            _ => Err(format!("Invalid shooter id {}!", id)),
-        }
-    }
-}
-
-impl Visit for Shooter {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut id = self.id();
-        id.visit("Id", visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        match self {
-            Shooter::None => (),
-            Shooter::Actor(handle) => handle.visit("Handle", visitor)?,
-            Shooter::Weapon(handle) => handle.visit("Handle", visitor)?,
-            Shooter::Turret(handle) => handle.visit("Handle", visitor)?,
-        }
-
-        visitor.leave_region()
-    }
-}
-
-#[derive(Deserialize, Copy, Clone, Debug)]
+#[derive(Deserialize, Copy, Clone, Debug, Visit)]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
@@ -117,24 +76,6 @@ impl Default for Damage {
 }
 
 impl Damage {
-    fn id(&self) -> u32 {
-        match self {
-            Self::Splash { .. } => 0,
-            Self::Point(_) => 1,
-        }
-    }
-
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Splash {
-                radius: 0.0,
-                amount: 0.0,
-            }),
-            1 => Ok(Self::Point(0.0)),
-            _ => Err(format!("Invalid damage id {}!", id)),
-        }
-    }
-
     #[must_use]
     pub fn scale(&self, k: f32) -> Self {
         match *self {
@@ -151,29 +92,6 @@ impl Damage {
             Damage::Splash { amount, .. } => amount,
             Damage::Point(amount) => amount,
         }
-    }
-}
-
-impl Visit for Damage {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut id = self.id();
-        id.visit("Id", visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        match self {
-            Damage::Splash { radius, amount } => {
-                radius.visit("Radius", visitor)?;
-                amount.visit("Amount", visitor)?;
-            }
-            Damage::Point(amount) => {
-                amount.visit("Amount", visitor)?;
-            }
-        }
-
-        visitor.leave_region()
     }
 }
 
@@ -497,7 +415,7 @@ impl Visit for Projectile {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct ProjectileContainer {
     pool: Pool<Projectile>,
 }
@@ -530,15 +448,5 @@ impl ProjectileContainer {
         }
 
         self.pool.retain(|proj| !proj.is_dead());
-    }
-}
-
-impl Visit for ProjectileContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pool.visit("Pool", visitor)?;
-
-        visitor.leave_region()
     }
 }

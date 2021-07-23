@@ -61,7 +61,7 @@ fn make_walk_state(
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct LowerBodyMachine {
     pub machine: Machine,
     pub jump_animation: Handle<Animation>,
@@ -78,32 +78,6 @@ pub struct LowerBodyMachine {
     pub walk_to_jump: Handle<Transition>,
     pub idle_to_jump: Handle<Transition>,
     pub model: Handle<Node>,
-}
-
-impl Visit for LowerBodyMachine {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.machine.visit("Machine", visitor)?;
-        self.jump_animation.visit("JumpAnimation", visitor)?;
-        self.walk_animation.visit("WalkAnimation", visitor)?;
-        self.run_animation.visit("RunAnimation", visitor)?;
-        self.land_animation.visit("LandAnimation", visitor)?;
-        self.walk_state.visit("WalkState", visitor)?;
-        self.jump_state.visit("JumpState", visitor)?;
-        self.fall_state.visit("FallState", visitor)?;
-        self.land_state.visit("LandState", visitor)?;
-        self.walk_to_jump.visit("WalkToJump", visitor)?;
-        self.idle_to_jump.visit("IdleToJump", visitor)?;
-        self.model.visit("Model", visitor)?;
-        self.dying_animation.visit("DyingAnimation", visitor)?;
-        self.hit_reaction_pistol_animation
-            .visit("HitReactionPistolAnimation", visitor)?;
-        self.hit_reaction_rifle_animation
-            .visit("HitReactionRifleAnimation", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 pub struct LowerBodyMachineInput {

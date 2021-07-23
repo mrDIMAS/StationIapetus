@@ -53,7 +53,7 @@ use rg3d::{
         base::BaseBuilder,
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
-            Mesh, MeshBuilder, RenderPath,
+            MeshBuilder, RenderPath,
         },
         node::Node,
         physics::RayCastOptions,
@@ -200,18 +200,9 @@ impl Visit for BaseLevel {
     }
 }
 
+#[derive(Visit)]
 pub struct DeathZone {
     bounds: AxisAlignedBoundingBox,
-}
-
-impl Visit for DeathZone {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.bounds.visit("Bounds", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl Default for DeathZone {
@@ -222,26 +213,14 @@ impl Default for DeathZone {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct ShotTrail {
     node: Handle<Node>,
     lifetime: f32,
     max_lifetime: f32,
 }
 
-impl Visit for ShotTrail {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.node.visit("Node", visitor)?;
-        self.lifetime.visit("Lifetime", visitor)?;
-        self.max_lifetime.visit("MaxLifetime", visitor)?;
-
-        visitor.leave_region()
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct ShotTrailContainer {
     container: Vec<ShotTrail>,
 }
@@ -271,16 +250,6 @@ impl ShotTrailContainer {
 
     pub fn add(&mut self, trail: ShotTrail) {
         self.container.push(trail);
-    }
-}
-
-impl Visit for ShotTrailContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.container.visit("Container", visitor)?;
-
-        visitor.leave_region()
     }
 }
 
@@ -1603,6 +1572,7 @@ impl BaseLevel {
     }
 }
 
+#[derive(Visit)]
 pub struct SpawnPoint {
     position: Vector3<f32>,
     rotation: UnitQuaternion<f32>,
@@ -1620,24 +1590,5 @@ impl Default for SpawnPoint {
             spawned: false,
             with_gun: false,
         }
-    }
-}
-
-impl Visit for SpawnPoint {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.position.visit("Position", visitor)?;
-        self.rotation.visit("Rotation", visitor)?;
-        self.spawned.visit("Spawned", visitor)?;
-        self.with_gun.visit("WithGun", visitor)?;
-
-        let mut kind_id = self.bot_kind.id();
-        kind_id.visit("BotKind", visitor)?;
-        if visitor.is_reading() {
-            self.bot_kind = BotKind::from_id(kind_id)?;
-        }
-
-        visitor.leave_region()
     }
 }

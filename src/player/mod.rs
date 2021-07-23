@@ -151,7 +151,7 @@ impl DerefMut for Player {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq)]
+#[derive(Copy, Clone, PartialEq, Eq, Visit)]
 enum RequiredWeapon {
     None,
     Next,
@@ -162,43 +162,6 @@ enum RequiredWeapon {
 impl RequiredWeapon {
     fn is_none(self) -> bool {
         matches!(self, RequiredWeapon::None)
-    }
-
-    fn id(self) -> u32 {
-        match self {
-            RequiredWeapon::None => 0,
-            RequiredWeapon::Next => 1,
-            RequiredWeapon::Previous => 2,
-            RequiredWeapon::Specific(_) => 3,
-        }
-    }
-
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::None),
-            1 => Ok(Self::Next),
-            2 => Ok(Self::Previous),
-            3 => Ok(Self::Specific(WeaponKind::default())),
-            _ => Err(format!("Invalid Direction id {}!", id)),
-        }
-    }
-}
-
-impl Visit for RequiredWeapon {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut id = self.id();
-        id.visit("Id", visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-
-        if let RequiredWeapon::Specific(kind) = self {
-            kind.visit("SpecificKind", visitor)?;
-        }
-
-        visitor.leave_region()
     }
 }
 

@@ -55,7 +55,7 @@ use std::{
 mod lower_body;
 mod upper_body;
 
-#[derive(Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug)]
+#[derive(Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug, Visit)]
 #[repr(i32)]
 pub enum BotKind {
     Mutant = 0,
@@ -64,19 +64,6 @@ pub enum BotKind {
 }
 
 impl BotKind {
-    pub fn from_id(id: i32) -> Result<Self, String> {
-        match id {
-            0 => Ok(BotKind::Mutant),
-            1 => Ok(BotKind::Parasite),
-            2 => Ok(BotKind::Zombie),
-            _ => Err(format!("Invalid bot kind {}", id)),
-        }
-    }
-
-    pub fn id(self) -> i32 {
-        self as i32
-    }
-
     pub fn description(self) -> &'static str {
         match self {
             BotKind::Mutant => "Mutant",
@@ -94,30 +81,10 @@ pub enum BotHostility {
     Player = 2,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Visit, Default)]
 pub struct Target {
     position: Vector3<f32>,
     handle: Handle<Actor>,
-}
-
-impl Default for Target {
-    fn default() -> Self {
-        Self {
-            position: Default::default(),
-            handle: Default::default(),
-        }
-    }
-}
-
-impl Visit for Target {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.position.visit("Position", visitor)?;
-        self.handle.visit("Handle", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 pub struct Bot {
@@ -860,12 +827,7 @@ impl Visit for Bot {
     fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
         visitor.enter_region(name)?;
 
-        let mut kind_id = self.kind.id();
-        kind_id.visit("Kind", visitor)?;
-        if visitor.is_reading() {
-            self.kind = BotKind::from_id(kind_id)?;
-        }
-
+        self.kind.visit("Kind", visitor)?;
         self.definition = Self::get_definition(self.kind);
         self.character.visit("Character", visitor)?;
         self.model.visit("Model", visitor)?;

@@ -14,6 +14,7 @@ use rg3d::{
 use std::ops::{Deref, DerefMut};
 
 #[allow(clippy::large_enum_variant)]
+#[derive(Visit)]
 pub enum Actor {
     Bot(Bot),
     Player(Player),
@@ -35,21 +36,6 @@ macro_rules! static_dispatch {
 }
 
 impl Actor {
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Actor::Player(Default::default())),
-            1 => Ok(Actor::Bot(Default::default())),
-            _ => Err(format!("Unknown actor kind {}", id)),
-        }
-    }
-
-    pub fn id(&self) -> u32 {
-        match self {
-            Actor::Player(_) => 0,
-            Actor::Bot(_) => 1,
-        }
-    }
-
     pub fn can_be_removed(&self, scene: &Scene) -> bool {
         static_dispatch!(self, can_be_removed, scene)
     }
@@ -79,25 +65,6 @@ impl DerefMut for Actor {
     }
 }
 
-impl Visit for Actor {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut kind_id = self.id();
-        kind_id.visit("KindId", visitor)?;
-        if visitor.is_reading() {
-            *self = Actor::from_id(kind_id)?;
-        }
-
-        match self {
-            Actor::Player(player) => player.visit("Data", visitor)?,
-            Actor::Bot(bot) => bot.visit("Data", visitor)?,
-        }
-
-        visitor.leave_region()
-    }
-}
-
 pub enum TargetKind {
     Player,
     Bot(BotKind),
@@ -114,9 +81,10 @@ pub struct TargetDescriptor {
     pub kind: TargetKind,
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct ActorContainer {
     pool: Pool<Actor>,
+    #[visit(skip)]
     target_descriptors: Vec<TargetDescriptor>,
 }
 
@@ -219,15 +187,5 @@ impl ActorContainer {
 
             actor.restore_hit_boxes(scene);
         }
-    }
-}
-
-impl Visit for ActorContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.pool.visit("Pool", visitor)?;
-
-        visitor.leave_region()
     }
 }

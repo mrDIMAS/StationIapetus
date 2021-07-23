@@ -11,7 +11,7 @@ use rg3d::{
 };
 use std::{path::PathBuf, sync::mpsc::Sender};
 
-#[derive(Copy, Clone, Eq, PartialEq)]
+#[derive(Copy, Clone, Eq, PartialEq, Visit)]
 #[repr(u32)]
 pub enum DoorState {
     Opened = 0,
@@ -28,36 +28,7 @@ impl Default for DoorState {
     }
 }
 
-impl DoorState {
-    pub fn id(self) -> u32 {
-        self as u32
-    }
-
-    pub fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Opened),
-            1 => Ok(Self::Opening),
-            2 => Ok(Self::Closed),
-            3 => Ok(Self::Closing),
-            4 => Ok(Self::Locked),
-            5 => Ok(Self::Broken),
-            _ => Err(format!("Invalid door state id {}!", id)),
-        }
-    }
-}
-
-impl Visit for DoorState {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = self.id();
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
-    }
-}
-
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Visit)]
 #[repr(C)]
 pub enum DoorDirection {
     Side,
@@ -70,28 +41,7 @@ impl Default for DoorDirection {
     }
 }
 
-impl Visit for DoorDirection {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        let mut id = *self as u32;
-        id.visit(name, visitor)?;
-        if visitor.is_reading() {
-            *self = Self::from_id(id)?;
-        }
-        Ok(())
-    }
-}
-
-impl DoorDirection {
-    fn from_id(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(Self::Side),
-            1 => Ok(Self::Up),
-            _ => Err(format!("Invalid door direction id {}!", id)),
-        }
-    }
-}
-
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Door {
     node: Handle<Node>,
     lights: Vec<Handle<Node>>,
@@ -101,22 +51,6 @@ pub struct Door {
     someone_nearby: bool,
     open_direction: DoorDirection,
     open_offset_amount: f32,
-}
-
-impl Visit for Door {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.node.visit("Node", visitor)?;
-        self.lights.visit("Lights", visitor)?;
-        self.state.visit("State", visitor)?;
-        self.offset.visit("Offset", visitor)?;
-        self.someone_nearby.visit("SomeoneNearby", visitor)?;
-        self.open_direction.visit("OpenDirection", visitor)?;
-        self.open_offset_amount.visit("OpenOffsetAmount", visitor)?;
-
-        visitor.leave_region()
-    }
 }
 
 impl Door {
@@ -159,7 +93,7 @@ impl Door {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct DoorContainer {
     doors: Pool<Door>,
 }
@@ -323,15 +257,5 @@ impl DoorContainer {
         for door in self.doors.iter_mut() {
             door.resolve(scene)
         }
-    }
-}
-
-impl Visit for DoorContainer {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.doors.visit("Doors", visitor)?;
-
-        visitor.leave_region()
     }
 }

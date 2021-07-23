@@ -18,7 +18,7 @@ use rg3d::{
     scene::{node::Node, Scene},
 };
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct UpperBodyMachine {
     pub machine: Machine,
     pub attack_animations: Vec<Handle<Animation>>,
@@ -426,18 +426,5 @@ impl UpperBodyMachine {
             }
         }
         false
-    }
-}
-
-impl Visit for UpperBodyMachine {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.machine.visit("Machine", visitor)?;
-        self.attack_animations.visit("AttackAnimations", visitor)?;
-        self.dying_animation.visit("DyingAnimation", visitor)?;
-        self.aim_state.visit("AimState", visitor)?;
-
-        visitor.leave_region()
     }
 }
