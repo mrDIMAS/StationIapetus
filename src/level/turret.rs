@@ -1,3 +1,4 @@
+use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::{Actor, ActorContainer},
     message::Message,
@@ -175,6 +176,7 @@ impl Barrel {
                 begin: shoot_point.global_position(),
                 end: target_position,
                 damage: Damage::Point(10.0),
+                shot_effect: ShotEffect::Smoke,
             })
             .unwrap();
 

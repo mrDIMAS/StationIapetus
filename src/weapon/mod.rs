@@ -467,6 +467,7 @@ impl Weapon {
                         begin: position,
                         end: position + direction.scale(1000.0),
                         damage,
+                        shot_effect: self.definition.shot_effect,
                     })
                     .unwrap();
             }

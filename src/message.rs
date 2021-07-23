@@ -9,6 +9,7 @@
 //! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
 //! all kinds of games, but at least it very useful for first-person shooters.
 
+use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -81,6 +82,7 @@ pub enum Message {
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: Damage,
+        shot_effect: ShotEffect,
     },
     PlaySound {
         path: PathBuf,

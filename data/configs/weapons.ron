@@ -16,6 +16,7 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 4.0),
             h_recoil: (-1.0, 1.0),
+            shot_effect: Beam
         ),
         Ak47: (
             model: "data/models/ak47/ak47.FBX",
@@ -32,6 +33,7 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 5.0),
             h_recoil: (-1.0, 1.0),
+            shot_effect: Beam
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.fbx",
@@ -44,6 +46,7 @@
             ammo_consumption_per_shot: 4,
             v_recoil: (-0.3, 1.0),
             h_recoil: (-1.0, 1.0),
+            shot_effect: Smoke
         ),
         Glock: (
             model: "data/models/glock/glock.FBX",
@@ -60,6 +63,7 @@
             ammo_consumption_per_shot: 1,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
+            shot_effect: Beam
         ),
         RailGun: (
             model: "data/models/rail_gun/Sniper_Railgun.fbx",
@@ -72,6 +76,7 @@
             ammo_consumption_per_shot: 1,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
+            shot_effect: Rail
         )
     }
 )

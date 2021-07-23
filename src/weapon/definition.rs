@@ -1,12 +1,13 @@
-use crate::item::ItemKind;
-use crate::weapon::projectile::{Damage, ProjectileKind};
-use rg3d::core::algebra::Vector3;
-use rg3d::core::rand::Rng;
-use rg3d::core::visitor::prelude::*;
-use rg3d::lazy_static::lazy_static;
+use crate::{
+    item::ItemKind,
+    weapon::projectile::{Damage, ProjectileKind},
+};
+use rg3d::{
+    core::{algebra::Vector3, rand::Rng, visitor::prelude::*},
+    lazy_static::lazy_static,
+};
 use serde::Deserialize;
-use std::collections::HashMap;
-use std::fs::File;
+use std::{collections::HashMap, fs::File};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
 #[repr(u32)]
@@ -21,8 +22,9 @@ pub enum WeaponKind {
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 #[repr(u32)]
 pub enum ShotEffect {
-    Beam = 0,
-    Rail = 1,
+    Smoke = 0,
+    Beam = 1,
+    Rail = 2,
 }
 
 impl Default for WeaponKind {
@@ -64,6 +66,7 @@ pub struct WeaponDefinition {
     pub ammo_consumption_per_shot: u32,
     pub v_recoil: (f32, f32),
     pub h_recoil: (f32, f32),
+    pub shot_effect: ShotEffect,
 }
 
 impl WeaponDefinition {

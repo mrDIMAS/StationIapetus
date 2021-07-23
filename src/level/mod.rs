@@ -1,4 +1,5 @@
 use crate::level::testbed::TestbedLevel;
+use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -250,16 +251,17 @@ impl ShotTrailContainer {
         self.container.retain_mut(|trail| {
             trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
             let k = 1.0 - trail.lifetime / trail.max_lifetime;
-            let mesh: &mut Mesh = scene.graph[trail.node].as_mesh_mut();
-            for surface in mesh.surfaces_mut() {
-                let color = surface.color();
-                surface.set_color(Color::from_rgba(
-                    color.r,
-                    color.g,
-                    color.b,
-                    (255.0 * k) as u8,
-                ))
+            let new_alpha = (255.0 * k) as u8;
+            match &mut scene.graph[trail.node] {
+                Node::Mesh(mesh) => {
+                    for surface in mesh.surfaces_mut() {
+                        surface.set_color(surface.color().with_new_alpha(new_alpha))
+                    }
+                }
+                Node::Sprite(sprite) => sprite.set_color(sprite.color().with_new_alpha(new_alpha)),
+                _ => (),
             }
+
             if trail.lifetime >= trail.max_lifetime {
                 scene.remove_node(trail.node);
             }
@@ -1229,11 +1231,12 @@ impl BaseLevel {
         begin: Vector3<f32>,
         end: Vector3<f32>,
         damage: Damage,
+        shot_effect: ShotEffect,
     ) {
         let scene = &mut engine.scenes[self.scene];
 
         // Do immediate intersection test and solve it.
-        let trail_len = if let Some(hit) = ray_hit(
+        let (trail_len, hit_point) = if let Some(hit) = ray_hit(
             begin,
             end,
             shooter,
@@ -1310,37 +1313,67 @@ impl BaseLevel {
                 }
             }
 
-            dir.norm()
+            (dir.norm(), hit.position)
         } else {
-            100.0
+            (30.0, end)
         };
 
-        let trail_radius = 0.0014;
+        match shot_effect {
+            ShotEffect::Smoke => {
+                self.trails.add(ShotTrail {
+                    node: crate::effects::create(
+                        EffectKind::Smoke,
+                        &mut scene.graph,
+                        engine.resource_manager.clone(),
+                        begin,
+                        Default::default(),
+                    ),
+                    lifetime: 0.0,
+                    max_lifetime: 5.0,
+                });
+            }
+            ShotEffect::Beam => {
+                let trail_radius = 0.0014;
 
-        let trail = MeshBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(begin)
-                    .with_local_scale(Vector3::new(trail_radius, trail_radius, trail_len))
-                    .with_local_rotation(UnitQuaternion::face_towards(
-                        &(end - begin),
-                        &Vector3::y(),
-                    ))
-                    .build(),
-            ),
-        )
-        .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
-            .with_color(Color::from_rgba(255, 255, 255, 120))
-            .build()])
-        .with_cast_shadows(false)
-        .with_render_path(RenderPath::Forward)
-        .build(&mut scene.graph);
+                let trail = MeshBuilder::new(
+                    BaseBuilder::new().with_local_transform(
+                        TransformBuilder::new()
+                            .with_local_position(begin)
+                            .with_local_scale(Vector3::new(trail_radius, trail_radius, trail_len))
+                            .with_local_rotation(UnitQuaternion::face_towards(
+                                &(end - begin),
+                                &Vector3::y(),
+                            ))
+                            .build(),
+                    ),
+                )
+                .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
+                    .with_color(Color::from_rgba(255, 255, 255, 120))
+                    .build()])
+                .with_cast_shadows(false)
+                .with_render_path(RenderPath::Forward)
+                .build(&mut scene.graph);
 
-        self.trails.add(ShotTrail {
-            node: trail,
-            lifetime: 0.0,
-            max_lifetime: 0.2,
-        });
+                self.trails.add(ShotTrail {
+                    node: trail,
+                    lifetime: 0.0,
+                    max_lifetime: 0.2,
+                });
+            }
+            ShotEffect::Rail => {
+                self.trails.add(ShotTrail {
+                    node: crate::effects::create_rail(
+                        &mut scene.graph,
+                        engine.resource_manager.clone(),
+                        begin,
+                        hit_point,
+                        Color::opaque(255, 0, 0),
+                    ),
+                    lifetime: 0.0,
+                    max_lifetime: 5.0,
+                });
+            }
+        }
     }
 
     fn apply_splash_damage(
@@ -1458,8 +1491,9 @@ impl BaseLevel {
                 begin,
                 end,
                 damage,
+                shot_effect,
             } => {
-                self.shoot_ray(engine, *weapon, *begin, *end, *damage);
+                self.shoot_ray(engine, *weapon, *begin, *end, *damage, shot_effect.clone());
             }
             &Message::GrabWeapon { kind, actor } => {
                 if self.actors.contains(actor) {
