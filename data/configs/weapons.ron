@@ -67,13 +67,13 @@
         ),
         RailGun: (
             model: "data/models/rail_gun/Sniper_Railgun.fbx",
-            shot_sounds: [ ],
-            projectile: Ray(damage: Point(90.0)),
+            shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
+            projectile: Ray(damage: Point(240.0)),
             shoot_interval: 2.0,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),
-            ammo_consumption_per_shot: 1,
+            ammo_consumption_per_shot: 10,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
             shot_effect: Rail
