@@ -884,6 +884,9 @@ impl Player {
     }
 
     fn update_shooting(&mut self, scene: &mut Scene, weapons: &WeaponContainer, time: GameTime) {
+        self.v_recoil.update(time.delta);
+        self.h_recoil.update(time.delta);
+
         if let Some(&current_weapon_handle) = self
             .character
             .weapons
@@ -931,9 +934,6 @@ impl Player {
                 scene.graph[self.weapon_display].set_visibility(false);
             }
         }
-
-        self.v_recoil.update(time.delta);
-        self.h_recoil.update(time.delta);
     }
 
     fn can_move(&self) -> bool {

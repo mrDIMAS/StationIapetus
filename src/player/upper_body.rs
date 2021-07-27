@@ -501,7 +501,7 @@ impl UpperBodyMachine {
             "Idle->Walk",
             idle_state,
             walk_state,
-            0.30,
+            0.40,
             Self::IDLE_TO_WALK,
         ));
         machine.add_transition(Transition::new(

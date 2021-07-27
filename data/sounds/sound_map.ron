@@ -85,6 +85,8 @@
         "data/models/starship_parts/metal_red.jpg": Metal,
         "data/models/starship_parts/metal8.jpg": Metal,
 
+        "data/textures/uv_test.png": Metal,
+
         "data/models/lab_parts/LabCeiling_BaseColor.png": Metal,
         "data/models/lab_parts/LabFloor2_BaseColor.png": Metal,
         "data/models/lab_parts/LabFloor_BaseColor.png": Metal,
