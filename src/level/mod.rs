@@ -1,5 +1,5 @@
-use crate::level::testbed::TestbedLevel;
-use crate::weapon::definition::ShotEffect;
+use crate::level::decal::{Decal, DecalContainer};
+use crate::level::trail::{ShotTrail, ShotTrailContainer};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -11,6 +11,7 @@ use crate::{
     level::{
         arrival::ArrivalLevel,
         lab::LabLevel,
+        testbed::TestbedLevel,
         trigger::{Trigger, TriggerContainer, TriggerKind},
         turret::{Hostility, ShootMode, Turret, TurretContainer},
     },
@@ -20,7 +21,7 @@ use crate::{
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
     weapon::{
-        definition::WeaponKind,
+        definition::{ShotEffect, WeaponKind},
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit, Weapon, WeaponContainer,
     },
@@ -34,7 +35,6 @@ use rg3d::{
         pool::Handle,
         rand::seq::SliceRandom,
         visitor::prelude::*,
-        VecExtensions,
     },
     engine::{
         resource_manager::{MaterialSearchOptions, ResourceManager},
@@ -69,8 +69,10 @@ use std::{
 };
 
 pub mod arrival;
+pub mod decal;
 pub mod lab;
 pub mod testbed;
+pub mod trail;
 pub mod trigger;
 pub mod turret;
 
@@ -118,6 +120,7 @@ impl DerefMut for Level {
     }
 }
 
+#[derive(Default)]
 pub struct BaseLevel {
     map_root: Handle<Node>,
     pub scene: Handle<Scene>,
@@ -140,34 +143,7 @@ pub struct BaseLevel {
     lights: LightContainer,
     turrets: TurretContainer,
     triggers: TriggerContainer,
-}
-
-impl Default for BaseLevel {
-    fn default() -> Self {
-        Self {
-            map_root: Default::default(),
-            projectiles: ProjectileContainer::new(),
-            actors: ActorContainer::new(),
-            scene: Default::default(),
-            player: Handle::NONE,
-            weapons: WeaponContainer::new(),
-            items: ItemContainer::new(),
-            spawn_points: Default::default(),
-            sender: None,
-            navmesh: Default::default(),
-            death_zones: Default::default(),
-            time: 0.0,
-            sound_manager: Default::default(),
-            proximity_events_receiver: None,
-            contact_events_receiver: None,
-            beam: None,
-            trails: Default::default(),
-            doors: Default::default(),
-            lights: Default::default(),
-            turrets: Default::default(),
-            triggers: Default::default(),
-        }
-    }
+    decals: DecalContainer,
 }
 
 impl Visit for BaseLevel {
@@ -210,46 +186,6 @@ impl Default for DeathZone {
         Self {
             bounds: Default::default(),
         }
-    }
-}
-
-#[derive(Default, Visit)]
-pub struct ShotTrail {
-    node: Handle<Node>,
-    lifetime: f32,
-    max_lifetime: f32,
-}
-
-#[derive(Default, Visit)]
-pub struct ShotTrailContainer {
-    container: Vec<ShotTrail>,
-}
-
-impl ShotTrailContainer {
-    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
-        self.container.retain_mut(|trail| {
-            trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
-            let k = 1.0 - trail.lifetime / trail.max_lifetime;
-            let new_alpha = (255.0 * k) as u8;
-            match &mut scene.graph[trail.node] {
-                Node::Mesh(mesh) => {
-                    for surface in mesh.surfaces_mut() {
-                        surface.set_color(surface.color().with_new_alpha(new_alpha))
-                    }
-                }
-                Node::Sprite(sprite) => sprite.set_color(sprite.color().with_new_alpha(new_alpha)),
-                _ => (),
-            }
-
-            if trail.lifetime >= trail.max_lifetime {
-                scene.remove_node(trail.node);
-            }
-            trail.lifetime < trail.max_lifetime
-        });
-    }
-
-    pub fn add(&mut self, trail: ShotTrail) {
-        self.container.push(trail);
     }
 }
 
@@ -739,6 +675,7 @@ impl BaseLevel {
             spawn_points,
             turrets,
             triggers,
+            decals: Default::default(),
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -1178,9 +1115,11 @@ impl BaseLevel {
             navmesh: self.navmesh,
             weapons: &self.weapons,
         };
+
         self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
+        self.decals.update(&mut scene.graph, time.delta);
         self.doors.update(
             &self.actors,
             self.sender.clone().unwrap(),
@@ -1282,6 +1221,13 @@ impl BaseLevel {
                 }
             }
 
+            self.decals.add(Decal::new_shot_impact(
+                engine.resource_manager.clone(),
+                &mut scene.graph,
+                hit.position,
+                hit.normal,
+            ));
+
             (dir.norm(), hit.position)
         } else {
             (30.0, end)
@@ -1289,17 +1235,16 @@ impl BaseLevel {
 
         match shot_effect {
             ShotEffect::Smoke => {
-                self.trails.add(ShotTrail {
-                    node: crate::effects::create(
+                self.trails.add(ShotTrail::new(
+                    crate::effects::create(
                         EffectKind::Smoke,
                         &mut scene.graph,
                         engine.resource_manager.clone(),
                         begin,
                         Default::default(),
                     ),
-                    lifetime: 0.0,
-                    max_lifetime: 5.0,
-                });
+                    5.0,
+                ));
             }
             ShotEffect::Beam => {
                 let trail_radius = 0.0014;
@@ -1323,24 +1268,19 @@ impl BaseLevel {
                 .with_render_path(RenderPath::Forward)
                 .build(&mut scene.graph);
 
-                self.trails.add(ShotTrail {
-                    node: trail,
-                    lifetime: 0.0,
-                    max_lifetime: 0.2,
-                });
+                self.trails.add(ShotTrail::new(trail, 0.2));
             }
             ShotEffect::Rail => {
-                self.trails.add(ShotTrail {
-                    node: crate::effects::create_rail(
+                self.trails.add(ShotTrail::new(
+                    crate::effects::create_rail(
                         &mut scene.graph,
                         engine.resource_manager.clone(),
                         begin,
                         hit_point,
                         Color::opaque(255, 0, 0),
                     ),
-                    lifetime: 0.0,
-                    max_lifetime: 5.0,
-                });
+                    5.0,
+                ));
             }
         }
     }
