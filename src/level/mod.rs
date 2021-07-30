@@ -1196,7 +1196,8 @@ impl BaseLevel {
 
             let dir = hit.position - begin;
 
-            if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider) {
+            let parent = if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider)
+            {
                 let body_handle = *collider_parent;
                 scene
                     .physics
@@ -1210,7 +1211,14 @@ impl BaseLevel {
                         Point3::from(hit.position),
                         true,
                     );
-            }
+
+                scene
+                    .physics_binder
+                    .node_of(body_handle)
+                    .unwrap_or_default()
+            } else {
+                Default::default()
+            };
 
             if hit.actor.is_some() {
                 if let Actor::Bot(actor) = self.actors.get_mut(hit.actor) {
@@ -1226,6 +1234,7 @@ impl BaseLevel {
                 &mut scene.graph,
                 hit.position,
                 hit.normal,
+                parent,
             ));
 
             (dir.norm(), hit.position)

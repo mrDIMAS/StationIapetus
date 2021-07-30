@@ -4,12 +4,6 @@ version = "0.3.0"
 authors = ["Dmitry Stepanov <d1maxa@yandex.ru>"]
 edition = "2018"
 
-[profile.dev]
-incremental = true
-
-[profile.release]
-incremental = true
-
 [profile.dev.package."*"]
 opt-level = 3
 

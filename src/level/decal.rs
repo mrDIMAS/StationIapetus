@@ -1,3 +1,4 @@
+use rg3d::core::algebra::Point3;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -16,7 +17,7 @@ use rg3d::{
 
 #[derive(Default, Visit)]
 pub struct Decal {
-    node: Handle<Node>,
+    decal: Handle<Node>,
     lifetime: f32,
     fade_interval: f32,
 }
@@ -24,7 +25,7 @@ pub struct Decal {
 impl Decal {
     pub fn new(node: Handle<Node>, lifetime: f32, fade_interval: f32) -> Self {
         Self {
-            node,
+            decal: node,
             lifetime,
             fade_interval,
         }
@@ -35,27 +36,57 @@ impl Decal {
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
+        parent: Handle<Node>,
     ) -> Self {
-        Self {
-            node: DecalBuilder::new(
-                BaseBuilder::new().with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_position(position)
-                        .with_local_rotation(
-                            vector_to_quat(face_towards)
-                                * UnitQuaternion::from_axis_angle(
-                                    &Vector3::x_axis(),
-                                    90.0f32.to_radians(),
-                                ),
-                        )
-                        .with_local_scale(Vector3::new(0.05, 0.05, 0.05))
-                        .build(),
+        let default_scale = Vector3::new(0.05, 0.05, 0.05);
+
+        let (position, face_towards, scale) = if parent.is_some() {
+            let parent_scale = graph.global_scale(parent);
+
+            let parent_inv_transform = graph[parent]
+                .global_transform()
+                .try_inverse()
+                .unwrap_or_default();
+
+            (
+                parent_inv_transform
+                    .transform_point(&Point3::from(position))
+                    .coords,
+                parent_inv_transform.transform_vector(&face_towards),
+                // Discard parent's scale.
+                Vector3::new(
+                    default_scale.x / parent_scale.x,
+                    default_scale.y / parent_scale.y,
+                    default_scale.z / parent_scale.z,
                 ),
             )
-            .with_diffuse_texture(
-                resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
-            )
-            .build(graph),
+        } else {
+            (position, face_towards, default_scale)
+        };
+
+        let rotation = vector_to_quat(face_towards)
+            * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians());
+
+        let decal = DecalBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(position)
+                    .with_local_rotation(rotation)
+                    .with_local_scale(scale)
+                    .build(),
+            ),
+        )
+        .with_diffuse_texture(
+            resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
+        )
+        .build(graph);
+
+        if decal.is_some() {
+            graph.link_nodes(decal, parent);
+        }
+
+        Self {
+            decal,
             lifetime: 10.0,
             fade_interval: 1.0,
         }
@@ -84,12 +115,12 @@ impl DecalContainer {
                 1.0
             };
 
-            let decal_node = graph[decal.node].as_decal_mut();
+            let decal_node = graph[decal.decal].as_decal_mut();
 
             decal_node.set_color(Color::from_rgba(255, 255, 255, (255.0 * alpha) as u8));
 
             if decal.lifetime < 0.0 && abs_lifetime > decal.fade_interval {
-                graph.remove_node(decal.node);
+                graph.remove_node(decal.decal);
 
                 false
             } else {
