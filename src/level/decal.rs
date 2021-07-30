@@ -31,12 +31,13 @@ impl Decal {
         }
     }
 
-    pub fn new_shot_impact(
+    pub fn new_bullet_hole(
         resource_manager: ResourceManager,
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
         parent: Handle<Node>,
+        color: Color,
     ) -> Self {
         let default_scale = Vector3::new(0.05, 0.05, 0.05);
 
@@ -79,6 +80,7 @@ impl Decal {
         .with_diffuse_texture(
             resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
         )
+        .with_color(color)
         .build(graph);
 
         if decal.is_some() {
@@ -117,7 +119,7 @@ impl DecalContainer {
 
             let decal_node = graph[decal.decal].as_decal_mut();
 
-            decal_node.set_color(Color::from_rgba(255, 255, 255, (255.0 * alpha) as u8));
+            decal_node.set_color(decal_node.color().with_new_alpha((255.0 * alpha) as u8));
 
             if decal.lifetime < 0.0 && abs_lifetime > decal.fade_interval {
                 graph.remove_node(decal.decal);

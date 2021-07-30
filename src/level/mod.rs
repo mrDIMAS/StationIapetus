@@ -1229,12 +1229,17 @@ impl BaseLevel {
                 }
             }
 
-            self.decals.add(Decal::new_shot_impact(
+            self.decals.add(Decal::new_bullet_hole(
                 engine.resource_manager.clone(),
                 &mut scene.graph,
                 hit.position,
                 hit.normal,
                 parent,
+                if hit.actor.is_some() {
+                    Color::opaque(200, 0, 0)
+                } else {
+                    Color::opaque(20, 20, 20)
+                },
             ));
 
             (dir.norm(), hit.position)
