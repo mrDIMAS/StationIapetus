@@ -368,6 +368,7 @@ impl Projectile {
                         .send(Message::DamageActor {
                             actor: hit.actor,
                             who: hit.who,
+                            hitbox: hit.hit_box,
                             amount,
                         })
                         .unwrap();

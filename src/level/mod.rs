@@ -1,3 +1,4 @@
+use crate::character::HitBox;
 use crate::level::decal::{Decal, DecalContainer};
 use crate::level::trail::{ShotTrail, ShotTrailContainer};
 use crate::{
@@ -7,6 +8,7 @@ use crate::{
     control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorDirection, DoorState},
     effects::{self, EffectKind},
+    is_probability_event_occurred,
     item::{Item, ItemContainer, ItemKind},
     level::{
         arrival::ArrivalLevel,
@@ -976,15 +978,16 @@ impl BaseLevel {
 
     fn damage_actor(
         &mut self,
-        engine: &GameEngine,
+        engine: &mut GameEngine,
         actor_handle: Handle<Actor>,
         who: Handle<Actor>,
-        amount: f32,
+        mut amount: f32,
+        hitbox: Option<HitBox>,
     ) {
         if self.actors.contains(actor_handle)
             && (who.is_none() || who.is_some() && self.actors.contains(who))
         {
-            let scene = &engine.scenes[self.scene];
+            let scene = &mut engine.scenes[self.scene];
 
             let who_position = if who.is_some() {
                 Some(self.actors.get(who).position(&scene.graph))
@@ -999,6 +1002,21 @@ impl BaseLevel {
                         bot.set_target(actor_handle, who_position);
                     }
                 }
+
+                if let Some(hitbox) = hitbox {
+                    // Handle critical head shots.
+                    let critical_head_shot_probability = 0.05; // * 100.0%
+                    if hitbox.is_head
+                        && is_probability_event_occurred(critical_head_shot_probability)
+                    {
+                        amount *= 1000.0;
+
+                        if let Actor::Bot(bot) = actor {
+                            bot.blow_up_head(&mut scene.graph);
+                        }
+                    }
+                }
+
                 actor.damage(amount);
 
                 // Prevent spamming with grunt sounds.
@@ -1065,6 +1083,7 @@ impl BaseLevel {
                         .send(Message::DamageActor {
                             actor: handle,
                             who: Default::default(),
+                            hitbox: None,
                             amount: 99999.0,
                         })
                         .unwrap();
@@ -1188,6 +1207,7 @@ impl BaseLevel {
                 .send(Message::DamageActor {
                     actor: hit.actor,
                     who: hit.who,
+                    hitbox: hit.hit_box,
                     amount: damage
                         .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
                         .amount(),
@@ -1319,6 +1339,8 @@ impl BaseLevel {
                     .send(Message::DamageActor {
                         actor: actor_handle,
                         who,
+                        hitbox: None,
+                        /// TODO: Maybe collect all hitboxes?
                         amount,
                     })
                     .unwrap();
@@ -1388,8 +1410,13 @@ impl BaseLevel {
                 center,
                 who,
             } => self.apply_splash_damage(engine, amount, radius, center, who),
-            &Message::DamageActor { actor, who, amount } => {
-                self.damage_actor(engine, actor, who, amount);
+            &Message::DamageActor {
+                actor,
+                who,
+                amount,
+                hitbox,
+            } => {
+                self.damage_actor(engine, actor, who, amount, hitbox);
             }
             &Message::CreateEffect {
                 kind,

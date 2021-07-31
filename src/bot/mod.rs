@@ -107,6 +107,7 @@ pub struct Bot {
     hips: Handle<Node>,
     attack_animation_index: u32,
     agent: NavmeshAgent,
+    head_exploded: bool,
     pub impact_handler: BodyImpactHandler,
 }
 
@@ -154,6 +155,7 @@ impl Default for Bot {
             hips: Default::default(),
             attack_animation_index: 0,
             agent: Default::default(),
+            head_exploded: false,
             impact_handler: Default::default(),
         }
     }
@@ -179,6 +181,7 @@ pub struct BotDefinition {
     pub left_leg_name: String,
     pub right_leg_name: String,
     pub spine: String,
+    pub head_name: String,
     pub hips: String,
     pub v_aim_angle_hack: f32,
     pub can_use_weapons: bool,
@@ -676,6 +679,8 @@ impl Bot {
                             .send(Message::DamageActor {
                                 actor: target.handle,
                                 who: Default::default(),
+                                hitbox: None,
+                                /// TODO: Find hit box maybe?
                                 amount: self.definition.attack_animations
                                     [self.attack_animation_index as usize]
                                     .damage
@@ -798,6 +803,24 @@ impl Bot {
         );
         self.impact_handler
             .update_and_apply(context.time.delta, context.scene);
+
+        if self.head_exploded {
+            let head = context
+                .scene
+                .graph
+                .find_by_name(self.model, &self.definition.head_name);
+            if head.is_some() {
+                context.scene.graph[head]
+                    .local_transform_mut()
+                    .set_scale(Vector3::new(0.0, 0.0, 0.0));
+            }
+        }
+    }
+
+    pub fn blow_up_head(&mut self, graph: &mut Graph) {
+        self.head_exploded = true;
+
+        // TODO: Add effect.
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
@@ -842,6 +865,7 @@ impl Visit for Bot {
         self.attack_animation_index
             .visit("AttackAnimationIndex", visitor)?;
         self.agent.visit("Agent", visitor)?;
+        self.head_exploded.visit("HeadExploded", visitor)?;
 
         visitor.leave_region()
     }

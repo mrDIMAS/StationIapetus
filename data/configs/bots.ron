@@ -26,6 +26,7 @@
             weapon_hand_name: "Mutant:RightHand",
             left_leg_name: "Mutant:LeftUpLeg",
             right_leg_name: "Mutant:RightUpLeg",
+            head_name: "Mutant:Head",
             hips: "Mutant:Hips",
             spine: "", // Empty because cannot use weapons.
             walk_speed: 0.7,
@@ -78,6 +79,7 @@
             weapon_hand_name: "RightHand",
             left_leg_name: "LeftUpLeg",
             right_leg_name: "RightUpLeg",
+            head_name: "Head",
             hips: "Hips",
             spine: "", // Empty because cannot use weapons.
             walk_speed: 2.8,
@@ -129,6 +131,7 @@
             weapon_hand_name: "mixamorig5:RightHand",
             left_leg_name: "mixamorig5:LeftUpLeg",
             right_leg_name: "mixamorig5:RightUpLeg",
+            head_name: "mixamorig5:Head",
             hips: "mixamorig5:Hips",
             spine: "Spine",
             walk_speed: 1.2,

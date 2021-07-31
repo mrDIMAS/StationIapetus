@@ -40,6 +40,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use rg3d::core::rand::Rng;
 use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     animation::{
@@ -66,6 +67,7 @@ use rg3d::{
         widget::WidgetBuilder,
         HorizontalAlignment, VerticalAlignment,
     },
+    rand,
     resource::model::Model,
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, Status},
@@ -106,6 +108,10 @@ pub fn create_play_animation_state(
     let node = machine.add_node(PoseNode::make_play_animation(animation));
     let state = machine.add_state(State::new(name, node));
     (animation, state)
+}
+
+pub fn is_probability_event_occurred(probability: f32) -> bool {
+    return rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0);
 }
 
 pub struct ModelMap {

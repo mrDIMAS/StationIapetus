@@ -9,6 +9,7 @@
 //! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
 //! all kinds of games, but at least it very useful for first-person shooters.
 
+use crate::character::HitBox;
 use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::Actor,
@@ -123,6 +124,8 @@ pub enum Message {
         /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
         /// or not from any actor.
         who: Handle<Actor>,
+        /// A body part which was hit.
+        hitbox: Option<HitBox>,
         /// Numeric value of damage.
         amount: f32,
     },
