@@ -452,19 +452,29 @@ impl InventoryInterface {
                                     self.ui.node(selection)
                                 {
                                     let definition = Item::get_definition(item.item);
-                                    if definition.consumable
-                                        && player
+                                    if definition.consumable {
+                                        if player
                                             .inventory_mut()
                                             .try_extract_exact_items(item.item, 1)
                                             == 1
+                                        {
+                                            self.sender
+                                                .send(Message::UseItem {
+                                                    actor: player_handle,
+                                                    kind: item.item,
+                                                })
+                                                .unwrap();
+                                            self.sender.send(Message::SyncInventory).unwrap();
+                                        }
+                                    } else if let Some(associated_weapon) =
+                                        item.item.associated_weapon()
                                     {
                                         self.sender
-                                            .send(Message::UseItem {
+                                            .send(Message::GrabWeapon {
+                                                kind: associated_weapon,
                                                 actor: player_handle,
-                                                kind: item.item,
                                             })
                                             .unwrap();
-                                        self.sender.send(Message::SyncInventory).unwrap();
                                     }
                                 } else {
                                     unreachable!()

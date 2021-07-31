@@ -4,18 +4,25 @@
             model: "data/models/mutant/mutant.rgs",
             attack_animations: [
                 (
-                    path: "data/animations/mutant_attack_swipe.fbx",
+                    path: "data/models/mutant/animations/swipe.fbx",
                     stick_timestamp: 0.9,
                     timestamp: 1.1,
-                    damage: Point(60.0),
+                    damage: Point(0.0),
                     speed: 1.1
+                ),
+                (
+                    path: "data/models/mutant/animations/punch.fbx",
+                    stick_timestamp: 0.9,
+                    timestamp: 1.1,
+                    damage: Point(0.0),
+                    speed: 1.0
                 )
             ],
-            scream_animation: "data/animations/mutant_scream.fbx",
-            idle_animation: "data/animations/mutant_idle.fbx",
-            walk_animation: "data/animations/mutant_walk.fbx",
+            scream_animation: "data/models/mutant/animations/scream.fbx",
+            idle_animation: "data/models/mutant/animations/idle.fbx",
+            walk_animation: "data/models/mutant/animations/walk.fbx",
             aim_animation: "", // Empty because cannot use weapons.
-            dying_animation: "data/animations/mutant_dying.fbx",
+            dying_animation: "data/models/mutant/animations/dying.fbx",
             weapon_hand_name: "Mutant:RightHand",
             left_leg_name: "Mutant:LeftUpLeg",
             right_leg_name: "Mutant:RightUpLeg",
