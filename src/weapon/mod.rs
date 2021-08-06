@@ -341,7 +341,8 @@ impl Weapon {
 
         let dir = self.get_shot_direction(&scene.graph);
         let pos = self.get_shot_position(&scene.graph);
-        self.laser_sight.update(scene, pos, dir, ignored_collider)
+        self.laser_sight
+            .update(scene, pos, dir, ignored_collider, dt)
     }
 
     pub fn get_shot_position(&self, graph: &Graph) -> Vector3<f32> {
@@ -383,6 +384,10 @@ impl Weapon {
 
     pub fn laser_sight(&self) -> &LaserSight {
         &self.laser_sight
+    }
+
+    pub fn laser_sight_mut(&mut self) -> &mut LaserSight {
+        &mut self.laser_sight
     }
 
     pub fn can_shoot(&self, time: GameTime) -> bool {

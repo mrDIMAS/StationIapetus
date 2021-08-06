@@ -1,3 +1,4 @@
+use crate::weapon::sight::SightReaction;
 use crate::{
     actor::{Actor, ActorContainer},
     effects::EffectKind,
@@ -350,6 +351,15 @@ impl Projectile {
 
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SightReaction {
+                            weapon,
+                            reaction: SightReaction::HitDetected,
+                        })
+                        .unwrap();
+
                     weapons[weapon].definition.base_critical_shot_probability
                 }
                 Shooter::Turret(_) => 0.01,

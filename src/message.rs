@@ -2,24 +2,18 @@
 //! a bot or item everything you need is to send appropriate message and level will create
 //! required entity. This is very effective decoupling mechanism that works perfectly with
 //! strict ownership rules of Rust.
-//!
-//! Each message can be handle in multiple "systems", for example when bot dies, leader board
-//! detects it and counts deaths of bot and adds one frag to a killer (if any). This way leader
-//! board know nothing about bots, it just knows the fact that bot died. In other way bot knows
-//! nothing about leader board - its can just die. Not sure if this mechanism is suitable for
-//! all kinds of games, but at least it very useful for first-person shooters.
 
-use crate::character::HitBox;
-use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::Actor,
     bot::BotKind,
+    character::HitBox,
     effects::EffectKind,
     item::{Item, ItemKind},
     sound::SoundKind,
     weapon::{
-        definition::WeaponKind,
+        definition::{ShotEffect, WeaponKind},
         projectile::{Damage, ProjectileKind, Shooter},
+        sight::SightReaction,
         Weapon,
     },
 };
@@ -143,6 +137,12 @@ pub enum Message {
         /// Damage initiator
         who: Handle<Actor>,
         critical_shot_probability: f32,
+    },
+    /// Forces weapon's sight to react in given manner. It is used to indicate hits and
+    /// moment when enemy dies.
+    SightReaction {
+        weapon: Handle<Weapon>,
+        reaction: SightReaction,
     },
     /// Save game state to a file. TODO: Add filename field.
     SaveGame,

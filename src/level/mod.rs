@@ -1,6 +1,7 @@
 use crate::character::HitBox;
 use crate::level::decal::{Decal, DecalContainer};
 use crate::level::trail::{ShotTrail, ShotTrailContainer};
+use crate::weapon::sight::SightReaction;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -1205,6 +1206,15 @@ impl BaseLevel {
 
             let critical_shot_probability = match shooter {
                 Shooter::Weapon(weapon) => {
+                    self.sender
+                        .as_ref()
+                        .unwrap()
+                        .send(Message::SightReaction {
+                            weapon,
+                            reaction: SightReaction::HitDetected,
+                        })
+                        .unwrap();
+
                     self.weapons[weapon]
                         .definition
                         .base_critical_shot_probability
@@ -1448,6 +1458,11 @@ impl BaseLevel {
                     hitbox,
                     critical_shot_probability,
                 );
+            }
+            &Message::SightReaction { weapon, reaction } => {
+                self.weapons[weapon]
+                    .laser_sight_mut()
+                    .set_reaction(reaction);
             }
             &Message::CreateEffect {
                 kind,
