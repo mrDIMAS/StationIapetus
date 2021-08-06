@@ -348,6 +348,14 @@ impl Projectile {
                 .damage
                 .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
 
+            let critical_shot_probability = match self.owner {
+                Shooter::Weapon(weapon) => {
+                    weapons[weapon].definition.base_critical_shot_probability
+                }
+                Shooter::Turret(_) => 0.01,
+                _ => 0.0,
+            };
+
             match damage {
                 Damage::Splash { radius, amount } => {
                     self.sender
@@ -358,6 +366,7 @@ impl Projectile {
                             radius,
                             center: position,
                             who: hit.who,
+                            critical_shot_probability,
                         })
                         .unwrap();
                 }
@@ -370,6 +379,7 @@ impl Projectile {
                             who: hit.who,
                             hitbox: hit.hit_box,
                             amount,
+                            critical_shot_probability,
                         })
                         .unwrap();
                 }

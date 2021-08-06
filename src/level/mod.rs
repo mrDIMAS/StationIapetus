@@ -983,6 +983,7 @@ impl BaseLevel {
         who: Handle<Actor>,
         mut amount: f32,
         hitbox: Option<HitBox>,
+        critical_shot_probability: f32,
     ) {
         if self.actors.contains(actor_handle)
             && (who.is_none() || who.is_some() && self.actors.contains(who))
@@ -1005,7 +1006,7 @@ impl BaseLevel {
 
                 if let Some(hitbox) = hitbox {
                     // Handle critical head shots.
-                    let critical_head_shot_probability = 0.05; // * 100.0%
+                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
                     if hitbox.is_head
                         && is_probability_event_occurred(critical_head_shot_probability)
                     {
@@ -1085,6 +1086,7 @@ impl BaseLevel {
                             who: Default::default(),
                             hitbox: None,
                             amount: 99999.0,
+                            critical_shot_probability: 0.0,
                         })
                         .unwrap();
                 }
@@ -1201,6 +1203,16 @@ impl BaseLevel {
                 })
                 .unwrap();
 
+            let critical_shot_probability = match shooter {
+                Shooter::Weapon(weapon) => {
+                    self.weapons[weapon]
+                        .definition
+                        .base_critical_shot_probability
+                }
+                Shooter::Turret(_) => 0.01,
+                _ => 0.0,
+            };
+
             self.sender
                 .as_ref()
                 .unwrap()
@@ -1211,6 +1223,7 @@ impl BaseLevel {
                     amount: damage
                         .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
                         .amount(),
+                    critical_shot_probability,
                 })
                 .unwrap();
 
@@ -1326,6 +1339,7 @@ impl BaseLevel {
         radius: f32,
         center: Vector3<f32>,
         who: Handle<Actor>,
+        critical_shot_probability: f32,
     ) {
         let scene = &mut engine.scenes[self.scene];
         // Just find out actors which must be damaged and re-cast damage message for each.
@@ -1342,6 +1356,7 @@ impl BaseLevel {
                         hitbox: None,
                         /// TODO: Maybe collect all hitboxes?
                         amount,
+                        critical_shot_probability,
                     })
                     .unwrap();
             }
@@ -1409,14 +1424,30 @@ impl BaseLevel {
                 radius,
                 center,
                 who,
-            } => self.apply_splash_damage(engine, amount, radius, center, who),
+                critical_shot_probability,
+            } => self.apply_splash_damage(
+                engine,
+                amount,
+                radius,
+                center,
+                who,
+                critical_shot_probability,
+            ),
             &Message::DamageActor {
                 actor,
                 who,
                 amount,
                 hitbox,
+                critical_shot_probability,
             } => {
-                self.damage_actor(engine, actor, who, amount, hitbox);
+                self.damage_actor(
+                    engine,
+                    actor,
+                    who,
+                    amount,
+                    hitbox,
+                    critical_shot_probability,
+                );
             }
             &Message::CreateEffect {
                 kind,

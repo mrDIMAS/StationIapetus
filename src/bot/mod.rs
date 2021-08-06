@@ -685,6 +685,7 @@ impl Bot {
                                     [self.attack_animation_index as usize]
                                     .damage
                                     .amount(),
+                                critical_shot_probability: 0.0,
                             })
                             .unwrap();
 

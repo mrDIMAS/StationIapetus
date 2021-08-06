@@ -67,6 +67,7 @@ pub struct WeaponDefinition {
     pub v_recoil: (f32, f32),
     pub h_recoil: (f32, f32),
     pub shot_effect: ShotEffect,
+    pub base_critical_shot_probability: f32,
 }
 
 impl WeaponDefinition {

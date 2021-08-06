@@ -128,6 +128,8 @@ pub enum Message {
         hitbox: Option<HitBox>,
         /// Numeric value of damage.
         amount: f32,
+        /// Only takes effect iff damage was applied to a head hit box!
+        critical_shot_probability: f32,
     },
     CreateEffect {
         kind: EffectKind,
@@ -140,6 +142,7 @@ pub enum Message {
         center: Vector3<f32>,
         /// Damage initiator
         who: Handle<Actor>,
+        critical_shot_probability: f32,
     },
     /// Save game state to a file. TODO: Add filename field.
     SaveGame,
