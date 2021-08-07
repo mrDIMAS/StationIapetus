@@ -1231,14 +1231,14 @@ impl BaseLevel {
                 hit.normal,
                 parent,
                 if hit.actor.is_some() {
-                    Color::opaque(200, 0, 0)
+                    Color::opaque(160, 0, 0)
                 } else {
                     Color::opaque(20, 20, 20)
                 },
             ));
 
             // Add blood splatter on a surface behind actor that was shot.
-            if hit.actor.is_some() {
+            if hit.actor.is_some() && !self.actors.get(hit.actor).is_dead() {
                 for intersection in hit.query_buffer.iter() {
                     if let Some(collider) = scene.physics.colliders.get(&intersection.collider) {
                         if collider.shared_shape().as_trimesh().is_some()
