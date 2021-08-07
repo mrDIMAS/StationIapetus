@@ -1206,14 +1206,16 @@ impl BaseLevel {
 
             let critical_shot_probability = match shooter {
                 Shooter::Weapon(weapon) => {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::SightReaction {
-                            weapon,
-                            reaction: SightReaction::HitDetected,
-                        })
-                        .unwrap();
+                    if hit.actor.is_some() {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::SightReaction {
+                                weapon,
+                                reaction: SightReaction::HitDetected,
+                            })
+                            .unwrap();
+                    }
 
                     self.weapons[weapon]
                         .definition

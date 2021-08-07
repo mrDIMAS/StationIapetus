@@ -351,14 +351,16 @@ impl Projectile {
 
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::SightReaction {
-                            weapon,
-                            reaction: SightReaction::HitDetected,
-                        })
-                        .unwrap();
+                    if hit.actor.is_some() {
+                        self.sender
+                            .as_ref()
+                            .unwrap()
+                            .send(Message::SightReaction {
+                                weapon,
+                                reaction: SightReaction::HitDetected,
+                            })
+                            .unwrap();
+                    }
 
                     weapons[weapon].definition.base_critical_shot_probability
                 }
