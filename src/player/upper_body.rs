@@ -1,6 +1,6 @@
 use crate::{
-    create_play_animation_state,
     player::{make_hit_reaction_state, HitReactionStateDefinition},
+    utils::create_play_animation_state,
 };
 use rg3d::{
     animation::{

@@ -1,6 +1,8 @@
 use crate::{
     bot::{clean_machine, BotDefinition},
-    create_play_animation_state, GameTime, ModelMap,
+    utils::create_play_animation_state,
+    utils::model_map::ModelMap,
+    GameTime,
 };
 use rg3d::{
     animation::{

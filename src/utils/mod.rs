@@ -1,3 +1,7 @@
+use rg3d::animation::machine::{Machine, PoseNode, State};
+use rg3d::animation::Animation;
+use rg3d::asset::core::rand::Rng;
+use rg3d::resource::model::Model;
 use rg3d::scene::camera::SkyBoxBuilder;
 use rg3d::{
     core::{
@@ -5,6 +9,7 @@ use rg3d::{
         pool::Handle,
     },
     engine::{resource_manager::ResourceManager, RigidBodyHandle},
+    rand,
     resource::texture::TextureWrapMode,
     scene::{
         base::BaseBuilder, camera::CameraBuilder, graph::Graph, node::Node,
@@ -13,6 +18,8 @@ use rg3d::{
     sound::{self, context::SoundContext},
 };
 use std::collections::HashMap;
+
+pub mod model_map;
 
 struct ImpactEntry {
     k: f32,
@@ -138,4 +145,24 @@ pub fn use_hrtf(context: SoundContext) {
         .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
             rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
         ));
+}
+
+pub fn create_play_animation_state(
+    animation_resource: Model,
+    name: &str,
+    machine: &mut Machine,
+    scene: &mut Scene,
+    model: Handle<Node>,
+) -> (Handle<Animation>, Handle<State>) {
+    let animation = *animation_resource
+        .retarget_animations(model, scene)
+        .get(0)
+        .unwrap();
+    let node = machine.add_node(PoseNode::make_play_animation(animation));
+    let state = machine.add_state(State::new(name, node));
+    (animation, state)
+}
+
+pub fn is_probability_event_occurred(probability: f32) -> bool {
+    return rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0);
 }

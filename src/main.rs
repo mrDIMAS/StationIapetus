@@ -16,6 +16,7 @@ pub mod inventory;
 pub mod item;
 pub mod level;
 pub mod light;
+pub mod loading_screen;
 pub mod menu;
 pub mod message;
 pub mod options_menu;
@@ -24,52 +25,41 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
-use crate::level::testbed::TestbedLevel;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
-        weapon_display::WeaponDisplay, BuildContext, CustomUiMessage, CustomUiNode, DeathScreen,
-        FinalScreen, GuiMessage, UiNode, UiNodeHandle,
+        weapon_display::WeaponDisplay, CustomUiMessage, CustomUiNode, DeathScreen, FinalScreen,
+        GuiMessage, UiNode, UiNodeHandle,
     },
-    level::{arrival::ArrivalLevel, lab::LabLevel, Level, LevelKind},
+    level::{arrival::ArrivalLevel, lab::LabLevel, testbed::TestbedLevel, Level, LevelKind},
+    loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::core::rand::Rng;
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
-    animation::{
-        machine::{Machine, PoseNode, State},
-        Animation,
-    },
     core::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
-    engine::{resource_manager::ResourceManager, Engine},
+    engine::Engine,
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     gui::{
-        grid::{Column, GridBuilder, Row},
         message::{
-            ButtonMessage, CheckBoxMessage, MessageDirection, ProgressBarMessage, TextMessage,
-            UiMessageData, WidgetMessage,
+            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessageData,
+            WidgetMessage,
         },
-        progress_bar::ProgressBarBuilder,
         text::TextBuilder,
         ttf::{Font, SharedFont},
         widget::WidgetBuilder,
-        HorizontalAlignment, VerticalAlignment,
     },
-    rand,
-    resource::model::Model,
-    scene::{node::Node, Scene},
+    scene::Scene,
     sound::source::{generic::GenericSourceBuilder, Status},
     utils::{
         log::{Log, MessageKind},
@@ -77,10 +67,8 @@ use rg3d::{
     },
 };
 use std::{
-    collections::HashMap,
     fs::File,
     io::Write,
-    ops::Index,
     path::{Path, PathBuf},
     sync::{
         mpsc::{self, Receiver, Sender},
@@ -93,70 +81,6 @@ const FIXED_FPS: f32 = 60.0;
 
 // Define type aliases for engine structs.
 pub type GameEngine = Engine<CustomUiMessage, CustomUiNode>;
-
-pub fn create_play_animation_state(
-    animation_resource: Model,
-    name: &str,
-    machine: &mut Machine,
-    scene: &mut Scene,
-    model: Handle<Node>,
-) -> (Handle<Animation>, Handle<State>) {
-    let animation = *animation_resource
-        .retarget_animations(model, scene)
-        .get(0)
-        .unwrap();
-    let node = machine.add_node(PoseNode::make_play_animation(animation));
-    let state = machine.add_state(State::new(name, node));
-    (animation, state)
-}
-
-pub fn is_probability_event_occurred(probability: f32) -> bool {
-    return rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0);
-}
-
-pub struct ModelMap {
-    pub map: HashMap<String, Model>,
-}
-
-impl ModelMap {
-    pub async fn new<I>(paths: I, resource_manager: ResourceManager) -> Self
-    where
-        I: IntoIterator,
-        I::Item: AsRef<Path>,
-    {
-        Self {
-            map: rg3d::core::futures::future::join_all(
-                paths
-                    .into_iter()
-                    .map(|path| {
-                        resource_manager.request_model(
-                            path,
-                            MaterialSearchOptions::MaterialsDirectory(PathBuf::from(
-                                "data/textures",
-                            )),
-                        )
-                    })
-                    .collect::<Vec<_>>(),
-            )
-            .await
-            .into_iter()
-            .map(|r| {
-                let resource = r.unwrap();
-                let key = resource.state().path().to_string_lossy().into_owned();
-                (key, resource)
-            })
-            .collect::<HashMap<_, _>>(),
-        }
-    }
-}
-
-impl<T: AsRef<str>> Index<T> for ModelMap {
-    type Output = Model;
-
-    fn index(&self, index: T) -> &Self::Output {
-        self.map.get(index.as_ref()).unwrap()
-    }
-}
 
 pub struct Game {
     menu: Menu,
@@ -183,55 +107,6 @@ pub struct Game {
     sound_config: SoundConfig,
     update_duration: Duration,
     show_debug_info: bool,
-}
-
-struct LoadingScreen {
-    root: Handle<UiNode>,
-    progress_bar: Handle<UiNode>,
-}
-
-impl LoadingScreen {
-    fn new(ctx: &mut BuildContext, width: f32, height: f32) -> Self {
-        let progress_bar;
-        let root = GridBuilder::new(
-            WidgetBuilder::new()
-                .with_width(width)
-                .with_height(height)
-                .with_visibility(false)
-                .with_child(
-                    GridBuilder::new(
-                        WidgetBuilder::new()
-                            .on_row(1)
-                            .on_column(1)
-                            .with_child({
-                                progress_bar =
-                                    ProgressBarBuilder::new(WidgetBuilder::new().on_row(1))
-                                        .build(ctx);
-                                progress_bar
-                            })
-                            .with_child(
-                                TextBuilder::new(WidgetBuilder::new().on_row(0))
-                                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                                    .with_vertical_text_alignment(VerticalAlignment::Center)
-                                    .with_text("Loading... Please wait.")
-                                    .build(ctx),
-                            ),
-                    )
-                    .add_row(Row::stretch())
-                    .add_row(Row::strict(32.0))
-                    .add_column(Column::stretch())
-                    .build(ctx),
-                ),
-        )
-        .add_column(Column::stretch())
-        .add_column(Column::strict(400.0))
-        .add_column(Column::stretch())
-        .add_row(Row::stretch())
-        .add_row(Row::strict(100.0))
-        .add_row(Row::stretch())
-        .build(ctx);
-        Self { root, progress_bar }
-    }
 }
 
 #[derive(Copy, Clone)]
@@ -726,13 +601,10 @@ impl Game {
                         ));
                     self.menu.sync_to_model(&mut self.engine, true);
                 } else {
-                    self.engine
-                        .user_interface
-                        .send_message(ProgressBarMessage::progress(
-                            self.loading_screen.progress_bar,
-                            MessageDirection::ToWidget,
-                            self.engine.resource_manager.state().loading_progress() as f32 / 100.0,
-                        ));
+                    self.loading_screen.set_progress(
+                        &self.engine.user_interface,
+                        self.engine.resource_manager.state().loading_progress() as f32 / 100.0,
+                    );
                 }
             }
         }

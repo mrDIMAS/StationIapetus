@@ -1,8 +1,8 @@
 use crate::{
-    create_play_animation_state,
     level::footstep_ray_check,
     message::Message,
     player::{make_hit_reaction_state, upper_body::CombatWeaponKind, HitReactionStateDefinition},
+    utils::create_play_animation_state,
 };
 use rg3d::{
     animation::{

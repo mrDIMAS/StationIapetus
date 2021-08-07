@@ -9,7 +9,6 @@ use crate::{
     control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorDirection, DoorState},
     effects::{self, EffectKind},
-    is_probability_event_occurred,
     item::{Item, ItemContainer, ItemKind},
     level::{
         arrival::ArrivalLevel,
@@ -22,6 +21,7 @@ use crate::{
     message::Message,
     player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
+    utils::is_probability_event_occurred,
     utils::use_hrtf,
     weapon::{
         definition::{ShotEffect, WeaponKind},
