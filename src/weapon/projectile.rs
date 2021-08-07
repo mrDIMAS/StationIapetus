@@ -256,10 +256,30 @@ impl Projectile {
             collider,
         );
 
-        if let Some(hit) = ray_hit {
+        let (effect_position, effect_normal, effect_kind) = if let Some(hit) = ray_hit {
+            let position = hit.position;
+            let normal = hit.normal;
+            let blood_effect = hit.actor.is_some();
+
             self.hits.insert(hit);
             self.kill();
-        }
+
+            (
+                position,
+                normal,
+                if blood_effect {
+                    EffectKind::BloodSpray
+                } else {
+                    EffectKind::BulletImpact
+                },
+            )
+        } else {
+            (
+                self.get_position(&scene.graph),
+                Vector3::y(),
+                EffectKind::BulletImpact,
+            )
+        };
 
         // Movement of kinematic projectiles are controlled explicitly.
         if self.definition.is_kinematic {
@@ -296,39 +316,18 @@ impl Projectile {
         self.lifetime -= time.delta;
 
         if self.lifetime <= 0.0 {
-            let (pos, normal, effect_kind) = ray_hit.map_or_else(
-                || {
-                    (
-                        self.get_position(&scene.graph),
-                        Vector3::y(),
-                        EffectKind::BulletImpact,
-                    )
-                },
-                |h| {
-                    (
-                        h.position,
-                        h.normal,
-                        if h.actor.is_some() {
-                            EffectKind::BloodSpray
-                        } else {
-                            EffectKind::BulletImpact
-                        },
-                    )
-                },
-            );
-
             sender
                 .send(Message::CreateEffect {
                     kind: effect_kind,
-                    position: pos,
-                    orientation: vector_to_quat(normal),
+                    position: effect_position,
+                    orientation: vector_to_quat(effect_normal),
                 })
                 .unwrap();
 
             sender
                 .send(Message::PlaySound {
                     path: PathBuf::from(self.definition.impact_sound.clone()),
-                    position: pos,
+                    position: effect_position,
                     gain: 1.0,
                     rolloff_factor: 4.0,
                     radius: 3.0,

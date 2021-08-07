@@ -1131,10 +1131,10 @@ impl BaseLevel {
             &mut scene.physics,
             Default::default(),
         ) {
+            let sender = self.sender.as_ref().unwrap();
+
             // Just send new messages, instead of doing everything manually here.
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::CreateEffect {
                     kind: if hit.actor.is_some() {
                         EffectKind::BloodSpray
@@ -1146,9 +1146,7 @@ impl BaseLevel {
                 })
                 .unwrap();
 
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::PlayEnvironmentSound {
                     collider: hit.collider,
                     feature: hit.feature,
@@ -1163,9 +1161,7 @@ impl BaseLevel {
             let critical_shot_probability = match shooter {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
+                        sender
                             .send(Message::SightReaction {
                                 weapon,
                                 reaction: SightReaction::HitDetected,
@@ -1181,9 +1177,7 @@ impl BaseLevel {
                 _ => 0.0,
             };
 
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::DamageActor {
                     actor: hit.actor,
                     who: hit.who,
@@ -1242,6 +1236,31 @@ impl BaseLevel {
                     Color::opaque(20, 20, 20)
                 },
             ));
+
+            // Add blood splatter on a surface behind actor that was shot.
+            if hit.actor.is_some() {
+                for intersection in hit.query_buffer.iter() {
+                    if let Some(collider) = scene.physics.colliders.get(&intersection.collider) {
+                        if collider.shared_shape().as_trimesh().is_some()
+                            && intersection.position.coords.metric_distance(&hit.position) < 2.0
+                        {
+                            self.decals.add(Decal::new(
+                                &mut scene.graph,
+                                intersection.position.coords,
+                                dir,
+                                Handle::NONE,
+                                Color::opaque(255, 255, 255),
+                                Vector3::new(0.45, 0.45, 0.2),
+                                engine.resource_manager.request_texture(
+                                    "data/textures/decals/BloodSplatter_BaseColor.png",
+                                ),
+                            ));
+
+                            break;
+                        }
+                    }
+                }
+            }
 
             (dir.norm(), hit.position)
         } else {

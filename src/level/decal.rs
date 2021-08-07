@@ -1,4 +1,5 @@
 use rg3d::core::algebra::Point3;
+use rg3d::resource::texture::Texture;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -23,24 +24,15 @@ pub struct Decal {
 }
 
 impl Decal {
-    pub fn new(node: Handle<Node>, lifetime: f32, fade_interval: f32) -> Self {
-        Self {
-            decal: node,
-            lifetime,
-            fade_interval,
-        }
-    }
-
-    pub fn new_bullet_hole(
-        resource_manager: ResourceManager,
+    pub fn new(
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
         parent: Handle<Node>,
         color: Color,
+        scale: Vector3<f32>,
+        texture: Texture,
     ) -> Self {
-        let default_scale = Vector3::new(0.05, 0.05, 0.05);
-
         let (position, face_towards, scale) = if parent.is_some() {
             let parent_scale = graph.global_scale(parent);
 
@@ -56,13 +48,13 @@ impl Decal {
                 parent_inv_transform.transform_vector(&face_towards),
                 // Discard parent's scale.
                 Vector3::new(
-                    default_scale.x / parent_scale.x,
-                    default_scale.y / parent_scale.y,
-                    default_scale.z / parent_scale.z,
+                    scale.x / parent_scale.x,
+                    scale.y / parent_scale.y,
+                    scale.z / parent_scale.z,
                 ),
             )
         } else {
-            (position, face_towards, default_scale)
+            (position, face_towards, scale)
         };
 
         let rotation = vector_to_quat(face_towards)
@@ -77,13 +69,11 @@ impl Decal {
                     .build(),
             ),
         )
-        .with_diffuse_texture(
-            resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
-        )
+        .with_diffuse_texture(texture)
         .with_color(color)
         .build(graph);
 
-        if decal.is_some() {
+        if decal.is_some() && parent.is_some() {
             graph.link_nodes(decal, parent);
         }
 
@@ -92,6 +82,27 @@ impl Decal {
             lifetime: 10.0,
             fade_interval: 1.0,
         }
+    }
+
+    pub fn new_bullet_hole(
+        resource_manager: ResourceManager,
+        graph: &mut Graph,
+        position: Vector3<f32>,
+        face_towards: Vector3<f32>,
+        parent: Handle<Node>,
+        color: Color,
+    ) -> Self {
+        let default_scale = Vector3::new(0.05, 0.05, 0.05);
+
+        Self::new(
+            graph,
+            position,
+            face_towards,
+            parent,
+            color,
+            default_scale,
+            resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
+        )
     }
 }
 

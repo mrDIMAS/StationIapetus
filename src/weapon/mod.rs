@@ -11,6 +11,7 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::scene::physics::Intersection;
 use rg3d::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -65,7 +66,7 @@ pub struct Weapon {
     laser_sight: LaserSight,
 }
 
-#[derive(Copy, Clone)]
+#[derive(Clone)]
 pub struct Hit {
     pub actor: Handle<Actor>, // Can be None if level geometry was hit.
     pub who: Handle<Actor>,
@@ -74,6 +75,7 @@ pub struct Hit {
     pub collider: ColliderHandle,
     pub feature: FeatureId,
     pub hit_box: Option<HitBox>,
+    pub query_buffer: Vec<Intersection>,
 }
 
 impl PartialEq for Hit {
@@ -150,6 +152,7 @@ pub fn ray_hit(
                         collider: hit.collider,
                         feature: hit.feature,
                         hit_box: Some(*hit_box),
+                        query_buffer,
                     });
                 }
             }
@@ -166,6 +169,7 @@ pub fn ray_hit(
                 collider: hit.collider,
                 feature: hit.feature,
                 hit_box: None,
+                query_buffer,
             })
         }
     } else {
