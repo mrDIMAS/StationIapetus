@@ -1,4 +1,4 @@
-use crate::{message::Message, weapon::definition::WeaponKind};
+use crate::weapon::definition::WeaponKind;
 use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
@@ -16,7 +16,7 @@ use rg3d::{
     sound::pool::PoolIteratorMut,
 };
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File, sync::mpsc::Sender};
+use std::{collections::HashMap, fs::File};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
 pub enum ItemKind {
@@ -69,7 +69,6 @@ pub struct Item {
     spark_size_change_dir: f32,
     pub stack_size: u32,
     pub definition: &'static ItemDefinition,
-    pub sender: Option<Sender<Message>>,
 }
 
 impl Default for Item {
@@ -82,7 +81,6 @@ impl Default for Item {
             spark_size_change_dir: 1.0,
             stack_size: 1,
             definition: Self::get_definition(ItemKind::Medkit),
-            sender: None,
         }
     }
 }
@@ -126,7 +124,6 @@ impl Item {
         position: Vector3<f32>,
         scene: &mut Scene,
         resource_manager: ResourceManager,
-        sender: Sender<Message>,
     ) -> Self {
         let definition = Self::get_definition(kind);
 
@@ -163,7 +160,6 @@ impl Item {
             kind,
             model,
             spark,
-            sender: Some(sender),
             ..Default::default()
         }
     }

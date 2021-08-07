@@ -113,7 +113,6 @@ pub struct Projectile {
     /// continuous intersection detection from fast moving projectiles.
     last_position: Vector3<f32>,
     definition: &'static ProjectileDefinition,
-    pub sender: Option<Sender<Message>>,
     hits: HashSet<Hit>,
 }
 
@@ -130,7 +129,6 @@ impl Default for Projectile {
             initial_velocity: Default::default(),
             last_position: Default::default(),
             definition: Self::get_definition(ProjectileKind::Plasma),
-            sender: None,
             hits: Default::default(),
         }
     }
@@ -178,7 +176,6 @@ impl Projectile {
         position: Vector3<f32>,
         owner: Shooter,
         initial_velocity: Vector3<f32>,
-        sender: Sender<Message>,
     ) -> Self {
         let definition = Self::get_definition(kind);
 
@@ -211,7 +208,6 @@ impl Projectile {
             last_position: position,
             owner,
             definition,
-            sender: Some(sender),
             ..Default::default()
         }
     }
@@ -230,6 +226,7 @@ impl Projectile {
         actors: &ActorContainer,
         weapons: &WeaponContainer,
         time: GameTime,
+        sender: &Sender<Message>,
     ) {
         // Fetch current position of projectile.
         let (position, collider) = if let Some(body) = self.body.as_ref() {
@@ -320,9 +317,7 @@ impl Projectile {
                 },
             );
 
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::CreateEffect {
                     kind: effect_kind,
                     position: pos,
@@ -330,9 +325,7 @@ impl Projectile {
                 })
                 .unwrap();
 
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::PlaySound {
                     path: PathBuf::from(self.definition.impact_sound.clone()),
                     position: pos,
@@ -352,9 +345,7 @@ impl Projectile {
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        self.sender
-                            .as_ref()
-                            .unwrap()
+                        sender
                             .send(Message::SightReaction {
                                 weapon,
                                 reaction: SightReaction::HitDetected,
@@ -370,9 +361,7 @@ impl Projectile {
 
             match damage {
                 Damage::Splash { radius, amount } => {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
+                    sender
                         .send(Message::ApplySplashDamage {
                             amount,
                             radius,
@@ -383,9 +372,7 @@ impl Projectile {
                         .unwrap();
                 }
                 Damage::Point(amount) => {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
+                    sender
                         .send(Message::DamageActor {
                             actor: hit.actor,
                             who: hit.who,
@@ -462,9 +449,10 @@ impl ProjectileContainer {
         actors: &ActorContainer,
         weapons: &WeaponContainer,
         time: GameTime,
+        sender: &Sender<Message>,
     ) {
         for projectile in self.pool.iter_mut() {
-            projectile.update(scene, actors, weapons, time);
+            projectile.update(scene, actors, weapons, time, sender);
             if projectile.is_dead() {
                 projectile.clean_up(scene);
             }

@@ -873,7 +873,13 @@ impl Game {
         if !self.is_any_menu_visible() {
             if let Some(ref mut level) = self.level {
                 let scene = &mut self.engine.scenes[level.scene];
-                level.process_input_event(event, scene, self.time.delta, &self.control_scheme);
+                level.process_input_event(
+                    event,
+                    scene,
+                    self.time.delta,
+                    &self.control_scheme,
+                    &self.events_sender,
+                );
             }
         }
     }

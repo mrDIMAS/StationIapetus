@@ -61,7 +61,6 @@ pub struct Weapon {
     owner: Handle<Actor>,
     muzzle_flash_timer: f32,
     pub definition: &'static WeaponDefinition,
-    pub sender: Option<Sender<Message>>,
     flash_light: Handle<Node>,
     laser_sight: LaserSight,
 }
@@ -185,7 +184,6 @@ impl Default for Weapon {
             owner: Handle::NONE,
             muzzle_flash_timer: 0.0,
             definition: Self::get_definition(WeaponKind::M4),
-            sender: None,
             muzzle_flash: Default::default(),
             shot_light: Default::default(),
             flash_light: Default::default(),
@@ -223,7 +221,6 @@ impl Weapon {
         kind: WeaponKind,
         resource_manager: ResourceManager,
         scene: &mut Scene,
-        sender: Sender<Message>,
     ) -> Weapon {
         let definition = Self::get_definition(kind);
 
@@ -296,7 +293,6 @@ impl Weapon {
             definition,
             muzzle_flash,
             shot_light,
-            sender: Some(sender),
             flash_light,
             laser_sight: LaserSight::new(scene, resource_manager),
             ..Default::default()
@@ -401,6 +397,7 @@ impl Weapon {
         time: GameTime,
         resource_manager: ResourceManager,
         direction: Option<Vector3<f32>>,
+        sender: &Sender<Message>,
     ) {
         self.last_shot_time = time.elapsed;
 
@@ -411,9 +408,7 @@ impl Weapon {
             .shot_sounds
             .choose(&mut rg3d::rand::thread_rng())
         {
-            self.sender
-                .as_ref()
-                .unwrap()
+            sender
                 .send(Message::PlaySound {
                     path: PathBuf::from(random_shot_sound.clone()),
                     position,
@@ -451,10 +446,7 @@ impl Weapon {
             .unwrap_or_else(Vector3::z);
 
         match self.definition.projectile {
-            WeaponProjectile::Projectile(projectile) => self
-                .sender
-                .as_ref()
-                .unwrap()
+            WeaponProjectile::Projectile(projectile) => sender
                 .send(Message::CreateProjectile {
                     kind: projectile,
                     position,
@@ -464,9 +456,7 @@ impl Weapon {
                 })
                 .unwrap(),
             WeaponProjectile::Ray { damage } => {
-                self.sender
-                    .as_ref()
-                    .unwrap()
+                sender
                     .send(Message::ShootRay {
                         shooter: Shooter::Weapon(self_handle),
                         begin: position,

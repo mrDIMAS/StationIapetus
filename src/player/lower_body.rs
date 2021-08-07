@@ -436,7 +436,7 @@ impl LowerBodyMachine {
         scene: &mut Scene,
         dt: f32,
         input: LowerBodyMachineInput,
-        sender: Sender<Message>,
+        sender: &Sender<Message>,
         has_ground_contact: bool,
         self_collider: ColliderHandle,
     ) {

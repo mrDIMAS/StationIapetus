@@ -1,10 +1,7 @@
-use crate::character::HitBox;
-use crate::level::decal::{Decal, DecalContainer};
-use crate::level::trail::{ShotTrail, ShotTrailContainer};
-use crate::weapon::sight::SightReaction;
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
+    character::HitBox,
     config::SoundConfig,
     control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorDirection, DoorState},
@@ -12,8 +9,10 @@ use crate::{
     item::{Item, ItemContainer, ItemKind},
     level::{
         arrival::ArrivalLevel,
+        decal::{Decal, DecalContainer},
         lab::LabLevel,
         testbed::TestbedLevel,
+        trail::{ShotTrail, ShotTrailContainer},
         trigger::{Trigger, TriggerContainer, TriggerKind},
         turret::{Hostility, ShootMode, Turret, TurretContainer},
     },
@@ -21,12 +20,13 @@ use crate::{
     message::Message,
     player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
-    utils::is_probability_event_occurred,
-    utils::use_hrtf,
+    utils::{is_probability_event_occurred, use_hrtf},
     weapon::{
         definition::{ShotEffect, WeaponKind},
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
-        ray_hit, Weapon, WeaponContainer,
+        ray_hit,
+        sight::SightReaction,
+        Weapon, WeaponContainer,
     },
     GameEngine, GameTime,
 };
@@ -44,11 +44,6 @@ use rg3d::{
         ColliderHandle,
     },
     event::Event,
-    physics::{
-        crossbeam,
-        geometry::{ContactEvent, IntersectionEvent},
-        pipeline::ChannelEventCollector,
-    },
     rand,
     resource::texture::Texture,
     scene::{
@@ -138,8 +133,6 @@ pub struct BaseLevel {
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
-    proximity_events_receiver: Option<crossbeam::channel::Receiver<IntersectionEvent>>,
-    contact_events_receiver: Option<crossbeam::channel::Receiver<ContactEvent>>,
     beam: Option<Arc<RwLock<SurfaceData>>>,
     trails: ShotTrailContainer,
     doors: DoorContainer,
@@ -198,6 +191,7 @@ pub struct UpdateContext<'a> {
     pub items: &'a ItemContainer,
     pub navmesh: Handle<Navmesh>,
     pub weapons: &'a WeaponContainer,
+    pub sender: &'a Sender<Message>,
 }
 
 #[derive(Default)]
@@ -259,11 +253,7 @@ fn make_beam() -> Arc<RwLock<SurfaceData>> {
     )))
 }
 
-pub async fn analyze(
-    scene: &mut Scene,
-    resource_manager: ResourceManager,
-    sender: Sender<Message>,
-) -> AnalysisResult {
+pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
     let mut items = Vec::new();
@@ -377,17 +367,9 @@ pub async fn analyze(
     }
 
     for (kind, position) in items {
-        result.items.add(
-            spawn_item(
-                scene,
-                resource_manager.clone(),
-                kind,
-                position,
-                true,
-                sender.clone(),
-            )
-            .await,
-        );
+        result
+            .items
+            .add(spawn_item(scene, resource_manager.clone(), kind, position, true).await);
     }
     for handle in death_zones {
         let node = &mut scene.graph[handle];
@@ -410,7 +392,7 @@ async fn spawn_player(
     orientation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
     weapons: &mut WeaponContainer,
-    sender: Sender<Message>,
+    sender: &Sender<Message>,
     resource_manager: ResourceManager,
     scene: &mut Scene,
     display_texture: Texture,
@@ -424,7 +406,6 @@ async fn spawn_player(
         resource_manager.clone(),
         spawn_position,
         orientation,
-        sender.clone(),
         display_texture,
         inventory_texture,
         item_texture,
@@ -447,12 +428,12 @@ async fn spawn_player(
         give_new_weapon(
             weapon,
             player,
-            sender.clone(),
             resource_manager.clone(),
             i == weapons_to_give.len() - 1,
             weapons,
             actors,
             scene,
+            sender,
         )
         .await;
     }
@@ -463,21 +444,21 @@ async fn spawn_player(
 async fn give_new_weapon(
     kind: WeaponKind,
     actor: Handle<Actor>,
-    sender: Sender<Message>,
     resource_manager: ResourceManager,
     visible: bool,
     weapons: &mut WeaponContainer,
     actors: &mut ActorContainer,
     scene: &mut Scene,
+    sender: &Sender<Message>,
 ) {
     if actors.contains(actor) {
-        let mut weapon = Weapon::new(kind, resource_manager, scene, sender.clone()).await;
+        let mut weapon = Weapon::new(kind, resource_manager, scene).await;
         weapon.set_owner(actor);
         let weapon_model = weapon.get_model();
         scene.graph[weapon_model].set_visibility(visible);
         let actor = actors.get_mut(actor);
         let weapon_handle = weapons.add(weapon);
-        actor.add_weapon(weapon_handle);
+        actor.add_weapon(weapon_handle, sender);
         scene.graph.link_nodes(weapon_model, actor.weapon_pivot());
         actor.inventory_mut().add_item(kind.associated_item(), 1);
     }
@@ -487,7 +468,7 @@ async fn spawn_bot(
     spawn_point: &mut SpawnPoint,
     actors: &mut ActorContainer,
     resource_manager: ResourceManager,
-    sender: Sender<Message>,
+    sender: &Sender<Message>,
     scene: &mut Scene,
     weapon: Option<WeaponKind>,
     weapons: &mut WeaponContainer,
@@ -500,7 +481,6 @@ async fn spawn_bot(
         spawn_point.rotation,
         actors,
         resource_manager.clone(),
-        sender.clone(),
         scene,
     )
     .await;
@@ -509,12 +489,12 @@ async fn spawn_bot(
         give_new_weapon(
             weapon,
             bot,
-            sender.clone(),
             resource_manager.clone(),
             true,
             weapons,
             actors,
             scene,
+            sender,
         )
         .await
     }
@@ -528,18 +508,9 @@ async fn add_bot(
     rotation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
     resource_manager: ResourceManager,
-    sender: Sender<Message>,
     scene: &mut Scene,
 ) -> Handle<Actor> {
-    let bot = Bot::new(
-        kind,
-        resource_manager.clone(),
-        scene,
-        position,
-        rotation,
-        sender.clone(),
-    )
-    .await;
+    let bot = Bot::new(kind, resource_manager.clone(), scene, position, rotation).await;
     actors.add(Actor::Bot(bot))
 }
 
@@ -549,14 +520,13 @@ async fn spawn_item(
     kind: ItemKind,
     position: Vector3<f32>,
     adjust_height: bool,
-    sender: Sender<Message>,
 ) -> Item {
     let position = if adjust_height {
         pick(scene, position, position - Vector3::new(0.0, 1000.0, 0.0))
     } else {
         position
     };
-    Item::new(kind, position, scene, resource_manager, sender).await
+    Item::new(kind, position, scene, resource_manager).await
 }
 
 fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
@@ -606,14 +576,6 @@ impl BaseLevel {
                 .set_renderer(rg3d::sound::renderer::Renderer::Default);
         }
 
-        let (proximity_events_sender, proximity_events_receiver) = crossbeam::channel::unbounded();
-        let (contact_events_sender, contact_events_receiver) = crossbeam::channel::unbounded();
-
-        scene.physics.event_handler = Box::new(ChannelEventCollector::new(
-            proximity_events_sender.clone(),
-            contact_events_sender.clone(),
-        ));
-
         let map_model = resource_manager
             .request_model(Path::new(map), MaterialSearchOptions::UsePathDirectly)
             .await
@@ -632,7 +594,7 @@ impl BaseLevel {
             lights,
             turrets,
             triggers,
-        } = analyze(&mut scene, resource_manager.clone(), sender.clone()).await;
+        } = analyze(&mut scene, resource_manager.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
 
@@ -641,7 +603,7 @@ impl BaseLevel {
                 pt,
                 &mut actors,
                 resource_manager.clone(),
-                sender.clone(),
+                &sender,
                 &mut scene,
                 if pt.with_gun {
                     Some(WeaponKind::Ak47)
@@ -659,7 +621,7 @@ impl BaseLevel {
                 player_spawn_orientation,
                 &mut actors,
                 &mut weapons,
-                sender.clone(),
+                &sender,
                 resource_manager.clone(),
                 &mut scene,
                 display_texture,
@@ -683,8 +645,6 @@ impl BaseLevel {
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
             time: 0.0,
-            contact_events_receiver: Some(contact_events_receiver),
-            proximity_events_receiver: Some(proximity_events_receiver),
             projectiles: ProjectileContainer::new(),
             sound_manager: SoundManager::new(scene.sound_context.clone(), &scene),
             beam: Some(make_beam()),
@@ -708,12 +668,12 @@ impl BaseLevel {
         give_new_weapon(
             kind,
             actor,
-            self.sender.clone().unwrap(),
             engine.resource_manager.clone(),
             true,
             &mut self.weapons,
             &mut self.actors,
             &mut engine.scenes[self.scene],
+            self.sender.as_ref().unwrap(),
         )
         .await;
     }
@@ -728,10 +688,11 @@ impl BaseLevel {
         scene: &mut Scene,
         dt: f32,
         control_scheme: &ControlScheme,
+        sender: &Sender<Message>,
     ) {
         if self.player.is_some() {
             if let Actor::Player(player) = self.actors.get_mut(self.player) {
-                player.process_input_event(event, dt, scene, &self.weapons, control_scheme);
+                player.process_input_event(event, dt, scene, &self.weapons, control_scheme, sender);
             }
         }
     }
@@ -790,7 +751,6 @@ impl BaseLevel {
             rotation,
             &mut self.actors,
             engine.resource_manager.clone(),
-            self.sender.clone().unwrap(),
             &mut engine.scenes[self.scene],
         )
         .await
@@ -947,7 +907,6 @@ impl BaseLevel {
             position,
             owner,
             initial_velocity,
-            self.sender.as_ref().unwrap().clone(),
         )
         .await;
         self.projectiles.add(projectile);
@@ -969,6 +928,7 @@ impl BaseLevel {
                 time,
                 engine.resource_manager.clone(),
                 direction,
+                self.sender.as_ref().unwrap(),
             );
         }
     }
@@ -1066,7 +1026,6 @@ impl BaseLevel {
                 kind,
                 position,
                 adjust_height,
-                self.sender.clone().unwrap(),
             )
             .await,
         );
@@ -1110,20 +1069,16 @@ impl BaseLevel {
     pub fn update(&mut self, engine: &mut GameEngine, time: GameTime) {
         self.time += time.delta;
         let scene = &mut engine.scenes[self.scene];
-        while self
-            .proximity_events_receiver
-            .as_ref()
-            .unwrap()
-            .try_recv()
-            .is_ok()
-        {
-            // Drain for now.
-        }
 
         self.update_death_zones(scene);
         self.weapons.update(scene, &self.actors, time.delta);
-        self.projectiles
-            .update(scene, &self.actors, &self.weapons, time);
+        self.projectiles.update(
+            scene,
+            &self.actors,
+            &self.weapons,
+            time,
+            self.sender.as_ref().unwrap(),
+        );
         self.turrets.update(
             scene,
             &self.actors,
@@ -1136,6 +1091,7 @@ impl BaseLevel {
             items: &self.items,
             navmesh: self.navmesh,
             weapons: &self.weapons,
+            sender: self.sender.as_ref().unwrap(),
         };
 
         self.actors.update(&mut ctx);
@@ -1423,7 +1379,7 @@ impl BaseLevel {
                         spawn_point,
                         &mut self.actors,
                         engine.resource_manager.clone(),
-                        self.sender.clone().unwrap(),
+                        self.sender.as_ref().unwrap(),
                         &mut engine.scenes[self.scene],
                         None,
                         &mut self.weapons,
@@ -1496,7 +1452,7 @@ impl BaseLevel {
             &Message::GrabWeapon { kind, actor } => {
                 if self.actors.contains(actor) {
                     let actor = self.actors.get_mut(actor);
-                    actor.select_weapon(kind, &self.weapons);
+                    actor.select_weapon(kind, &self.weapons, self.sender.as_ref().unwrap());
                 }
             }
             &Message::SwitchFlashLight { weapon } => {
@@ -1520,7 +1476,7 @@ impl BaseLevel {
         item_texture: Texture,
         journal_texture: Texture,
     ) {
-        self.set_message_sender(sender, engine);
+        self.set_message_sender(sender);
 
         self.actors.resolve(
             &mut engine.scenes[self.scene],
@@ -1535,33 +1491,8 @@ impl BaseLevel {
         self.doors.resolve(scene);
     }
 
-    pub fn set_message_sender(&mut self, sender: Sender<Message>, engine: &mut GameEngine) {
+    pub fn set_message_sender(&mut self, sender: Sender<Message>) {
         self.sender = Some(sender.clone());
-
-        // Attach new sender to all event sources.
-        for actor in self.actors.iter_mut() {
-            actor.sender = Some(sender.clone());
-        }
-        for weapon in self.weapons.iter_mut() {
-            weapon.sender = Some(sender.clone());
-        }
-        for projectile in self.projectiles.iter_mut() {
-            projectile.sender = Some(sender.clone());
-        }
-        for item in self.items.iter_mut() {
-            item.sender = Some(sender.clone());
-        }
-
-        let (proximity_events_sender, proximity_events_receiver) = crossbeam::channel::unbounded();
-        let (contact_events_sender, contact_events_receiver) = crossbeam::channel::unbounded();
-
-        self.proximity_events_receiver = Some(proximity_events_receiver);
-        self.contact_events_receiver = Some(contact_events_receiver);
-
-        engine.scenes[self.scene].physics.event_handler = Box::new(ChannelEventCollector::new(
-            proximity_events_sender,
-            contact_events_sender,
-        ));
     }
 
     pub fn debug_draw(&self, engine: &mut GameEngine) {

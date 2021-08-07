@@ -20,8 +20,6 @@ pub struct Character {
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
     #[visit(skip)]
-    pub sender: Option<Sender<Message>>,
-    #[visit(skip)]
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
 }
@@ -36,7 +34,6 @@ impl Default for Character {
             weapons: Vec::new(),
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
-            sender: None,
             hit_boxes: Default::default(),
             inventory: Default::default(),
         }
@@ -148,8 +145,33 @@ impl Character {
         &self.weapons
     }
 
-    pub fn add_weapon(&mut self, weapon: Handle<Weapon>) {
-        if let Some(sender) = self.sender.as_ref() {
+    pub fn add_weapon(&mut self, weapon: Handle<Weapon>, sender: &Sender<Message>) {
+        for other_weapon in self.weapons.iter() {
+            sender
+                .send(Message::ShowWeapon {
+                    weapon: *other_weapon,
+                    state: false,
+                })
+                .unwrap();
+        }
+
+        self.current_weapon = self.weapons.len() as u32;
+        self.weapons.push(weapon);
+
+        self.request_current_weapon_visible(true, sender);
+    }
+
+    pub fn select_weapon(
+        &mut self,
+        weapon: WeaponKind,
+        weapons: &WeaponContainer,
+        sender: &Sender<Message>,
+    ) {
+        if let Some(index) = self
+            .weapons
+            .iter()
+            .position(|&w| weapons[w].get_kind() == weapon)
+        {
             for other_weapon in self.weapons.iter() {
                 sender
                     .send(Message::ShowWeapon {
@@ -158,34 +180,10 @@ impl Character {
                     })
                     .unwrap();
             }
-        }
-
-        self.current_weapon = self.weapons.len() as u32;
-        self.weapons.push(weapon);
-
-        self.request_current_weapon_visible(true);
-    }
-
-    pub fn select_weapon(&mut self, weapon: WeaponKind, weapons: &WeaponContainer) {
-        if let Some(index) = self
-            .weapons
-            .iter()
-            .position(|&w| weapons[w].get_kind() == weapon)
-        {
-            if let Some(sender) = self.sender.as_ref() {
-                for other_weapon in self.weapons.iter() {
-                    sender
-                        .send(Message::ShowWeapon {
-                            weapon: *other_weapon,
-                            state: false,
-                        })
-                        .unwrap();
-                }
-            }
 
             self.current_weapon = index as u32;
 
-            self.request_current_weapon_visible(true);
+            self.request_current_weapon_visible(true, sender);
         }
     }
 
@@ -197,56 +195,54 @@ impl Character {
         }
     }
 
-    fn request_current_weapon_visible(&self, state: bool) {
-        if let Some(sender) = self.sender.as_ref() {
-            if let Some(current_weapon) = self.weapons.get(self.current_weapon as usize) {
-                sender
-                    .send(Message::ShowWeapon {
-                        weapon: *current_weapon,
-                        state,
-                    })
-                    .unwrap()
-            }
+    fn request_current_weapon_visible(&self, state: bool, sender: &Sender<Message>) {
+        if let Some(current_weapon) = self.weapons.get(self.current_weapon as usize) {
+            sender
+                .send(Message::ShowWeapon {
+                    weapon: *current_weapon,
+                    state,
+                })
+                .unwrap()
         }
     }
 
-    pub fn next_weapon(&mut self) {
+    pub fn next_weapon(&mut self, sender: &Sender<Message>) {
         if !self.weapons.is_empty() && (self.current_weapon as usize) < self.weapons.len() - 1 {
-            self.request_current_weapon_visible(false);
+            self.request_current_weapon_visible(false, sender);
 
             self.current_weapon += 1;
 
-            self.request_current_weapon_visible(true);
+            self.request_current_weapon_visible(true, sender);
         }
     }
 
-    pub fn prev_weapon(&mut self) {
+    pub fn prev_weapon(&mut self, sender: &Sender<Message>) {
         if self.current_weapon > 0 {
-            self.request_current_weapon_visible(false);
+            self.request_current_weapon_visible(false, sender);
 
             self.current_weapon -= 1;
 
-            self.request_current_weapon_visible(true);
+            self.request_current_weapon_visible(true, sender);
         }
     }
 
-    pub fn use_first_weapon_or_none(&mut self) {
+    pub fn use_first_weapon_or_none(&mut self, sender: &Sender<Message>) {
         if !self.weapons.is_empty() {
-            self.request_current_weapon_visible(false);
+            self.request_current_weapon_visible(false, sender);
 
             self.current_weapon = 0;
 
-            self.request_current_weapon_visible(true);
+            self.request_current_weapon_visible(true, sender);
         }
     }
 
-    pub fn set_current_weapon(&mut self, i: usize) {
+    pub fn set_current_weapon(&mut self, i: usize, sender: &Sender<Message>) {
         if i < self.weapons.len() {
-            self.request_current_weapon_visible(false);
+            self.request_current_weapon_visible(false, sender);
 
             self.current_weapon = i as u32;
 
-            self.request_current_weapon_visible(true);
+            self.request_current_weapon_visible(true, sender);
         }
     }
 

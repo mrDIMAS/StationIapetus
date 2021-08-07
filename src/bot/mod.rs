@@ -49,7 +49,6 @@ use std::{
     collections::HashMap,
     fs::File,
     ops::{Deref, DerefMut},
-    sync::mpsc::Sender,
 };
 
 mod lower_body;
@@ -228,7 +227,6 @@ impl Bot {
         scene: &mut Scene,
         position: Vector3<f32>,
         rotation: UnitQuaternion<f32>,
-        sender: Sender<Message>,
     ) -> Self {
         let definition = Self::get_definition(kind);
 
@@ -334,7 +332,6 @@ impl Bot {
                 body: Some(body),
                 weapon_pivot,
                 health: definition.health,
-                sender: Some(sender),
                 hit_boxes: find_hit_boxes(pivot, scene),
                 inventory: Inventory::from_inner(items),
                 ..Default::default()
@@ -542,6 +539,15 @@ impl Bot {
         context: &mut UpdateContext,
         targets: &[TargetDescriptor],
     ) {
+        let UpdateContext {
+            time,
+            scene,
+            navmesh,
+            weapons,
+            sender,
+            ..
+        } = context;
+
         let mut is_moving = false;
         let mut can_aim = false;
         let mut in_close_combat = false;
@@ -552,26 +558,16 @@ impl Bot {
                 self.upper_body_machine.dying_animation,
                 self.lower_body_machine.dying_animation,
             ] {
-                context
-                    .scene
-                    .animations
-                    .get_mut(animation)
-                    .set_enabled(true);
+                scene.animations.get_mut(animation).set_enabled(true);
             }
 
             for &animation in self.upper_body_machine.attack_animations.iter() {
-                context
-                    .scene
-                    .animations
-                    .get_mut(animation)
-                    .set_enabled(false);
+                scene.animations.get_mut(animation).set_enabled(false);
             }
 
             if let Some(body) = self.body.as_ref() {
                 for item in self.inventory.items() {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
+                    sender
                         .send(Message::DropItems {
                             actor: self_handle,
                             item: item.kind,
@@ -580,18 +576,17 @@ impl Bot {
                         .unwrap();
                 }
 
-                context.scene.physics.remove_body(body);
+                scene.physics.remove_body(body);
                 self.body = None;
             }
         } else {
-            movement_speed_factor = self.calculate_movement_speed_factor(context.scene);
+            movement_speed_factor = self.calculate_movement_speed_factor(scene);
             self.agent
                 .set_speed(self.definition.walk_speed * movement_speed_factor);
 
-            self.select_target(self_handle, context.scene, targets);
+            self.select_target(self_handle, scene, targets);
 
-            let body = context
-                .scene
+            let body = scene
                 .physics
                 .bodies
                 .get_mut(self.character.body.as_ref().unwrap())
@@ -609,12 +604,12 @@ impl Bot {
             };
 
             let position = body.position().translation.vector;
-            let navmesh = &mut context.scene.navmeshes[context.navmesh];
+            let navmesh = &mut scene.navmeshes[*navmesh];
             self.agent.warp(position);
-            self.update_agent(navmesh, context.time);
+            self.update_agent(navmesh, *time);
             self.move_target = self.agent.position();
 
-            self.update_frustum(position, &context.scene.graph);
+            self.update_frustum(position, &scene.graph);
 
             let was_injured = (self.character.health - self.last_health).abs() >= 25.0;
             if was_injured {
@@ -630,7 +625,7 @@ impl Bot {
                     .any(|i| i.kind.associated_weapon().is_some());
 
             if !self.is_dead() && !in_close_combat && self.target.is_some() {
-                let mut vel = (self.move_target - position).scale(1.0 / context.time.delta);
+                let mut vel = (self.move_target - position).scale(1.0 / time.delta);
                 vel.y = body.linvel().y;
                 body.set_linvel(vel, true);
                 self.last_move_dir = vel;
@@ -638,8 +633,6 @@ impl Bot {
             } else {
                 body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
             }
-
-            let sender = self.character.sender.clone().unwrap();
 
             if !in_close_combat && can_aim && self.can_shoot() && self.target.is_some() {
                 if let Some(weapon) = self
@@ -649,7 +642,7 @@ impl Bot {
                 {
                     let weapon = *weapon;
 
-                    if context.weapons[weapon].can_shoot(context.time) {
+                    if weapons[weapon].can_shoot(*time) {
                         sender
                             .send(Message::ShootWeapon {
                                 weapon,
@@ -665,8 +658,7 @@ impl Bot {
 
             // Apply damage to target from melee attack
             if let Some(target) = self.target.as_ref() {
-                while let Some(event) = context
-                    .scene
+                while let Some(event) = scene
                     .animations
                     .get_mut(current_attack_animation)
                     .pop_event()
@@ -711,38 +703,34 @@ impl Bot {
 
             // Emit step sounds from walking animation.
             if self.lower_body_machine.is_walking() {
-                while let Some(event) = context
-                    .scene
+                while let Some(event) = scene
                     .animations
                     .get_mut(self.lower_body_machine.walk_animation)
                     .pop_event()
                 {
                     if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
-                        let begin = context.scene.graph[self.model].global_position()
-                            + Vector3::new(0.0, 0.5, 0.0);
+                        let begin =
+                            scene.graph[self.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
 
                         let self_collider = if let Some(body) = self.body.as_ref() {
-                            *context
-                                .scene
+                            *scene
                                 .physics
                                 .colliders
                                 .handle_map()
-                                .key_of(
-                                    &context.scene.physics.bodies.get(body).unwrap().colliders()[0],
-                                )
+                                .key_of(&scene.physics.bodies.get(body).unwrap().colliders()[0])
                                 .unwrap()
                         } else {
                             Default::default()
                         };
 
-                        footstep_ray_check(begin, context.scene, self_collider, sender.clone());
+                        footstep_ray_check(begin, scene, self_collider, sender.clone());
                     }
                 }
             }
 
-            self.restoration_time -= context.time.delta;
+            self.restoration_time -= time.delta;
 
-            let attack_animation = context.scene.animations.get_mut(current_attack_animation);
+            let attack_animation = scene.animations.get_mut(current_attack_animation);
             let attack_animation_ended = attack_animation.has_ended();
 
             if in_close_combat
@@ -754,8 +742,7 @@ impl Bot {
                     .gen_range(0..self.upper_body_machine.attack_animations.len())
                     as u32;
 
-                context
-                    .scene
+                scene
                     .animations
                     .get_mut(
                         self.upper_body_machine.attack_animations
@@ -768,22 +755,22 @@ impl Bot {
             if self.attack_timeout < 0.0 && attack_animation_ended {
                 self.attack_timeout = 0.3;
             }
-            self.attack_timeout -= context.time.delta;
+            self.attack_timeout -= time.delta;
 
             // Aim overrides result of machines for spine bone.
             if self.target.is_some() {
                 if let Some(look_dir) = look_dir.try_normalize(std::f32::EPSILON) {
-                    self.aim_vertically(look_dir, &mut context.scene.graph, context.time);
-                    self.aim_horizontally(look_dir, &mut context.scene.physics, context.time);
+                    self.aim_vertically(look_dir, &mut scene.graph, *time);
+                    self.aim_horizontally(look_dir, &mut scene.physics, *time);
                 }
             }
         }
 
         self.lower_body_machine
-            .set_walk_animation_speed(context.scene, movement_speed_factor);
+            .set_walk_animation_speed(scene, movement_speed_factor);
         self.lower_body_machine.apply(
-            context.scene,
-            context.time.delta,
+            scene,
+            time.delta,
             LowerBodyMachineInput {
                 walk: is_moving,
                 scream: false,
@@ -791,8 +778,8 @@ impl Bot {
             },
         );
         self.upper_body_machine.apply(
-            context.scene,
-            context.time,
+            scene,
+            *time,
             UpperBodyMachineInput {
                 attack: in_close_combat && self.attack_timeout <= 0.0,
                 walk: is_moving,
@@ -802,16 +789,14 @@ impl Bot {
                 attack_animation_index: self.attack_animation_index,
             },
         );
-        self.impact_handler
-            .update_and_apply(context.time.delta, context.scene);
+        self.impact_handler.update_and_apply(time.delta, scene);
 
         if self.head_exploded {
-            let head = context
-                .scene
+            let head = scene
                 .graph
                 .find_by_name(self.model, &self.definition.head_name);
             if head.is_some() {
-                context.scene.graph[head]
+                scene.graph[head]
                     .local_transform_mut()
                     .set_scale(Vector3::new(0.0, 0.0, 0.0));
             }
