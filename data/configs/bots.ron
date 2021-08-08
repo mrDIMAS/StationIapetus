@@ -7,14 +7,14 @@
                     path: "data/models/mutant/animations/swipe.fbx",
                     stick_timestamp: 0.9,
                     timestamp: 1.1,
-                    damage: Point(0.0),
+                    damage: Point(70.0),
                     speed: 1.1
                 ),
                 (
                     path: "data/models/mutant/animations/punch.fbx",
                     stick_timestamp: 0.9,
                     timestamp: 1.1,
-                    damage: Point(0.0),
+                    damage: Point(50.0),
                     speed: 1.0
                 )
             ],
