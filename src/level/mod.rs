@@ -1110,6 +1110,10 @@ impl BaseLevel {
         self.items.update(time.delta, &mut scene.graph);
         self.triggers
             .update(scene, &self.actors, self.sender.as_ref().unwrap());
+        // Make sure to clear unused animation events, because they might be used
+        // in next frames which might cause unwanted side effects (like multiple
+        // queued attack events can result in huge damage at single frame).
+        scene.animations.clear_animation_events();
     }
 
     fn shoot_ray(
