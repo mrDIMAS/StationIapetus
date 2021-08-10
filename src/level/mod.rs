@@ -982,10 +982,12 @@ impl BaseLevel {
                 actor.damage(amount);
 
                 // Prevent spamming with grunt sounds.
-                if actor.last_grunt_sound_play_health - actor.health > 20.0 {
-                    actor.last_grunt_sound_play_health = actor.health;
+                if actor.last_health - actor.health > 20.0 {
+                    actor.last_health = actor.health;
                     match actor {
                         Actor::Bot(bot) => {
+                            bot.restoration_time = 0.8;
+
                             if let Some(grunt_sound) =
                                 bot.definition.pain_sounds.choose(&mut rand::thread_rng())
                             {
