@@ -26,6 +26,7 @@ pub struct UpperBodyMachine {
     pub attack_animations: Vec<Handle<Animation>>,
     pub aim_state: Handle<State>,
     pub dying_animation: Handle<Animation>,
+    pub scream_animation: Handle<Animation>,
 }
 
 #[derive(Debug)]
@@ -114,6 +115,7 @@ impl UpperBodyMachine {
     const IDLE_TO_WALK: &'static str = "IdleToWalk";
     const WALK_TO_IDLE: &'static str = "WalkToIdle";
     const IDLE_TO_SCREAM: &'static str = "IdleToScream";
+    const WALK_TO_SCREAM: &'static str = "WalkToScream";
     const SCREAM_TO_WALK: &'static str = "ScreamToWalk";
     const SCREAM_TO_IDLE: &'static str = "ScreamToIdle";
     const IDLE_TO_AIM: &'static str = "IdleToAim";
@@ -188,6 +190,13 @@ impl UpperBodyMachine {
             scene,
             model,
         );
+
+        scene
+            .animations
+            .get_mut(scream_animation)
+            .set_loop(false)
+            .set_enabled(false)
+            .set_speed(1.0);
 
         let (attack_state, attack_animations) = make_attack_state(
             &mut machine,
@@ -300,6 +309,13 @@ impl UpperBodyMachine {
             Self::IDLE_TO_SCREAM,
         ));
         machine.add_transition(Transition::new(
+            "Walk->Scream",
+            walk_state,
+            scream_state,
+            0.2,
+            Self::WALK_TO_SCREAM,
+        ));
+        machine.add_transition(Transition::new(
             "Scream->Walk",
             scream_state,
             walk_state,
@@ -365,6 +381,7 @@ impl UpperBodyMachine {
             attack_animations,
             aim_state,
             dying_animation,
+            scream_animation,
         }
     }
 
@@ -395,6 +412,7 @@ impl UpperBodyMachine {
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))
             .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.walk))
             .set_parameter(Self::IDLE_TO_SCREAM, Parameter::Rule(input.scream))
+            .set_parameter(Self::WALK_TO_SCREAM, Parameter::Rule(input.scream))
             .set_parameter(Self::SCREAM_TO_WALK, Parameter::Rule(!input.scream))
             .set_parameter(Self::SCREAM_TO_IDLE, Parameter::Rule(!input.scream))
             .set_parameter(Self::IDLE_TO_AIM, Parameter::Rule(input.aim))

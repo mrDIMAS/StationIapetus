@@ -20,6 +20,7 @@ pub struct LowerBodyMachine {
     pub machine: Machine,
     pub walk_animation: Handle<Animation>,
     pub dying_animation: Handle<Animation>,
+    pub scream_animation: Handle<Animation>,
     pub walk_state: Handle<State>,
 }
 
@@ -37,6 +38,7 @@ impl LowerBodyMachine {
     const IDLE_TO_WALK: &'static str = "IdleToWalk";
     const WALK_TO_IDLE: &'static str = "WalkToIdle";
     const IDLE_TO_SCREAM: &'static str = "IdleToScream";
+    const WALK_TO_SCREAM: &'static str = "WalkToScream";
     const SCREAM_TO_WALK: &'static str = "ScreamToWalk";
     const SCREAM_TO_IDLE: &'static str = "ScreamToIdle";
     const WALK_TO_DYING: &'static str = "WalkToDying";
@@ -90,13 +92,20 @@ impl LowerBodyMachine {
             model,
         );
 
-        let (_, scream_state) = create_play_animation_state(
+        let (scream_animation, scream_state) = create_play_animation_state(
             scream_animation_resource.unwrap(),
             "Scream",
             &mut machine,
             scene,
             model,
         );
+
+        scene
+            .animations
+            .get_mut(scream_animation)
+            .set_loop(false)
+            .set_enabled(false)
+            .set_speed(1.0);
 
         let (dying_animation, dying_state) = create_play_animation_state(
             dying_animation_resource.unwrap(),
@@ -139,6 +148,13 @@ impl LowerBodyMachine {
             Self::IDLE_TO_SCREAM,
         ));
         machine.add_transition(Transition::new(
+            "Walk->Scream",
+            walk_state,
+            scream_state,
+            0.2,
+            Self::WALK_TO_SCREAM,
+        ));
+        machine.add_transition(Transition::new(
             "Scream->Walk",
             scream_state,
             walk_state,
@@ -170,6 +186,7 @@ impl LowerBodyMachine {
         machine.set_entry_state(idle_state);
 
         Self {
+            scream_animation,
             machine,
             walk_animation,
             dying_animation,
@@ -188,6 +205,7 @@ impl LowerBodyMachine {
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))
             .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.walk))
             .set_parameter(Self::IDLE_TO_SCREAM, Parameter::Rule(input.scream))
+            .set_parameter(Self::WALK_TO_SCREAM, Parameter::Rule(input.scream))
             .set_parameter(Self::SCREAM_TO_WALK, Parameter::Rule(!input.scream))
             .set_parameter(Self::SCREAM_TO_IDLE, Parameter::Rule(!input.scream))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.dead))

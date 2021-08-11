@@ -100,6 +100,9 @@ pub struct Bot {
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
     spine: Handle<Node>,
+    move_speed: f32,
+    target_move_speed: f32,
+    threaten_timeout: f32,
 }
 
 impl Deref for Bot {
@@ -135,6 +138,9 @@ impl Default for Bot {
             v_recoil: Default::default(),
             h_recoil: Default::default(),
             spine: Default::default(),
+            move_speed: 0.0,
+            target_move_speed: 0.0,
+            threaten_timeout: 0.0,
         }
     }
 }
@@ -389,6 +395,9 @@ impl Bot {
             restoration_time: self.restoration_time,
             v_recoil: &mut self.v_recoil,
             h_recoil: &mut self.h_recoil,
+            target_move_speed: &mut self.target_move_speed,
+            move_speed: self.move_speed,
+            threaten_timeout: &mut self.threaten_timeout,
 
             // Output
             attack_animation_index: 0,
@@ -396,6 +405,7 @@ impl Bot {
             is_moving: false,
             is_attacking: false,
             is_aiming_weapon: false,
+            is_screaming: false,
         };
 
         self.behavior.tree.tick(&mut behavior_context);
@@ -406,17 +416,20 @@ impl Bot {
         let is_moving = behavior_context.is_moving;
         let is_aiming = behavior_context.is_aiming_weapon;
         let attack_animation_index = behavior_context.attack_animation_index;
+        let is_screaming = behavior_context.is_screaming;
 
         drop(behavior_context);
 
         self.restoration_time -= time.delta;
+        self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;
+        self.threaten_timeout -= time.delta;
 
         self.lower_body_machine.apply(
             context.scene,
             time.delta,
             LowerBodyMachineInput {
                 walk: is_moving,
-                scream: false,
+                scream: is_screaming,
                 dead: self.is_dead(),
                 movement_speed_factor,
             },
@@ -428,7 +441,7 @@ impl Bot {
             UpperBodyMachineInput {
                 attack: is_attacking,
                 walk: is_moving,
-                scream: false,
+                scream: is_screaming,
                 dead: self.is_dead(),
                 aim: is_aiming,
                 attack_animation_index: attack_animation_index as u32,

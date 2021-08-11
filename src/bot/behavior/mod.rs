@@ -1,3 +1,4 @@
+use crate::bot::behavior::threat::{NeedsThreatenTarget, ThreatenTarget};
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -40,6 +41,7 @@ pub mod find;
 pub mod melee;
 pub mod movement;
 pub mod shoot;
+pub mod threat;
 
 #[derive(Debug, PartialEq, Visit)]
 pub enum Action {
@@ -53,6 +55,8 @@ pub enum Action {
     DoMeleeAttack(DoMeleeAttack),
     CanShootTarget(CanShootTarget),
     ShootTarget(ShootTarget),
+    NeedsThreatenTarget(NeedsThreatenTarget),
+    ThreatenTarget(ThreatenTarget),
 }
 
 impl Default for Action {
@@ -76,6 +80,8 @@ impl<'a> Behavior<'a> for Action {
             Action::StayDead(v) => v.tick(context),
             Action::AimOnTarget(v) => v.tick(context),
             Action::CanShootTarget(v) => v.tick(context),
+            Action::NeedsThreatenTarget(v) => v.tick(context),
+            Action::ThreatenTarget(v) => v.tick(context),
         }
     }
 }
@@ -100,6 +106,9 @@ pub struct BehaviorContext<'a> {
     pub restoration_time: f32,
     pub v_recoil: &'a mut SmoothAngle,
     pub h_recoil: &'a mut SmoothAngle,
+    pub move_speed: f32,
+    pub target_move_speed: &'a mut f32,
+    pub threaten_timeout: &'a mut f32,
 
     // Output
     pub attack_animation_index: usize,
@@ -107,6 +116,7 @@ pub struct BehaviorContext<'a> {
     pub is_moving: bool,
     pub is_attacking: bool,
     pub is_aiming_weapon: bool,
+    pub is_screaming: bool,
 }
 
 #[derive(Default, Visit)]
@@ -118,74 +128,57 @@ impl BotBehavior {
     pub fn new(spine: Handle<Node>, definition: &BotDefinition) -> Self {
         let mut tree = BehaviorTree::new();
 
-        let entry = CompositeNode::new(
-            CompositeNodeKind::Selector,
-            vec![
-                CompositeNode::new(
-                    CompositeNodeKind::Sequence,
-                    vec![
-                        LeafNode::new(Action::IsDead(IsDead)).add(&mut tree),
-                        LeafNode::new(Action::StayDead(StayDead)).add(&mut tree),
-                    ],
-                )
-                .add(&mut tree),
-                CompositeNode::new(
-                    CompositeNodeKind::Sequence,
-                    vec![
-                        LeafNode::new(Action::FindTarget(FindTarget::default())).add(&mut tree),
-                        CompositeNode::new(
-                            CompositeNodeKind::Sequence,
-                            vec![
-                                LeafNode::new(Action::AimOnTarget(AimOnTarget::new(spine)))
-                                    .add(&mut tree),
-                                CompositeNode::new(
-                                    CompositeNodeKind::Selector,
-                                    vec![
-                                        CompositeNode::new(
-                                            CompositeNodeKind::Sequence,
-                                            vec![
-                                                LeafNode::new(Action::CanShootTarget(
-                                                    CanShootTarget,
-                                                ))
-                                                .add(&mut tree),
-                                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
-                                                    min_distance: 4.0,
-                                                }))
-                                                .add(&mut tree),
-                                                LeafNode::new(Action::ShootTarget(ShootTarget))
-                                                    .add(&mut tree),
-                                            ],
-                                        )
-                                        .add(&mut tree),
-                                        CompositeNode::new(
-                                            CompositeNodeKind::Sequence,
-                                            vec![
-                                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
-                                                    min_distance: definition.close_combat_distance,
-                                                }))
-                                                .add(&mut tree),
-                                                LeafNode::new(Action::CanMeleeAttack(
-                                                    CanMeleeAttack,
-                                                ))
-                                                .add(&mut tree),
-                                                LeafNode::new(Action::DoMeleeAttack(
-                                                    DoMeleeAttack::default(),
-                                                ))
-                                                .add(&mut tree),
-                                            ],
-                                        )
-                                        .add(&mut tree),
-                                    ],
-                                )
+        let entry = CompositeNode::new_selector(vec![
+            CompositeNode::new_sequence(vec![
+                LeafNode::new(Action::IsDead(IsDead)).add(&mut tree),
+                LeafNode::new(Action::StayDead(StayDead)).add(&mut tree),
+            ])
+            .add(&mut tree),
+            CompositeNode::new_sequence(vec![
+                LeafNode::new(Action::FindTarget(FindTarget::default())).add(&mut tree),
+                CompositeNode::new_sequence(vec![
+                    LeafNode::new(Action::AimOnTarget(AimOnTarget::new(spine))).add(&mut tree),
+                    CompositeNode::new(
+                        CompositeNodeKind::Selector,
+                        vec![
+                            CompositeNode::new_sequence(vec![
+                                LeafNode::new(Action::NeedsThreatenTarget(
+                                    NeedsThreatenTarget::default(),
+                                ))
                                 .add(&mut tree),
-                            ],
-                        )
-                        .add(&mut tree),
-                    ],
-                )
+                                LeafNode::new(Action::ThreatenTarget(ThreatenTarget::default()))
+                                    .add(&mut tree),
+                            ])
+                            .add(&mut tree),
+                            CompositeNode::new_sequence(vec![
+                                LeafNode::new(Action::CanShootTarget(CanShootTarget))
+                                    .add(&mut tree),
+                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
+                                    min_distance: 4.0,
+                                }))
+                                .add(&mut tree),
+                                LeafNode::new(Action::ShootTarget(ShootTarget)).add(&mut tree),
+                            ])
+                            .add(&mut tree),
+                            CompositeNode::new_sequence(vec![
+                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
+                                    min_distance: definition.close_combat_distance,
+                                }))
+                                .add(&mut tree),
+                                LeafNode::new(Action::CanMeleeAttack(CanMeleeAttack))
+                                    .add(&mut tree),
+                                LeafNode::new(Action::DoMeleeAttack(DoMeleeAttack::default()))
+                                    .add(&mut tree),
+                            ])
+                            .add(&mut tree),
+                        ],
+                    )
+                    .add(&mut tree),
+                ])
                 .add(&mut tree),
-            ],
-        )
+            ])
+            .add(&mut tree),
+        ])
         .add(&mut tree);
 
         tree.set_entry_node(entry);

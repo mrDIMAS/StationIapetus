@@ -57,9 +57,9 @@ impl<'a> Behavior<'a> for MoveToTarget {
             .unwrap();
         let position = body.position().translation.vector;
 
-        context
-            .agent
-            .set_speed(context.definition.walk_speed * context.movement_speed_factor);
+        *context.target_move_speed = context.definition.walk_speed * context.movement_speed_factor;
+
+        context.agent.set_speed(context.move_speed);
         let navmesh = &mut context.scene.navmeshes[context.navmesh];
         context.agent.set_position(position);
 
