@@ -1,7 +1,7 @@
-use crate::bot::behavior::{BehaviorContext, BotBehavior};
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
+        behavior::{BehaviorContext, BotBehavior},
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
@@ -13,15 +13,14 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups,
 };
-use rg3d::core::math::SmoothAngle;
-use rg3d::core::rand::Rng;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
         algebra::{Isometry3, Translation3, UnitQuaternion, Vector3},
         color::Color,
+        math::SmoothAngle,
         pool::Handle,
-        rand::seq::IteratorRandom,
+        rand::{seq::IteratorRandom, Rng},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},

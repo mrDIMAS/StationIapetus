@@ -293,7 +293,12 @@ impl Game {
                         *control_flow = ControlFlow::Exit
                     }
                     WindowEvent::Resized(new_size) => {
-                        game.engine.renderer.set_frame_size(new_size.into());
+                        if let Err(e) = game.engine.renderer.set_frame_size(new_size.into()) {
+                            Log::writeln(
+                                MessageKind::Error,
+                                format!("Failed to set new size in renderer! Reason {:?}", e),
+                            );
+                        }
 
                         game.engine
                             .user_interface

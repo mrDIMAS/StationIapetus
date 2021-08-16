@@ -60,7 +60,7 @@ impl ArrivalLevel {
         )
         .await;
 
-        scene.ambient_lighting_color = Color::opaque(35, 35, 35);
+        scene.ambient_lighting_color = Color::opaque(50, 50, 50);
 
         (Self { level: base_level }, scene)
     }
