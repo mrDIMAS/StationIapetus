@@ -102,7 +102,7 @@ impl LaserSight {
             .build(&mut scene.graph);
             light
         }]))
-        .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
+        .with_texture(resource_manager.request_texture("data/particles/star_09.png", None))
         .with_color(NORMAL_COLOR)
         .with_size(0.025)
         .build(&mut scene.graph);

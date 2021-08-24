@@ -279,7 +279,9 @@ impl Weapon {
                     .with_scatter_factor(Vector3::new(0.1, 0.1, 0.1)),
             )
             .with_distance(10.0)
-            .with_cookie_texture(resource_manager.request_texture("data/particles/light_01.png"))
+            .with_cookie_texture(
+                resource_manager.request_texture("data/particles/light_01.png", None),
+            )
             .with_hotspot_cone_angle(30.0f32.to_radians())
             .build(&mut scene.graph);
 
@@ -434,10 +436,10 @@ impl Weapon {
                     "data/particles/muzzle_04.png",
                     "data/particles/muzzle_05.png",
                 ];
-                surface.set_diffuse_texture(Some(
-                    resource_manager
-                        .request_texture(textures.choose(&mut rg3d::rand::thread_rng()).unwrap()),
-                ))
+                surface.set_diffuse_texture(Some(resource_manager.request_texture(
+                    textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
+                    None,
+                )))
             }
             scene.graph[self.shot_light].set_visibility(true);
             self.muzzle_flash_timer = 0.075;

@@ -104,7 +104,7 @@ fn create_bullet_impact(
     )
     .with_radius(0.01)
     .build()])
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/circle_05.png")))
+    .with_texture(resource_manager.request_texture(Path::new("data/particles/circle_05.png"), None))
     .build(graph)
 }
 
@@ -144,7 +144,7 @@ fn create_blood_spray(
     )
     .with_radius(0.006)
     .build()])
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/dirt_01.png")))
+    .with_texture(resource_manager.request_texture(Path::new("data/particles/dirt_01.png"), None))
     .build(graph)
 }
 
@@ -187,7 +187,7 @@ fn create_smoke(
     )
     .with_radius(0.01)
     .build()])
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/smoke_04.tga")))
+    .with_texture(resource_manager.request_texture(Path::new("data/particles/smoke_04.tga"), None))
     .build(graph)
 }
 
@@ -234,6 +234,6 @@ pub fn create_rail(
         gradient.add_point(GradientPoint::new(1.00, color.with_new_alpha(0)));
         gradient
     })
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/circle_05.png")))
+    .with_texture(resource_manager.request_texture(Path::new("data/particles/circle_05.png"), None))
     .build(graph)
 }

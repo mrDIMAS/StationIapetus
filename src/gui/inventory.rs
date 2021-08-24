@@ -142,7 +142,7 @@ impl InventoryItemBuilder {
                                         .on_row(0),
                                 )
                                 .with_texture(rg3d::utils::into_gui_texture(
-                                    resource_manager.request_texture(&definition.preview),
+                                    resource_manager.request_texture(&definition.preview, None),
                                 ))
                                 .build(ctx),
                             )
