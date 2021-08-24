@@ -19,6 +19,8 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::scene::light::spot::SpotLightBuilder;
+use rg3d::scene::light::BaseLightBuilder;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
@@ -211,6 +213,7 @@ pub struct Player {
     health_color_gradient: ColorGradient,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
+    rig_light: Handle<Node>,
     pub journal: Journal,
 }
 
@@ -251,6 +254,7 @@ impl Visit for Player {
         self.v_recoil.visit("VRecoil", visitor)?;
         self.h_recoil.visit("HRecoil", visitor)?;
         self.journal.visit("Journal", visitor)?;
+        self.rig_light.visit("RigLight", visitor)?;
 
         if visitor.is_reading() {
             self.health_color_gradient = make_color_gradient();
@@ -368,6 +372,28 @@ impl Player {
 
         let health_rig = health_rig_resource.unwrap().instantiate_geometry(scene);
 
+        let rig_light = SpotLightBuilder::new(
+            BaseLightBuilder::new(
+                BaseBuilder::new().with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(Vector3::new(0.0, 5.0, -2.0))
+                        .with_local_rotation(UnitQuaternion::from_axis_angle(
+                            &Vector3::x_axis(),
+                            90.0f32.to_radians(),
+                        ))
+                        .build(),
+                ),
+            )
+            .with_intensity(0.2)
+            .with_scatter_enabled(false),
+        )
+        .with_distance(1.0)
+        .with_hotspot_cone_angle(155.0f32.to_radians())
+        .with_cookie_texture(resource_manager.request_texture("data/textures/mask.png", None))
+        .build(&mut scene.graph);
+
+        scene.graph.link_nodes(rig_light, health_rig);
+
         let spine = scene.graph.find_by_name(model_handle, "mixamorig:Spine2");
         scene.graph.link_nodes(health_rig, spine);
         let spine_scale = scene.graph.global_scale(spine);
@@ -381,8 +407,6 @@ impl Player {
             ));
 
         let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
-        let mesh = scene.graph[health_cylinder].as_mesh_mut();
-        mesh.set_render_path(RenderPath::Forward);
 
         let weapon_display = MeshBuilder::new(BaseBuilder::new())
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
@@ -476,6 +500,7 @@ impl Player {
                 inventory,
                 ..Default::default()
             },
+            rig_light,
             camera_controller: CameraController::new(resource_manager.clone(), &mut scene.graph)
                 .await,
             inventory_display,
@@ -782,10 +807,11 @@ impl Player {
 
     fn update_health_cylinder(&self, scene: &mut Scene) {
         let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
-        mesh.surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .set_color(self.health_color_gradient.get_color(self.health / 100.0));
+        let color = self.health_color_gradient.get_color(self.health / 100.0);
+        let surface = mesh.surfaces_mut().first_mut().unwrap();
+        surface.set_color(color);
+        surface.set_emission_strength(color.as_frgb().scale(10.0));
+        scene.graph[self.rig_light].as_light_mut().set_color(color);
     }
 
     fn update_animation_machines(
