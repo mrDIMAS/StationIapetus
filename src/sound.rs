@@ -1,4 +1,5 @@
 use crate::message::Message;
+use rg3d::material::PropertyValue;
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     engine::{resource_manager::ResourceManager, ColliderHandle},
@@ -117,42 +118,54 @@ impl SoundMap {
                                 let data = surface.data();
                                 let data = data.read().unwrap();
 
-                                if let Some(diffuse_texture) = surface.diffuse_texture() {
-                                    let state = diffuse_texture.state();
-                                    match state.path().canonicalize() {
-                                        Ok(path) => {
-                                            if let Some(&material) =
-                                                sound_base.texture_to_material.get(&*path)
-                                            {
-                                                ranges.push(TriangleRange {
-                                                    range: triangle_offset
-                                                        ..(triangle_offset
-                                                            + data.geometry_buffer.len() as u32),
-                                                    material,
-                                                });
-                                            } else {
-                                                Log::writeln(
-                                                    MessageKind::Warning,
-                                                    format!(
-                                                        "[Sound Manager]: A texture {} does not have \
+                                if let Some(diffuse_texture) = surface
+                                    .material()
+                                    .lock()
+                                    .unwrap()
+                                    .property_ref("diffuseTexture")
+                                {
+                                    if let PropertyValue::Sampler {
+                                        value: Some(diffuse_texture),
+                                        ..
+                                    } = diffuse_texture
+                                    {
+                                        let state = diffuse_texture.state();
+                                        match state.path().canonicalize() {
+                                            Ok(path) => {
+                                                if let Some(&material) =
+                                                    sound_base.texture_to_material.get(&*path)
+                                                {
+                                                    ranges.push(TriangleRange {
+                                                        range: triangle_offset
+                                                            ..(triangle_offset
+                                                                + data.geometry_buffer.len()
+                                                                    as u32),
+                                                        material,
+                                                    });
+                                                } else {
+                                                    Log::writeln(
+                                                        MessageKind::Warning,
+                                                        format!(
+                                                            "[Sound Manager]: A texture {} does not have \
                                         respective mapping in sound map! \
                                         Environment sounds (footsteps, impact, etc.) \
                                         won't play for this texture!",
-                                                        path.display()
+                                                            path.display()
+                                                        ),
+                                                    );
+                                                }
+                                            }
+                                            Err(e) => {
+                                                Log::writeln(
+                                                    MessageKind::Error,
+                                                    format!(
+                                                        "[Sound Manager]: Failed to \
+                                            canonicalize path {}! Reason: {}",
+                                                        state.path().display(),
+                                                        e
                                                     ),
                                                 );
                                             }
-                                        }
-                                        Err(e) => {
-                                            Log::writeln(
-                                                MessageKind::Error,
-                                                format!(
-                                                    "[Sound Manager]: Failed to \
-                                            canonicalize path {}! Reason: {}",
-                                                    state.path().display(),
-                                                    e
-                                                ),
-                                            );
                                         }
                                     }
                                 }

@@ -1,3 +1,4 @@
+use rg3d::material::PropertyValue;
 use rg3d::{
     core::{pool::Handle, visitor::prelude::*, VecExtensions},
     scene::{node::Node, Scene},
@@ -34,7 +35,18 @@ impl ShotTrailContainer {
             match &mut scene.graph[trail.node] {
                 Node::Mesh(mesh) => {
                     for surface in mesh.surfaces_mut() {
-                        surface.set_color(surface.color().with_new_alpha(new_alpha))
+                        let mut material = surface.material().lock().unwrap();
+                        let color = material
+                            .property_ref("diffuseColor")
+                            .unwrap()
+                            .as_color()
+                            .unwrap();
+                        material
+                            .set_property(
+                                "diffuseColor",
+                                PropertyValue::Color(color.with_new_alpha(new_alpha)),
+                            )
+                            .unwrap();
                     }
                 }
                 Node::Sprite(sprite) => sprite.set_color(sprite.color().with_new_alpha(new_alpha)),

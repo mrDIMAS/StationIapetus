@@ -41,6 +41,9 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use rg3d::material::shader::SamplerFallback;
+use rg3d::material::{Material, PropertyValue};
+use rg3d::resource::texture::Texture;
 use rg3d::{
     core::{
         pool::Handle,
@@ -124,6 +127,22 @@ pub enum CollisionGroups {
 
 pub struct LoadContext {
     level: Option<(Level, Scene)>,
+}
+
+pub fn create_display_material(display_texture: Texture) -> Arc<Mutex<Material>> {
+    let mut material = Material::standard();
+
+    material
+        .set_property(
+            "diffuseTexture",
+            PropertyValue::Sampler {
+                value: Some(display_texture),
+                fallback: SamplerFallback::White,
+            },
+        )
+        .unwrap();
+
+    Arc::new(Mutex::new(material))
 }
 
 impl Game {

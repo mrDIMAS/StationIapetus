@@ -1,5 +1,6 @@
 use crate::CollisionGroups;
 use rg3d::core::math::lerpf;
+use rg3d::material::{Material, PropertyValue};
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -25,7 +26,7 @@ use rg3d::{
         Scene,
     },
 };
-use std::sync::{Arc, RwLock};
+use std::sync::{Arc, Mutex, RwLock};
 
 #[derive(Default, Visit)]
 pub struct LaserSight {
@@ -84,7 +85,13 @@ impl LaserSight {
                         .to_homogeneous(),
                 ),
             )))
-            .with_color(NORMAL_COLOR)
+            .with_material(Arc::new(Mutex::new({
+                let mut material = Material::standard();
+                material
+                    .set_property("diffuseColor", PropertyValue::Color(NORMAL_COLOR))
+                    .unwrap();
+                material
+            })))
             .build()])
             .with_cast_shadows(false)
             .with_render_path(RenderPath::Forward)
@@ -206,7 +213,16 @@ impl LaserSight {
     }
 
     fn set_color(&self, graph: &mut Graph, color: Color) {
-        graph[self.ray].as_mesh_mut().set_color(color);
+        graph[self.ray]
+            .as_mesh_mut()
+            .surfaces()
+            .first()
+            .unwrap()
+            .material()
+            .lock()
+            .unwrap()
+            .set_property("diffuseColor", PropertyValue::Color(color))
+            .unwrap();
         graph[self.light].as_light_mut().set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);
     }

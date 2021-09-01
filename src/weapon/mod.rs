@@ -11,6 +11,8 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::material::shader::SamplerFallback;
+use rg3d::material::PropertyValue;
 use rg3d::scene::physics::Intersection;
 use rg3d::{
     core::{
@@ -436,10 +438,21 @@ impl Weapon {
                     "data/particles/muzzle_04.png",
                     "data/particles/muzzle_05.png",
                 ];
-                surface.set_diffuse_texture(Some(resource_manager.request_texture(
-                    textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
-                    None,
-                )))
+                surface
+                    .material()
+                    .lock()
+                    .unwrap()
+                    .set_property(
+                        "diffuseTexture",
+                        PropertyValue::Sampler {
+                            value: Some(resource_manager.request_texture(
+                                textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
+                                None,
+                            )),
+                            fallback: SamplerFallback::White,
+                        },
+                    )
+                    .unwrap();
             }
             scene.graph[self.shot_light].set_visibility(true);
             self.muzzle_flash_timer = 0.075;

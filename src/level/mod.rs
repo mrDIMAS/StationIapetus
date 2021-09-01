@@ -30,6 +30,7 @@ use crate::{
     },
     GameEngine, GameTime,
 };
+use rg3d::material::{Material, PropertyValue};
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -60,6 +61,7 @@ use rg3d::{
     },
     utils::navmesh::Navmesh,
 };
+use std::sync::Mutex;
 use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
@@ -1303,7 +1305,16 @@ impl BaseLevel {
                     ),
                 )
                 .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
-                    .with_color(Color::from_rgba(255, 255, 255, 120))
+                    .with_material(Arc::new(Mutex::new({
+                        let mut material = Material::standard();
+                        material
+                            .set_property(
+                                "diffuseColor",
+                                PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
+                            )
+                            .unwrap();
+                        material
+                    })))
                     .build()])
                 .with_cast_shadows(false)
                 .with_render_path(RenderPath::Forward)

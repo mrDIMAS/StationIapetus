@@ -2,6 +2,7 @@ use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
     control_scheme::{ControlButton, ControlScheme},
+    create_display_material,
     gui::journal::Journal,
     inventory::Inventory,
     item::{ItemContainer, ItemKind},
@@ -19,6 +20,8 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::material::shader::SamplerFallback;
+use rg3d::material::PropertyValue;
 use rg3d::scene::light::spot::SpotLightBuilder;
 use rg3d::scene::light::BaseLightBuilder;
 use rg3d::{
@@ -412,7 +415,7 @@ impl Player {
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
                 SurfaceData::make_quad(&Matrix4::new_scaling(0.07)),
             )))
-            .with_diffuse_texture(display_texture)
+            .with_material(create_display_material(display_texture))
             .build()])
             .with_cast_shadows(false)
             .with_render_path(RenderPath::Forward)
@@ -443,7 +446,7 @@ impl Player {
                 s,
             ))),
         )))
-        .with_diffuse_texture(inventory_texture)
+        .with_material(create_display_material(inventory_texture))
         .build()])
         .with_render_path(RenderPath::Forward)
         .build(&mut scene.graph);
@@ -467,7 +470,7 @@ impl Player {
                 s,
             ))),
         )))
-        .with_diffuse_texture(journal_texture)
+        .with_material(create_display_material(journal_texture))
         .build()])
         .with_render_path(RenderPath::Forward)
         .build(&mut scene.graph);
@@ -809,8 +812,17 @@ impl Player {
         let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
         let color = self.health_color_gradient.get_color(self.health / 100.0);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
-        surface.set_color(color);
-        surface.set_emission_strength(color.as_frgb().scale(10.0));
+        let mut material = surface.material().lock().unwrap();
+        material
+            .set_property("diffuseColor", PropertyValue::Color(color))
+            .unwrap();
+        material
+            .set_property(
+                "emissionStrength",
+                PropertyValue::Vector3(color.as_frgb().scale(10.0)),
+            )
+            .unwrap();
+        drop(material);
         scene.graph[self.rig_light].as_light_mut().set_color(color);
     }
 
@@ -1438,21 +1450,51 @@ impl Player {
             .surfaces_mut()
             .first_mut()
             .unwrap()
-            .set_diffuse_texture(Some(display_texture));
+            .material()
+            .lock()
+            .unwrap()
+            .set_property(
+                "diffuseTexture",
+                PropertyValue::Sampler {
+                    value: Some(display_texture),
+                    fallback: SamplerFallback::White,
+                },
+            )
+            .unwrap();
 
         scene.graph[self.inventory_display]
             .as_mesh_mut()
             .surfaces_mut()
             .first_mut()
             .unwrap()
-            .set_diffuse_texture(Some(inventory_texture));
+            .material()
+            .lock()
+            .unwrap()
+            .set_property(
+                "diffuseTexture",
+                PropertyValue::Sampler {
+                    value: Some(inventory_texture),
+                    fallback: SamplerFallback::White,
+                },
+            )
+            .unwrap();
 
         scene.graph[self.journal_display]
             .as_mesh_mut()
             .surfaces_mut()
             .first_mut()
             .unwrap()
-            .set_diffuse_texture(Some(journal_texture));
+            .material()
+            .lock()
+            .unwrap()
+            .set_property(
+                "diffuseTexture",
+                PropertyValue::Sampler {
+                    value: Some(journal_texture),
+                    fallback: SamplerFallback::White,
+                },
+            )
+            .unwrap();
 
         scene.graph[self.item_display]
             .as_sprite_mut()
