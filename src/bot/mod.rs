@@ -31,8 +31,8 @@ use rg3d::{
     },
     rand,
     scene::{
-        self, base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene,
-        SceneDrawingContext,
+        self, base::BaseBuilder, debug::SceneDrawingContext, graph::Graph, node::Node,
+        transform::TransformBuilder, Scene,
     },
     utils::{
         log::{Log, MessageKind},
@@ -354,7 +354,7 @@ impl Bot {
         for pts in self.agent.path().windows(2) {
             let a = pts[0];
             let b = pts[1];
-            context.add_line(scene::Line {
+            context.add_line(scene::debug::Line {
                 begin: a,
                 end: b,
                 color: Color::from_rgba(255, 0, 0, 255),

@@ -15,7 +15,7 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     physics::geometry::InteractionGroups,
-    scene::{node::Node, physics::RayCastOptions, Scene, SceneDrawingContext},
+    scene::{debug::SceneDrawingContext, node::Node, physics::RayCastOptions, Scene},
 };
 use std::iter::FromIterator;
 use std::{
