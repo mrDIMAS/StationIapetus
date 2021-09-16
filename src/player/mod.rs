@@ -37,14 +37,14 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::{
-        resource_manager::{MaterialSearchOptions, ResourceManager},
-        ColliderHandle,
-    },
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
-    physics::{
-        dynamics::{CoefficientCombineRule, RigidBodyBuilder},
-        geometry::{ColliderBuilder, InteractionGroups},
+    physics3d::{
+        rapier::{
+            dynamics::{CoefficientCombineRule, RigidBodyBuilder},
+            geometry::{ColliderBuilder, InteractionGroups},
+        },
+        ColliderHandle,
     },
     resource::{model::Model, texture::Texture},
     scene::{

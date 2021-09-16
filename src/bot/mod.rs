@@ -25,7 +25,7 @@ use rg3d::{
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     lazy_static::lazy_static,
-    physics::{
+    physics3d::rapier::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder, RigidBodyType},
         geometry::{ColliderBuilder, InteractionGroups},
     },

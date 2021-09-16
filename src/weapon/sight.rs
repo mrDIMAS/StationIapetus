@@ -1,17 +1,16 @@
 use crate::CollisionGroups;
-use rg3d::core::math::lerpf;
-use rg3d::material::{Material, PropertyValue};
 use rg3d::{
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
-        math::ray::Ray,
+        math::{lerpf, ray::Ray},
         pool::Handle,
         visitor::prelude::*,
     },
-    engine::{resource_manager::ResourceManager, ColliderHandle},
-    physics::geometry::InteractionGroups,
+    engine::resource_manager::ResourceManager,
+    material::{Material, PropertyValue},
+    physics3d::{rapier::geometry::InteractionGroups, ColliderHandle, RayCastOptions},
     scene::{
         base::BaseBuilder,
         graph::Graph,
@@ -21,7 +20,6 @@ use rg3d::{
             MeshBuilder, RenderPath,
         },
         node::Node,
-        physics::RayCastOptions,
         sprite::SpriteBuilder,
         Scene,
     },
@@ -132,12 +130,15 @@ impl LaserSight {
     ) {
         let mut intersections = ArrayVec::<_, 64>::new();
 
-        let ray = &mut scene.graph[self.ray];
+        let ray_node = &mut scene.graph[self.ray];
         let max_toi = 100.0;
+
+        let ray = Ray::new(position, direction.scale(max_toi));
 
         scene.physics.cast_ray(
             RayCastOptions {
-                ray: Ray::new(position, direction.scale(max_toi)),
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
                 max_len: max_toi,
                 groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
                 sort_results: true,
@@ -149,7 +150,8 @@ impl LaserSight {
             .into_iter()
             .find(|i| i.collider != ignore_collider)
         {
-            ray.local_transform_mut()
+            ray_node
+                .local_transform_mut()
                 .set_position(position)
                 .set_rotation(UnitQuaternion::face_towards(&direction, &Vector3::y()))
                 .set_scale(Vector3::new(NORMAL_RADIUS, NORMAL_RADIUS, result.toi));

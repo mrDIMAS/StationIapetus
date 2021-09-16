@@ -9,8 +9,8 @@ use rg3d::{
         pool::Handle,
         visitor::prelude::*,
     },
-    physics::prelude::InteractionGroups,
-    scene::{graph::Graph, node::Node, physics::RayCastOptions},
+    physics3d::{rapier::prelude::InteractionGroups, RayCastOptions},
+    scene::{graph::Graph, node::Node},
     utils::behavior::{Behavior, Status},
 };
 
@@ -83,7 +83,8 @@ impl<'a> Behavior<'a> for FindTarget {
                 let ray = Ray::from_two_points(desc.position, position);
                 context.scene.physics.cast_ray(
                     RayCastOptions {
-                        ray,
+                        ray_origin: Point3::from(ray.origin),
+                        ray_direction: ray.dir,
                         groups: InteractionGroups::all(),
                         max_len: ray.dir.norm(),
                         sort_results: true,

@@ -5,7 +5,7 @@ use crate::{
 };
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
-    engine::{ColliderHandle, RigidBodyHandle},
+    physics3d::{ColliderHandle, RigidBodyHandle},
     scene::{graph::Graph, node::Node, physics::Physics, Scene},
 };
 use std::sync::mpsc::Sender;

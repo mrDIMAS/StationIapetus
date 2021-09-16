@@ -11,22 +11,20 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
-use rg3d::material::shader::SamplerFallback;
-use rg3d::material::PropertyValue;
-use rg3d::scene::physics::Intersection;
 use rg3d::{
     core::{
-        algebra::{Matrix3, Vector3},
+        algebra::{Matrix3, Point3, Vector3},
         color::Color,
         math::{ray::Ray, Matrix4Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::{
-        resource_manager::{MaterialSearchOptions, ResourceManager},
-        ColliderHandle,
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    material::{shader::SamplerFallback, PropertyValue},
+    physics3d::{
+        rapier::{geometry::InteractionGroups, parry::shape::FeatureId},
+        ColliderHandle, Intersection, RayCastOptions,
     },
-    physics::{geometry::InteractionGroups, parry::shape::FeatureId},
     rand::seq::SliceRandom,
     scene::{
         base::BaseBuilder,
@@ -34,7 +32,7 @@ use rg3d::{
         light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
         mesh::RenderPath,
         node::Node,
-        physics::{Physics, RayCastOptions},
+        physics::Physics,
         Scene,
     },
     utils::{
@@ -117,7 +115,8 @@ pub fn ray_hit(
 
     physics.cast_ray(
         RayCastOptions {
-            ray,
+            ray_origin: Point3::from(ray.origin),
+            ray_direction: ray.dir,
             max_len: ray.dir.norm(),
             groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
             sort_results: true,

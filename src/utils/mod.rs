@@ -1,19 +1,24 @@
-use rg3d::animation::machine::{Machine, PoseNode, State};
-use rg3d::animation::Animation;
-use rg3d::asset::core::rand::Rng;
-use rg3d::resource::model::Model;
-use rg3d::scene::camera::SkyBoxBuilder;
 use rg3d::{
+    animation::{
+        machine::{Machine, PoseNode, State},
+        Animation,
+    },
+    asset::core::rand::Rng,
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
         pool::Handle,
     },
-    engine::{resource_manager::ResourceManager, RigidBodyHandle},
+    engine::resource_manager::ResourceManager,
+    physics3d::RigidBodyHandle,
     rand,
-    resource::texture::TextureWrapMode,
+    resource::{model::Model, texture::TextureWrapMode},
     scene::{
-        base::BaseBuilder, camera::CameraBuilder, graph::Graph, node::Node,
-        transform::TransformBuilder, Scene,
+        base::BaseBuilder,
+        camera::{CameraBuilder, SkyBoxBuilder},
+        graph::Graph,
+        node::Node,
+        transform::TransformBuilder,
+        Scene,
     },
     sound::{self, context::SoundContext},
 };

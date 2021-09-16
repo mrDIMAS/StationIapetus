@@ -3,23 +3,16 @@ use crate::GameTime;
 use rg3d::sound::context::SoundContext;
 use rg3d::{
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::{Point3, UnitQuaternion, Vector3},
         math::{ray::Ray, Matrix4Ext, Vector3Ext},
         pool::Handle,
         rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    engine::ColliderHandle,
+    physics3d::{ColliderHandle, Intersection, RayCastOptions},
     rand,
-    scene::{
-        base::BaseBuilder,
-        graph::Graph,
-        node::Node,
-        physics::{Intersection, RayCastOptions},
-        transform::TransformBuilder,
-        Scene,
-    },
+    scene::{base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene},
 };
 
 #[derive(Default, Visit)]
@@ -152,7 +145,8 @@ impl CameraController {
         };
         scene.physics.cast_ray(
             RayCastOptions {
-                ray,
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
                 max_len: ray.dir.norm(),
                 groups: Default::default(),
                 sort_results: true,

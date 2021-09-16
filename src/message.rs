@@ -22,8 +22,7 @@ use rg3d::{
         algebra::{UnitQuaternion, Vector3},
         pool::Handle,
     },
-    engine::ColliderHandle,
-    physics::parry::shape::FeatureId,
+    physics3d::{rapier::parry::shape::FeatureId, ColliderHandle},
 };
 use std::path::PathBuf;
 

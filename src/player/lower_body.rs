@@ -16,7 +16,8 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::{resource_manager::ResourceManager, ColliderHandle},
+    engine::resource_manager::ResourceManager,
+    physics3d::ColliderHandle,
     resource::model::Model,
     scene::{node::Node, Scene},
 };

@@ -2,8 +2,8 @@ use crate::message::Message;
 use rg3d::material::PropertyValue;
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
-    engine::{resource_manager::ResourceManager, ColliderHandle},
-    physics::geometry::FeatureId,
+    engine::resource_manager::ResourceManager,
+    physics3d::{rapier::geometry::FeatureId, ColliderHandle},
     rand::{self, seq::SliceRandom},
     scene::{node::Node, Scene},
     sound::{

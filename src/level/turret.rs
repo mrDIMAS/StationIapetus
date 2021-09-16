@@ -14,8 +14,8 @@ use rg3d::{
         rand::{seq::SliceRandom, thread_rng},
         visitor::{Visit, VisitResult, Visitor},
     },
-    physics::geometry::InteractionGroups,
-    scene::{debug::SceneDrawingContext, node::Node, physics::RayCastOptions, Scene},
+    physics3d::{rapier::geometry::InteractionGroups, RayCastOptions},
+    scene::{debug::SceneDrawingContext, node::Node, Scene},
 };
 use std::iter::FromIterator;
 use std::{
@@ -230,7 +230,8 @@ impl Turret {
                 let ray = Ray::from_two_points(actor_position, self_position);
                 scene.physics.cast_ray(
                     RayCastOptions {
-                        ray,
+                        ray_origin: Point3::from(ray.origin),
+                        ray_direction: ray.dir,
                         groups: InteractionGroups::all(),
                         max_len: ray.dir.norm(),
                         sort_results: true,

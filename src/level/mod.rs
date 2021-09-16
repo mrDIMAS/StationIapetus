@@ -40,11 +40,9 @@ use rg3d::{
         rand::seq::SliceRandom,
         visitor::prelude::*,
     },
-    engine::{
-        resource_manager::{MaterialSearchOptions, ResourceManager},
-        ColliderHandle,
-    },
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::Event,
+    physics3d::{ColliderHandle, RayCastOptions},
     rand,
     resource::texture::Texture,
     scene::{
@@ -55,7 +53,6 @@ use rg3d::{
             MeshBuilder, RenderPath,
         },
         node::Node,
-        physics::RayCastOptions,
         transform::TransformBuilder,
         Scene,
     },
@@ -217,9 +214,12 @@ pub fn footstep_ray_check(
 ) {
     let mut query_buffer = Vec::new();
 
+    let ray = Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0));
+
     scene.physics.cast_ray(
         RayCastOptions {
-            ray: Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0)),
+            ray_origin: Point3::from(ray.origin),
+            ray_direction: ray.dir,
             max_len: 100.0,
             groups: Default::default(),
             sort_results: true,
@@ -536,7 +536,8 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
     let ray = Ray::from_two_points(from, to);
     scene.physics.cast_ray(
         RayCastOptions {
-            ray,
+            ray_origin: Point3::from(ray.origin),
+            ray_direction: ray.dir,
             max_len: ray.dir.norm(),
             groups: Default::default(),
             sort_results: true,

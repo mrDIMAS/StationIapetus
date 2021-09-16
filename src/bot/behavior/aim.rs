@@ -6,7 +6,7 @@ use rg3d::{
         pool::Handle,
         visitor::prelude::*,
     },
-    engine::RigidBodyHandle,
+    physics3d::RigidBodyHandle,
     scene::{graph::Graph, node::Node, Scene},
     utils::behavior::{Behavior, Status},
 };

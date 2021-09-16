@@ -1,25 +1,21 @@
-use crate::weapon::sight::SightReaction;
 use crate::{
     actor::{Actor, ActorContainer},
     effects::EffectKind,
     level::turret::Turret,
     message::Message,
-    weapon::{ray_hit, Hit, Weapon, WeaponContainer},
+    weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
     GameTime,
 };
 use rg3d::{
     core::{
-        algebra::Vector3,
+        algebra::{Isometry3, Translation3, Vector3},
         math::{vector_to_quat, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::{
-        resource_manager::{MaterialSearchOptions, ResourceManager},
-        ColliderHandle, RigidBodyHandle,
-    },
+    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     lazy_static::lazy_static,
-    physics::na::{Isometry3, Translation3},
+    physics3d::{ColliderHandle, RigidBodyHandle},
     scene::{graph::Graph, node::Node, Scene},
 };
 use serde::Deserialize;
