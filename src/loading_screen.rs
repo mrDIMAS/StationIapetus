@@ -1,6 +1,5 @@
-use crate::gui::Gui;
-use crate::{gui::BuildContext, UiNode};
 use rg3d::gui::message::{MessageDirection, ProgressBarMessage};
+use rg3d::gui::{BuildContext, UiNode, UserInterface};
 use rg3d::{
     core::pool::Handle,
     gui::{
@@ -60,7 +59,7 @@ impl LoadingScreen {
         Self { root, progress_bar }
     }
 
-    pub fn set_progress(&self, ui: &Gui, progress: f32) {
+    pub fn set_progress(&self, ui: &UserInterface, progress: f32) {
         ui.send_message(ProgressBarMessage::progress(
             self.progress_bar,
             MessageDirection::ToWidget,

@@ -1,11 +1,7 @@
 #![allow(dead_code)] // TODO
 
-use crate::{
-    control_scheme::{ControlButton, ControlScheme},
-    gui::{Gui, UiNode},
-};
-use rg3d::gui::formatted_text::WrapMode;
-use rg3d::gui::message::{TextMessage, UiMessageData};
+use crate::control_scheme::{ControlButton, ControlScheme};
+use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
     core::{
         algebra::Vector2,
@@ -15,9 +11,11 @@ use rg3d::{
     gui::{
         border::BorderBuilder,
         decorator::DecoratorBuilder,
+        formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         list_view::ListViewBuilder,
         message::{ButtonState, ListViewMessage, MessageDirection, OsEvent},
+        message::{TextMessage, UiMessageData},
         scroll_viewer::ScrollViewerBuilder,
         text::TextBuilder,
         widget::WidgetBuilder,
@@ -83,7 +81,7 @@ impl Journal {
 }
 
 pub struct JournalDisplay {
-    pub ui: Gui,
+    pub ui: UserInterface,
     pub render_target: Texture,
     objective: Handle<UiNode>,
     messages: Handle<UiNode>,
@@ -102,7 +100,7 @@ impl JournalDisplay {
     pub const HEIGHT: f32 = 300.0;
 
     pub fn new() -> Self {
-        let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
+        let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 

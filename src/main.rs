@@ -31,8 +31,7 @@ use crate::{
     control_scheme::ControlScheme,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
-        weapon_display::WeaponDisplay, CustomUiMessage, CustomUiNode, DeathScreen, FinalScreen,
-        GuiMessage, UiNode, UiNodeHandle,
+        weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     level::{arrival::ArrivalLevel, lab::LabLevel, testbed::TestbedLevel, Level, LevelKind},
     loading_screen::LoadingScreen,
@@ -41,9 +40,8 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::material::shader::SamplerFallback;
-use rg3d::material::{Material, PropertyValue};
-use rg3d::resource::texture::Texture;
+use rg3d::gui::message::UiMessage;
+use rg3d::gui::UiNode;
 use rg3d::{
     core::{
         pool::Handle,
@@ -62,6 +60,9 @@ use rg3d::{
         ttf::{Font, SharedFont},
         widget::WidgetBuilder,
     },
+    material::shader::SamplerFallback,
+    material::{Material, PropertyValue},
+    resource::texture::Texture,
     scene::Scene,
     sound::source::{generic::GenericSourceBuilder, Status},
     utils::{
@@ -82,14 +83,11 @@ use std::{
 
 const FIXED_FPS: f32 = 60.0;
 
-// Define type aliases for engine structs.
-pub type GameEngine = Engine<CustomUiMessage, CustomUiNode>;
-
 pub struct Game {
     menu: Menu,
-    engine: GameEngine,
+    engine: Engine,
     level: Option<Level>,
-    debug_text: UiNodeHandle,
+    debug_text: Handle<UiNode>,
     debug_string: String,
     running: bool,
     control_scheme: ControlScheme,
@@ -181,7 +179,7 @@ impl Game {
             .with_inner_size(inner_size)
             .with_resizable(true);
 
-        let mut engine = GameEngine::new(window_builder, &events_loop, false).unwrap();
+        let mut engine = Engine::new(window_builder, &events_loop, false).unwrap();
 
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();
@@ -363,7 +361,7 @@ impl Game {
         });
     }
 
-    fn handle_ui_message(&mut self, message: &GuiMessage) {
+    fn handle_ui_message(&mut self, message: &UiMessage) {
         self.menu.handle_ui_message(
             &mut self.engine,
             &message,
@@ -441,7 +439,7 @@ impl Game {
         let mut visitor = Visitor::new();
 
         // Visit engine state first.
-        self.engine.visit("GameEngine", &mut visitor)?;
+        self.engine.visit("Engine", &mut visitor)?;
         self.level.visit("Level", &mut visitor)?;
 
         // Debug output
@@ -469,7 +467,7 @@ impl Game {
             MessageKind::Information,
             "Trying to load a save file...".to_owned(),
         );
-        self.engine.visit("GameEngine", &mut visitor)?;
+        self.engine.visit("Engine", &mut visitor)?;
         self.level.visit("Level", &mut visitor)?;
 
         Log::writeln(

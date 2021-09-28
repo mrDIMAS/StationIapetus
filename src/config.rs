@@ -1,4 +1,4 @@
-use crate::{control_scheme::ControlScheme, GameEngine};
+use crate::{control_scheme::ControlScheme, Engine};
 use rg3d::renderer::QualitySettings;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
@@ -56,7 +56,7 @@ impl Config {
     }
 
     pub fn save(
-        engine: &GameEngine,
+        engine: &Engine,
         control_scheme: ControlScheme,
         sound_config: SoundConfig,
         show_debug_info: bool,

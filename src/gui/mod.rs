@@ -2,124 +2,33 @@
 //! However most of the styles are used from dark theme of rg3d-ui library so there
 //! is not much.
 
-use crate::{
-    gui::inventory::{InventoryItem, InventoryItemMessage},
-    message::Message,
-};
+use crate::message::Message;
+use rg3d::gui::BuildContext;
 use rg3d::{
-    core::{algebra::Vector2, pool::Handle},
+    core::pool::Handle,
     gui::{
         border::BorderBuilder,
         brush::Brush,
         button::ButtonBuilder,
         check_box::CheckBoxBuilder,
         core::color::Color,
-        draw::DrawingContext,
         grid::{Column, GridBuilder, Row},
-        message::{
-            ButtonMessage, MessageData, MessageDirection, OsEvent, UiMessage, UiMessageData,
-            WidgetMessage,
-        },
-        node::UINode,
+        message::{ButtonMessage, MessageDirection, UiMessage, UiMessageData, WidgetMessage},
         scroll_bar::ScrollBarBuilder,
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         ttf::SharedFont,
         widget::WidgetBuilder,
-        Control, HorizontalAlignment, NodeHandleMapping, Orientation, Thickness, UserInterface,
-        VerticalAlignment,
+        HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface, VerticalAlignment,
     },
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::mpsc::Sender,
-};
+use std::sync::mpsc::Sender;
 
 pub mod inventory;
 pub mod item_display;
 pub mod journal;
 pub mod weapon_display;
-
-#[derive(Debug, Clone)]
-pub enum CustomUiNode {
-    InventoryItem(InventoryItem),
-}
-
-macro_rules! static_dispatch {
-    ($self:ident, $func:ident, $($args:expr),*) => {
-        match $self {
-            CustomUiNode::InventoryItem(v) => v.$func($($args),*),
-        }
-    }
-}
-
-impl Deref for CustomUiNode {
-    type Target = CustomWidget;
-
-    fn deref(&self) -> &Self::Target {
-        static_dispatch!(self, deref,)
-    }
-}
-
-impl DerefMut for CustomUiNode {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        static_dispatch!(self, deref_mut,)
-    }
-}
-
-impl Control<CustomUiMessage, CustomUiNode> for CustomUiNode {
-    fn resolve(&mut self, node_map: &NodeHandleMapping<CustomUiMessage, CustomUiNode>) {
-        static_dispatch!(self, resolve, node_map);
-    }
-
-    fn measure_override(&self, ui: &Gui, available_size: Vector2<f32>) -> Vector2<f32> {
-        static_dispatch!(self, measure_override, ui, available_size)
-    }
-
-    fn arrange_override(&self, ui: &Gui, final_size: Vector2<f32>) -> Vector2<f32> {
-        static_dispatch!(self, arrange_override, ui, final_size)
-    }
-
-    fn draw(&self, drawing_context: &mut DrawingContext) {
-        static_dispatch!(self, draw, drawing_context)
-    }
-
-    fn update(&mut self, dt: f32) {
-        static_dispatch!(self, update, dt)
-    }
-
-    fn handle_routed_message(&mut self, ui: &mut Gui, message: &mut GuiMessage) {
-        static_dispatch!(self, handle_routed_message, ui, message)
-    }
-
-    fn preview_message(&self, ui: &Gui, message: &mut GuiMessage) {
-        static_dispatch!(self, preview_message, ui, message)
-    }
-
-    fn handle_os_event(&mut self, self_handle: Handle<UiNode>, ui: &mut Gui, event: &OsEvent) {
-        static_dispatch!(self, handle_os_event, self_handle, ui, event)
-    }
-
-    fn remove_ref(&mut self, handle: Handle<UiNode>) {
-        static_dispatch!(self, remove_ref, handle)
-    }
-}
-
-#[derive(Debug, Clone, PartialEq)]
-pub enum CustomUiMessage {
-    InventoryItem(InventoryItemMessage),
-}
-
-impl MessageData for CustomUiMessage {}
-
-pub type UiNode = UINode<CustomUiMessage, CustomUiNode>;
-pub type UiNodeHandle = Handle<UiNode>;
-pub type Gui = UserInterface<CustomUiMessage, CustomUiNode>;
-pub type GuiMessage = UiMessage<CustomUiMessage, CustomUiNode>;
-pub type BuildContext<'a> = rg3d::gui::BuildContext<'a, CustomUiMessage, CustomUiNode>;
-pub type CustomWidget = rg3d::gui::widget::Widget<CustomUiMessage, CustomUiNode>;
-pub type UiWidgetBuilder = rg3d::gui::widget::WidgetBuilder<CustomUiMessage, CustomUiNode>;
 
 pub struct ScrollBarData {
     pub min: f32,
@@ -187,7 +96,7 @@ pub struct DeathScreen {
 }
 
 impl DeathScreen {
-    pub fn new(ui: &mut Gui, font: SharedFont, sender: Sender<Message>) -> Self {
+    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: Sender<Message>) -> Self {
         let load_game;
         let exit_to_menu;
         let exit_game;
@@ -272,7 +181,7 @@ impl DeathScreen {
         }
     }
 
-    pub fn handle_ui_message(&mut self, message: &GuiMessage) {
+    pub fn handle_ui_message(&mut self, message: &UiMessage) {
         if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {
                 self.sender.send(Message::LoadGame).unwrap();
@@ -284,7 +193,7 @@ impl DeathScreen {
         }
     }
 
-    pub fn set_visible(&self, ui: &Gui, state: bool) {
+    pub fn set_visible(&self, ui: &UserInterface, state: bool) {
         ui.send_message(WidgetMessage::visibility(
             self.root,
             MessageDirection::ToWidget,
@@ -292,7 +201,7 @@ impl DeathScreen {
         ));
     }
 
-    pub fn is_visible(&self, ui: &Gui) -> bool {
+    pub fn is_visible(&self, ui: &UserInterface) -> bool {
         ui.node(self.root).visibility()
     }
 }
@@ -305,7 +214,7 @@ pub struct FinalScreen {
 }
 
 impl FinalScreen {
-    pub fn new(ui: &mut Gui, font: SharedFont, sender: Sender<Message>) -> Self {
+    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: Sender<Message>) -> Self {
         let exit_to_menu;
         let exit_game;
         let root = BorderBuilder::new(
@@ -378,7 +287,7 @@ impl FinalScreen {
         }
     }
 
-    pub fn handle_ui_message(&mut self, message: &GuiMessage) {
+    pub fn handle_ui_message(&mut self, message: &UiMessage) {
         if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
             if message.destination() == self.exit_to_menu {
                 self.sender.send(Message::ToggleMainMenu).unwrap();
@@ -388,7 +297,7 @@ impl FinalScreen {
         }
     }
 
-    pub fn set_visible(&self, ui: &Gui, state: bool) {
+    pub fn set_visible(&self, ui: &UserInterface, state: bool) {
         ui.send_message(WidgetMessage::visibility(
             self.root,
             MessageDirection::ToWidget,
@@ -396,7 +305,7 @@ impl FinalScreen {
         ));
     }
 
-    pub fn is_visible(&self, ui: &Gui) -> bool {
+    pub fn is_visible(&self, ui: &UserInterface) -> bool {
         ui.node(self.root).visibility()
     }
 }

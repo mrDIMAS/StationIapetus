@@ -1,11 +1,9 @@
-use crate::{
-    gui::{Gui, UiNode},
-    item::{Item, ItemKind},
-};
+use crate::item::{Item, ItemKind};
 use rg3d::core::color::Color;
 use rg3d::gui::border::BorderBuilder;
 use rg3d::gui::brush::Brush;
 use rg3d::gui::message::ImageMessage;
+use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -22,7 +20,7 @@ use rg3d::{
 };
 
 pub struct ItemDisplay {
-    pub ui: Gui,
+    pub ui: UserInterface,
     pub render_target: Texture,
     item_image: Handle<UiNode>,
     item_name: Handle<UiNode>,
@@ -33,7 +31,7 @@ impl ItemDisplay {
     pub const HEIGHT: f32 = 160.0;
 
     pub fn new(font: SharedFont) -> Self {
-        let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
+        let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 

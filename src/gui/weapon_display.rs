@@ -1,9 +1,5 @@
-use crate::{
-    gui::{Gui, UiNode},
-    item::ItemKind,
-    player::Player,
-    weapon::WeaponContainer,
-};
+use crate::{item::ItemKind, player::Player, weapon::WeaponContainer};
+use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -23,7 +19,7 @@ use rg3d::{
 use std::path::Path;
 
 pub struct WeaponDisplay {
-    pub ui: Gui,
+    pub ui: UserInterface,
     pub render_target: Texture,
     ammo: Handle<UiNode>,
     grenades: Handle<UiNode>,
@@ -34,7 +30,7 @@ impl WeaponDisplay {
     pub const HEIGHT: f32 = 120.0;
 
     pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
-        let mut ui = Gui::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
+        let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 

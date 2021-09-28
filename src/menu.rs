@@ -1,16 +1,16 @@
-use crate::config::SoundConfig;
 use crate::{
-    control_scheme::ControlScheme, gui::Gui, gui::GuiMessage, gui::UiNode, message::Message,
-    options_menu::OptionsMenu, utils::create_camera, GameEngine,
+    config::SoundConfig, control_scheme::ControlScheme, message::Message,
+    options_menu::OptionsMenu, utils::create_camera, Engine,
 };
-use rg3d::engine::resource_manager::MaterialSearchOptions;
-use rg3d::gui::HorizontalAlignment;
+use rg3d::gui::message::UiMessage;
+use rg3d::gui::UserInterface;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,
         pool::Handle,
     },
+    engine::resource_manager::MaterialSearchOptions,
     event::{Event, WindowEvent},
     gui::{
         button::ButtonBuilder,
@@ -19,7 +19,7 @@ use rg3d::{
         ttf::SharedFont,
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
-        Thickness,
+        HorizontalAlignment, Thickness, UiNode,
     },
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
@@ -47,7 +47,7 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub async fn new(engine: &mut GameEngine, sound_config: &SoundConfig) -> Self {
+    pub async fn new(engine: &mut Engine, sound_config: &SoundConfig) -> Self {
         let mut scene = Scene::from_file(
             "data/levels/menu.rgs",
             engine.resource_manager.clone(),
@@ -98,7 +98,7 @@ impl MenuScene {
         }
     }
 
-    pub fn update(&mut self, engine: &mut GameEngine, dt: f32) {
+    pub fn update(&mut self, engine: &mut Engine, dt: f32) {
         let scene = &mut engine.scenes[self.scene];
 
         self.angle += 0.18 * dt;
@@ -114,7 +114,7 @@ impl MenuScene {
 
 impl Menu {
     pub async fn new(
-        engine: &mut GameEngine,
+        engine: &mut Engine,
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
         font: SharedFont,
@@ -261,7 +261,7 @@ impl Menu {
         }
     }
 
-    pub fn set_visible(&mut self, engine: &mut GameEngine, visible: bool) {
+    pub fn set_visible(&mut self, engine: &mut Engine, visible: bool) {
         engine.scenes[self.scene.scene].enabled = visible;
 
         engine
@@ -279,13 +279,13 @@ impl Menu {
         }
     }
 
-    pub fn is_visible(&self, ui: &Gui) -> bool {
+    pub fn is_visible(&self, ui: &UserInterface) -> bool {
         ui.node(self.root).visibility()
     }
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut GameEngine,
+        engine: &mut Engine,
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
@@ -310,7 +310,7 @@ impl Menu {
             .process_input_event(engine, event, control_scheme);
     }
 
-    pub fn sync_to_model(&mut self, engine: &mut GameEngine, level_loaded: bool) {
+    pub fn sync_to_model(&mut self, engine: &mut Engine, level_loaded: bool) {
         engine.user_interface.send_message(WidgetMessage::enabled(
             self.btn_save_game,
             MessageDirection::ToWidget,
@@ -320,8 +320,8 @@ impl Menu {
 
     pub fn handle_ui_message(
         &mut self,
-        engine: &mut GameEngine,
-        message: &GuiMessage,
+        engine: &mut Engine,
+        message: &UiMessage,
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,

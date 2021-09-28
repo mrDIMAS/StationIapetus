@@ -1,10 +1,13 @@
 use crate::{
     config::SoundConfig,
     control_scheme::{ControlButton, ControlScheme},
-    gui::{create_check_box, create_scroll_bar, BuildContext, GuiMessage, ScrollBarData, UiNode},
+    gui::{create_check_box, create_scroll_bar, ScrollBarData},
     message::Message,
-    GameEngine,
+    Engine,
 };
+use rg3d::gui::button::Button;
+use rg3d::gui::message::UiMessage;
+use rg3d::gui::BuildContext;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
@@ -18,13 +21,12 @@ use rg3d::{
             ButtonMessage, CheckBoxMessage, DropdownListMessage, MessageDirection,
             ScrollBarMessage, TextMessage, UiMessageData,
         },
-        node::UINode,
         scroll_viewer::ScrollViewerBuilder,
         tab_control::{TabControlBuilder, TabDefinition},
         text::TextBuilder,
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
-        HorizontalAlignment, Orientation, Thickness, VerticalAlignment,
+        HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
     },
     monitor::VideoMode,
     renderer::ShadowMapPrecision,
@@ -162,7 +164,7 @@ fn index_to_shadow_map_size(index: usize) -> usize {
 
 impl OptionsMenu {
     pub fn new(
-        engine: &mut GameEngine,
+        engine: &mut Engine,
         control_scheme: &ControlScheme,
         sender: Sender<Message>,
         show_debug_info_value: bool,
@@ -504,7 +506,7 @@ impl OptionsMenu {
                                     .build(ctx);
                                     reset_control_scheme
                                 })
-                                .with_children(&children),
+                                .with_children(children),
                         )
                         .add_column(Column::strict(250.0))
                         .add_column(Column::stretch())
@@ -570,7 +572,7 @@ impl OptionsMenu {
 
     pub fn sync_to_model(
         &mut self,
-        engine: &mut GameEngine,
+        engine: &mut Engine,
         control_scheme: &ControlScheme,
         show_debug_info: bool,
         sound_config: &SoundConfig,
@@ -614,7 +616,7 @@ impl OptionsMenu {
             .iter()
             .zip(control_scheme.buttons().iter())
         {
-            if let UINode::Button(button) = ui.node(*btn) {
+            if let Some(button) = ui.node(*btn).cast::<Button>() {
                 ui.send_message(TextMessage::text(
                     button.content(),
                     MessageDirection::ToWidget,
@@ -626,7 +628,7 @@ impl OptionsMenu {
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut GameEngine,
+        engine: &mut Engine,
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
@@ -666,9 +668,10 @@ impl OptionsMenu {
 
             if let Some(control_button) = control_button {
                 if let Some(active_control_button) = self.active_control_button {
-                    if let UINode::Button(button) = engine
+                    if let Some(button) = engine
                         .user_interface
                         .node(self.control_scheme_buttons[active_control_button])
+                        .cast::<Button>()
                     {
                         engine.user_interface.send_message(TextMessage::text(
                             button.content(),
@@ -688,8 +691,8 @@ impl OptionsMenu {
     #[allow(clippy::cognitive_complexity)]
     pub fn handle_ui_event(
         &mut self,
-        engine: &mut GameEngine,
-        message: &GuiMessage,
+        engine: &mut Engine,
+        message: &UiMessage,
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
@@ -802,7 +805,7 @@ impl OptionsMenu {
 
                 for (i, button) in self.control_scheme_buttons.iter().enumerate() {
                     if message.destination() == *button {
-                        if let UINode::Button(button) = engine.user_interface.node(*button) {
+                        if let Some(button) = engine.user_interface.node(*button).cast::<Button>() {
                             engine.user_interface.send_message(TextMessage::text(
                                 button.content(),
                                 MessageDirection::ToWidget,
