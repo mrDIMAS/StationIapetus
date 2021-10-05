@@ -30,7 +30,6 @@ use rg3d::{
     },
     resource::texture::Texture,
 };
-use std::any::Any;
 use std::{
     ops::{Deref, DerefMut},
     sync::mpsc::Sender,
@@ -55,18 +54,6 @@ pub struct InventoryItem {
 }
 
 impl Control for InventoryItem {
-    fn as_any(&self) -> &dyn Any {
-        self
-    }
-
-    fn as_any_mut(&mut self) -> &mut dyn Any {
-        self
-    }
-
-    fn clone_boxed(&self) -> Box<dyn Control> {
-        Box::new(self.clone())
-    }
-
     fn draw(&self, drawing_context: &mut DrawingContext) {
         let bounds = self.screen_bounds();
         drawing_context.push_rect(&bounds, 1.0);
