@@ -33,7 +33,7 @@ use rg3d::{
         algebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
-        math::{self, SmoothAngle, UnitQuaternionExt, Vector3Ext},
+        math::{self, SmoothAngle, Vector3Ext},
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -510,7 +510,7 @@ impl Player {
             weapon_origin,
             model: model_handle,
             controller: InputController {
-                yaw: orientation.to_euler().y,
+                yaw: orientation.euler_angles().1,
                 ..Default::default()
             },
             lower_body_machine: locomotion_machine,
