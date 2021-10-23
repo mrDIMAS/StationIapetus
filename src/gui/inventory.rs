@@ -215,7 +215,7 @@ impl InventoryInterface {
         BorderBuilder::new(
             WidgetBuilder::new()
                 .with_foreground(Brush::Solid(Color::opaque(120, 120, 120)))
-                .with_opacity(0.66)
+                .with_opacity(Some(0.66))
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
                 .with_child(
