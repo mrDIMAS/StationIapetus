@@ -30,18 +30,19 @@ use crate::{
     },
     Engine, GameTime,
 };
-use rg3d::material::{Material, PropertyValue};
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, vector_to_quat, PositionProvider},
+        parking_lot::Mutex,
         pool::Handle,
         rand::seq::SliceRandom,
         visitor::prelude::*,
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::Event,
+    material::{Material, PropertyValue},
     physics3d::{ColliderHandle, RayCastOptions},
     rand,
     resource::texture::Texture,
@@ -58,11 +59,10 @@ use rg3d::{
     },
     utils::navmesh::Navmesh,
 };
-use std::sync::Mutex;
 use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    sync::{mpsc::Sender, Arc, RwLock},
+    sync::{mpsc::Sender, Arc},
 };
 
 pub mod arrival;
@@ -132,7 +132,7 @@ pub struct BaseLevel {
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
-    beam: Option<Arc<RwLock<SurfaceData>>>,
+    beam: Option<Arc<Mutex<SurfaceData>>>,
     trails: ShotTrailContainer,
     doors: DoorContainer,
     lights: LightContainer,
@@ -245,8 +245,8 @@ pub fn footstep_ray_check(
     }
 }
 
-fn make_beam() -> Arc<RwLock<SurfaceData>> {
-    Arc::new(RwLock::new(SurfaceData::make_cylinder(
+fn make_beam() -> Arc<Mutex<SurfaceData>> {
+    Arc::new(Mutex::new(SurfaceData::make_cylinder(
         6,
         1.0,
         1.0,

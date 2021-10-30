@@ -20,15 +20,12 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
-use rg3d::material::shader::SamplerFallback;
-use rg3d::material::PropertyValue;
-use rg3d::scene::light::spot::SpotLightBuilder;
-use rg3d::scene::light::BaseLightBuilder;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
     },
+    core::parking_lot::Mutex,
     core::{
         algebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, Vector3},
         color::Color,
@@ -39,6 +36,7 @@ use rg3d::{
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
+    material::{shader::SamplerFallback, PropertyValue},
     physics3d::{
         rapier::{
             dynamics::{CoefficientCombineRule, RigidBodyBuilder},
@@ -49,6 +47,7 @@ use rg3d::{
     resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
+        light::{spot::SpotLightBuilder, BaseLightBuilder},
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
@@ -61,7 +60,7 @@ use rg3d::{
 };
 use std::{
     ops::{Deref, DerefMut},
-    sync::{mpsc::Sender, Arc, RwLock},
+    sync::{mpsc::Sender, Arc},
 };
 
 mod camera;
@@ -412,7 +411,7 @@ impl Player {
         let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
 
         let weapon_display = MeshBuilder::new(BaseBuilder::new())
-            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
                 SurfaceData::make_quad(&Matrix4::new_scaling(0.07)),
             )))
             .with_material(create_display_material(display_texture))
@@ -439,7 +438,7 @@ impl Player {
                 ),
         )
         .with_cast_shadows(false)
-        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
             SurfaceData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
                 s,
                 3.0 / 4.0 * s,
@@ -463,7 +462,7 @@ impl Player {
                 ),
         )
         .with_cast_shadows(false)
-        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
             SurfaceData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
                 s,
                 3.0 / 4.0 * s,
@@ -812,7 +811,7 @@ impl Player {
         let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
         let color = self.health_color_gradient.get_color(self.health / 100.0);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
-        let mut material = surface.material().lock().unwrap();
+        let mut material = surface.material().lock();
         material
             .set_property("diffuseColor", PropertyValue::Color(color))
             .unwrap();
@@ -1452,7 +1451,6 @@ impl Player {
             .unwrap()
             .material()
             .lock()
-            .unwrap()
             .set_property(
                 "diffuseTexture",
                 PropertyValue::Sampler {
@@ -1469,7 +1467,6 @@ impl Player {
             .unwrap()
             .material()
             .lock()
-            .unwrap()
             .set_property(
                 "diffuseTexture",
                 PropertyValue::Sampler {
@@ -1486,7 +1483,6 @@ impl Player {
             .unwrap()
             .material()
             .lock()
-            .unwrap()
             .set_property(
                 "diffuseTexture",
                 PropertyValue::Sampler {

@@ -12,5 +12,9 @@ rg3d = { path = "../rg3d" }
 ron = "0.6.4"
 serde = "^1.0.0"
 
+[profile.release]
+opt-level = 3
+debug = true
+
 [features]
 enable_profiler = ["rg3d/enable_profiler"]

@@ -1,4 +1,5 @@
 use crate::CollisionGroups;
+use rg3d::core::parking_lot::Mutex;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -24,7 +25,7 @@ use rg3d::{
         Scene,
     },
 };
-use std::sync::{Arc, Mutex, RwLock};
+use std::sync::Arc;
 
 #[derive(Default, Visit)]
 pub struct LaserSight {
@@ -73,7 +74,7 @@ const HIT_DETECTED_TIME: f32 = 0.4;
 impl LaserSight {
     pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
         let ray = MeshBuilder::new(BaseBuilder::new().with_visibility(false))
-            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(RwLock::new(
+            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
                 SurfaceData::make_cylinder(
                     6,
                     1.0,
@@ -222,7 +223,6 @@ impl LaserSight {
             .unwrap()
             .material()
             .lock()
-            .unwrap()
             .set_property("diffuseColor", PropertyValue::Color(color))
             .unwrap();
         graph[self.light].as_light_mut().set_color(color);

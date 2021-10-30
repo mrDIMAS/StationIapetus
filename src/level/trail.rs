@@ -35,7 +35,7 @@ impl ShotTrailContainer {
             match &mut scene.graph[trail.node] {
                 Node::Mesh(mesh) => {
                     for surface in mesh.surfaces_mut() {
-                        let mut material = surface.material().lock().unwrap();
+                        let mut material = surface.material().lock();
                         let color = material
                             .property_ref("diffuseColor")
                             .unwrap()

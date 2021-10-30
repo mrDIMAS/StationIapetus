@@ -40,10 +40,9 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::gui::message::UiMessage;
-use rg3d::gui::UiNode;
 use rg3d::{
     core::{
+        parking_lot::Mutex,
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -53,15 +52,15 @@ use rg3d::{
     event_loop::{ControlFlow, EventLoop},
     gui::{
         message::{
-            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessageData,
-            WidgetMessage,
+            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessage,
+            UiMessageData, WidgetMessage,
         },
         text::TextBuilder,
         ttf::{Font, SharedFont},
         widget::WidgetBuilder,
+        UiNode,
     },
-    material::shader::SamplerFallback,
-    material::{Material, PropertyValue},
+    material::{shader::SamplerFallback, Material, PropertyValue},
     resource::texture::Texture,
     scene::Scene,
     sound::source::{generic::GenericSourceBuilder, Status},
@@ -76,7 +75,7 @@ use std::{
     path::{Path, PathBuf},
     sync::{
         mpsc::{self, Receiver, Sender},
-        Arc, Mutex,
+        Arc,
     },
     time::{self, Duration, Instant},
 };
@@ -156,7 +155,7 @@ impl Game {
             LogicalSize::new(1024.0, 768.0)
         };
 
-        let font = SharedFont(Arc::new(Mutex::new(
+        let font = SharedFont(Arc::new(std::sync::Mutex::new(
             rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 31.0,
@@ -165,7 +164,7 @@ impl Game {
             .unwrap(),
         )));
 
-        let smaller_font = SharedFont(Arc::new(Mutex::new(
+        let smaller_font = SharedFont(Arc::new(std::sync::Mutex::new(
             rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 20.0,
@@ -585,7 +584,7 @@ impl Game {
                 }
             };
 
-            ctx.lock().unwrap().level = Some(level);
+            ctx.lock().level = Some(level);
         });
     }
 
@@ -608,7 +607,7 @@ impl Game {
         let _ = window.set_cursor_grab(!self.is_any_menu_visible());
 
         if let Some(ctx) = self.load_context.clone() {
-            if let Ok(mut ctx) = ctx.try_lock() {
+            if let Some(mut ctx) = ctx.try_lock() {
                 if let Some((mut level, scene)) = ctx.level.take() {
                     level.scene = self.engine.scenes.add(scene);
                     self.level = Some(level);

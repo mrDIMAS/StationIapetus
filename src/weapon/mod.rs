@@ -440,7 +440,6 @@ impl Weapon {
                 surface
                     .material()
                     .lock()
-                    .unwrap()
                     .set_property(
                         "diffuseTexture",
                         PropertyValue::Sampler {
