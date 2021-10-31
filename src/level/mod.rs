@@ -30,6 +30,7 @@ use crate::{
     },
     Engine, GameTime,
 };
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -1310,7 +1311,7 @@ impl BaseLevel {
                         let mut material = Material::standard();
                         material
                             .set_property(
-                                "diffuseColor",
+                                &ImmutableString::new("diffuseColor"),
                                 PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
                             )
                             .unwrap();

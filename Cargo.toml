@@ -9,7 +9,7 @@ opt-level = 3
 
 [dependencies]
 rg3d = { path = "../rg3d" }
-ron = "0.6.4"
+ron = "0.7.0"
 serde = "^1.0.0"
 
 [profile.release]

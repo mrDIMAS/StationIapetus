@@ -1,5 +1,6 @@
 use crate::CollisionGroups;
 use rg3d::core::parking_lot::Mutex;
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -87,7 +88,10 @@ impl LaserSight {
             .with_material(Arc::new(Mutex::new({
                 let mut material = Material::standard();
                 material
-                    .set_property("diffuseColor", PropertyValue::Color(NORMAL_COLOR))
+                    .set_property(
+                        &ImmutableString::new("diffuseColor"),
+                        PropertyValue::Color(NORMAL_COLOR),
+                    )
                     .unwrap();
                 material
             })))
@@ -223,7 +227,10 @@ impl LaserSight {
             .unwrap()
             .material()
             .lock()
-            .set_property("diffuseColor", PropertyValue::Color(color))
+            .set_property(
+                &ImmutableString::new("diffuseColor"),
+                PropertyValue::Color(color),
+            )
             .unwrap();
         graph[self.light].as_light_mut().set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);

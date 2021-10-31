@@ -20,6 +20,7 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
@@ -813,11 +814,14 @@ impl Player {
         let surface = mesh.surfaces_mut().first_mut().unwrap();
         let mut material = surface.material().lock();
         material
-            .set_property("diffuseColor", PropertyValue::Color(color))
+            .set_property(
+                &ImmutableString::new("diffuseColor"),
+                PropertyValue::Color(color),
+            )
             .unwrap();
         material
             .set_property(
-                "emissionStrength",
+                &ImmutableString::new("emissionStrength"),
                 PropertyValue::Vector3(color.as_frgb().scale(10.0)),
             )
             .unwrap();
@@ -1452,7 +1456,7 @@ impl Player {
             .material()
             .lock()
             .set_property(
-                "diffuseTexture",
+                &ImmutableString::new("diffuseTexture"),
                 PropertyValue::Sampler {
                     value: Some(display_texture),
                     fallback: SamplerFallback::White,
@@ -1468,7 +1472,7 @@ impl Player {
             .material()
             .lock()
             .set_property(
-                "diffuseTexture",
+                &ImmutableString::new("diffuseTexture"),
                 PropertyValue::Sampler {
                     value: Some(inventory_texture),
                     fallback: SamplerFallback::White,
@@ -1484,7 +1488,7 @@ impl Player {
             .material()
             .lock()
             .set_property(
-                "diffuseTexture",
+                &ImmutableString::new("diffuseTexture"),
                 PropertyValue::Sampler {
                     value: Some(journal_texture),
                     fallback: SamplerFallback::White,

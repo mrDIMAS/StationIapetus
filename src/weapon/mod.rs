@@ -11,6 +11,7 @@ use crate::{
     },
     CollisionGroups, GameTime,
 };
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
@@ -441,7 +442,7 @@ impl Weapon {
                     .material()
                     .lock()
                     .set_property(
-                        "diffuseTexture",
+                        &ImmutableString::new("diffuseTexture"),
                         PropertyValue::Sampler {
                             value: Some(resource_manager.request_texture(
                                 textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),

@@ -1,3 +1,4 @@
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::material::PropertyValue;
 use rg3d::{
     core::{pool::Handle, visitor::prelude::*, VecExtensions},
@@ -37,13 +38,13 @@ impl ShotTrailContainer {
                     for surface in mesh.surfaces_mut() {
                         let mut material = surface.material().lock();
                         let color = material
-                            .property_ref("diffuseColor")
+                            .property_ref(&ImmutableString::new("diffuseColor"))
                             .unwrap()
                             .as_color()
                             .unwrap();
                         material
                             .set_property(
-                                "diffuseColor",
+                                &ImmutableString::new("diffuseColor"),
                                 PropertyValue::Color(color.with_new_alpha(new_alpha)),
                             )
                             .unwrap();

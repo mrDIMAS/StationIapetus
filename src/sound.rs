@@ -1,4 +1,5 @@
 use crate::message::Message;
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::material::PropertyValue;
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
@@ -118,8 +119,10 @@ impl SoundMap {
                                 let data = surface.data();
                                 let data = data.lock();
 
-                                if let Some(diffuse_texture) =
-                                    surface.material().lock().property_ref("diffuseTexture")
+                                if let Some(diffuse_texture) = surface
+                                    .material()
+                                    .lock()
+                                    .property_ref(&ImmutableString::new("diffuseTexture"))
                                 {
                                     if let PropertyValue::Sampler {
                                         value: Some(diffuse_texture),

@@ -40,6 +40,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         parking_lot::Mutex,
@@ -131,7 +132,7 @@ pub fn create_display_material(display_texture: Texture) -> Arc<Mutex<Material>>
 
     material
         .set_property(
-            "diffuseTexture",
+            &ImmutableString::new("diffuseTexture"),
             PropertyValue::Sampler {
                 value: Some(display_texture),
                 fallback: SamplerFallback::White,
