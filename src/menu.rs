@@ -2,8 +2,6 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, utils::create_camera, Engine,
 };
-use rg3d::gui::message::UiMessage;
-use rg3d::gui::UserInterface;
 use rg3d::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -13,13 +11,13 @@ use rg3d::{
     engine::resource_manager::MaterialSearchOptions,
     event::{Event, WindowEvent},
     gui::{
-        button::ButtonBuilder,
+        button::{ButtonBuilder, ButtonMessage},
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, MessageDirection, WidgetMessage, WindowMessage},
+        message::{MessageDirection, UiMessage},
         ttf::SharedFont,
-        widget::WidgetBuilder,
-        window::{WindowBuilder, WindowTitle},
-        HorizontalAlignment, Thickness, UiNode,
+        widget::{WidgetBuilder, WidgetMessage},
+        window::{WindowBuilder, WindowMessage, WindowTitle},
+        HorizontalAlignment, Thickness, UiNode, UserInterface,
     },
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},

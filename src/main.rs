@@ -40,11 +40,11 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         parking_lot::Mutex,
         pool::Handle,
+        sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
@@ -52,12 +52,12 @@ use rg3d::{
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::{ControlFlow, EventLoop},
     gui::{
-        message::{
-            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessage, WidgetMessage,
-        },
-        text::TextBuilder,
+        button::ButtonMessage,
+        check_box::CheckBoxMessage,
+        message::{MessageDirection, UiMessage},
+        text::{TextBuilder, TextMessage},
         ttf::{Font, SharedFont},
-        widget::WidgetBuilder,
+        widget::{WidgetBuilder, WidgetMessage},
         UiNode,
     },
     material::{shader::SamplerFallback, Material, PropertyValue},

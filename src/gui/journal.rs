@@ -1,7 +1,6 @@
 #![allow(dead_code)] // TODO
 
 use crate::control_scheme::{ControlButton, ControlScheme};
-use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
     core::{
         algebra::Vector2,
@@ -13,12 +12,12 @@ use rg3d::{
         decorator::DecoratorBuilder,
         formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
-        list_view::ListViewBuilder,
-        message::TextMessage,
-        message::{ButtonState, ListViewMessage, MessageDirection, OsEvent},
+        list_view::{ListViewBuilder, ListViewMessage},
+        message::{ButtonState, MessageDirection, OsEvent},
         scroll_viewer::ScrollViewerBuilder,
-        text::TextBuilder,
+        text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
+        UiNode, UserInterface,
     },
     lazy_static::lazy_static,
     resource::texture::Texture,

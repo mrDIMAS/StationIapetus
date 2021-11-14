@@ -5,28 +5,25 @@ use crate::{
     message::Message,
     player::Player,
 };
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::gui::formatted_text::WrapMode;
-use rg3d::gui::widget::Widget;
-use rg3d::gui::{define_constructor, BuildContext, UiNode};
 use rg3d::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
+    engine::resource_manager::ResourceManager,
     gui::{
         border::BorderBuilder,
         brush::Brush,
+        define_constructor,
         draw::{CommandTexture, Draw, DrawingContext},
+        formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        message::{
-            ButtonState, MessageDirection, OsEvent, ScrollViewerMessage, TextMessage, UiMessage,
-            WidgetMessage,
-        },
-        scroll_viewer::ScrollViewerBuilder,
+        message::{ButtonState, MessageDirection, OsEvent, UiMessage},
+        scroll_viewer::{ScrollViewerBuilder, ScrollViewerMessage},
         stack_panel::StackPanelBuilder,
-        text::TextBuilder,
-        widget::WidgetBuilder,
+        text::{TextBuilder, TextMessage},
+        widget::{Widget, WidgetBuilder, WidgetMessage},
         wrap_panel::WrapPanelBuilder,
-        Control, HorizontalAlignment, Orientation, Thickness, UserInterface, VerticalAlignment,
+        BuildContext, Control, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        VerticalAlignment,
     },
     resource::texture::Texture,
 };

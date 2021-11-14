@@ -3,24 +3,24 @@
 //! is not much.
 
 use crate::message::Message;
-use rg3d::gui::BuildContext;
 use rg3d::{
     core::pool::Handle,
     gui::{
         border::BorderBuilder,
         brush::Brush,
-        button::ButtonBuilder,
+        button::{ButtonBuilder, ButtonMessage},
         check_box::CheckBoxBuilder,
         core::color::Color,
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, MessageDirection, UiMessage, WidgetMessage},
+        message::{MessageDirection, UiMessage},
         scroll_bar::ScrollBarBuilder,
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         ttf::SharedFont,
-        widget::WidgetBuilder,
-        HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface, VerticalAlignment,
+        widget::{WidgetBuilder, WidgetMessage},
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        VerticalAlignment,
     },
 };
 use std::sync::mpsc::Sender;

@@ -1,13 +1,12 @@
-use rg3d::gui::message::{MessageDirection, ProgressBarMessage};
-use rg3d::gui::{BuildContext, UiNode, UserInterface};
 use rg3d::{
     core::pool::Handle,
     gui::{
         grid::{Column, GridBuilder, Row},
-        progress_bar::ProgressBarBuilder,
+        message::MessageDirection,
+        progress_bar::{ProgressBarBuilder, ProgressBarMessage},
         text::TextBuilder,
         widget::WidgetBuilder,
-        HorizontalAlignment, VerticalAlignment,
+        BuildContext, HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
 };
 

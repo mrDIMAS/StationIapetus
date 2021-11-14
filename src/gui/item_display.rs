@@ -1,20 +1,17 @@
 use crate::item::{Item, ItemKind};
-use rg3d::core::color::Color;
-use rg3d::gui::border::BorderBuilder;
-use rg3d::gui::brush::Brush;
-use rg3d::gui::message::ImageMessage;
-use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
-    core::{algebra::Vector2, pool::Handle},
+    core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
     gui::{
+        border::BorderBuilder,
+        brush::Brush,
         grid::{Column, GridBuilder, Row},
-        image::ImageBuilder,
-        message::{MessageDirection, TextMessage},
-        text::TextBuilder,
+        image::{ImageBuilder, ImageMessage},
+        message::MessageDirection,
+        text::{TextBuilder, TextMessage},
         ttf::SharedFont,
         widget::WidgetBuilder,
-        HorizontalAlignment, VerticalAlignment,
+        HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
 };

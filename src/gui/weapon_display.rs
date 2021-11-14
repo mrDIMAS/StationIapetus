@@ -1,5 +1,4 @@
 use crate::{item::ItemKind, player::Player, weapon::WeaponContainer};
-use rg3d::gui::{UiNode, UserInterface};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -7,11 +6,11 @@ use rg3d::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        message::{MessageDirection, TextMessage},
-        text::TextBuilder,
+        message::MessageDirection,
+        text::{TextBuilder, TextMessage},
         ttf::SharedFont,
         widget::WidgetBuilder,
-        VerticalAlignment,
+        UiNode, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
     utils,

@@ -5,28 +5,24 @@ use crate::{
     message::Message,
     Engine,
 };
-use rg3d::gui::button::Button;
-use rg3d::gui::message::UiMessage;
-use rg3d::gui::BuildContext;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
     gui::{
         border::BorderBuilder,
-        button::ButtonBuilder,
+        button::{Button, ButtonBuilder, ButtonMessage},
+        check_box::CheckBoxMessage,
         decorator::DecoratorBuilder,
-        dropdown_list::DropdownListBuilder,
+        dropdown_list::{DropdownListBuilder, DropdownListMessage},
         grid::{Column, GridBuilder, Row},
-        message::{
-            ButtonMessage, CheckBoxMessage, DropdownListMessage, MessageDirection,
-            ScrollBarMessage, TextMessage,
-        },
+        message::{MessageDirection, UiMessage},
+        scroll_bar::ScrollBarMessage,
         scroll_viewer::ScrollViewerBuilder,
         tab_control::{TabControlBuilder, TabDefinition},
-        text::TextBuilder,
+        text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
-        HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
     },
     monitor::VideoMode,
     renderer::ShadowMapPrecision,
