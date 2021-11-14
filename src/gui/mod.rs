@@ -13,7 +13,7 @@ use rg3d::{
         check_box::CheckBoxBuilder,
         core::color::Color,
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, MessageDirection, UiMessage, UiMessageData, WidgetMessage},
+        message::{ButtonMessage, MessageDirection, UiMessage, WidgetMessage},
         scroll_bar::ScrollBarBuilder,
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
@@ -182,7 +182,7 @@ impl DeathScreen {
     }
 
     pub fn handle_ui_message(&mut self, message: &UiMessage) {
-        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+        if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {
                 self.sender.send(Message::LoadGame).unwrap();
             } else if message.destination() == self.exit_to_menu {
@@ -288,7 +288,7 @@ impl FinalScreen {
     }
 
     pub fn handle_ui_message(&mut self, message: &UiMessage) {
-        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+        if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.exit_to_menu {
                 self.sender.send(Message::ToggleMainMenu).unwrap();
             } else if message.destination() == self.exit_game {

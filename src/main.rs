@@ -53,8 +53,7 @@ use rg3d::{
     event_loop::{ControlFlow, EventLoop},
     gui::{
         message::{
-            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessage,
-            UiMessageData, WidgetMessage,
+            ButtonMessage, CheckBoxMessage, MessageDirection, TextMessage, UiMessage, WidgetMessage,
         },
         text::TextBuilder,
         ttf::{Font, SharedFont},
@@ -373,12 +372,19 @@ impl Game {
         self.death_screen.handle_ui_message(message);
         self.final_screen.handle_ui_message(message);
 
-        if matches!(message.data(), UiMessageData::Button(ButtonMessage::Click))
-            || (matches!(
-                message.data(),
-                UiMessageData::CheckBox(CheckBoxMessage::Check(_))
-            ) && message.direction() == MessageDirection::FromWidget)
-        {
+        let play_sound = if message.direction() == MessageDirection::FromWidget {
+            if let Some(ButtonMessage::Click) = message.data() {
+                true
+            } else if let Some(CheckBoxMessage::Check(_)) = message.data() {
+                true
+            } else {
+                false
+            }
+        } else {
+            false
+        };
+
+        if play_sound {
             self.events_sender
                 .send(Message::Play2DSound {
                     path: PathBuf::from("data/sounds/click.ogg"),

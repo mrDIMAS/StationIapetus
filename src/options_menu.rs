@@ -19,7 +19,7 @@ use rg3d::{
         grid::{Column, GridBuilder, Row},
         message::{
             ButtonMessage, CheckBoxMessage, DropdownListMessage, MessageDirection,
-            ScrollBarMessage, TextMessage, UiMessageData,
+            ScrollBarMessage, TextMessage,
         },
         scroll_viewer::ScrollViewerBuilder,
         tab_control::{TabControlBuilder, TabDefinition},
@@ -702,10 +702,8 @@ impl OptionsMenu {
 
         let mut changed = false;
 
-        match message.data() {
-            UiMessageData::ScrollBar(ScrollBarMessage::Value(new_value))
-                if message.direction() == MessageDirection::FromWidget =>
-            {
+        if let Some(ScrollBarMessage::Value(new_value)) = message.data() {
+            if message.direction() == MessageDirection::FromWidget {
                 if message.destination() == self.sound_volume {
                     self.sender
                         .send(Message::SetMasterVolume(*new_value))
@@ -727,97 +725,92 @@ impl OptionsMenu {
                     changed = true;
                 }
             }
-            UiMessageData::DropdownList(DropdownListMessage::SelectionChanged(Some(index))) => {
-                if message.destination() == self.video_mode {
-                    // -1 here because we have Windowed item in the list.
-                    if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
-                        engine
-                            .get_window()
-                            .set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
-                        changed = true;
-                    } else {
-                        engine.get_window().set_fullscreen(None);
-                        changed = true;
-                    }
-                } else if message.destination() == self.spot_shadows_quality {
-                    settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
-                    if *index > 0 {
-                        settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
-                    } else {
-                        settings.spot_shadow_map_precision = ShadowMapPrecision::Half;
-                    }
+        } else if let Some(DropdownListMessage::SelectionChanged(Some(index))) = message.data() {
+            if message.destination() == self.video_mode {
+                // -1 here because we have Windowed item in the list.
+                if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
+                    engine
+                        .get_window()
+                        .set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
                     changed = true;
-                } else if message.destination() == self.point_shadows_quality {
-                    settings.point_shadow_map_size = index_to_shadow_map_size(*index);
-                    if *index > 0 {
-                        settings.point_shadow_map_precision = ShadowMapPrecision::Full;
-                    } else {
-                        settings.point_shadow_map_precision = ShadowMapPrecision::Half;
-                    }
+                } else {
+                    engine.get_window().set_fullscreen(None);
                     changed = true;
                 }
+            } else if message.destination() == self.spot_shadows_quality {
+                settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
+                if *index > 0 {
+                    settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
+                } else {
+                    settings.spot_shadow_map_precision = ShadowMapPrecision::Half;
+                }
+                changed = true;
+            } else if message.destination() == self.point_shadows_quality {
+                settings.point_shadow_map_size = index_to_shadow_map_size(*index);
+                if *index > 0 {
+                    settings.point_shadow_map_precision = ShadowMapPrecision::Full;
+                } else {
+                    settings.point_shadow_map_precision = ShadowMapPrecision::Half;
+                }
+                changed = true;
             }
-            UiMessageData::CheckBox(msg) => {
-                let CheckBoxMessage::Check(value) = msg;
-                let value = value.unwrap_or(false);
-                if message.destination() == self.point_shadows {
-                    settings.point_shadows_enabled = value;
-                    changed = true;
-                } else if message.destination() == self.spot_shadows {
-                    settings.spot_shadows_enabled = value;
-                    changed = true;
-                } else if message.destination() == self.soft_spot_shadows {
-                    settings.spot_soft_shadows = value;
-                    changed = true;
-                } else if message.destination() == self.soft_point_shadows {
-                    settings.point_soft_shadows = value;
-                    changed = true;
-                } else if message.destination() == self.mouse_y_inverse {
-                    control_scheme.mouse_y_inverse = value;
-                    changed = true;
-                } else if message.destination() == self.use_light_scatter {
-                    settings.light_scatter_enabled = value;
-                    changed = true;
-                } else if message.destination() == self.fxaa {
-                    settings.fxaa = value;
-                    changed = true;
-                } else if message.destination() == self.ssao {
-                    settings.use_ssao = value;
-                    changed = true;
-                } else if message.destination() == self.use_hrtf {
-                    changed = true;
-                    self.sender.send(Message::SetUseHrtf(value)).unwrap();
-                } else if message.destination() == self.show_debug_info {
-                    changed = true;
-                    *show_debug_info = value;
-                }
+        } else if let Some(CheckBoxMessage::Check(value)) = message.data() {
+            let value = value.unwrap_or(false);
+            if message.destination() == self.point_shadows {
+                settings.point_shadows_enabled = value;
+                changed = true;
+            } else if message.destination() == self.spot_shadows {
+                settings.spot_shadows_enabled = value;
+                changed = true;
+            } else if message.destination() == self.soft_spot_shadows {
+                settings.spot_soft_shadows = value;
+                changed = true;
+            } else if message.destination() == self.soft_point_shadows {
+                settings.point_soft_shadows = value;
+                changed = true;
+            } else if message.destination() == self.mouse_y_inverse {
+                control_scheme.mouse_y_inverse = value;
+                changed = true;
+            } else if message.destination() == self.use_light_scatter {
+                settings.light_scatter_enabled = value;
+                changed = true;
+            } else if message.destination() == self.fxaa {
+                settings.fxaa = value;
+                changed = true;
+            } else if message.destination() == self.ssao {
+                settings.use_ssao = value;
+                changed = true;
+            } else if message.destination() == self.use_hrtf {
+                changed = true;
+                self.sender.send(Message::SetUseHrtf(value)).unwrap();
+            } else if message.destination() == self.show_debug_info {
+                changed = true;
+                *show_debug_info = value;
             }
-            UiMessageData::Button(ButtonMessage::Click) => {
-                if message.destination() == self.reset_control_scheme {
-                    control_scheme.reset();
-                    self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
-                    changed = true;
-                } else if message.destination() == self.reset_audio_settings {
-                    engine.sound_engine.lock().unwrap().set_master_gain(1.0);
-                    self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
-                    changed = true;
-                }
+        } else if let Some(ButtonMessage::Click) = message.data() {
+            if message.destination() == self.reset_control_scheme {
+                control_scheme.reset();
+                self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
+                changed = true;
+            } else if message.destination() == self.reset_audio_settings {
+                engine.sound_engine.lock().unwrap().set_master_gain(1.0);
+                self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
+                changed = true;
+            }
 
-                for (i, button) in self.control_scheme_buttons.iter().enumerate() {
-                    if message.destination() == *button {
-                        if let Some(button) = engine.user_interface.node(*button).cast::<Button>() {
-                            engine.user_interface.send_message(TextMessage::text(
-                                button.content(),
-                                MessageDirection::ToWidget,
-                                "[WAITING INPUT]".to_owned(),
-                            ))
-                        }
-
-                        self.active_control_button = Some(i);
+            for (i, button) in self.control_scheme_buttons.iter().enumerate() {
+                if message.destination() == *button {
+                    if let Some(button) = engine.user_interface.node(*button).cast::<Button>() {
+                        engine.user_interface.send_message(TextMessage::text(
+                            button.content(),
+                            MessageDirection::ToWidget,
+                            "[WAITING INPUT]".to_owned(),
+                        ))
                     }
+
+                    self.active_control_button = Some(i);
                 }
             }
-            _ => (),
         }
 
         if settings != old_settings {

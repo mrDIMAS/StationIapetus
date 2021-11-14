@@ -8,7 +8,7 @@ use crate::{
 use rg3d::engine::resource_manager::ResourceManager;
 use rg3d::gui::formatted_text::WrapMode;
 use rg3d::gui::widget::Widget;
-use rg3d::gui::{BuildContext, UiNode};
+use rg3d::gui::{define_constructor, BuildContext, UiNode};
 use rg3d::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     gui::{
@@ -19,7 +19,7 @@ use rg3d::{
         image::ImageBuilder,
         message::{
             ButtonState, MessageDirection, OsEvent, ScrollViewerMessage, TextMessage, UiMessage,
-            UiMessageData, WidgetMessage,
+            WidgetMessage,
         },
         scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
@@ -63,18 +63,15 @@ impl Control for InventoryItem {
     fn handle_routed_message(&mut self, ui: &mut UserInterface, message: &mut UiMessage) {
         self.widget.handle_routed_message(ui, message);
 
-        if let UiMessageData::User(msg) = message.data() {
-            if let Some(msg) = msg.cast::<InventoryItemMessage>() {
-                let InventoryItemMessage::Select(select) = *msg;
-                if message.destination() == self.handle() {
-                    self.is_selected = select;
+        if let Some(&InventoryItemMessage::Select(select)) = message.data() {
+            if message.destination() == self.handle() {
+                self.is_selected = select;
 
-                    self.set_foreground(if select {
-                        Brush::Solid(Color::opaque(0, 0, 255))
-                    } else {
-                        Brush::Solid(Color::opaque(255, 255, 255))
-                    });
-                }
+                self.set_foreground(if select {
+                    Brush::Solid(Color::opaque(0, 0, 255))
+                } else {
+                    Brush::Solid(Color::opaque(255, 255, 255))
+                });
             }
         }
     }
@@ -83,6 +80,10 @@ impl Control for InventoryItem {
 #[derive(Debug, Clone, PartialEq)]
 pub enum InventoryItemMessage {
     Select(bool),
+}
+
+impl InventoryItemMessage {
+    define_constructor!(InventoryItemMessage:Select => fn select(bool), layout: false);
 }
 
 impl Deref for InventoryItem {
@@ -391,10 +392,10 @@ impl InventoryInterface {
             }
 
             if closest.is_some() {
-                self.ui.send_message(UiMessage::user(
+                self.ui.send_message(InventoryItemMessage::select(
                     closest,
                     MessageDirection::ToWidget,
-                    Box::new(InventoryItemMessage::Select(true)),
+                    true,
                 ));
 
                 self.ui.send_message(ScrollViewerMessage::bring_into_view(
@@ -503,35 +504,30 @@ impl InventoryInterface {
 
     pub fn update(&mut self, delta: f32) {
         while let Some(message) = self.ui.poll_message() {
-            if let UiMessageData::User(msg) = message.data() {
-                if let Some(msg) = msg.cast::<InventoryItemMessage>() {
-                    let InventoryItemMessage::Select(select) = *msg;
+            if let Some(&InventoryItemMessage::Select(select)) = message.data() {
+                if select {
+                    if let Some(item) = self.ui.node(message.destination()).cast::<InventoryItem>()
+                    {
+                        let definition = Item::get_definition(item.item);
 
-                    if select {
-                        if let Some(item) =
-                            self.ui.node(message.destination()).cast::<InventoryItem>()
-                        {
-                            let definition = Item::get_definition(item.item);
-
-                            // Deselect every other item.
-                            for &item_handle in self.ui.node(self.items_panel).children() {
-                                if item_handle != message.destination() {
-                                    self.ui.send_message(UiMessage::user(
-                                        item_handle,
-                                        MessageDirection::ToWidget,
-                                        Box::new(InventoryItemMessage::Select(false)),
-                                    ));
-                                }
+                        // Deselect every other item.
+                        for &item_handle in self.ui.node(self.items_panel).children() {
+                            if item_handle != message.destination() {
+                                self.ui.send_message(InventoryItemMessage::select(
+                                    item_handle,
+                                    MessageDirection::ToWidget,
+                                    false,
+                                ));
                             }
-
-                            self.ui.send_message(TextMessage::text(
-                                self.item_description,
-                                MessageDirection::ToWidget,
-                                definition.description.clone(),
-                            ));
-                        } else {
-                            unreachable!();
                         }
+
+                        self.ui.send_message(TextMessage::text(
+                            self.item_description,
+                            MessageDirection::ToWidget,
+                            definition.description.clone(),
+                        ));
+                    } else {
+                        unreachable!();
                     }
                 }
             }

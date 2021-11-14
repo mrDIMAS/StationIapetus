@@ -15,7 +15,7 @@ use rg3d::{
     gui::{
         button::ButtonBuilder,
         grid::{Column, GridBuilder, Row},
-        message::{ButtonMessage, MessageDirection, UiMessageData, WidgetMessage, WindowMessage},
+        message::{ButtonMessage, MessageDirection, WidgetMessage, WindowMessage},
         ttf::SharedFont,
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
@@ -326,7 +326,7 @@ impl Menu {
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
     ) {
-        if let UiMessageData::Button(ButtonMessage::Click) = message.data() {
+        if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.btn_new_game {
                 self.sender.send(Message::StartNewGame).unwrap();
             } else if message.destination() == self.btn_save_game {

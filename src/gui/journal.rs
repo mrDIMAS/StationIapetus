@@ -14,8 +14,8 @@ use rg3d::{
         formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         list_view::ListViewBuilder,
+        message::TextMessage,
         message::{ButtonState, ListViewMessage, MessageDirection, OsEvent},
-        message::{TextMessage, UiMessageData},
         scroll_viewer::ScrollViewerBuilder,
         text::TextBuilder,
         widget::WidgetBuilder,
@@ -235,10 +235,8 @@ impl JournalDisplay {
             .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
 
         while let Some(message) = self.ui.poll_message() {
-            if message.direction() == MessageDirection::FromWidget {
-                if let UiMessageData::ListView(ListViewMessage::SelectionChanged(Some(value))) =
-                    message.data()
-                {
+            if let Some(ListViewMessage::SelectionChanged(Some(value))) = message.data() {
+                if message.direction() == MessageDirection::FromWidget {
                     if let Some(entry) = journal.messages.get(*value) {
                         self.ui.send_message(TextMessage::text(
                             self.message_text,
