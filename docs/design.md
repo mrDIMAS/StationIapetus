@@ -1,0 +1,103 @@
+# Station Iapetus (working title, subject to change)
+
+The game is a sci-fi DeadSpace-like horror game, the action takes place on the spaceship that stays radio-silent near
+Saturn.
+
+## Plot
+
+The spaceship is classified, high-security level research facility that creates new experimental types of weapons,
+including new highly-contagious viruses for Outer Planets Government. 
+
+The ship is designed to be invisible for any kind of locators, it works in cycles, one cycle lasts for 1 year. During
+this period,the engines are disabled, radio transmitters are off and the ship hides on the dark side of various 
+satellites of Saturn and uses compressed air engines to remain in the shadow. Personnel don't have any radio transmitters,
+every device is "offline" and connected only to local network. The ship equipped with few high-power railguns to destroy
+any possible threat which can work either in automatic or manual mode.
+
+Once the cycle is over, Outer Planets Government (OPG) sends another ship to restore supplies and take the results of 
+experiments. Once resupplied, the ship flies to random satellite and the cycle starts over.
+
+There are two groups of scientists working simultaneously in different sections of research deck, each group consists
+of 50 people, thus there are 100 scientists working on the ship at the same time.
+
+In total, there is around 1500 of people on the ship, they're working in various places, starting from the kitchen at
+each deck and ending by the bridge, where is the high command is located.
+
+One group of scientists (called Alpha) were working on a new virus that erasing the previous memory before infection. 
+Such weapon was intended to be used at rebellious colonies across the Solar system to "extinguish" rebels and making them 
+controllable again.
+
+Other group of scientists (called Beta) were working on genome modifications to raise more skillful, powerful and 
+stronger soldiers for Outer Planets Army. Key concepts were to create few very specific types of soldiers:
+
+1) Fast melee soldiers for neutralization squads, that can eliminate targets on spaceships without damaging the ship.
+2) Strong melee soldiers with steel-like skin as bodyguards for VIPs for special events when armored soldiers cannot
+participate.
+
+The bunch of other potential experiments was planned for future, since the fewer people working on the ship the less 
+chance of information leakage.
+
+Genetic modifications don't always have good results and some species has to be destroyed. One of the scientists 
+secretly started to collect and raise defective species in her lab that was located in one of old maintenance tunnels.
+Her motivation was to try to save species with useful (as she thought) properties and then propose her results to 
+higher command. One of such species was a replicator, it had an ability to revive dead human bodies (not rotten, but
+with dead brain) making them to mutate in the new species.
+
+As a result, over a few years there was collected a bunch of very dangerous species all of which were kept in 
+cryostasis to prevent containment breach.
+
+A series of tragic events has started from one of the scientists from the first group, he accidentally poked his finger
+with a syringe filled with the virus. As the virus wasn't considered harmful or deadly, he didn't warn his colleagues
+and continued his work as usual thinking that the dosage was low and no serious consequences will appear. However, the
+virus started replicating in his body and a week later he woke up without being able to remember who he is and what's he
+been doing on the ship. He was immediately transferred to the medical deck for diagnostics and nothing specific was found,
+only high fatigue and apathy. He was left in the medical deck for rehabilitation for a week.
+
+At this moment, patient zero has infected half of the medical deck employees and lots of his colleagues, and they've 
+spread the virus across the entire ship. People started losing their memory one after another, at the moment when 
+personnel of the ship realized that the virus has escaped it was too late, everybody on the ship has lost their memory.
+
+After the incident, people started gather in groups trying to remember what is going on and who are they. One of the groups
+has discovered a secret laboratory with dangerous creatures "sleeping" in cryostatis, any attempts to read scientist's 
+records has failed because no one knew the decryption key, even the scientist herself. They've decided to thaw the species
+thinking that they're men...
+
+The slaughter was very fast, within a hour 99% of people were killed and their dead bodies were infected by the replicator.
+The ship has become the most deadly place in the Solar system. 
+
+The cycle has over, but the ship remained radio-silent and the high command from OPG decided to send a task force to 
+investigate the reasons. As a preventive measure, an extermination squad was sent after the task force to "clean" the
+ship if something gone wrong. The extermination squad wasn't informed what kind of ship they need to "clean".
+
+Some people on the ship were still alive and able to build barricades to isolate themselves, most of them were located
+in the food storage. However, one small group was able to turn the railguns on to prevent spreading the decease by 
+some ship that still could accidentally spot the ship.
+
+The transport ship with the task force and extermination squad has reaching the research ship, but from lit side of the 
+satellite to not draw attention to the research ship. They're started slowly reach the ship and almost the landing stage
+they were hit by one of the railguns, that was manual shot because automatic mode ignored the ship because its signature
+was known. The transport ship had crashed on the loading bay, there was only one survivor from 20 people.
+
+### Who's the character player control
+
+He's an extermination squad agent, that have arrived with his squad to kill everybody who working on the station and 
+remove all the files that may leak to outer world.
+
+## Level design
+
+High-level structure of the spaceship looks like this:
+
+![Spaceship Structure](station_scheme.svg)
+
+1) Loading bay - is an entry point to the spaceship, its purpose is to hold smaller transport ships.
+2) Research deck - top-security level area for classified experiments, the origin of the infection. This is the 
+largest deck in the entire ship, it consists of few sections.
+3) Medical deck - takes care about ill ship employees.
+4) Bridge - is a control deck of the ship.
+5) Sewage treatment plant - recycles various waste and supplies the station with clean water.
+6) Hydroponics and food storage - produces vegetables and stores other food.
+
+Every part of the spaceship is isolated from each other and communication is performed using the common railway that
+operates in zero gravity and has no air for higher security.
+
+(WIP)
