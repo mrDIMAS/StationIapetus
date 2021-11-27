@@ -48,7 +48,7 @@ impl ArrivalLevel {
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Self, Scene) {
         let (base_level, mut scene) = BaseLevel::new(
-            "data/levels/arrival.rgs",
+            "data/levels/loading_bay.rgs",
             resource_manager,
             sender,
             display_texture,

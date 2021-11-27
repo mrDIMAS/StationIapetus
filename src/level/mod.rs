@@ -305,6 +305,10 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
         }
 
         match node.tag() {
+            "PlayerSpawnPoint" => {
+                player_spawn_position = node.global_position();
+                player_spawn_orientation = scene.graph.global_rotation(handle);
+            }
             "SideDoor" => {
                 result.doors.add(Door::new(
                     handle,
