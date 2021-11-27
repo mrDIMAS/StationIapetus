@@ -3,6 +3,20 @@
 The game is a sci-fi DeadSpace-like horror game, the action takes place on the spaceship that stays radio-silent near
 Saturn.
 
+## Production plan
+
+Since production resources are very limited, some of 3D models should be bought. Levels have to be modelled manually,
+using gray-boxing to create overall spaceship structure and only after tests are over, levels should be filled with
+details. This should help to significantly reduce costs of production.
+
+Overall budget for 3D models is around 1000$ (can be increased if needed, but it should be less 2000$). It is also 
+possible to use royalty-free 3D models, however their quality is questionable and such models should be used for
+prototyping only. 
+
+Since main mechanics are pretty much done, I expect production to be ended at in the late Spring of 2022.
+
+(WRITE WEEKLY PLAN HERE!)
+
 ## Plot
 
 The spaceship is classified, high-security level research facility that creates new experimental types of weapons,
@@ -58,7 +72,7 @@ spread the virus across the entire ship. People started losing their memory one 
 personnel of the ship realized that the virus has escaped it was too late, everybody on the ship has lost their memory.
 
 After the incident, people started gather in groups trying to remember what is going on and who are they. One of the groups
-has discovered a secret laboratory with dangerous creatures "sleeping" in cryostatis, any attempts to read scientist's 
+has discovered a secret laboratory with dangerous creatures "sleeping" in cryostasis, any attempts to read scientist's 
 records has failed because no one knew the decryption key, even the scientist herself. They've decided to thaw the species
 thinking that they're men...
 
@@ -78,18 +92,14 @@ satellite to not draw attention to the research ship. They're started slowly rea
 they were hit by one of the railguns, that was manual shot because automatic mode ignored the ship because its signature
 was known. The transport ship had crashed on the loading bay, there was only one survivor from 20 people.
 
-### Who's the character player control
-
-He's an extermination squad agent, that have arrived with his squad to kill everybody who working on the station and 
-remove all the files that may leak to outer world.
-
 ## Level design
 
 High-level structure of the spaceship looks like this:
 
 ![Spaceship Structure](station_scheme.svg)
 
-1) Loading bay - is an entry point to the spaceship, its purpose is to hold smaller transport ships.
+1) Loading bay - is the entry point to the spaceship, its purpose is to hold smaller transport ships and provide access
+to the transport railway.
 2) Research deck - top-security level area for classified experiments, the origin of the infection. This is the 
 largest deck in the entire ship, it consists of few sections.
 3) Medical deck - takes care about ill ship employees.
@@ -98,6 +108,73 @@ largest deck in the entire ship, it consists of few sections.
 6) Hydroponics and food storage - produces vegetables and stores other food.
 
 Every part of the spaceship is isolated from each other and communication is performed using the common railway that
-operates in zero gravity and has no air for higher security.
+operates in zero gravity and has no air for higher security. Every part of the ship has its own kitchen, bathrooms, 
+and living rooms. This is needed for higher security to prevent info leakage, only high command and senior security
+officers can go between decks freely.
+
+Due to engine limitations, each deck should be a separate level.
+
+### Loading bay
+
+(INSERT IMAGE)
+
+Loading bay is the entry hub to the spaceship, it has direct access to internal railway which allows employees of the
+spaceship to transfer various loads across the ship. It has one loading area which can fit two transport ships at the
+same time. It has a security area to check incoming cargo, incoming cargo could be any type starting from food and 
+ending chemical reagents and various tools.
+
+This is the starting point of the game, player appears at the beginning of the security area, the doors to crashed ship
+are closed but player can see the fire.
+
+### Research deck
+
+(INSERT IMAGE)
 
 (WIP)
+
+### Medical deck
+
+(INSERT IMAGE)
+
+(WIP)
+
+### Bridge
+
+(INSERT IMAGE)
+
+(WIP)
+
+### Sewage treatment plant
+
+(INSERT IMAGE)
+
+(WIP)
+
+### Hydroponics and food storage
+
+(INSERT IMAGE)
+
+(WIP)
+
+## Gameplay
+
+### Main character description 
+
+He's the extermination squad agent, that have arrived with his squad to kill everybody who working on the station and
+remove all the files that may leak to outer world. 
+
+Since the main character has military training and works in very hard conditions, it has a hazmat suit that covers
+entire body and provides air filtering and decent armor level. Exoskeleton is used to provide additional strength
+and to be able to lift heavy things to clean path. 
+
+### Camera
+
+Typical 3rd person camera should be used, when shooting the camera should come closer to the shoulder providing a
+better view. The camera should also avoid obstacles and do not let to see through walls. The camera can be rotated
+freely around Y axis and have limited `[-90;90]` degrees range rotation around X axis.
+
+## Storytelling
+
+Since production resources are limited, various notes can be used for storytelling. There will be no cutscenes. As
+a potential extension to notes, intercom can also be used to communicate with other survivors on the ship. However,
+no other NPCs should be visible, it takes a lot of effort to have decent animations for NPCs. 
