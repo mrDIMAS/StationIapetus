@@ -14,7 +14,8 @@ Overall budget for 3D models is around 1000$ (can be increased if needed, but it
 possible to use royalty-free 3D models, however their quality is questionable and such models should be used for
 prototyping only. 
 
-Since main mechanics are pretty much done, I expect production to be ended at in the late Spring of 2022.
+Since main mechanics are pretty much done, I expect production to be ended at in the late Spring of 2022. However since
+the engine is somewhat incomplete, the actual plan can be modified.
 
 **WEEKLY PLAN:**
 
@@ -134,10 +135,12 @@ environment.
 Loading bay is the entry hub to the spaceship, it has direct access to internal railway which allows employees of the
 spaceship to transfer various loads across the ship. It has one loading area which can fit two transport ships at the
 same time. It has a security area to check incoming cargo, incoming cargo could be any type starting from food and 
-ending chemical reagents and various tools.
+ending chemical reagents and various tools. The deck should have the kitchen, living block and bathrooms for personnel.
 
 This is the starting point of the game, player appears at the beginning of the security area, the doors to crashed ship
-are closed but player can see the fire.
+are closed but player can see the fire. The first problem on his way is the automatic turrets that shoots unauthorized
+persons on sight. The player must find a security computer to add himself to the list of authorized persons. After that
+he can explore the area without any troubles. 
 
 ### Research deck
 
@@ -227,7 +230,12 @@ Slow, tough and very deadly monster, few hits of his arms is enough to kill main
 #### Turrets
 
 A surface-mounted automatic security turret that shoots everybody in range. It can be mounted on pretty much any surface,
-even on ceilings and walls.
+even on ceilings and walls. Turrets can be re-configured using security computers, turrets can be in one of the following
+modes:
+
+- Off - completely disabled, usually this mode is very rarely used and mostly for maintenance.
+- Hostile to everyone - special mode for containment breach situations.
+- Hostile to non-authorized persons - basically it has a list of persons that has right clearance
 
 **(WIP)**
 
