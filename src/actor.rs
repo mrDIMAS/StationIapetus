@@ -122,7 +122,7 @@ impl ActorContainer {
         self.pool.free(actor_handle);
     }
 
-    pub fn count(&self) -> usize {
+    pub fn count(&self) -> u32 {
         self.pool.alive_count()
     }
 
