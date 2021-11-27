@@ -1,7 +1,8 @@
 # Station Iapetus (working title, subject to change)
 
 The game is a sci-fi DeadSpace-like horror game, the action takes place on the spaceship that stays radio-silent near
-Saturn.
+Saturn. The main character had crashed in the loading bay, he's the only survivor, he has no other option but to
+start exploring the main ship to find a way to escape (this is the main goal).
 
 ## Production plan
 
@@ -15,7 +16,15 @@ prototyping only.
 
 Since main mechanics are pretty much done, I expect production to be ended at in the late Spring of 2022.
 
-(WRITE WEEKLY PLAN HERE!)
+**WEEKLY PLAN:**
+
+- **29.11.21 - 5.12.21** Loading bay grayboxing + filling with gameplay elements
+- **6.12.21 - 12.12.21** Medical deck grayboxing + filling with gameplay elements
+- **13.12.21 - 19.12.21** Research deck grayboxing (maybe extend to 2 weeks?) + filling with gameplay elements
+- **20.12.21 - 26.12.21** Sewage treatment plant grayboxing + filling with gameplay elements
+- **27.12.21 - 02.01.22** Bridge grayboxing + filling with gameplay elements
+- **03.01.22 - 09.01.22** Hydroponics and food storage grayboxing + filling with gameplay elements
+- TBD
 
 ## Plot
 
@@ -114,6 +123,10 @@ officers can go between decks freely.
 
 Due to engine limitations, each deck should be a separate level.
 
+Each level must be designed as a real working space, no abstract corridors should be used! Ideally each level should
+have a high-level blueprint. Each level should have sci-fi aesthetics, but don't forget about "real usage" of the
+environment.
+
 ### Loading bay
 
 (INSERT IMAGE)
@@ -130,31 +143,31 @@ are closed but player can see the fire.
 
 (INSERT IMAGE)
 
-(WIP)
+**(WIP)**
 
 ### Medical deck
 
 (INSERT IMAGE)
 
-(WIP)
+**(WIP)**
 
 ### Bridge
 
 (INSERT IMAGE)
 
-(WIP)
+**(WIP)**
 
 ### Sewage treatment plant
 
 (INSERT IMAGE)
 
-(WIP)
+**(WIP)**
 
 ### Hydroponics and food storage
 
 (INSERT IMAGE)
 
-(WIP)
+**(WIP)**
 
 ## Gameplay
 
@@ -167,11 +180,56 @@ Since the main character has military training and works in very hard conditions
 entire body and provides air filtering and decent armor level. Exoskeleton is used to provide additional strength
 and to be able to lift heavy things to clean path. 
 
+The character can walk, run, jump, use weapons and grenades.
+
 ### Camera
 
 Typical 3rd person camera should be used, when shooting the camera should come closer to the shoulder providing a
 better view. The camera should also avoid obstacles and do not let to see through walls. The camera can be rotated
 freely around Y axis and have limited `[-90;90]` degrees range rotation around X axis.
+
+### Inventory
+
+Inventory is used to store all useful items that player can find. The inventory should allow player to use, examine,
+and drop items. The capacity of the inventory is unlimited.
+
+List of items:
+
+- Small health pack
+- Medium health pack
+- Grenade
+- Ammo
+- M4 gun
+- Rail gun
+- Plasma gun
+- ???
+
+### Enemies
+
+The amount of types of enemies is kinda low because the budget of the game is low too, there should be few kinds of 
+enemies.
+
+#### Standard "zombies"
+
+A weak enemy which is basically slightly mutated version of typical employee, some of them can use weapons.
+**(WIP)**
+
+#### Fast zombies
+
+A fast and dangerous melee enemy.
+**(WIP)**
+
+#### Heavy monsters
+
+Slow, tough and very deadly monster, few hits of his arms is enough to kill main character.
+**(WIP)**
+
+#### Turrets
+
+A surface-mounted automatic security turret that shoots everybody in range. It can be mounted on pretty much any surface,
+even on ceilings and walls.
+
+**(WIP)**
 
 ## Storytelling
 
