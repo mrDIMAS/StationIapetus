@@ -30,7 +30,6 @@ use crate::{
     },
     Engine, GameTime,
 };
-use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -39,6 +38,7 @@ use rg3d::{
         parking_lot::Mutex,
         pool::Handle,
         rand::seq::SliceRandom,
+        sstorage::ImmutableString,
         visitor::prelude::*,
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
@@ -50,6 +50,7 @@ use rg3d::{
     scene::{
         self,
         base::BaseBuilder,
+        graph::Graph,
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
@@ -256,6 +257,25 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
     )))
 }
 
+fn total_bounding_box(node: Handle<Node>, graph: &Graph) -> AxisAlignedBoundingBox {
+    let node_ref = &graph[node];
+    let mut aabb = node_ref.world_bounding_box();
+    for child in node_ref.children() {
+        aabb.add_box(total_bounding_box(*child, graph))
+    }
+    aabb
+}
+
+fn side_door_offset(node: Handle<Node>, graph: &Graph) -> f32 {
+    let aabb = total_bounding_box(node, graph);
+    (aabb.max.x - aabb.min.x).max(aabb.max.z - aabb.min.z)
+}
+
+fn up_door_offset(node: Handle<Node>, graph: &Graph) -> f32 {
+    let aabb = total_bounding_box(node, graph);
+    aabb.max.y - aabb.min.y
+}
+
 pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
@@ -315,7 +335,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                     &scene.graph,
                     DoorState::Closed,
                     DoorDirection::Side,
-                    0.75,
+                    side_door_offset(handle, &scene.graph),
                 ));
             }
             "SideDoorBroken" => {
@@ -324,7 +344,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                     &scene.graph,
                     DoorState::Broken,
                     DoorDirection::Side,
-                    0.75,
+                    0.0,
                 ));
             }
             "SideDoorLocked" => {
@@ -333,7 +353,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                     &scene.graph,
                     DoorState::Locked,
                     DoorDirection::Side,
-                    0.75,
+                    side_door_offset(handle, &scene.graph),
                 ));
             }
             "UpDoor" => {
@@ -342,7 +362,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                     &scene.graph,
                     DoorState::Closed,
                     DoorDirection::Up,
-                    1.35,
+                    up_door_offset(handle, &scene.graph),
                 ));
             }
             "FlashingLight" => result.lights.add(Light::new(handle)),
@@ -591,6 +611,8 @@ impl BaseLevel {
 
         // Instantiate map
         let map_root = map_model.instantiate_geometry(&mut scene);
+
+        scene.graph.update_nodes(Default::default(), 0.0);
 
         let AnalysisResult {
             items,
