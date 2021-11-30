@@ -128,9 +128,11 @@ Each level must be designed as a real working space, no abstract corridors shoul
 have a high-level blueprint. Each level should have sci-fi aesthetics, but don't forget about "real usage" of the
 environment.
 
-### Loading bay
+Levels must be designed as a tightly packed set of rooms and corridors of various shapes. The action takes place on 
+a spaceship where each square meter must be used wisely. There must be no long corridors leading to nowhere, long 
+corridors only allowed if there is no place for rooms at the sides of the corridors.
 
-(INSERT IMAGE)
+### Loading bay
 
 Loading bay is the entry hub to the spaceship, it has direct access to internal railway which allows employees of the
 spaceship to transfer various loads across the ship. It has one loading area which can fit two transport ships at the
@@ -141,6 +143,21 @@ This is the starting point of the game, player appears at the beginning of the s
 are closed but player can see the fire. The first problem on his way is the automatic turrets that shoots unauthorized
 persons on sight. The player must find a security computer to add himself to the list of authorized persons. After that
 he can explore the area without any troubles. 
+
+The deck has the following list of employees:
+
+- 12 (4 per each shift) guards for the guard post. 2 works at their posts, 2 checks cargo documentation.
+- 9 deck guards (3 per each shift), they're located in deck security post.
+- 3 janitors
+- 1 electrical technician
+- 2 railway station technicians
+- 1 plumber
+- 2 cooks
+- 2 loaders to load cargo on the train
+
+32 people in total. This must be taken into account when designing the level. Everybody must have their sleeping place.
+
+TODO: Write dialogs between these employees and their personal notes on their pocket PCs.
 
 ### Research deck
 
