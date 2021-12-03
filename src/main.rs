@@ -25,6 +25,7 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
+use crate::door::ui::DoorUiContainer;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -101,12 +102,14 @@ pub struct Game {
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
+    door_ui_container: DoorUiContainer,
     // We're storing sound config separately because we can adjust sound
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
     sound_config: SoundConfig,
     update_duration: Duration,
     show_debug_info: bool,
+    smaller_font: SharedFont,
 }
 
 #[derive(Copy, Clone)]
@@ -255,9 +258,10 @@ impl Game {
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
-            item_display: ItemDisplay::new(smaller_font),
+            item_display: ItemDisplay::new(smaller_font.clone()),
             journal_display: JournalDisplay::new(),
             engine,
+            smaller_font,
             level: None,
             debug_string: String::new(),
             time,
@@ -267,6 +271,7 @@ impl Game {
             events_sender: tx,
             sound_config,
             update_duration: Default::default(),
+            door_ui_container: Default::default(),
         };
 
         game.create_debug_ui();
@@ -426,6 +431,8 @@ impl Game {
                 &mut self.journal_display.ui,
             )
             .unwrap();
+
+        self.door_ui_container.render(&mut self.engine.renderer);
 
         self.engine.render().unwrap();
     }
@@ -616,7 +623,21 @@ impl Game {
         if let Some(ctx) = self.load_context.clone() {
             if let Some(mut ctx) = ctx.try_lock() {
                 if let Some((mut level, scene)) = ctx.level.take() {
+                    for (door_handle, door) in level.doors.pair_iter() {
+                        let texture = self.door_ui_container.create_ui(
+                            self.smaller_font.clone(),
+                            self.engine.resource_manager.clone(),
+                            door_handle,
+                        );
+                        door.apply_screen_texture(
+                            &scene.graph,
+                            self.engine.resource_manager.clone(),
+                            texture,
+                        );
+                    }
+
                     level.scene = self.engine.scenes.add(scene);
+
                     self.level = Some(level);
                     self.load_context = None;
                     self.set_menu_visible(false);
@@ -656,6 +677,7 @@ impl Game {
         self.weapon_display.update(time.delta);
         self.inventory_interface.update(time.delta);
         self.item_display.update(time.delta);
+        self.door_ui_container.update(time.delta);
 
         self.engine.update(time.delta);
 

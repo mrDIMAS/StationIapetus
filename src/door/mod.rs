@@ -1,6 +1,10 @@
 use crate::inventory::Inventory;
 use crate::item::ItemKind;
 use crate::{actor::ActorContainer, message::Message, Actor};
+use rg3d::core::sstorage::ImmutableString;
+use rg3d::engine::resource_manager::ResourceManager;
+use rg3d::material::PropertyValue;
+use rg3d::resource::texture::Texture;
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
@@ -12,6 +16,8 @@ use rg3d::{
 };
 use std::ops::{Index, IndexMut};
 use std::{path::PathBuf, sync::mpsc::Sender};
+
+pub mod ui;
 
 #[derive(Copy, Clone, Eq, PartialEq, Visit)]
 #[repr(u32)]
@@ -103,6 +109,50 @@ impl Door {
 
     pub fn node(&self) -> Handle<Node> {
         self.node
+    }
+
+    pub fn apply_screen_texture(
+        &self,
+        graph: &Graph,
+        resource_manager: ResourceManager,
+        texture: Texture,
+    ) {
+        for node in graph.traverse_iter(self.node) {
+            if node.name().starts_with("DoorUI") {
+                let mesh = node.as_mesh();
+
+                let mut material = mesh.surfaces()[0].material().lock();
+
+                material
+                    .set_property(
+                        &ImmutableString::new("diffuseTexture"),
+                        PropertyValue::Sampler {
+                            value: Some(texture.clone()),
+                            fallback: Default::default(),
+                        },
+                    )
+                    .unwrap();
+
+                material
+                    .set_property(
+                        &ImmutableString::new("diffuseColor"),
+                        PropertyValue::Color(Color::GREEN),
+                    )
+                    .unwrap();
+
+                material
+                    .set_property(
+                        &ImmutableString::new("emissionTexture"),
+                        PropertyValue::Sampler {
+                            value: Some(
+                                resource_manager.request_texture("data/ui/white_pixel.bmp", None),
+                            ),
+                            fallback: Default::default(),
+                        },
+                    )
+                    .unwrap();
+            }
+        }
     }
 
     pub fn try_open(

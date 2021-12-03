@@ -136,7 +136,7 @@ pub struct BaseLevel {
     sound_manager: SoundManager,
     beam: Option<Arc<Mutex<SurfaceData>>>,
     trails: ShotTrailContainer,
-    doors: DoorContainer,
+    pub doors: DoorContainer,
     lights: LightContainer,
     turrets: TurretContainer,
     triggers: TriggerContainer,
