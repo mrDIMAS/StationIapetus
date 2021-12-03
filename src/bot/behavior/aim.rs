@@ -1,3 +1,4 @@
+use crate::bot::behavior::Action;
 use crate::{bot::behavior::BehaviorContext, GameTime};
 use rg3d::{
     core::{
@@ -19,11 +20,11 @@ pub struct AimOnTarget {
 }
 
 impl AimOnTarget {
-    pub fn new(spine: Handle<Node>) -> Self {
-        Self {
+    pub fn new(spine: Handle<Node>) -> Action {
+        Action::AimOnTarget(Self {
             spine,
             ..Default::default()
-        }
+        })
     }
 }
 

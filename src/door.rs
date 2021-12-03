@@ -1,5 +1,6 @@
+use crate::inventory::Inventory;
 use crate::item::ItemKind;
-use crate::{actor::ActorContainer, message::Message};
+use crate::{actor::ActorContainer, message::Message, Actor};
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
@@ -9,6 +10,7 @@ use rg3d::{
     },
     scene::{graph::Graph, node::Node, Scene},
 };
+use std::ops::{Index, IndexMut};
 use std::{path::PathBuf, sync::mpsc::Sender};
 
 #[derive(Copy, Clone, Eq, PartialEq, Visit)]
@@ -48,7 +50,6 @@ pub struct Door {
     state: DoorState,
     offset: f32,
     initial_position: Vector3<f32>,
-    someone_nearby: bool,
     open_direction: DoorDirection,
     open_offset_amount: f32,
 }
@@ -70,7 +71,6 @@ impl Door {
             state,
             offset: 0.0,
             initial_position: graph[node].global_position(),
-            someone_nearby: false,
             open_direction,
             open_offset_amount,
         }
@@ -91,6 +91,80 @@ impl Door {
             graph[light].set_visibility(enabled);
         }
     }
+
+    pub fn initial_position(&self) -> Vector3<f32> {
+        self.initial_position
+    }
+
+    pub fn actual_position(&self, graph: &Graph) -> Vector3<f32> {
+        let node_ref = &graph[self.node];
+        node_ref.global_position()
+    }
+
+    pub fn node(&self) -> Handle<Node> {
+        self.node
+    }
+
+    pub fn try_open(
+        &mut self,
+        sender: Sender<Message>,
+        graph: &Graph,
+        inventory: Option<&Inventory>,
+    ) {
+        let position = self.actual_position(graph);
+
+        if self.state == DoorState::Closed {
+            self.state = DoorState::Opening;
+
+            sender
+                .send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/door_open.ogg"),
+                    position,
+                    gain: 0.6,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                })
+                .unwrap();
+        } else if self.state == DoorState::Locked {
+            let should_be_unlocked = inventory
+                .map(|i| i.item_count(ItemKind::MasterKey) > 0)
+                .unwrap_or(false);
+
+            if should_be_unlocked {
+                self.state = DoorState::Opening;
+
+                sender
+                    .send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/door_open.ogg"),
+                        position,
+                        gain: 0.6,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    })
+                    .unwrap();
+
+                sender
+                    .send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/access_granted.ogg"),
+                        position,
+                        gain: 1.0,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    })
+                    .unwrap();
+            } else {
+                sender
+                    .send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/door_deny.ogg"),
+                        position,
+                        gain: 1.0,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    })
+                    .unwrap();
+            }
+        }
+    }
 }
 
 #[derive(Default, Visit)]
@@ -109,6 +183,10 @@ impl DoorContainer {
         self.doors.spawn(door)
     }
 
+    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Door>, &Door)> {
+        self.doors.pair_iter()
+    }
+
     pub fn update(
         &mut self,
         actors: &ActorContainer,
@@ -125,11 +203,9 @@ impl DoorContainer {
                 DoorDirection::Up => node.up_vector(),
             };
 
-            let prev_someone_nearby = door.someone_nearby;
-
             let mut closest_actor = None;
 
-            door.someone_nearby = actors.iter().any(|a| {
+            let someone_nearby = actors.iter().any(|a| {
                 let actor_position = a.position(&scene.graph);
                 // TODO: Replace with triggers.
                 let close_enough = actor_position.metric_distance(&door.initial_position) < 1.25;
@@ -139,52 +215,7 @@ impl DoorContainer {
                 close_enough
             });
 
-            if door.someone_nearby {
-                if door.state == DoorState::Closed {
-                    door.state = DoorState::Opening;
-
-                    sender
-                        .send(Message::PlaySound {
-                            path: PathBuf::from("data/sounds/door_open.ogg"),
-                            position: node.global_position(),
-                            gain: 0.6,
-                            rolloff_factor: 1.0,
-                            radius: 1.0,
-                        })
-                        .unwrap();
-                } else if door.state == DoorState::Locked
-                    && !prev_someone_nearby
-                    && door.someone_nearby
-                {
-                    let should_be_unlocked = closest_actor
-                        .map(|a| a.inventory().item_count(ItemKind::MasterKey) > 0)
-                        .unwrap_or(false);
-
-                    if should_be_unlocked {
-                        door.state = DoorState::Closed;
-
-                        sender
-                            .send(Message::PlaySound {
-                                path: PathBuf::from("data/sounds/access_granted.ogg"),
-                                position: node.global_position(),
-                                gain: 1.0,
-                                rolloff_factor: 1.0,
-                                radius: 1.0,
-                            })
-                            .unwrap();
-                    } else {
-                        sender
-                            .send(Message::PlaySound {
-                                path: PathBuf::from("data/sounds/door_deny.ogg"),
-                                position: node.global_position(),
-                                gain: 1.0,
-                                rolloff_factor: 1.0,
-                                radius: 1.0,
-                            })
-                            .unwrap();
-                    }
-                }
-            } else if door.state == DoorState::Opened {
+            if !someone_nearby && door.state == DoorState::Opened {
                 door.state = DoorState::Closing;
 
                 sender
@@ -257,5 +288,38 @@ impl DoorContainer {
         for door in self.doors.iter_mut() {
             door.resolve(scene)
         }
+    }
+
+    pub fn check_actor(
+        &self,
+        actor_position: Vector3<f32>,
+        actor_handle: Handle<Actor>,
+        sender: &Sender<Message>,
+    ) {
+        for (door_handle, door) in self.pair_iter() {
+            let close_enough = actor_position.metric_distance(&door.initial_position()) < 1.25;
+            if close_enough {
+                sender
+                    .send(Message::TryOpenDoor {
+                        door: door_handle,
+                        actor: actor_handle,
+                    })
+                    .unwrap();
+            }
+        }
+    }
+}
+
+impl Index<Handle<Door>> for DoorContainer {
+    type Output = Door;
+
+    fn index(&self, index: Handle<Door>) -> &Self::Output {
+        &self.doors[index]
+    }
+}
+
+impl IndexMut<Handle<Door>> for DoorContainer {
+    fn index_mut(&mut self, index: Handle<Door>) -> &mut Self::Output {
+        &mut self.doors[index]
     }
 }

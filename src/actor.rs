@@ -104,6 +104,10 @@ impl ActorContainer {
         self.pool.borrow(actor)
     }
 
+    pub fn try_get(&self, actor: Handle<Actor>) -> Option<&Actor> {
+        self.pool.try_borrow(actor)
+    }
+
     pub fn contains(&self, actor: Handle<Actor>) -> bool {
         self.pool.is_valid_handle(actor)
     }

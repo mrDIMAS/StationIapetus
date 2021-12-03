@@ -1,4 +1,8 @@
+use crate::bot::behavior::Action;
 use crate::{bot::behavior::BehaviorContext, message::Message};
+use rg3d::core::pool::Handle;
+use rg3d::utils::behavior::leaf::LeafNode;
+use rg3d::utils::behavior::{BehaviorNode, BehaviorTree};
 use rg3d::{
     core::visitor::prelude::*,
     utils::behavior::{Behavior, Status},
@@ -6,6 +10,12 @@ use rg3d::{
 
 #[derive(Default, Debug, PartialEq, Visit)]
 pub struct IsDead;
+
+impl IsDead {
+    pub fn new(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
+        LeafNode::new(Action::IsDead(Self)).add_to(tree)
+    }
+}
 
 impl<'a> Behavior<'a> for IsDead {
     type Context = BehaviorContext<'a>;
@@ -21,6 +31,12 @@ impl<'a> Behavior<'a> for IsDead {
 
 #[derive(Default, Debug, PartialEq, Visit)]
 pub struct StayDead;
+
+impl StayDead {
+    pub fn new(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
+        LeafNode::new(Action::StayDead(Self)).add_to(tree)
+    }
+}
 
 impl<'a> Behavior<'a> for StayDead {
     type Context = BehaviorContext<'a>;

@@ -190,6 +190,7 @@ pub struct UpdateContext<'a> {
     pub time: GameTime,
     pub scene: &'a mut Scene,
     pub items: &'a ItemContainer,
+    pub doors: &'a DoorContainer,
     pub navmesh: Handle<Navmesh>,
     pub weapons: &'a WeaponContainer,
     pub sender: &'a Sender<Message>,
@@ -1121,6 +1122,7 @@ impl BaseLevel {
             time,
             scene,
             items: &self.items,
+            doors: &self.doors,
             navmesh: self.navmesh,
             weapons: &self.weapons,
             sender: self.sender.as_ref().unwrap(),
@@ -1396,12 +1398,21 @@ impl BaseLevel {
         }
     }
 
+    fn try_open_door(&mut self, engine: &mut Engine, door: Handle<Door>, actor: Handle<Actor>) {
+        let graph = &engine.scenes[self.scene].graph;
+        let inventory = self.actors.try_get(actor).map(|a| &a.inventory);
+        self.doors[door].try_open(self.sender.clone().unwrap(), graph, inventory);
+    }
+
     pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
         self.sound_manager
             .handle_message(engine.resource_manager.clone(), &message)
             .await;
 
         match message {
+            &Message::TryOpenDoor { door, actor } => {
+                self.try_open_door(engine, door, actor);
+            }
             &Message::GiveNewWeapon { actor, kind } => {
                 self.give_new_weapon(engine, actor, kind).await;
             }

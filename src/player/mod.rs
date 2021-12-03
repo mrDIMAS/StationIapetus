@@ -1,3 +1,4 @@
+use crate::door::DoorContainer;
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -630,6 +631,18 @@ impl Player {
         }
     }
 
+    fn check_doors(
+        &mut self,
+        self_handle: Handle<Actor>,
+        scene: &Scene,
+        door_container: &DoorContainer,
+        sender: &Sender<Message>,
+    ) {
+        if self.controller.action {
+            door_container.check_actor(self.position(&scene.graph), self_handle, sender);
+        }
+    }
+
     fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
         let mut new_y_vel = None;
         while let Some(event) = scene
@@ -1039,6 +1052,7 @@ impl Player {
             weapons,
             items,
             sender,
+            doors,
             ..
         } = context;
 
@@ -1197,6 +1211,7 @@ impl Player {
             scene.graph[self.item_display].set_visibility(false);
 
             self.check_items(self_handle, scene, items, sender);
+            self.check_doors(self_handle, scene, doors, sender);
             self.update_shooting(scene, weapons, *time, sender);
 
             let spine_transform = scene.graph[self.spine].local_transform_mut();

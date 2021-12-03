@@ -3,6 +3,7 @@
 //! required entity. This is very effective decoupling mechanism that works perfectly with
 //! strict ownership rules of Rust.
 
+use crate::door::Door;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -28,6 +29,10 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
+    TryOpenDoor {
+        door: Handle<Door>,
+        actor: Handle<Actor>,
+    },
     GiveNewWeapon {
         actor: Handle<Actor>,
         kind: WeaponKind,

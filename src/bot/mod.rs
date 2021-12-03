@@ -1,3 +1,4 @@
+use crate::door::DoorContainer;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -11,8 +12,11 @@ use crate::{
     level::UpdateContext,
     utils::BodyImpactHandler,
     weapon::projectile::Damage,
-    CollisionGroups,
+    CollisionGroups, Message,
 };
+use rg3d::core::algebra::Point3;
+use rg3d::core::arrayvec::ArrayVec;
+use rg3d::physics3d::{Intersection, RayCastOptions};
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -40,6 +44,7 @@ use rg3d::{
     },
 };
 use serde::Deserialize;
+use std::sync::mpsc::Sender;
 use std::{
     collections::HashMap,
     fs::File,
@@ -247,6 +252,7 @@ impl Bot {
         let body = scene.physics.add_body(
             RigidBodyBuilder::new(RigidBodyType::Dynamic)
                 .lock_rotations()
+                .additional_mass(10.0)
                 .position(Isometry3 {
                     translation: Translation3 { vector: position },
                     rotation,
@@ -255,7 +261,7 @@ impl Bot {
         );
         scene.physics.add_collider(
             ColliderBuilder::capsule_y(body_height * 0.5, body_radius)
-                .friction(0.0)
+                .friction(0.1)
                 .friction_combine_rule(CoefficientCombineRule::Min)
                 .collision_groups(InteractionGroups::new(
                     CollisionGroups::ActorCapsule as u32,
@@ -343,6 +349,59 @@ impl Bot {
         }
     }
 
+    fn check_doors(
+        &mut self,
+        self_handle: Handle<Actor>,
+        scene: &Scene,
+        door_container: &DoorContainer,
+        sender: &Sender<Message>,
+    ) {
+        if let Some(target) = self.target.as_ref() {
+            let mut query_storage = ArrayVec::<Intersection, 64>::new();
+
+            let position = self.position(&scene.graph);
+            let ray_direction = target.position - position;
+
+            scene.physics.cast_ray(
+                RayCastOptions {
+                    ray_origin: Point3::from(position),
+                    ray_direction,
+                    max_len: ray_direction.norm(),
+                    groups: Default::default(),
+                    sort_results: true,
+                },
+                &mut query_storage,
+            );
+
+            for intersection in query_storage {
+                for (door_handle, door) in door_container.pair_iter() {
+                    let close_enough = position.metric_distance(&door.initial_position()) < 1.25;
+                    if !close_enough {
+                        continue;
+                    }
+
+                    if let Some(rigid_body_handle) = scene.physics_binder.body_of(door.node()) {
+                        if let Some(rigid_body) = scene.physics.bodies.get(rigid_body_handle) {
+                            if rigid_body
+                                .colliders()
+                                .iter()
+                                .filter_map(|c| scene.physics.colliders.handle_map().key_of(c))
+                                .any(|c| *c == intersection.collider)
+                            {
+                                sender
+                                    .send(Message::TryOpenDoor {
+                                        door: door_handle,
+                                        actor: self_handle,
+                                    })
+                                    .unwrap();
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn can_be_removed(&self, scene: &Scene) -> bool {
         scene
             .animations
@@ -422,6 +481,8 @@ impl Bot {
         self.restoration_time -= time.delta;
         self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;
         self.threaten_timeout -= time.delta;
+
+        self.check_doors(self_handle, context.scene, context.doors, context.sender);
 
         self.lower_body_machine.apply(
             context.scene,
