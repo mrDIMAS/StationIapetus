@@ -213,17 +213,6 @@ freely around Y axis and have limited `[-90;90]` degrees range rotation around X
 Inventory is used to store all useful items that player can find. The inventory should allow player to use, examine,
 and drop items. The capacity of the inventory is unlimited.
 
-List of items:
-
-- Small health pack
-- Medium health pack
-- Grenade
-- Ammo
-- M4 gun
-- Rail gun
-- Plasma gun
-- ???
-
 ### Enemies
 
 The amount of types of enemies is kinda low because the budget of the game is low too, there should be few kinds of 
@@ -255,6 +244,54 @@ modes:
 - Hostile to non-authorized persons - basically it has a list of persons that has right clearance
 
 **(WIP)**
+
+### Interactive objects
+
+#### Doors
+
+Doors are used to provide access to specific areas on the station. Doors have clearance levels:
+
+- 0 - Free access
+- 1 - Restricted access (a.k.a. personnel only)
+- 2 - High security
+- 3 - High command access only
+
+Player can use security terminals to change their clearance level. Clearance levels are not compatible between
+decks, this means that if a player acquired level-3 clearance on Loading Bay deck, he won't be able to use
+it on Medical deck for example.
+
+Doors must be opened manually, it means that when potential user comes close enough to a door, it should show clearance
+level and ask user if it should be opened. 
+
+Some doors can be opened only if user has appropriate key card.
+
+#### Items
+
+- Small health pack - restores 20% of health.
+- Medium health pack - restores 40% of health.
+- Grenade - consumable item, it can be thrown by player.
+- Ammo - universal ammo that is basically an energy cell.
+- Glock - semi-automatic pistol designed to be used with energy ammo 
+- M4 gun - classic rifle designed to be used with energy ammo
+- Rail gun - powerful gun with high-energy projectiles that are able to penetrate multiple targets.
+- Plasma gun - powerful energy gun that shoots plasma balls.
+- Key-card - customizable key card.
+
+### Motivation
+
+Key points why player should continue playing:
+
+- Story should drive the curiosity of player.
+- Each of 6 levels should give the player a new weapon (except Loading Bay, which is a starting level and player
+already have a gun)
+- Gameplay should evolve, each level should allow player to do new things. 
+- ???
+
+Key points why player should explore levels:
+
+- A chance to find a new weapon
+- A change to find a new useful item
+- ???
 
 ## Storytelling
 
