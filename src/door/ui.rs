@@ -1,4 +1,4 @@
-use crate::{door::Door, WidgetBuilder};
+use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -6,6 +6,7 @@ use rg3d::{
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         text::TextBuilder,
+        text::TextMessage,
         ttf::SharedFont,
         HorizontalAlignment, UserInterface,
     },
@@ -18,6 +19,7 @@ use std::collections::HashMap;
 pub struct DoorUi {
     pub ui: UserInterface,
     pub render_target: Texture,
+    text: Handle<UiNode>,
 }
 
 impl DoorUi {
@@ -30,6 +32,7 @@ impl DoorUi {
 
         let ctx = &mut ui.build_ctx();
 
+        let text;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
@@ -47,20 +50,32 @@ impl DoorUi {
                     ))
                     .build(ctx),
                 )
-                .with_child(
-                    TextBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
+                .with_child({
+                    text = TextBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
                         .with_horizontal_text_alignment(HorizontalAlignment::Center)
                         .with_font(font)
-                        .with_text("Open?")
-                        .build(ctx),
-                ),
+                        .build(ctx);
+                    text
+                }),
         )
         .add_column(Column::stretch())
         .add_row(Row::stretch())
         .add_row(Row::auto())
         .build(ctx);
 
-        Self { ui, render_target }
+        Self {
+            ui,
+            render_target,
+            text,
+        }
+    }
+
+    pub fn set_text(&mut self, text: String) {
+        self.ui.send_message(TextMessage::text(
+            self.text,
+            MessageDirection::ToWidget,
+            text,
+        ));
     }
 
     pub fn update(&mut self, delta: f32) {
@@ -86,8 +101,12 @@ impl DoorUiContainer {
     ) -> Texture {
         let ui = DoorUi::new(font, resource_manager);
         let texture = ui.render_target.clone();
-        self.map.insert(door_handle, ui);
+        assert!(self.map.insert(door_handle, ui).is_none());
         texture
+    }
+
+    pub fn get_ui_mut(&mut self, door_handle: Handle<Door>) -> Option<&mut DoorUi> {
+        self.map.get_mut(&door_handle)
     }
 
     pub fn render(&mut self, renderer: &mut Renderer) {

@@ -1083,7 +1083,12 @@ impl BaseLevel {
         }
     }
 
-    pub fn update(&mut self, engine: &mut Engine, time: GameTime) {
+    pub fn update(
+        &mut self,
+        engine: &mut Engine,
+        time: GameTime,
+        door_ui_container: &mut DoorUiContainer,
+    ) {
         self.time += time.delta;
         let scene = &mut engine.scenes[self.scene];
 
@@ -1121,6 +1126,7 @@ impl BaseLevel {
             self.sender.clone().unwrap(),
             scene,
             time.delta,
+            door_ui_container,
         );
         self.lights.update(scene, time.delta);
         self.items.update(time.delta, &mut scene.graph);
@@ -1529,7 +1535,7 @@ impl BaseLevel {
             journal_texture,
         );
 
-        let scene = &engine.scenes[self.scene];
+        let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
         self.doors.resolve(
             scene,

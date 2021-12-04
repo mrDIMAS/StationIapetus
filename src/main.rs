@@ -630,7 +630,7 @@ impl Game {
 
         if let Some(ctx) = self.load_context.clone() {
             if let Some(mut ctx) = ctx.try_lock() {
-                if let Some((mut level, scene)) = ctx.level.take() {
+                if let Some((mut level, mut scene)) = ctx.level.take() {
                     for (door_handle, door) in level.doors.pair_iter() {
                         let texture = self.door_ui_container.create_ui(
                             self.smaller_font.clone(),
@@ -638,7 +638,7 @@ impl Game {
                             door_handle,
                         );
                         door.apply_screen_texture(
-                            &scene.graph,
+                            &mut scene.graph,
                             self.engine.resource_manager.clone(),
                             texture,
                         );
@@ -669,7 +669,7 @@ impl Game {
         if let Some(ref mut level) = self.level {
             let menu_visible = self.menu.is_visible(&self.engine.user_interface);
             if !menu_visible {
-                level.update(&mut self.engine, time);
+                level.update(&mut self.engine, time, &mut self.door_ui_container);
                 let player = level.get_player();
                 if player.is_some() {
                     if let Actor::Player(player) = level.actors().get(player) {

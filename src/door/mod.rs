@@ -2,17 +2,19 @@ use crate::{
     actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
     DoorUiContainer, MessageSender,
 };
-use rg3d::gui::ttf::SharedFont;
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
         color::Color,
+        parking_lot::Mutex,
         pool::{Handle, Pool},
         sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    material::PropertyValue,
+    gui::ttf::SharedFont,
+    material::{Material, PropertyValue},
+    rand::{thread_rng, Rng},
     resource::texture::Texture,
     scene::{graph::Graph, node::Node, Scene},
     utils::log::Log,
@@ -20,6 +22,7 @@ use rg3d::{
 use std::{
     ops::{Index, IndexMut},
     path::PathBuf,
+    sync::Arc,
 };
 
 pub mod ui;
@@ -118,39 +121,46 @@ impl Door {
 
     pub fn apply_screen_texture(
         &self,
-        graph: &Graph,
+        graph: &mut Graph,
         resource_manager: ResourceManager,
         texture: Texture,
     ) {
-        for node in graph.traverse_iter(self.node) {
+        let mut screens = Vec::new();
+        for node_handle in graph.traverse_handle_iter(self.node) {
+            let node = &graph[node_handle];
             if node.name().starts_with("DoorUI") {
-                let mesh = node.as_mesh();
-
-                let mut material = mesh.surfaces()[0].material().lock();
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(texture.clone()),
-                        fallback: Default::default(),
-                    },
-                ));
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseColor"),
-                    PropertyValue::Color(Color::GREEN),
-                ));
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("emissionTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(
-                            resource_manager.request_texture("data/ui/white_pixel.bmp", None),
-                        ),
-                        fallback: Default::default(),
-                    },
-                ));
+                screens.push(node_handle);
             }
+        }
+
+        for node_handle in screens {
+            let node = &mut graph[node_handle];
+            let mesh = node.as_mesh_mut();
+
+            let mut material = Material::standard();
+
+            Log::verify(material.set_property(
+                &ImmutableString::new("diffuseTexture"),
+                PropertyValue::Sampler {
+                    value: Some(texture.clone()),
+                    fallback: Default::default(),
+                },
+            ));
+
+            Log::verify(material.set_property(
+                &ImmutableString::new("diffuseColor"),
+                PropertyValue::Color(Color::GREEN),
+            ));
+
+            Log::verify(material.set_property(
+                &ImmutableString::new("emissionTexture"),
+                PropertyValue::Sampler {
+                    value: Some(resource_manager.request_texture("data/ui/white_pixel.bmp", None)),
+                    fallback: Default::default(),
+                },
+            ));
+
+            mesh.surfaces_mut()[0].set_material(Arc::new(Mutex::new(material)));
         }
     }
 
@@ -234,10 +244,11 @@ impl DoorContainer {
         sender: MessageSender,
         scene: &mut Scene,
         dt: f32,
+        door_ui_container: &mut DoorUiContainer,
     ) {
         let speed = 0.55;
 
-        for door in self.doors.iter_mut() {
+        for (door_handle, door) in self.doors.pair_iter_mut() {
             let node = &scene.graph[door.node];
             let move_direction = match door.open_direction {
                 DoorDirection::Side => node.look_vector(),
@@ -266,6 +277,25 @@ impl DoorContainer {
                     rolloff_factor: 1.0,
                     radius: 1.0,
                 });
+            }
+
+            if let Some(ui) = door_ui_container.get_ui_mut(door_handle) {
+                let text = match door.state {
+                    DoorState::Opened => "Opened",
+                    DoorState::Opening => "Opening...",
+                    DoorState::Closed => {
+                        if someone_nearby {
+                            "Open?"
+                        } else {
+                            "Closed"
+                        }
+                    }
+                    DoorState::Closing => "Closing..",
+                    DoorState::Locked => "Locked",
+                    DoorState::Broken => "Broken",
+                };
+
+                ui.set_text(text.to_owned());
             }
 
             match door.state {
@@ -325,7 +355,7 @@ impl DoorContainer {
 
     pub fn resolve(
         &mut self,
-        scene: &Scene,
+        scene: &mut Scene,
         font: SharedFont,
         door_ui_container: &mut DoorUiContainer,
         resource_manager: ResourceManager,
@@ -335,7 +365,7 @@ impl DoorContainer {
 
             let texture =
                 door_ui_container.create_ui(font.clone(), resource_manager.clone(), door_handle);
-            door.apply_screen_texture(&scene.graph, resource_manager.clone(), texture);
+            door.apply_screen_texture(&mut scene.graph, resource_manager.clone(), texture);
         }
     }
 
