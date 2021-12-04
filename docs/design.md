@@ -19,12 +19,12 @@ the engine is somewhat incomplete, the actual plan can be modified.
 
 **WEEKLY PLAN:**
 
-- **29.11.21 - 5.12.21** Loading bay grayboxing + filling with gameplay elements
-- **6.12.21 - 12.12.21** Medical deck grayboxing + filling with gameplay elements
-- **13.12.21 - 19.12.21** Research deck grayboxing (maybe extend to 2 weeks?) + filling with gameplay elements
-- **20.12.21 - 26.12.21** Sewage treatment plant grayboxing + filling with gameplay elements
-- **27.12.21 - 02.01.22** Bridge grayboxing + filling with gameplay elements
-- **03.01.22 - 09.01.22** Hydroponics and food storage grayboxing + filling with gameplay elements
+- **29.11.21 - 12.12.21** Loading bay grayboxing + filling with gameplay elements
+- **13.12.21 - 26.12.21** Medical deck grayboxing + filling with gameplay elements
+- **27.12.21 - 09.01.22** Research deck grayboxing (maybe extend to 2 weeks?) + filling with gameplay elements
+- **10.01.22 - 23.01.22** Sewage treatment plant grayboxing + filling with gameplay elements
+- **24.01.21 - 06.02.22** Bridge grayboxing + filling with gameplay elements
+- **07.02.22 - 20.02.22** Hydroponics and food storage grayboxing + filling with gameplay elements
 - TBD
 
 ## Plot

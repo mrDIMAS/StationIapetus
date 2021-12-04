@@ -1,16 +1,11 @@
-use crate::{
-    config::SoundConfig, level::BaseLevel, message::Message, player::PlayerPersistentData,
-};
+use crate::{config::SoundConfig, level::BaseLevel, player::PlayerPersistentData, MessageSender};
 use rg3d::{
     core::{color::Color, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
     resource::texture::Texture,
     scene::Scene,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::mpsc::Sender,
-};
+use std::ops::{Deref, DerefMut};
 
 #[derive(Default, Visit)]
 pub struct TestbedLevel {
@@ -34,7 +29,7 @@ impl DerefMut for TestbedLevel {
 impl TestbedLevel {
     pub async fn new(
         resource_manager: ResourceManager,
-        sender: Sender<Message>,
+        sender: MessageSender,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,

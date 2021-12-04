@@ -1,6 +1,4 @@
-use crate::{
-    config::SoundConfig, level::BaseLevel, message::Message, player::PlayerPersistentData,
-};
+use crate::{config::SoundConfig, level::BaseLevel, player::PlayerPersistentData, MessageSender};
 use rg3d::{
     core::{
         color::Color,
@@ -10,10 +8,7 @@ use rg3d::{
     resource::texture::Texture,
     scene::Scene,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    sync::mpsc::Sender,
-};
+use std::ops::{Deref, DerefMut};
 
 /// TODO - Implement and add plot.
 /// Second level - player enters laboratory.
@@ -40,7 +35,7 @@ impl DerefMut for LabLevel {
 impl LabLevel {
     pub async fn new(
         resource_manager: ResourceManager,
-        sender: Sender<Message>,
+        sender: MessageSender,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,

@@ -11,6 +11,7 @@ use rg3d::gui::{HorizontalAlignment, UserInterface};
 use rg3d::renderer::Renderer;
 use rg3d::resource::texture::Texture;
 use rg3d::utils::into_gui_texture;
+use rg3d::utils::log::Log;
 use std::collections::HashMap;
 
 pub struct DoorUi {
@@ -90,9 +91,7 @@ impl DoorUiContainer {
 
     pub fn render(&mut self, renderer: &mut Renderer) {
         for ui in self.map.values_mut() {
-            renderer
-                .render_ui_to_texture(ui.render_target.clone(), &mut ui.ui)
-                .unwrap();
+            Log::verify(renderer.render_ui_to_texture(ui.render_target.clone(), &mut ui.ui));
         }
     }
 

@@ -92,8 +92,8 @@ pub struct Game {
     running: bool,
     control_scheme: ControlScheme,
     time: GameTime,
-    events_receiver: Receiver<Message>,
-    events_sender: Sender<Message>,
+    message_receiver: Receiver<Message>,
+    message_sender: MessageSender,
     load_context: Option<Arc<Mutex<LoadContext>>>,
     loading_screen: LoadingScreen,
     death_screen: DeathScreen,
@@ -141,6 +141,17 @@ pub fn create_display_material(display_texture: Texture) -> Arc<Mutex<Material>>
     ));
 
     Arc::new(Mutex::new(material))
+}
+
+#[derive(Clone)]
+pub struct MessageSender {
+    sender: Sender<Message>,
+}
+
+impl MessageSender {
+    pub fn send(&self, message: Message) {
+        Log::verify(self.sender.send(message))
+    }
 }
 
 impl Game {
@@ -235,6 +246,8 @@ impl Game {
             .unwrap()
             .set_master_gain(sound_config.master_volume);
 
+        let message_sender = MessageSender { sender: tx };
+
         let mut game = Game {
             show_debug_info,
             loading_screen: LoadingScreen::new(
@@ -246,13 +259,21 @@ impl Game {
             menu: rg3d::core::futures::executor::block_on(Menu::new(
                 &mut engine,
                 &control_scheme,
-                tx.clone(),
+                message_sender.clone(),
                 font.clone(),
                 show_debug_info,
                 &sound_config,
             )),
-            death_screen: DeathScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
-            final_screen: FinalScreen::new(&mut engine.user_interface, font.clone(), tx.clone()),
+            death_screen: DeathScreen::new(
+                &mut engine.user_interface,
+                font.clone(),
+                message_sender.clone(),
+            ),
+            final_screen: FinalScreen::new(
+                &mut engine.user_interface,
+                font.clone(),
+                message_sender.clone(),
+            ),
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display: WeaponDisplay::new(font, engine.resource_manager.clone()),
@@ -264,9 +285,9 @@ impl Game {
             debug_string: String::new(),
             time,
             load_context: None,
-            inventory_interface: InventoryInterface::new(tx.clone()),
-            events_receiver: rx,
-            events_sender: tx,
+            inventory_interface: InventoryInterface::new(message_sender.clone()),
+            message_receiver: rx,
+            message_sender,
             sound_config,
             update_duration: Default::default(),
             door_ui_container: Default::default(),
@@ -388,51 +409,37 @@ impl Game {
         };
 
         if play_sound {
-            self.events_sender
-                .send(Message::Play2DSound {
-                    path: PathBuf::from("data/sounds/click.ogg"),
-                    gain: 0.8,
-                })
-                .unwrap();
+            self.message_sender.send(Message::Play2DSound {
+                path: PathBuf::from("data/sounds/click.ogg"),
+                gain: 0.8,
+            });
         }
     }
 
     fn render(&mut self) {
-        self.engine
-            .renderer
-            .render_ui_to_texture(
-                self.weapon_display.render_target.clone(),
-                &mut self.weapon_display.ui,
-            )
-            .unwrap();
+        Log::verify(self.engine.renderer.render_ui_to_texture(
+            self.weapon_display.render_target.clone(),
+            &mut self.weapon_display.ui,
+        ));
 
-        self.engine
-            .renderer
-            .render_ui_to_texture(
-                self.inventory_interface.render_target.clone(),
-                &mut self.inventory_interface.ui,
-            )
-            .unwrap();
+        Log::verify(self.engine.renderer.render_ui_to_texture(
+            self.inventory_interface.render_target.clone(),
+            &mut self.inventory_interface.ui,
+        ));
 
-        self.engine
-            .renderer
-            .render_ui_to_texture(
-                self.item_display.render_target.clone(),
-                &mut self.item_display.ui,
-            )
-            .unwrap();
+        Log::verify(self.engine.renderer.render_ui_to_texture(
+            self.item_display.render_target.clone(),
+            &mut self.item_display.ui,
+        ));
 
-        self.engine
-            .renderer
-            .render_ui_to_texture(
-                self.journal_display.render_target.clone(),
-                &mut self.journal_display.ui,
-            )
-            .unwrap();
+        Log::verify(self.engine.renderer.render_ui_to_texture(
+            self.journal_display.render_target.clone(),
+            &mut self.journal_display.ui,
+        ));
 
         self.door_ui_container.render(&mut self.engine.renderer);
 
-        self.engine.render().unwrap();
+        Log::verify(self.engine.render());
     }
 
     fn debug_render(&mut self) {
@@ -497,7 +504,7 @@ impl Game {
         if let Some(level) = &mut self.level {
             level.resolve(
                 &mut self.engine,
-                self.events_sender.clone(),
+                self.message_sender.clone(),
                 self.weapon_display.render_target.clone(),
                 self.inventory_interface.render_target.clone(),
                 self.item_display.render_target.clone(),
@@ -542,7 +549,7 @@ impl Game {
         self.menu.set_visible(&mut self.engine, false);
 
         let resource_manager = self.engine.resource_manager.clone();
-        let sender = self.events_sender.clone();
+        let sender = self.message_sender.clone();
         let display_texture = self.weapon_display.render_target.clone();
         let inventory_texture = self.inventory_interface.render_target.clone();
         let item_texture = self.item_display.render_target.clone();
@@ -685,7 +692,7 @@ impl Game {
     }
 
     fn handle_messages(&mut self, time: GameTime) {
-        while let Ok(message) = self.events_receiver.try_recv() {
+        while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
                     self.load_level(LevelKind::Arrival, None);
@@ -926,7 +933,7 @@ impl Game {
                     scene,
                     self.time.delta,
                     &self.control_scheme,
-                    &self.events_sender,
+                    &self.message_sender,
                 );
             }
         }

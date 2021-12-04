@@ -4,7 +4,7 @@ use crate::{
     level::turret::Turret,
     message::Message,
     weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
-    GameTime,
+    GameTime, MessageSender,
 };
 use rg3d::{
     core::{
@@ -19,9 +19,7 @@ use rg3d::{
     scene::{graph::Graph, node::Node, Scene},
 };
 use serde::Deserialize;
-use std::{
-    collections::HashMap, collections::HashSet, fs::File, path::PathBuf, sync::mpsc::Sender,
-};
+use std::{collections::HashMap, collections::HashSet, fs::File, path::PathBuf};
 
 #[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
 pub enum ProjectileKind {
@@ -222,7 +220,7 @@ impl Projectile {
         actors: &ActorContainer,
         weapons: &WeaponContainer,
         time: GameTime,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         // Fetch current position of projectile.
         let (position, collider) = if let Some(body) = self.body.as_ref() {
@@ -312,23 +310,19 @@ impl Projectile {
         self.lifetime -= time.delta;
 
         if self.lifetime <= 0.0 {
-            sender
-                .send(Message::CreateEffect {
-                    kind: effect_kind,
-                    position: effect_position,
-                    orientation: vector_to_quat(effect_normal),
-                })
-                .unwrap();
+            sender.send(Message::CreateEffect {
+                kind: effect_kind,
+                position: effect_position,
+                orientation: vector_to_quat(effect_normal),
+            });
 
-            sender
-                .send(Message::PlaySound {
-                    path: PathBuf::from(self.definition.impact_sound.clone()),
-                    position: effect_position,
-                    gain: 1.0,
-                    rolloff_factor: 4.0,
-                    radius: 3.0,
-                })
-                .unwrap();
+            sender.send(Message::PlaySound {
+                path: PathBuf::from(self.definition.impact_sound.clone()),
+                position: effect_position,
+                gain: 1.0,
+                rolloff_factor: 4.0,
+                radius: 3.0,
+            });
         }
 
         for hit in self.hits.drain() {
@@ -340,12 +334,10 @@ impl Projectile {
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        sender
-                            .send(Message::SightReaction {
-                                weapon,
-                                reaction: SightReaction::HitDetected,
-                            })
-                            .unwrap();
+                        sender.send(Message::SightReaction {
+                            weapon,
+                            reaction: SightReaction::HitDetected,
+                        });
                     }
 
                     weapons[weapon].definition.base_critical_shot_probability
@@ -355,28 +347,20 @@ impl Projectile {
             };
 
             match damage {
-                Damage::Splash { radius, amount } => {
-                    sender
-                        .send(Message::ApplySplashDamage {
-                            amount,
-                            radius,
-                            center: position,
-                            who: hit.who,
-                            critical_shot_probability,
-                        })
-                        .unwrap();
-                }
-                Damage::Point(amount) => {
-                    sender
-                        .send(Message::DamageActor {
-                            actor: hit.actor,
-                            who: hit.who,
-                            hitbox: hit.hit_box,
-                            amount,
-                            critical_shot_probability,
-                        })
-                        .unwrap();
-                }
+                Damage::Splash { radius, amount } => sender.send(Message::ApplySplashDamage {
+                    amount,
+                    radius,
+                    center: position,
+                    who: hit.who,
+                    critical_shot_probability,
+                }),
+                Damage::Point(amount) => sender.send(Message::DamageActor {
+                    actor: hit.actor,
+                    who: hit.who,
+                    hitbox: hit.hit_box,
+                    amount,
+                    critical_shot_probability,
+                }),
             }
         }
 
@@ -444,7 +428,7 @@ impl ProjectileContainer {
         actors: &ActorContainer,
         weapons: &WeaponContainer,
         time: GameTime,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         for projectile in self.pool.iter_mut() {
             projectile.update(scene, actors, weapons, time, sender);

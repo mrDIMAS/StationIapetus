@@ -28,9 +28,8 @@ use crate::{
         sight::SightReaction,
         Weapon, WeaponContainer,
     },
-    Engine, GameTime,
+    Engine, GameTime, MessageSender,
 };
-use rg3d::utils::log::Log;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -60,12 +59,13 @@ use rg3d::{
         transform::TransformBuilder,
         Scene,
     },
+    utils::log::Log,
     utils::navmesh::Navmesh,
 };
 use std::{
     ops::{Deref, DerefMut},
     path::{Path, PathBuf},
-    sync::{mpsc::Sender, Arc},
+    sync::Arc,
 };
 
 pub mod arrival;
@@ -130,7 +130,7 @@ pub struct BaseLevel {
     weapons: WeaponContainer,
     items: ItemContainer,
     spawn_points: Vec<SpawnPoint>,
-    sender: Option<Sender<Message>>,
+    sender: Option<MessageSender>,
     pub navmesh: Handle<Navmesh>,
     death_zones: Vec<DeathZone>,
     time: f32,
@@ -194,7 +194,7 @@ pub struct UpdateContext<'a> {
     pub doors: &'a DoorContainer,
     pub navmesh: Handle<Navmesh>,
     pub weapons: &'a WeaponContainer,
-    pub sender: &'a Sender<Message>,
+    pub sender: &'a MessageSender,
 }
 
 #[derive(Default)]
@@ -214,7 +214,7 @@ pub fn footstep_ray_check(
     begin: Vector3<f32>,
     scene: &mut Scene,
     self_collider: ColliderHandle,
-    sender: Sender<Message>,
+    sender: MessageSender,
 ) {
     let mut query_buffer = Vec::new();
 
@@ -235,17 +235,15 @@ pub fn footstep_ray_check(
         .into_iter()
         .filter(|i| i.collider != self_collider)
     {
-        sender
-            .send(Message::PlayEnvironmentSound {
-                collider: intersection.collider,
-                feature: intersection.feature,
-                position: intersection.position.coords,
-                sound_kind: SoundKind::FootStep,
-                gain: 0.2,
-                rolloff_factor: 1.0,
-                radius: 0.3,
-            })
-            .unwrap();
+        sender.send(Message::PlayEnvironmentSound {
+            collider: intersection.collider,
+            feature: intersection.feature,
+            position: intersection.position.coords,
+            sound_kind: SoundKind::FootStep,
+            gain: 0.2,
+            rolloff_factor: 1.0,
+            radius: 0.3,
+        });
     }
 }
 
@@ -421,7 +419,7 @@ async fn spawn_player(
     orientation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
     weapons: &mut WeaponContainer,
-    sender: &Sender<Message>,
+    sender: &MessageSender,
     resource_manager: ResourceManager,
     scene: &mut Scene,
     display_texture: Texture,
@@ -478,7 +476,7 @@ async fn give_new_weapon(
     weapons: &mut WeaponContainer,
     actors: &mut ActorContainer,
     scene: &mut Scene,
-    sender: &Sender<Message>,
+    sender: &MessageSender,
 ) {
     if actors.contains(actor) {
         let mut weapon = Weapon::new(kind, resource_manager, scene).await;
@@ -497,7 +495,7 @@ async fn spawn_bot(
     spawn_point: &mut SpawnPoint,
     actors: &mut ActorContainer,
     resource_manager: ResourceManager,
-    sender: &Sender<Message>,
+    sender: &MessageSender,
     scene: &mut Scene,
     weapon: Option<WeaponKind>,
     weapons: &mut WeaponContainer,
@@ -587,7 +585,7 @@ impl BaseLevel {
     pub async fn new(
         map: &str,
         resource_manager: ResourceManager,
-        sender: Sender<Message>,
+        sender: MessageSender,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
@@ -720,7 +718,7 @@ impl BaseLevel {
         scene: &mut Scene,
         dt: f32,
         control_scheme: &ControlScheme,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         if self.player.is_some() {
             if let Actor::Player(player) = self.actors.get_mut(self.player) {
@@ -869,17 +867,13 @@ impl BaseLevel {
 
             self.items.remove(item_handle, &mut scene.graph);
 
-            self.sender
-                .as_ref()
-                .unwrap()
-                .send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/item_pickup.ogg"),
-                    position,
-                    gain: 1.0,
-                    rolloff_factor: 3.0,
-                    radius: 2.0,
-                })
-                .unwrap();
+            self.sender.as_ref().unwrap().send(Message::PlaySound {
+                path: PathBuf::from("data/sounds/item_pickup.ogg"),
+                position,
+                gain: 1.0,
+                rolloff_factor: 3.0,
+                radius: 2.0,
+            });
 
             let character = self.actors.get_mut(actor);
 
@@ -1023,17 +1017,13 @@ impl BaseLevel {
                             if let Some(grunt_sound) =
                                 bot.definition.pain_sounds.choose(&mut rand::thread_rng())
                             {
-                                self.sender
-                                    .as_ref()
-                                    .unwrap()
-                                    .send(Message::PlaySound {
-                                        path: PathBuf::from(grunt_sound.clone()),
-                                        position: actor.position(&scene.graph),
-                                        gain: 0.8,
-                                        rolloff_factor: 1.0,
-                                        radius: 0.6,
-                                    })
-                                    .unwrap();
+                                self.sender.as_ref().unwrap().send(Message::PlaySound {
+                                    path: PathBuf::from(grunt_sound.clone()),
+                                    position: actor.position(&scene.graph),
+                                    gain: 0.8,
+                                    rolloff_factor: 1.0,
+                                    radius: 0.6,
+                                });
                             }
                         }
                         Actor::Player(_) => {
@@ -1072,17 +1062,13 @@ impl BaseLevel {
                     .bounds
                     .is_contains_point(actor.position(&scene.graph))
                 {
-                    self.sender
-                        .as_ref()
-                        .unwrap()
-                        .send(Message::DamageActor {
-                            actor: handle,
-                            who: Default::default(),
-                            hitbox: None,
-                            amount: 99999.0,
-                            critical_shot_probability: 0.0,
-                        })
-                        .unwrap();
+                    self.sender.as_ref().unwrap().send(Message::DamageActor {
+                        actor: handle,
+                        who: Default::default(),
+                        hitbox: None,
+                        amount: 99999.0,
+                        critical_shot_probability: 0.0,
+                    });
                 }
             }
         }
@@ -1091,11 +1077,7 @@ impl BaseLevel {
     fn update_game_ending(&self, scene: &Scene) {
         if let Actor::Player(player) = self.actors.get(self.player) {
             if player.is_completely_dead(scene) {
-                self.sender
-                    .as_ref()
-                    .unwrap()
-                    .send(Message::EndMatch)
-                    .unwrap();
+                self.sender.as_ref().unwrap().send(Message::EndMatch);
             }
         }
     }
@@ -1173,39 +1155,33 @@ impl BaseLevel {
             let sender = self.sender.as_ref().unwrap();
 
             // Just send new messages, instead of doing everything manually here.
-            sender
-                .send(Message::CreateEffect {
-                    kind: if hit.actor.is_some() {
-                        EffectKind::BloodSpray
-                    } else {
-                        EffectKind::BulletImpact
-                    },
-                    position: hit.position,
-                    orientation: vector_to_quat(hit.normal),
-                })
-                .unwrap();
+            sender.send(Message::CreateEffect {
+                kind: if hit.actor.is_some() {
+                    EffectKind::BloodSpray
+                } else {
+                    EffectKind::BulletImpact
+                },
+                position: hit.position,
+                orientation: vector_to_quat(hit.normal),
+            });
 
-            sender
-                .send(Message::PlayEnvironmentSound {
-                    collider: hit.collider,
-                    feature: hit.feature,
-                    position: hit.position,
-                    sound_kind: SoundKind::Impact,
-                    gain: 1.0,
-                    rolloff_factor: 1.0,
-                    radius: 0.5,
-                })
-                .unwrap();
+            sender.send(Message::PlayEnvironmentSound {
+                collider: hit.collider,
+                feature: hit.feature,
+                position: hit.position,
+                sound_kind: SoundKind::Impact,
+                gain: 1.0,
+                rolloff_factor: 1.0,
+                radius: 0.5,
+            });
 
             let critical_shot_probability = match shooter {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        sender
-                            .send(Message::SightReaction {
-                                weapon,
-                                reaction: SightReaction::HitDetected,
-                            })
-                            .unwrap();
+                        sender.send(Message::SightReaction {
+                            weapon,
+                            reaction: SightReaction::HitDetected,
+                        });
                     }
 
                     self.weapons[weapon]
@@ -1216,17 +1192,15 @@ impl BaseLevel {
                 _ => 0.0,
             };
 
-            sender
-                .send(Message::DamageActor {
-                    actor: hit.actor,
-                    who: hit.who,
-                    hitbox: hit.hit_box,
-                    amount: damage
-                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
-                        .amount(),
-                    critical_shot_probability,
-                })
-                .unwrap();
+            sender.send(Message::DamageActor {
+                actor: hit.actor,
+                who: hit.who,
+                hitbox: hit.hit_box,
+                amount: damage
+                    .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
+                    .amount(),
+                critical_shot_probability,
+            });
 
             let dir = hit.position - begin;
 
@@ -1381,18 +1355,14 @@ impl BaseLevel {
             // TODO: Add occlusion test. This will hit actors through walls.
             let position = actor.position(&scene.graph);
             if position.metric_distance(&center) <= radius {
-                self.sender
-                    .as_ref()
-                    .unwrap()
-                    .send(Message::DamageActor {
-                        actor: actor_handle,
-                        who,
-                        hitbox: None,
-                        /// TODO: Maybe collect all hitboxes?
-                        amount,
-                        critical_shot_probability,
-                    })
-                    .unwrap();
+                self.sender.as_ref().unwrap().send(Message::DamageActor {
+                    actor: actor_handle,
+                    who,
+                    hitbox: None,
+                    /// TODO: Maybe collect all hitboxes?
+                    amount,
+                    critical_shot_probability,
+                });
             }
         }
     }
@@ -1540,7 +1510,7 @@ impl BaseLevel {
     pub fn resolve(
         &mut self,
         engine: &mut Engine,
-        sender: Sender<Message>,
+        sender: MessageSender,
         display_texture: Texture,
         inventory_texture: Texture,
         item_texture: Texture,
@@ -1561,7 +1531,7 @@ impl BaseLevel {
         self.doors.resolve(scene);
     }
 
-    pub fn set_message_sender(&mut self, sender: Sender<Message>) {
+    pub fn set_message_sender(&mut self, sender: MessageSender) {
         self.sender = Some(sender.clone());
     }
 

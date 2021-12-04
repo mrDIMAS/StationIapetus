@@ -15,10 +15,9 @@ use crate::{
         BotDefinition, BotKind, Target,
     },
     character::Character,
-    message::Message,
     utils::BodyImpactHandler,
     weapon::WeaponContainer,
-    GameTime,
+    GameTime, MessageSender,
 };
 use rg3d::core::math::SmoothAngle;
 use rg3d::{
@@ -33,7 +32,6 @@ use rg3d::{
         navmesh::{Navmesh, NavmeshAgent},
     },
 };
-use std::sync::mpsc::Sender;
 
 pub mod aim;
 pub mod death;
@@ -91,7 +89,7 @@ pub struct BehaviorContext<'a> {
     pub bot_handle: Handle<Actor>,
     pub targets: &'a [TargetDescriptor],
     pub weapons: &'a WeaponContainer,
-    pub sender: &'a Sender<Message>,
+    pub sender: &'a MessageSender,
     pub time: GameTime,
     pub navmesh: Handle<Navmesh>,
     pub upper_body_machine: &'a UpperBodyMachine,

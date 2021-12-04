@@ -1,4 +1,4 @@
-use crate::{actor::ActorContainer, message::Message};
+use crate::{actor::ActorContainer, message::Message, MessageSender};
 use rg3d::{
     core::{
         pool::{Handle, Pool},
@@ -6,7 +6,6 @@ use rg3d::{
     },
     scene::{node::Node, Scene},
 };
-use std::sync::mpsc::Sender;
 
 #[derive(Visit)]
 pub enum TriggerKind {
@@ -46,7 +45,7 @@ impl TriggerContainer {
         let _ = self.pool.spawn(trigger);
     }
 
-    pub fn update(&mut self, scene: &Scene, actors: &ActorContainer, sender: &Sender<Message>) {
+    pub fn update(&mut self, scene: &Scene, actors: &ActorContainer, sender: &MessageSender) {
         for trigger in self.pool.iter() {
             let position = scene.graph[trigger.node].global_position();
 
@@ -55,8 +54,8 @@ impl TriggerContainer {
 
                 if actor_position.metric_distance(&position) < 1.0 {
                     match trigger.kind {
-                        TriggerKind::NextLevel => sender.send(Message::LoadNextLevel).unwrap(),
-                        TriggerKind::EndGame => sender.send(Message::EndGame).unwrap(),
+                        TriggerKind::NextLevel => sender.send(Message::LoadNextLevel),
+                        TriggerKind::EndGame => sender.send(Message::EndGame),
                     }
                 }
             }

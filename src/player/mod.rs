@@ -19,7 +19,7 @@ use crate::{
         projectile::{ProjectileKind, Shooter},
         WeaponContainer,
     },
-    CollisionGroups, GameTime,
+    CollisionGroups, GameTime, MessageSender,
 };
 use rg3d::core::sstorage::ImmutableString;
 use rg3d::utils::log::Log;
@@ -63,7 +63,7 @@ use rg3d::{
 };
 use std::{
     ops::{Deref, DerefMut},
-    sync::{mpsc::Sender, Arc},
+    sync::Arc,
 };
 
 mod camera;
@@ -593,7 +593,7 @@ impl Player {
         self_handle: Handle<Actor>,
         scene: &mut Scene,
         items: &ItemContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         for (item_handle, item) in items.pair_iter() {
             let self_position = scene.graph[self.pivot].global_position();
@@ -601,22 +601,17 @@ impl Player {
 
             let distance = (item_position - self_position).norm();
             if distance < 0.75 {
-                sender
-                    .send(Message::ShowItemDisplay {
-                        item: item.get_kind(),
-                        count: item.stack_size,
-                    })
-                    .unwrap();
+                sender.send(Message::ShowItemDisplay {
+                    item: item.get_kind(),
+                    count: item.stack_size,
+                });
 
                 if self.controller.action {
-                    sender
-                        .send(Message::PickUpItem {
-                            actor: self_handle,
-                            item: item_handle,
-                        })
-                        .unwrap();
-
-                    sender.send(Message::SyncInventory).unwrap();
+                    sender.send(Message::PickUpItem {
+                        actor: self_handle,
+                        item: item_handle,
+                    });
+                    sender.send(Message::SyncInventory);
 
                     self.controller.action = false;
                 }
@@ -637,7 +632,7 @@ impl Player {
         self_handle: Handle<Actor>,
         scene: &Scene,
         door_container: &DoorContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         if self.controller.action {
             door_container.check_actor(self.position(&scene.graph), self_handle, sender);
@@ -669,7 +664,7 @@ impl Player {
         &mut self,
         self_handle: Handle<Actor>,
         scene: &mut Scene,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         while let Some(event) = scene
             .animations
@@ -682,12 +677,10 @@ impl Player {
                     RequiredWeapon::Next => self.next_weapon(sender),
                     RequiredWeapon::Previous => self.prev_weapon(sender),
                     RequiredWeapon::Specific(kind) => {
-                        sender
-                            .send(Message::GrabWeapon {
-                                kind,
-                                actor: self_handle,
-                            })
-                            .unwrap();
+                        sender.send(Message::GrabWeapon {
+                            kind,
+                            actor: self_handle,
+                        });
                     }
                 }
 
@@ -715,7 +708,7 @@ impl Player {
         &mut self,
         self_handle: Handle<Actor>,
         scene: &mut Scene,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         while let Some(event) = scene
             .animations
@@ -727,15 +720,13 @@ impl Player {
                 let direction = scene.graph[self.camera_controller.camera()].look_vector();
 
                 if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
-                    sender
-                        .send(Message::CreateProjectile {
-                            kind: ProjectileKind::Grenade,
-                            position,
-                            direction,
-                            initial_velocity: direction.scale(15.0),
-                            shooter: Shooter::Actor(self_handle),
-                        })
-                        .unwrap();
+                    sender.send(Message::CreateProjectile {
+                        kind: ProjectileKind::Grenade,
+                        position,
+                        direction,
+                        initial_velocity: direction.scale(15.0),
+                        shooter: Shooter::Actor(self_handle),
+                    });
                 }
             }
         }
@@ -847,7 +838,7 @@ impl Player {
         is_jumping: bool,
         has_ground_contact: bool,
         weapons: &WeaponContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         let weapon_kind = self.current_weapon_kind(weapons);
 
@@ -937,7 +928,7 @@ impl Player {
         scene: &mut Scene,
         weapons: &WeaponContainer,
         time: GameTime,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         self.v_recoil.update(time.delta);
         self.h_recoil.update(time.delta);
@@ -965,12 +956,10 @@ impl Player {
                         .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                         == ammo_per_shot
                     {
-                        sender
-                            .send(Message::ShootWeapon {
-                                weapon: current_weapon_handle,
-                                direction: None,
-                            })
-                            .unwrap();
+                        sender.send(Message::ShootWeapon {
+                            weapon: current_weapon_handle,
+                            direction: None,
+                        });
 
                         self.camera_controller.request_shake_camera();
                         self.v_recoil
@@ -1252,7 +1241,7 @@ impl Player {
         scene: &mut Scene,
         weapons: &WeaponContainer,
         control_scheme: &ControlScheme,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         let button_state = match event {
             Event::WindowEvent { event, .. } => {
@@ -1354,11 +1343,9 @@ impl Player {
             } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
                     let current_weapon = self.current_weapon();
-                    sender
-                        .send(Message::SwitchFlashLight {
-                            weapon: current_weapon,
-                        })
-                        .unwrap();
+                    sender.send(Message::SwitchFlashLight {
+                        weapon: current_weapon,
+                    });
                 }
             } else if button == control_scheme.grab_ak47.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::Ak47) {
@@ -1413,7 +1400,7 @@ impl Player {
                 let new_visibility = !inventory.visibility();
                 inventory.set_visibility(new_visibility);
                 if new_visibility {
-                    sender.send(Message::SyncInventory).unwrap();
+                    sender.send(Message::SyncInventory);
                 }
             } else if button == control_scheme.journal.button
                 && state == ElementState::Pressed
@@ -1425,7 +1412,7 @@ impl Player {
                 let new_visibility = !journal.visibility();
                 journal.set_visibility(new_visibility);
                 if new_visibility {
-                    sender.send(Message::SyncJournal).unwrap();
+                    sender.send(Message::SyncJournal);
                 }
             }
         }

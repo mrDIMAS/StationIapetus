@@ -4,6 +4,7 @@ use crate::{
     item::{Item, ItemKind},
     message::Message,
     player::Player,
+    MessageSender,
 };
 use rg3d::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
@@ -28,17 +29,14 @@ use rg3d::{
     resource::texture::Texture,
 };
 use std::any::{Any, TypeId};
-use std::{
-    ops::{Deref, DerefMut},
-    sync::mpsc::Sender,
-};
+use std::ops::{Deref, DerefMut};
 
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: Texture,
     items_panel: Handle<UiNode>,
     is_enabled: bool,
-    sender: Sender<Message>,
+    sender: MessageSender,
     item_description: Handle<UiNode>,
     scroll_viewer: Handle<UiNode>,
 }
@@ -211,7 +209,7 @@ impl InventoryInterface {
     pub const WIDTH: f32 = 400.0;
     pub const HEIGHT: f32 = 300.0;
 
-    pub fn new(sender: Sender<Message>) -> Self {
+    pub fn new(sender: MessageSender) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
@@ -459,23 +457,19 @@ impl InventoryInterface {
                                             .try_extract_exact_items(item.item, 1)
                                             == 1
                                         {
-                                            self.sender
-                                                .send(Message::UseItem {
-                                                    actor: player_handle,
-                                                    kind: item.item,
-                                                })
-                                                .unwrap();
-                                            self.sender.send(Message::SyncInventory).unwrap();
+                                            self.sender.send(Message::UseItem {
+                                                actor: player_handle,
+                                                kind: item.item,
+                                            });
+                                            self.sender.send(Message::SyncInventory);
                                         }
                                     } else if let Some(associated_weapon) =
                                         item.item.associated_weapon()
                                     {
-                                        self.sender
-                                            .send(Message::GrabWeapon {
-                                                kind: associated_weapon,
-                                                actor: player_handle,
-                                            })
-                                            .unwrap();
+                                        self.sender.send(Message::GrabWeapon {
+                                            kind: associated_weapon,
+                                            actor: player_handle,
+                                        });
                                     }
                                 } else {
                                     unreachable!()
@@ -489,14 +483,12 @@ impl InventoryInterface {
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
                                 {
-                                    self.sender
-                                        .send(Message::DropItems {
-                                            actor: player_handle,
-                                            item: item.item,
-                                            count: 1,
-                                        })
-                                        .unwrap();
-                                    self.sender.send(Message::SyncInventory).unwrap();
+                                    self.sender.send(Message::DropItems {
+                                        actor: player_handle,
+                                        item: item.item,
+                                        count: 1,
+                                    });
+                                    self.sender.send(Message::SyncInventory);
                                 } else {
                                     unreachable!()
                                 }

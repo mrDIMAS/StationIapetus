@@ -63,14 +63,11 @@ impl<'a> Behavior<'a> for StayDead {
 
         if let Some(body) = context.character.body.as_ref() {
             for item in context.character.inventory.items() {
-                context
-                    .sender
-                    .send(Message::DropItems {
-                        actor: context.bot_handle,
-                        item: item.kind,
-                        count: item.amount,
-                    })
-                    .unwrap();
+                context.sender.send(Message::DropItems {
+                    actor: context.bot_handle,
+                    item: item.kind,
+                    count: item.amount,
+                })
             }
 
             context.scene.physics.remove_body(body);

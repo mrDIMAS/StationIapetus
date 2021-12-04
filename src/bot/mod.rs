@@ -1,4 +1,3 @@
-use crate::door::DoorContainer;
 use crate::{
     actor::{Actor, TargetDescriptor},
     bot::{
@@ -7,20 +6,20 @@ use crate::{
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
     character::{find_hit_boxes, Character},
+    door::DoorContainer,
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
     level::UpdateContext,
     utils::BodyImpactHandler,
     weapon::projectile::Damage,
-    CollisionGroups, Message,
+    CollisionGroups, Message, MessageSender,
 };
-use rg3d::core::algebra::Point3;
-use rg3d::core::arrayvec::ArrayVec;
-use rg3d::physics3d::{Intersection, RayCastOptions};
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
+        algebra::Point3,
         algebra::{Isometry3, Translation3, UnitQuaternion, Vector3},
+        arrayvec::ArrayVec,
         color::Color,
         math::SmoothAngle,
         pool::Handle,
@@ -33,6 +32,7 @@ use rg3d::{
         dynamics::{CoefficientCombineRule, RigidBodyBuilder, RigidBodyType},
         geometry::{ColliderBuilder, InteractionGroups},
     },
+    physics3d::{Intersection, RayCastOptions},
     rand,
     scene::{
         self, base::BaseBuilder, debug::SceneDrawingContext, graph::Graph, node::Node,
@@ -44,7 +44,6 @@ use rg3d::{
     },
 };
 use serde::Deserialize;
-use std::sync::mpsc::Sender;
 use std::{
     collections::HashMap,
     fs::File,
@@ -354,7 +353,7 @@ impl Bot {
         self_handle: Handle<Actor>,
         scene: &Scene,
         door_container: &DoorContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         if let Some(target) = self.target.as_ref() {
             let mut query_storage = ArrayVec::<Intersection, 64>::new();
@@ -388,12 +387,10 @@ impl Bot {
                                 .filter_map(|c| scene.physics.colliders.handle_map().key_of(c))
                                 .any(|c| *c == intersection.collider)
                             {
-                                sender
-                                    .send(Message::TryOpenDoor {
-                                        door: door_handle,
-                                        actor: self_handle,
-                                    })
-                                    .unwrap();
+                                sender.send(Message::TryOpenDoor {
+                                    door: door_handle,
+                                    actor: self_handle,
+                                });
                             }
                         }
                     }

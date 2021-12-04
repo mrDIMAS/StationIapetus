@@ -3,6 +3,7 @@ use crate::{
     actor::{Actor, ActorContainer},
     message::Message,
     weapon::projectile::{Damage, Shooter},
+    MessageSender,
 };
 use rg3d::{
     core::{
@@ -21,7 +22,6 @@ use std::iter::FromIterator;
 use std::{
     ops::{Index, IndexMut},
     path::PathBuf,
-    sync::mpsc::Sender,
 };
 
 #[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord, Visit)]
@@ -85,21 +85,19 @@ impl Barrel {
         owner_handle: Handle<Turret>,
         scene: &Scene,
         target_position: Vector3<f32>,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
         let shoot_point = &scene.graph[self.shoot_point];
 
-        sender
-            .send(Message::ShootRay {
-                shooter: Shooter::Turret(owner_handle),
-                begin: shoot_point.global_position(),
-                end: target_position,
-                damage: Damage::Point(10.0),
-                shot_effect: ShotEffect::Smoke,
-            })
-            .unwrap();
+        sender.send(Message::ShootRay {
+            shooter: Shooter::Turret(owner_handle),
+            begin: shoot_point.global_position(),
+            end: target_position,
+            damage: Damage::Point(10.0),
+            shot_effect: ShotEffect::Smoke,
+        });
 
         let sounds = [
             "data/sounds/turret_shot_1.ogg",
@@ -107,15 +105,13 @@ impl Barrel {
             "data/sounds/turret_shot_3.ogg",
         ];
 
-        sender
-            .send(Message::PlaySound {
-                path: PathBuf::from(sounds.choose(&mut thread_rng()).unwrap()),
-                position: shoot_point.global_position(),
-                gain: 1.0,
-                rolloff_factor: 1.0,
-                radius: 3.0,
-            })
-            .unwrap();
+        sender.send(Message::PlaySound {
+            path: PathBuf::from(sounds.choose(&mut thread_rng()).unwrap()),
+            position: shoot_point.global_position(),
+            gain: 1.0,
+            rolloff_factor: 1.0,
+            radius: 3.0,
+        });
     }
 
     fn update(&mut self, scene: &mut Scene) {
@@ -279,7 +275,7 @@ impl Turret {
         self_handle: Handle<Self>,
         scene: &mut Scene,
         actors: &ActorContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
         dt: f32,
     ) {
         self.update_frustum(scene);
@@ -396,7 +392,7 @@ impl TurretContainer {
         &mut self,
         scene: &mut Scene,
         actors: &ActorContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
         dt: f32,
     ) {
         for (self_handle, turret) in self.pool.pair_iter_mut() {

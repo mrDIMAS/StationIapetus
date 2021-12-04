@@ -3,7 +3,7 @@ use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, ScrollBarData},
     message::Message,
-    Engine,
+    Engine, MessageSender,
 };
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
@@ -29,11 +29,10 @@ use rg3d::{
     utils::log::{Log, MessageKind},
     window::Fullscreen,
 };
-use std::sync::mpsc::Sender;
 
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
-    sender: Sender<Message>,
+    sender: MessageSender,
     sound_volume: Handle<UiNode>,
     pub music_volume: Handle<UiNode>,
     video_mode: Handle<UiNode>,
@@ -162,7 +161,7 @@ impl OptionsMenu {
     pub fn new(
         engine: &mut Engine,
         control_scheme: &ControlScheme,
-        sender: Sender<Message>,
+        sender: MessageSender,
         show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
@@ -701,9 +700,7 @@ impl OptionsMenu {
         if let Some(ScrollBarMessage::Value(new_value)) = message.data() {
             if message.direction() == MessageDirection::FromWidget {
                 if message.destination() == self.sound_volume {
-                    self.sender
-                        .send(Message::SetMasterVolume(*new_value))
-                        .unwrap();
+                    self.sender.send(Message::SetMasterVolume(*new_value));
                     changed = true;
                 } else if message.destination() == self.point_shadow_distance {
                     settings.point_shadows_distance = *new_value;
@@ -715,9 +712,7 @@ impl OptionsMenu {
                     control_scheme.mouse_sens = *new_value;
                     changed = true;
                 } else if message.destination() == self.music_volume {
-                    self.sender
-                        .send(Message::SetMusicVolume(*new_value))
-                        .unwrap();
+                    self.sender.send(Message::SetMusicVolume(*new_value));
                     changed = true;
                 }
             }
@@ -778,7 +773,7 @@ impl OptionsMenu {
                 changed = true;
             } else if message.destination() == self.use_hrtf {
                 changed = true;
-                self.sender.send(Message::SetUseHrtf(value)).unwrap();
+                self.sender.send(Message::SetUseHrtf(value));
             } else if message.destination() == self.show_debug_info {
                 changed = true;
                 *show_debug_info = value;
@@ -819,7 +814,7 @@ impl OptionsMenu {
         }
 
         if changed {
-            self.sender.send(Message::SaveConfig).unwrap();
+            self.sender.send(Message::SaveConfig);
         }
     }
 }

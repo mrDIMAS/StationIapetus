@@ -2,7 +2,7 @@
 //! However most of the styles are used from dark theme of rg3d-ui library so there
 //! is not much.
 
-use crate::message::Message;
+use crate::{message::Message, MessageSender};
 use rg3d::{
     core::pool::Handle,
     gui::{
@@ -23,7 +23,6 @@ use rg3d::{
         VerticalAlignment,
     },
 };
-use std::sync::mpsc::Sender;
 
 pub mod inventory;
 pub mod item_display;
@@ -92,11 +91,11 @@ pub struct DeathScreen {
     load_game: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
     exit_game: Handle<UiNode>,
-    sender: Sender<Message>,
+    sender: MessageSender,
 }
 
 impl DeathScreen {
-    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: Sender<Message>) -> Self {
+    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: MessageSender) -> Self {
         let load_game;
         let exit_to_menu;
         let exit_game;
@@ -184,11 +183,11 @@ impl DeathScreen {
     pub fn handle_ui_message(&mut self, message: &UiMessage) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {
-                self.sender.send(Message::LoadGame).unwrap();
+                self.sender.send(Message::LoadGame);
             } else if message.destination() == self.exit_to_menu {
-                self.sender.send(Message::ToggleMainMenu).unwrap();
+                self.sender.send(Message::ToggleMainMenu);
             } else if message.destination() == self.exit_game {
-                self.sender.send(Message::QuitGame).unwrap();
+                self.sender.send(Message::QuitGame);
             }
         }
     }
@@ -210,11 +209,11 @@ pub struct FinalScreen {
     root: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
     exit_game: Handle<UiNode>,
-    sender: Sender<Message>,
+    sender: MessageSender,
 }
 
 impl FinalScreen {
-    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: Sender<Message>) -> Self {
+    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: MessageSender) -> Self {
         let exit_to_menu;
         let exit_game;
         let root = BorderBuilder::new(
@@ -290,9 +289,9 @@ impl FinalScreen {
     pub fn handle_ui_message(&mut self, message: &UiMessage) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.exit_to_menu {
-                self.sender.send(Message::ToggleMainMenu).unwrap();
+                self.sender.send(Message::ToggleMainMenu);
             } else if message.destination() == self.exit_game {
-                self.sender.send(Message::QuitGame).unwrap();
+                self.sender.send(Message::QuitGame);
             }
         }
     }

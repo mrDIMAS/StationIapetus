@@ -70,20 +70,17 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                 if event.signal_id == UpperBodyMachine::HIT_SIGNAL
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
-                    context
-                        .sender
-                        .send(Message::DamageActor {
-                            actor: target.handle,
-                            who: Default::default(),
-                            hitbox: None,
-                            /// TODO: Find hit box maybe?
-                            amount: context.definition.attack_animations
-                                [self.attack_animation_index as usize]
-                                .damage
-                                .amount(),
-                            critical_shot_probability: 0.0,
-                        })
-                        .unwrap();
+                    context.sender.send(Message::DamageActor {
+                        actor: target.handle,
+                        who: Default::default(),
+                        hitbox: None,
+                        /// TODO: Find hit box maybe?
+                        amount: context.definition.attack_animations
+                            [self.attack_animation_index as usize]
+                            .damage
+                            .amount(),
+                        critical_shot_probability: 0.0,
+                    });
 
                     if let Some(attack_sound) = context
                         .definition
@@ -91,16 +88,13 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                         .iter()
                         .choose(&mut rg3d::rand::thread_rng())
                     {
-                        context
-                            .sender
-                            .send(Message::PlaySound {
-                                path: attack_sound.clone().into(),
-                                position: context.character.position(&context.scene.graph),
-                                gain: 1.0,
-                                rolloff_factor: 1.0,
-                                radius: 1.0,
-                            })
-                            .unwrap();
+                        context.sender.send(Message::PlaySound {
+                            path: attack_sound.clone().into(),
+                            position: context.character.position(&context.scene.graph),
+                            gain: 1.0,
+                            rolloff_factor: 1.0,
+                            radius: 1.0,
+                        });
                     }
                 }
             }

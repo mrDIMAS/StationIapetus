@@ -2,13 +2,13 @@ use crate::{
     inventory::Inventory,
     message::Message,
     weapon::{definition::WeaponKind, Weapon, WeaponContainer},
+    MessageSender,
 };
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     physics3d::{ColliderHandle, RigidBodyHandle},
     scene::{graph::Graph, node::Node, physics::Physics, Scene},
 };
-use std::sync::mpsc::Sender;
 
 #[derive(Visit)]
 pub struct Character {
@@ -145,14 +145,12 @@ impl Character {
         &self.weapons
     }
 
-    pub fn add_weapon(&mut self, weapon: Handle<Weapon>, sender: &Sender<Message>) {
+    pub fn add_weapon(&mut self, weapon: Handle<Weapon>, sender: &MessageSender) {
         for other_weapon in self.weapons.iter() {
-            sender
-                .send(Message::ShowWeapon {
-                    weapon: *other_weapon,
-                    state: false,
-                })
-                .unwrap();
+            sender.send(Message::ShowWeapon {
+                weapon: *other_weapon,
+                state: false,
+            });
         }
 
         self.current_weapon = self.weapons.len() as u32;
@@ -165,7 +163,7 @@ impl Character {
         &mut self,
         weapon: WeaponKind,
         weapons: &WeaponContainer,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         if let Some(index) = self
             .weapons
@@ -173,12 +171,10 @@ impl Character {
             .position(|&w| weapons[w].get_kind() == weapon)
         {
             for other_weapon in self.weapons.iter() {
-                sender
-                    .send(Message::ShowWeapon {
-                        weapon: *other_weapon,
-                        state: false,
-                    })
-                    .unwrap();
+                sender.send(Message::ShowWeapon {
+                    weapon: *other_weapon,
+                    state: false,
+                });
             }
 
             self.current_weapon = index as u32;
@@ -195,18 +191,16 @@ impl Character {
         }
     }
 
-    fn request_current_weapon_visible(&self, state: bool, sender: &Sender<Message>) {
+    fn request_current_weapon_visible(&self, state: bool, sender: &MessageSender) {
         if let Some(current_weapon) = self.weapons.get(self.current_weapon as usize) {
-            sender
-                .send(Message::ShowWeapon {
-                    weapon: *current_weapon,
-                    state,
-                })
-                .unwrap()
+            sender.send(Message::ShowWeapon {
+                weapon: *current_weapon,
+                state,
+            });
         }
     }
 
-    pub fn next_weapon(&mut self, sender: &Sender<Message>) {
+    pub fn next_weapon(&mut self, sender: &MessageSender) {
         if !self.weapons.is_empty() && (self.current_weapon as usize) < self.weapons.len() - 1 {
             self.request_current_weapon_visible(false, sender);
 
@@ -216,7 +210,7 @@ impl Character {
         }
     }
 
-    pub fn prev_weapon(&mut self, sender: &Sender<Message>) {
+    pub fn prev_weapon(&mut self, sender: &MessageSender) {
         if self.current_weapon > 0 {
             self.request_current_weapon_visible(false, sender);
 
@@ -226,7 +220,7 @@ impl Character {
         }
     }
 
-    pub fn use_first_weapon_or_none(&mut self, sender: &Sender<Message>) {
+    pub fn use_first_weapon_or_none(&mut self, sender: &MessageSender) {
         if !self.weapons.is_empty() {
             self.request_current_weapon_visible(false, sender);
 
@@ -236,7 +230,7 @@ impl Character {
         }
     }
 
-    pub fn set_current_weapon(&mut self, i: usize, sender: &Sender<Message>) {
+    pub fn set_current_weapon(&mut self, i: usize, sender: &MessageSender) {
         if i < self.weapons.len() {
             self.request_current_weapon_visible(false, sender);
 

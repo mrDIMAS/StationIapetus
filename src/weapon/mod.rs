@@ -9,7 +9,7 @@ use crate::{
         projectile::Shooter,
         sight::LaserSight,
     },
-    CollisionGroups, GameTime,
+    CollisionGroups, GameTime, MessageSender,
 };
 use rg3d::core::sstorage::ImmutableString;
 use rg3d::{
@@ -45,7 +45,6 @@ use std::{
     hash::{Hash, Hasher},
     ops::{Index, IndexMut},
     path::PathBuf,
-    sync::mpsc::Sender,
 };
 
 pub mod definition;
@@ -405,7 +404,7 @@ impl Weapon {
         time: GameTime,
         resource_manager: ResourceManager,
         direction: Option<Vector3<f32>>,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         self.last_shot_time = time.elapsed;
 
@@ -416,15 +415,13 @@ impl Weapon {
             .shot_sounds
             .choose(&mut rg3d::rand::thread_rng())
         {
-            sender
-                .send(Message::PlaySound {
-                    path: PathBuf::from(random_shot_sound.clone()),
-                    position,
-                    gain: 1.0,
-                    rolloff_factor: 5.0,
-                    radius: 3.0,
-                })
-                .unwrap();
+            sender.send(Message::PlaySound {
+                path: PathBuf::from(random_shot_sound.clone()),
+                position,
+                gain: 1.0,
+                rolloff_factor: 5.0,
+                radius: 3.0,
+            });
         }
 
         if self.muzzle_flash.is_some() {
@@ -460,25 +457,21 @@ impl Weapon {
             .unwrap_or_else(Vector3::z);
 
         match self.definition.projectile {
-            WeaponProjectile::Projectile(projectile) => sender
-                .send(Message::CreateProjectile {
-                    kind: projectile,
-                    position,
-                    direction,
-                    shooter: Shooter::Weapon(self_handle),
-                    initial_velocity: Default::default(),
-                })
-                .unwrap(),
+            WeaponProjectile::Projectile(projectile) => sender.send(Message::CreateProjectile {
+                kind: projectile,
+                position,
+                direction,
+                shooter: Shooter::Weapon(self_handle),
+                initial_velocity: Default::default(),
+            }),
             WeaponProjectile::Ray { damage } => {
-                sender
-                    .send(Message::ShootRay {
-                        shooter: Shooter::Weapon(self_handle),
-                        begin: position,
-                        end: position + direction.scale(1000.0),
-                        damage,
-                        shot_effect: self.definition.shot_effect,
-                    })
-                    .unwrap();
+                sender.send(Message::ShootRay {
+                    shooter: Shooter::Weapon(self_handle),
+                    begin: position,
+                    end: position + direction.scale(1000.0),
+                    damage,
+                    shot_effect: self.definition.shot_effect,
+                });
             }
         }
     }

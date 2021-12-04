@@ -1,8 +1,8 @@
 use crate::{
     level::footstep_ray_check,
-    message::Message,
     player::{make_hit_reaction_state, upper_body::CombatWeaponKind, HitReactionStateDefinition},
     utils::create_play_animation_state,
+    MessageSender,
 };
 use rg3d::{
     animation::{
@@ -21,7 +21,6 @@ use rg3d::{
     resource::model::Model,
     scene::{node::Node, Scene},
 };
-use std::sync::mpsc::Sender;
 
 struct WalkStateDefinition {
     state: Handle<State>,
@@ -437,7 +436,7 @@ impl LowerBodyMachine {
         scene: &mut Scene,
         dt: f32,
         input: LowerBodyMachineInput,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
         has_ground_contact: bool,
         self_collider: ColliderHandle,
     ) {

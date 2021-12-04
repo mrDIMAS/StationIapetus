@@ -1,6 +1,6 @@
 use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
-    options_menu::OptionsMenu, utils::create_camera, Engine,
+    options_menu::OptionsMenu, utils::create_camera, Engine, MessageSender,
 };
 use rg3d::{
     core::{
@@ -22,11 +22,10 @@ use rg3d::{
     scene::{node::Node, Scene},
     sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
-use std::sync::mpsc::Sender;
 
 pub struct Menu {
     pub scene: MenuScene,
-    sender: Sender<Message>,
+    sender: MessageSender,
     root: Handle<UiNode>,
     btn_load_test_bed: Handle<UiNode>,
     btn_new_game: Handle<UiNode>,
@@ -114,7 +113,7 @@ impl Menu {
     pub async fn new(
         engine: &mut Engine,
         control_scheme: &ControlScheme,
-        sender: Sender<Message>,
+        sender: MessageSender,
         font: SharedFont,
         show_debug_info: bool,
         sound_config: &SoundConfig,
@@ -326,15 +325,15 @@ impl Menu {
     ) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.btn_new_game {
-                self.sender.send(Message::StartNewGame).unwrap();
+                self.sender.send(Message::StartNewGame);
             } else if message.destination() == self.btn_save_game {
-                self.sender.send(Message::SaveGame).unwrap();
+                self.sender.send(Message::SaveGame);
             } else if message.destination() == self.btn_load_game {
-                self.sender.send(Message::LoadGame).unwrap();
+                self.sender.send(Message::LoadGame);
             } else if message.destination() == self.btn_quit_game {
-                self.sender.send(Message::QuitGame).unwrap();
+                self.sender.send(Message::QuitGame);
             } else if message.destination() == self.btn_load_test_bed {
-                self.sender.send(Message::LoadTestbed).unwrap();
+                self.sender.send(Message::LoadTestbed);
             } else if message.destination() == self.btn_settings {
                 let is_visible = engine
                     .user_interface

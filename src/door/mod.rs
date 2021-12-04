@@ -1,22 +1,25 @@
-use crate::inventory::Inventory;
-use crate::item::ItemKind;
-use crate::{actor::ActorContainer, message::Message, Actor};
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::material::PropertyValue;
-use rg3d::resource::texture::Texture;
-use rg3d::utils::log::Log;
+use crate::{
+    actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
+    MessageSender,
+};
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
         color::Color,
         pool::{Handle, Pool},
+        sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
+    engine::resource_manager::ResourceManager,
+    material::PropertyValue,
+    resource::texture::Texture,
     scene::{graph::Graph, node::Node, Scene},
+    utils::log::Log,
 };
-use std::ops::{Index, IndexMut};
-use std::{path::PathBuf, sync::mpsc::Sender};
+use std::{
+    ops::{Index, IndexMut},
+    path::PathBuf,
+};
 
 pub mod ui;
 
@@ -152,7 +155,7 @@ impl Door {
 
     pub fn try_open(
         &mut self,
-        sender: Sender<Message>,
+        sender: MessageSender,
         graph: &Graph,
         inventory: Option<&Inventory>,
     ) {
@@ -161,15 +164,13 @@ impl Door {
         if self.state == DoorState::Closed {
             self.state = DoorState::Opening;
 
-            sender
-                .send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/door_open.ogg"),
-                    position,
-                    gain: 0.6,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                })
-                .unwrap();
+            sender.send(Message::PlaySound {
+                path: PathBuf::from("data/sounds/door_open.ogg"),
+                position,
+                gain: 0.6,
+                rolloff_factor: 1.0,
+                radius: 1.0,
+            });
         } else if self.state == DoorState::Locked {
             let should_be_unlocked = inventory
                 .map(|i| i.item_count(ItemKind::MasterKey) > 0)
@@ -178,35 +179,29 @@ impl Door {
             if should_be_unlocked {
                 self.state = DoorState::Opening;
 
-                sender
-                    .send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/door_open.ogg"),
-                        position,
-                        gain: 0.6,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    })
-                    .unwrap();
+                sender.send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/door_open.ogg"),
+                    position,
+                    gain: 0.6,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                });
 
-                sender
-                    .send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/access_granted.ogg"),
-                        position,
-                        gain: 1.0,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    })
-                    .unwrap();
+                sender.send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/access_granted.ogg"),
+                    position,
+                    gain: 1.0,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                });
             } else {
-                sender
-                    .send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/door_deny.ogg"),
-                        position,
-                        gain: 1.0,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    })
-                    .unwrap();
+                sender.send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/door_deny.ogg"),
+                    position,
+                    gain: 1.0,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                });
             }
         }
     }
@@ -235,7 +230,7 @@ impl DoorContainer {
     pub fn update(
         &mut self,
         actors: &ActorContainer,
-        sender: Sender<Message>,
+        sender: MessageSender,
         scene: &mut Scene,
         dt: f32,
     ) {
@@ -263,15 +258,13 @@ impl DoorContainer {
             if !someone_nearby && door.state == DoorState::Opened {
                 door.state = DoorState::Closing;
 
-                sender
-                    .send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/door_close.ogg"),
-                        position: node.global_position(),
-                        gain: 0.6,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    })
-                    .unwrap();
+                sender.send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/door_close.ogg"),
+                    position: node.global_position(),
+                    gain: 0.6,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                });
             }
 
             match door.state {
@@ -339,17 +332,15 @@ impl DoorContainer {
         &self,
         actor_position: Vector3<f32>,
         actor_handle: Handle<Actor>,
-        sender: &Sender<Message>,
+        sender: &MessageSender,
     ) {
         for (door_handle, door) in self.pair_iter() {
             let close_enough = actor_position.metric_distance(&door.initial_position()) < 1.25;
             if close_enough {
-                sender
-                    .send(Message::TryOpenDoor {
-                        door: door_handle,
-                        actor: actor_handle,
-                    })
-                    .unwrap();
+                sender.send(Message::TryOpenDoor {
+                    door: door_handle,
+                    actor: actor_handle,
+                });
             }
         }
     }

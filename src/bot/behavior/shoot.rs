@@ -31,13 +31,10 @@ impl<'a> Behavior<'a> for ShootTarget {
                     .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                     == ammo_per_shot
                 {
-                    context
-                        .sender
-                        .send(Message::ShootWeapon {
-                            weapon: weapon_handle,
-                            direction: None,
-                        })
-                        .unwrap();
+                    context.sender.send(Message::ShootWeapon {
+                        weapon: weapon_handle,
+                        direction: None,
+                    });
 
                     context
                         .v_recoil
