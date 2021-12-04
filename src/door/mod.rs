@@ -5,6 +5,7 @@ use rg3d::core::sstorage::ImmutableString;
 use rg3d::engine::resource_manager::ResourceManager;
 use rg3d::material::PropertyValue;
 use rg3d::resource::texture::Texture;
+use rg3d::utils::log::Log;
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
@@ -123,34 +124,28 @@ impl Door {
 
                 let mut material = mesh.surfaces()[0].material().lock();
 
-                material
-                    .set_property(
-                        &ImmutableString::new("diffuseTexture"),
-                        PropertyValue::Sampler {
-                            value: Some(texture.clone()),
-                            fallback: Default::default(),
-                        },
-                    )
-                    .unwrap();
+                Log::verify(material.set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(texture.clone()),
+                        fallback: Default::default(),
+                    },
+                ));
 
-                material
-                    .set_property(
-                        &ImmutableString::new("diffuseColor"),
-                        PropertyValue::Color(Color::GREEN),
-                    )
-                    .unwrap();
+                Log::verify(material.set_property(
+                    &ImmutableString::new("diffuseColor"),
+                    PropertyValue::Color(Color::GREEN),
+                ));
 
-                material
-                    .set_property(
-                        &ImmutableString::new("emissionTexture"),
-                        PropertyValue::Sampler {
-                            value: Some(
-                                resource_manager.request_texture("data/ui/white_pixel.bmp", None),
-                            ),
-                            fallback: Default::default(),
-                        },
-                    )
-                    .unwrap();
+                Log::verify(material.set_property(
+                    &ImmutableString::new("emissionTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(
+                            resource_manager.request_texture("data/ui/white_pixel.bmp", None),
+                        ),
+                        fallback: Default::default(),
+                    },
+                ));
             }
         }
     }

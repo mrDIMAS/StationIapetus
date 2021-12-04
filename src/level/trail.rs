@@ -1,5 +1,6 @@
 use rg3d::core::sstorage::ImmutableString;
 use rg3d::material::PropertyValue;
+use rg3d::utils::log::Log;
 use rg3d::{
     core::{pool::Handle, visitor::prelude::*, VecExtensions},
     scene::{node::Node, Scene},
@@ -42,12 +43,10 @@ impl ShotTrailContainer {
                             .unwrap()
                             .as_color()
                             .unwrap();
-                        material
-                            .set_property(
-                                &ImmutableString::new("diffuseColor"),
-                                PropertyValue::Color(color.with_new_alpha(new_alpha)),
-                            )
-                            .unwrap();
+                        Log::verify(material.set_property(
+                            &ImmutableString::new("diffuseColor"),
+                            PropertyValue::Color(color.with_new_alpha(new_alpha)),
+                        ));
                     }
                 }
                 Node::Sprite(sprite) => sprite.set_color(sprite.color().with_new_alpha(new_alpha)),

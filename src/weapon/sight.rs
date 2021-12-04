@@ -1,6 +1,7 @@
 use crate::CollisionGroups;
 use rg3d::core::parking_lot::Mutex;
 use rg3d::core::sstorage::ImmutableString;
+use rg3d::utils::log::Log;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -87,12 +88,10 @@ impl LaserSight {
             )))
             .with_material(Arc::new(Mutex::new({
                 let mut material = Material::standard();
-                material
-                    .set_property(
-                        &ImmutableString::new("diffuseColor"),
-                        PropertyValue::Color(NORMAL_COLOR),
-                    )
-                    .unwrap();
+                Log::verify(material.set_property(
+                    &ImmutableString::new("diffuseColor"),
+                    PropertyValue::Color(NORMAL_COLOR),
+                ));
                 material
             })))
             .build()])
@@ -220,18 +219,19 @@ impl LaserSight {
     }
 
     fn set_color(&self, graph: &mut Graph, color: Color) {
-        graph[self.ray]
-            .as_mesh_mut()
-            .surfaces()
-            .first()
-            .unwrap()
-            .material()
-            .lock()
-            .set_property(
-                &ImmutableString::new("diffuseColor"),
-                PropertyValue::Color(color),
-            )
-            .unwrap();
+        Log::verify(
+            graph[self.ray]
+                .as_mesh_mut()
+                .surfaces()
+                .first()
+                .unwrap()
+                .material()
+                .lock()
+                .set_property(
+                    &ImmutableString::new("diffuseColor"),
+                    PropertyValue::Color(color),
+                ),
+        );
         graph[self.light].as_light_mut().set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);
     }

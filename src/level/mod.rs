@@ -30,6 +30,7 @@ use crate::{
     },
     Engine, GameTime,
 };
+use rg3d::utils::log::Log;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -1337,12 +1338,10 @@ impl BaseLevel {
                 .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
                     .with_material(Arc::new(Mutex::new({
                         let mut material = Material::standard();
-                        material
-                            .set_property(
-                                &ImmutableString::new("diffuseColor"),
-                                PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
-                            )
-                            .unwrap();
+                        Log::verify(material.set_property(
+                            &ImmutableString::new("diffuseColor"),
+                            PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
+                        ));
                         material
                     })))
                     .build()])

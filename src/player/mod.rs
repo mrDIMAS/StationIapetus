@@ -22,6 +22,7 @@ use crate::{
     CollisionGroups, GameTime,
 };
 use rg3d::core::sstorage::ImmutableString;
+use rg3d::utils::log::Log;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
@@ -826,18 +827,14 @@ impl Player {
         let color = self.health_color_gradient.get_color(self.health / 100.0);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
         let mut material = surface.material().lock();
-        material
-            .set_property(
-                &ImmutableString::new("diffuseColor"),
-                PropertyValue::Color(color),
-            )
-            .unwrap();
-        material
-            .set_property(
-                &ImmutableString::new("emissionStrength"),
-                PropertyValue::Vector3(color.as_frgb().scale(10.0)),
-            )
-            .unwrap();
+        Log::verify(material.set_property(
+            &ImmutableString::new("diffuseColor"),
+            PropertyValue::Color(color),
+        ));
+        Log::verify(material.set_property(
+            &ImmutableString::new("emissionStrength"),
+            PropertyValue::Vector3(color.as_frgb().scale(10.0)),
+        ));
         drop(material);
         scene.graph[self.rig_light].as_light_mut().set_color(color);
     }
@@ -1463,53 +1460,56 @@ impl Player {
         item_texture: Texture,
         journal_texture: Texture,
     ) {
-        scene.graph[self.weapon_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .lock()
-            .set_property(
-                &ImmutableString::new("diffuseTexture"),
-                PropertyValue::Sampler {
-                    value: Some(display_texture),
-                    fallback: SamplerFallback::White,
-                },
-            )
-            .unwrap();
+        Log::verify(
+            scene.graph[self.weapon_display]
+                .as_mesh_mut()
+                .surfaces_mut()
+                .first_mut()
+                .unwrap()
+                .material()
+                .lock()
+                .set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(display_texture),
+                        fallback: SamplerFallback::White,
+                    },
+                ),
+        );
 
-        scene.graph[self.inventory_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .lock()
-            .set_property(
-                &ImmutableString::new("diffuseTexture"),
-                PropertyValue::Sampler {
-                    value: Some(inventory_texture),
-                    fallback: SamplerFallback::White,
-                },
-            )
-            .unwrap();
+        Log::verify(
+            scene.graph[self.inventory_display]
+                .as_mesh_mut()
+                .surfaces_mut()
+                .first_mut()
+                .unwrap()
+                .material()
+                .lock()
+                .set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(inventory_texture),
+                        fallback: SamplerFallback::White,
+                    },
+                ),
+        );
 
-        scene.graph[self.journal_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .lock()
-            .set_property(
-                &ImmutableString::new("diffuseTexture"),
-                PropertyValue::Sampler {
-                    value: Some(journal_texture),
-                    fallback: SamplerFallback::White,
-                },
-            )
-            .unwrap();
+        Log::verify(
+            scene.graph[self.journal_display]
+                .as_mesh_mut()
+                .surfaces_mut()
+                .first_mut()
+                .unwrap()
+                .material()
+                .lock()
+                .set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(journal_texture),
+                        fallback: SamplerFallback::White,
+                    },
+                ),
+        );
 
         scene.graph[self.item_display]
             .as_sprite_mut()

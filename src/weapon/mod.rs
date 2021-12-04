@@ -438,20 +438,16 @@ impl Weapon {
                     "data/particles/muzzle_04.png",
                     "data/particles/muzzle_05.png",
                 ];
-                surface
-                    .material()
-                    .lock()
-                    .set_property(
-                        &ImmutableString::new("diffuseTexture"),
-                        PropertyValue::Sampler {
-                            value: Some(resource_manager.request_texture(
-                                textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
-                                None,
-                            )),
-                            fallback: SamplerFallback::White,
-                        },
-                    )
-                    .unwrap();
+                Log::verify(surface.material().lock().set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(resource_manager.request_texture(
+                            textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
+                            None,
+                        )),
+                        fallback: SamplerFallback::White,
+                    },
+                ));
             }
             scene.graph[self.shot_light].set_visibility(true);
             self.muzzle_flash_timer = 0.075;

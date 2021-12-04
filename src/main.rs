@@ -132,15 +132,13 @@ pub struct LoadContext {
 pub fn create_display_material(display_texture: Texture) -> Arc<Mutex<Material>> {
     let mut material = Material::standard();
 
-    material
-        .set_property(
-            &ImmutableString::new("diffuseTexture"),
-            PropertyValue::Sampler {
-                value: Some(display_texture),
-                fallback: SamplerFallback::White,
-            },
-        )
-        .unwrap();
+    Log::verify(material.set_property(
+        &ImmutableString::new("diffuseTexture"),
+        PropertyValue::Sampler {
+            value: Some(display_texture),
+            fallback: SamplerFallback::White,
+        },
+    ));
 
     Arc::new(Mutex::new(material))
 }
