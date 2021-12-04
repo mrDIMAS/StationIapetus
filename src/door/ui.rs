@@ -1,4 +1,7 @@
 use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
+use rg3d::core::color::Color;
+use rg3d::gui::brush::Brush;
+use rg3d::gui::widget::WidgetMessage;
 use rg3d::{
     core::{algebra::Vector2, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -51,10 +54,15 @@ impl DoorUi {
                     .build(ctx),
                 )
                 .with_child({
-                    text = TextBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
-                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                        .with_font(font)
-                        .build(ctx);
+                    text = TextBuilder::new(
+                        WidgetBuilder::new()
+                            .on_row(1)
+                            .on_column(0)
+                            .with_foreground(Brush::Solid(Color::GREEN)),
+                    )
+                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .with_font(font)
+                    .build(ctx);
                     text
                 }),
         )
@@ -75,6 +83,14 @@ impl DoorUi {
             self.text,
             MessageDirection::ToWidget,
             text,
+        ));
+    }
+
+    pub fn set_color(&mut self, color: Color) {
+        self.ui.send_message(WidgetMessage::foreground(
+            self.text,
+            MessageDirection::ToWidget,
+            Brush::Solid(color),
         ));
     }
 

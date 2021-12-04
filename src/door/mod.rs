@@ -125,42 +125,37 @@ impl Door {
         resource_manager: ResourceManager,
         texture: Texture,
     ) {
-        let mut screens = Vec::new();
-        for node_handle in graph.traverse_handle_iter(self.node) {
-            let node = &graph[node_handle];
-            if node.name().starts_with("DoorUI") {
-                screens.push(node_handle);
-            }
-        }
+        let screens = graph
+            .traverse_handle_iter(self.node)
+            .filter(|h| graph[*h].name().starts_with("DoorUI"))
+            .collect::<Vec<_>>();
 
         for node_handle in screens {
-            let node = &mut graph[node_handle];
-            let mesh = node.as_mesh_mut();
+            if let Node::Mesh(ref mut mesh) = graph[node_handle] {
+                let mut material = Material::standard();
 
-            let mut material = Material::standard();
+                Log::verify(material.set_property(
+                    &ImmutableString::new("diffuseTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(texture.clone()),
+                        fallback: Default::default(),
+                    },
+                ));
 
-            Log::verify(material.set_property(
-                &ImmutableString::new("diffuseTexture"),
-                PropertyValue::Sampler {
-                    value: Some(texture.clone()),
-                    fallback: Default::default(),
-                },
-            ));
+                Log::verify(material.set_property(
+                    &ImmutableString::new("emissionTexture"),
+                    PropertyValue::Sampler {
+                        value: Some(
+                            resource_manager.request_texture("data/ui/white_pixel.bmp", None),
+                        ),
+                        fallback: Default::default(),
+                    },
+                ));
 
-            Log::verify(material.set_property(
-                &ImmutableString::new("diffuseColor"),
-                PropertyValue::Color(Color::GREEN),
-            ));
-
-            Log::verify(material.set_property(
-                &ImmutableString::new("emissionTexture"),
-                PropertyValue::Sampler {
-                    value: Some(resource_manager.request_texture("data/ui/white_pixel.bmp", None)),
-                    fallback: Default::default(),
-                },
-            ));
-
-            mesh.surfaces_mut()[0].set_material(Arc::new(Mutex::new(material)));
+                if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
+                    first_surface.set_material(Arc::new(Mutex::new(material)));
+                }
+            }
         }
     }
 
