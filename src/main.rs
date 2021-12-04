@@ -499,6 +499,7 @@ impl Game {
             .set_visible(&self.engine.user_interface, false);
         self.final_screen
             .set_visible(&self.engine.user_interface, false);
+        self.door_ui_container.clear();
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
@@ -509,6 +510,8 @@ impl Game {
                 self.inventory_interface.render_target.clone(),
                 self.item_display.render_target.clone(),
                 self.journal_display.render_target.clone(),
+                self.smaller_font.clone(),
+                &mut self.door_ui_container,
             );
         }
 

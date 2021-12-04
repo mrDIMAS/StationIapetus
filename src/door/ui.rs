@@ -1,17 +1,18 @@
-use crate::door::Door;
-use crate::WidgetBuilder;
-use rg3d::core::algebra::Vector2;
-use rg3d::core::pool::Handle;
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::gui::grid::{Column, GridBuilder, Row};
-use rg3d::gui::image::ImageBuilder;
-use rg3d::gui::text::TextBuilder;
-use rg3d::gui::ttf::SharedFont;
-use rg3d::gui::{HorizontalAlignment, UserInterface};
-use rg3d::renderer::Renderer;
-use rg3d::resource::texture::Texture;
-use rg3d::utils::into_gui_texture;
-use rg3d::utils::log::Log;
+use crate::{door::Door, WidgetBuilder};
+use rg3d::{
+    core::{algebra::Vector2, pool::Handle},
+    engine::resource_manager::ResourceManager,
+    gui::{
+        grid::{Column, GridBuilder, Row},
+        image::ImageBuilder,
+        text::TextBuilder,
+        ttf::SharedFont,
+        HorizontalAlignment, UserInterface,
+    },
+    renderer::Renderer,
+    resource::texture::Texture,
+    utils::{into_gui_texture, log::Log},
+};
 use std::collections::HashMap;
 
 pub struct DoorUi {
@@ -99,5 +100,9 @@ impl DoorUiContainer {
         for ui in self.map.values_mut() {
             ui.update(delta);
         }
+    }
+
+    pub fn clear(&mut self) {
+        self.map.clear()
     }
 }

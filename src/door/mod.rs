@@ -1,7 +1,8 @@
 use crate::{
     actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
-    MessageSender,
+    DoorUiContainer, MessageSender,
 };
+use rg3d::gui::ttf::SharedFont;
 use rg3d::{
     core::{
         algebra::{Isometry3, Translation3, Vector3},
@@ -322,9 +323,19 @@ impl DoorContainer {
         }
     }
 
-    pub fn resolve(&mut self, scene: &Scene) {
-        for door in self.doors.iter_mut() {
-            door.resolve(scene)
+    pub fn resolve(
+        &mut self,
+        scene: &Scene,
+        font: SharedFont,
+        door_ui_container: &mut DoorUiContainer,
+        resource_manager: ResourceManager,
+    ) {
+        for (door_handle, door) in self.doors.pair_iter_mut() {
+            door.resolve(scene);
+
+            let texture =
+                door_ui_container.create_ui(font.clone(), resource_manager.clone(), door_handle);
+            door.apply_screen_texture(&scene.graph, resource_manager.clone(), texture);
         }
     }
 

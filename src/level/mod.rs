@@ -28,8 +28,9 @@ use crate::{
         sight::SightReaction,
         Weapon, WeaponContainer,
     },
-    Engine, GameTime, MessageSender,
+    DoorUiContainer, Engine, GameTime, MessageSender,
 };
+use rg3d::gui::ttf::SharedFont;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -1515,6 +1516,8 @@ impl BaseLevel {
         inventory_texture: Texture,
         item_texture: Texture,
         journal_texture: Texture,
+        font: SharedFont,
+        door_ui_container: &mut DoorUiContainer,
     ) {
         self.set_message_sender(sender);
 
@@ -1528,7 +1531,12 @@ impl BaseLevel {
 
         let scene = &engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
-        self.doors.resolve(scene);
+        self.doors.resolve(
+            scene,
+            font,
+            door_ui_container,
+            engine.resource_manager.clone(),
+        );
     }
 
     pub fn set_message_sender(&mut self, sender: MessageSender) {
