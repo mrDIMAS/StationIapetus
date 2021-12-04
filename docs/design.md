@@ -135,25 +135,84 @@ corridors only allowed if there is no place for rooms at the sides of the corrid
 ### Loading bay
 
 Loading bay is the entry hub to the spaceship, it has direct access to internal railway which allows employees of the
-spaceship to transfer various loads across the ship. It has one loading area which can fit two transport ships at the
+spaceship to transfer various loads across the ship. It has one loading area which can fit one transport ship at the
 same time. It has a security area to check incoming cargo, incoming cargo could be any type starting from food and 
 ending chemical reagents and various tools. The deck should have the kitchen, living block and bathrooms for personnel.
 
-This is the starting point of the game, player appears at the beginning of the security area, the doors to crashed ship
-are closed but player can see the fire. The first problem on his way is the automatic turrets that shoots unauthorized
-persons on sight. The player must find a security computer to add himself to the list of authorized persons. After that
-he can explore the area without any troubles. 
+This is the starting point of the game, player appears at the bottom of ship bay. The first problem on his way is the
+automatic turrets that shoots unauthorized persons on sight. This can be show to the player by spawning a zombie behind
+the turret and force it to walk to the window. Turret will shoot the zombie and the new objective will appear. 
+To disable the turret, the player must find a security computer to add himself to the list of authorized persons. 
+After that he can start exploring the deck.
+
+The player can find some ammo in an opposite security room, there should be at least 6 ammo cells. Also the room 
+should contain the pocket PC of some guard that will contain a message of why guns in their world powered by 
+unified energy cells.
+
+Message:
+
+```text
+From: Liam Rose
+To: Vaughn Moreno
+Subject: Energy weapons
+
+Hi, Vaughn! As far as I know, previously you was on duty on some of the Earth research facilities and you've been using 
+standard firearms there. So let me explain why we're using such "weird" energy weapons on the ship. 
+
+There are two main reasons:
+
+1) Ammo for energy weapons weight much, much less than standard ammo for classic firearms.
+2) Since there is no actual projectile, but only "evaporation", a shot won't cause decompression by an accidental hit
+because the ship has special energy absorbance layer that won't be damaged by the shot.
+ 
+I hope that answers your question.
+
+Best wishes,
+Liam Rose
+```
 
 The deck has the following list of employees:
 
 - 12 (4 per each shift) guards for the guard post. 2 works at their posts, 2 checks cargo documentation.
+  - Liam Rose - chief security guard
+  - Charlie Pearce - chief security guard
+  - Riley Ryan - chief security guard
+  - Corey Wright - security guard
+  - Jayden Read - security guard
+  - Damon Dudley - security guard
+  - Briggs Kemp - security guard
+  - Braden Lucas - security guard
+  - Romeo Holcomb - security guard
+  - Vaughn Moreno - new security guard
+  - Summer Lloyd - security guard
+  - Amelia Anderson - security guard
 - 9 deck guards (3 per each shift), they're located in deck security post.
+  - Phoebe May - chief security guard
+  - Sean Clark - chief security guard
+  - Jake Wells - chief security guard
+  - Declan Davis - security guard
+  - Gabriel Perry - security guard
+  - Spencer Austin - security guard
+  - Jacoby Osborne - security guard
+  - Julia Barker - security guard
+  - Sarah Davidson - security guard
 - 3 janitors
+  - Reed Newman
+  - Gail Gordon
+  - Danni George
 - 1 electrical technician
+  - Alex Jacobson
 - 2 railway station technicians
+  - Ryan Summers
+  - Ryan Nichols
 - 1 plumber
+  - Harley Watson
 - 2 cooks
+  - Ashton Davidson
+  - Billie Cox
 - 2 loaders to load cargo on the train
+  - Riley Gardner
+  - Ali Harvey
 
 32 people in total. This must be taken into account when designing the level. Everybody must have their sleeping place.
 
