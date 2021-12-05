@@ -121,7 +121,7 @@ impl DerefMut for Level {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct BaseLevel {
     map_root: Handle<Node>,
     pub scene: Handle<Scene>,
@@ -131,11 +131,13 @@ pub struct BaseLevel {
     weapons: WeaponContainer,
     items: ItemContainer,
     spawn_points: Vec<SpawnPoint>,
+    #[visit(skip)]
     sender: Option<MessageSender>,
     pub navmesh: Handle<Navmesh>,
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
+    #[visit(skip)]
     beam: Option<Arc<Mutex<SurfaceData>>>,
     trails: ShotTrailContainer,
     pub doors: DoorContainer,
@@ -143,36 +145,6 @@ pub struct BaseLevel {
     turrets: TurretContainer,
     triggers: TriggerContainer,
     decals: DecalContainer,
-}
-
-impl Visit for BaseLevel {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.scene.visit("Scene", visitor)?;
-        self.map_root.visit("MapRoot", visitor)?;
-        self.player.visit("Player", visitor)?;
-        self.actors.visit("Actors", visitor)?;
-        self.projectiles.visit("Projectiles", visitor)?;
-        self.weapons.visit("Weapons", visitor)?;
-        self.spawn_points.visit("SpawnPoints", visitor)?;
-        self.death_zones.visit("DeathZones", visitor)?;
-        self.time.visit("Time", visitor)?;
-        self.sound_manager.visit("SoundManager", visitor)?;
-        self.items.visit("Items", visitor)?;
-        self.navmesh.visit("Navmesh", visitor)?;
-        self.trails.visit("Trails", visitor)?;
-        self.doors.visit("Doors", visitor)?;
-        self.lights.visit("Lights", visitor)?;
-        self.turrets.visit("Turrets", visitor)?;
-        self.triggers.visit("Triggers", visitor)?;
-
-        if visitor.is_reading() {
-            self.beam = Some(make_beam());
-        }
-
-        visitor.leave_region()
-    }
 }
 
 #[derive(Visit)]
@@ -482,7 +454,7 @@ async fn give_new_weapon(
     if actors.contains(actor) {
         let mut weapon = Weapon::new(kind, resource_manager, scene).await;
         weapon.set_owner(actor);
-        let weapon_model = weapon.get_model();
+        let weapon_model = weapon.model();
         scene.graph[weapon_model].set_visibility(visible);
         let actor = actors.get_mut(actor);
         let weapon_handle = weapons.add(weapon);
@@ -826,7 +798,7 @@ impl BaseLevel {
             // Make sure to remove weapons associated with items.
             if let Some(weapon_kind) = item.associated_weapon() {
                 for weapon in weapons {
-                    if self.weapons[weapon].get_kind() == weapon_kind {
+                    if self.weapons[weapon].kind() == weapon_kind {
                         self.remove_weapon(engine, weapon);
                     }
                 }
@@ -891,7 +863,7 @@ impl BaseLevel {
                     let mut found = false;
                     for weapon_handle in character.weapons() {
                         let weapon = &mut self.weapons[*weapon_handle];
-                        if weapon.get_kind() == weapon_kind {
+                        if weapon.kind() == weapon_kind {
                             found = true;
                             break;
                         }
@@ -1535,6 +1507,7 @@ impl BaseLevel {
             journal_texture,
         );
 
+        self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
         self.doors.resolve(
@@ -1543,6 +1516,9 @@ impl BaseLevel {
             door_ui_container,
             engine.resource_manager.clone(),
         );
+        self.weapons.resolve();
+        self.items.resolve();
+        self.projectiles.resolve();
     }
 
     pub fn set_message_sender(&mut self, sender: MessageSender) {

@@ -61,6 +61,7 @@ impl ItemKind {
     }
 }
 
+#[derive(Visit)]
 pub struct Item {
     kind: ItemKind,
     pivot: Handle<Node>,
@@ -68,6 +69,7 @@ pub struct Item {
     spark: Handle<Node>,
     spark_size_change_dir: f32,
     pub stack_size: u32,
+    #[visit(skip)]
     pub definition: &'static ItemDefinition,
 }
 
@@ -194,22 +196,9 @@ impl Item {
             self.spark_size_change_dir = 1.0;
         }
     }
-}
 
-impl Visit for Item {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.kind.visit("Kind", visitor)?;
+    pub fn resolve(&mut self) {
         self.definition = Self::get_definition(self.kind);
-        self.model.visit("Model", visitor)?;
-        self.pivot.visit("Pivot", visitor)?;
-        self.stack_size.visit("StackSize", visitor)?;
-        self.spark.visit("Spark", visitor)?;
-        self.spark_size_change_dir
-            .visit("SparkSizeChangeDir", visitor)?;
-
-        visitor.leave_region()
     }
 }
 
@@ -261,6 +250,12 @@ impl ItemContainer {
     pub fn update(&mut self, dt: f32, graph: &mut Graph) {
         for item in self.pool.iter_mut() {
             item.update(dt, graph);
+        }
+    }
+
+    pub fn resolve(&mut self) {
+        for item in self.pool.iter_mut() {
+            item.resolve();
         }
     }
 }

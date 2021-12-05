@@ -215,37 +215,28 @@ The deck has the following list of employees:
   - Ali Harvey
 
 32 people in total. This must be taken into account when designing the level. Everybody must have their sleeping place.
+Since the available space on the deck is relatively small, each of 32 enemies must be spawned using scripts, there 
+should be no huge bunch of enemies spawned at the same moment.
 
 TODO: Write dialogs between these employees and their personal notes on their pocket PCs.
 
 ### Research deck
 
-(INSERT IMAGE)
-
 **Status:** Not ready
 
 ### Medical deck
-
-(INSERT IMAGE)
 
 **Status:** Not ready
 
 ### Bridge
 
-(INSERT IMAGE)
-
 **Status:** Not ready
 
 ### Sewage treatment plant
 
-(INSERT IMAGE)
-
 **Status:** Not ready
 
-
 ### Hydroponics and food storage
-
-(INSERT IMAGE)
 
 **Status:** Not ready
 
@@ -296,7 +287,8 @@ and drop items. The capacity of the inventory is unlimited.
 ### Enemies
 
 The amount of types of enemies is kinda low because the budget of the game is low too, there should be few kinds of 
-enemies.
+enemies. Each type of enemy must have specific behaviour tree to make the game more interesting. Currently there is
+only one behavior tree for every type of enemy.
 
 #### Standard "zombies"
 
@@ -339,10 +331,10 @@ modes:
 
 Doors are used to provide access to specific areas on the station. Doors have clearance levels:
 
-- 0 - Free access
-- 1 - Restricted access (a.k.a. personnel only)
-- 2 - High security
-- 3 - High command access only
+- D - Free access
+- C - Restricted access (a.k.a. personnel only)
+- B - High security
+- A - High command access only
 
 Player can use security terminals to change their clearance level. Clearance levels are not compatible between
 decks, this means that if a player acquired level-3 clearance on Loading Bay deck, he won't be able to use

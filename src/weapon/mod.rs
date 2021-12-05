@@ -51,6 +51,7 @@ pub mod definition;
 pub mod projectile;
 pub mod sight;
 
+#[derive(Visit)]
 pub struct Weapon {
     kind: WeaponKind,
     model: Handle<Node>,
@@ -61,6 +62,7 @@ pub struct Weapon {
     shot_position: Vector3<f32>,
     owner: Handle<Actor>,
     muzzle_flash_timer: f32,
+    #[visit(skip)]
     pub definition: &'static WeaponDefinition,
     flash_light: Handle<Node>,
     laser_sight: LaserSight,
@@ -188,7 +190,7 @@ impl Default for Weapon {
             shot_position: Vector3::default(),
             owner: Handle::NONE,
             muzzle_flash_timer: 0.0,
-            definition: Self::get_definition(WeaponKind::M4),
+            definition: Self::definition(WeaponKind::M4),
             muzzle_flash: Default::default(),
             shot_light: Default::default(),
             flash_light: Default::default(),
@@ -197,28 +199,8 @@ impl Default for Weapon {
     }
 }
 
-impl Visit for Weapon {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.kind.visit("KindId", visitor)?;
-        self.definition = Self::get_definition(self.kind);
-        self.model.visit("Model", visitor)?;
-        self.last_shot_time.visit("LastShotTime", visitor)?;
-        self.owner.visit("Owner", visitor)?;
-        self.shot_point.visit("ShotPoint", visitor)?;
-        self.muzzle_flash.visit("MuzzleFlash", visitor)?;
-        self.muzzle_flash_timer.visit("MuzzleFlashTimer", visitor)?;
-        self.shot_light.visit("ShotLight", visitor)?;
-        self.flash_light.visit("FlashLight", visitor)?;
-        self.laser_sight.visit("LaserSight", visitor)?;
-
-        visitor.leave_region()
-    }
-}
-
 impl Weapon {
-    pub fn get_definition(kind: WeaponKind) -> &'static WeaponDefinition {
+    pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
         definition::DEFINITIONS.map.get(&kind).unwrap()
     }
 
@@ -227,7 +209,7 @@ impl Weapon {
         resource_manager: ResourceManager,
         scene: &mut Scene,
     ) -> Weapon {
-        let definition = Self::get_definition(kind);
+        let definition = Self::definition(kind);
 
         let model = resource_manager
             .request_model(&definition.model, MaterialSearchOptions::RecursiveUp)
@@ -313,7 +295,7 @@ impl Weapon {
         }
     }
 
-    pub fn get_model(&self) -> Handle<Node> {
+    pub fn model(&self) -> Handle<Node> {
         self.model
     }
 
@@ -342,13 +324,13 @@ impl Weapon {
             }
         }
 
-        let dir = self.get_shot_direction(&scene.graph);
-        let pos = self.get_shot_position(&scene.graph);
+        let dir = self.shot_direction(&scene.graph);
+        let pos = self.shot_position(&scene.graph);
         self.laser_sight
             .update(scene, pos, dir, ignored_collider, dt)
     }
 
-    pub fn get_shot_position(&self, graph: &Graph) -> Vector3<f32> {
+    pub fn shot_position(&self, graph: &Graph) -> Vector3<f32> {
         if self.shot_point.is_some() {
             graph[self.shot_point].global_position()
         } else {
@@ -357,11 +339,11 @@ impl Weapon {
         }
     }
 
-    pub fn get_shot_direction(&self, graph: &Graph) -> Vector3<f32> {
+    pub fn shot_direction(&self, graph: &Graph) -> Vector3<f32> {
         graph[self.model].look_vector().normalize()
     }
 
-    pub fn get_kind(&self) -> WeaponKind {
+    pub fn kind(&self) -> WeaponKind {
         self.kind
     }
 
@@ -408,7 +390,7 @@ impl Weapon {
     ) {
         self.last_shot_time = time.elapsed;
 
-        let position = self.get_shot_position(&scene.graph);
+        let position = self.shot_position(&scene.graph);
 
         if let Some(random_shot_sound) = self
             .definition
@@ -450,9 +432,9 @@ impl Weapon {
             self.muzzle_flash_timer = 0.075;
         }
 
-        let position = self.get_shot_position(&scene.graph);
+        let position = self.shot_position(&scene.graph);
         let direction = direction
-            .unwrap_or_else(|| self.get_shot_direction(&scene.graph))
+            .unwrap_or_else(|| self.shot_direction(&scene.graph))
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
@@ -479,6 +461,10 @@ impl Weapon {
     pub fn clean_up(&mut self, scene: &mut Scene) {
         scene.graph.remove_node(self.model);
         self.laser_sight.clean_up(scene);
+    }
+
+    pub fn resolve(&mut self) {
+        self.definition = Self::definition(self.kind);
     }
 }
 
@@ -515,6 +501,12 @@ impl WeaponContainer {
     pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
         for weapon in self.pool.iter_mut() {
             weapon.update(scene, actors, dt)
+        }
+    }
+
+    pub fn resolve(&mut self) {
+        for weapon in self.pool.iter_mut() {
+            weapon.resolve();
         }
     }
 }

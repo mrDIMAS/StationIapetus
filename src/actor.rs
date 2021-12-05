@@ -179,14 +179,19 @@ impl ActorContainer {
         journal_texture: Texture,
     ) {
         for actor in self.pool.iter_mut() {
-            if let Actor::Player(player) = actor {
-                player.resolve(
-                    scene,
-                    display_texture.clone(),
-                    inventory_texture.clone(),
-                    item_texture.clone(),
-                    journal_texture.clone(),
-                );
+            match actor {
+                Actor::Player(player) => {
+                    player.resolve(
+                        scene,
+                        display_texture.clone(),
+                        inventory_texture.clone(),
+                        item_texture.clone(),
+                        journal_texture.clone(),
+                    );
+                }
+                Actor::Bot(bot) => {
+                    bot.resolve();
+                }
             }
 
             actor.restore_hit_boxes(scene);

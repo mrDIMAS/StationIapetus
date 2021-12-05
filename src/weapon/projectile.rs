@@ -21,27 +21,10 @@ use rg3d::{
 use serde::Deserialize;
 use std::{collections::HashMap, collections::HashSet, fs::File, path::PathBuf};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
+#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
 pub enum ProjectileKind {
     Plasma,
     Grenade,
-}
-
-impl ProjectileKind {
-    pub fn new(id: u32) -> Result<Self, String> {
-        match id {
-            0 => Ok(ProjectileKind::Plasma),
-            1 => Ok(ProjectileKind::Grenade),
-            _ => Err(format!("Invalid projectile kind id {}", id)),
-        }
-    }
-
-    pub fn id(self) -> u32 {
-        match self {
-            ProjectileKind::Plasma => 0,
-            ProjectileKind::Grenade => 1,
-        }
-    }
 }
 
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit)]
@@ -90,6 +73,7 @@ impl Damage {
     }
 }
 
+#[derive(Visit)]
 pub struct Projectile {
     kind: ProjectileKind,
     model: Handle<Node>,
@@ -106,7 +90,9 @@ pub struct Projectile {
     /// Position of projectile on the previous frame, it is used to simulate
     /// continuous intersection detection from fast moving projectiles.
     last_position: Vector3<f32>,
+    #[visit(skip)]
     definition: &'static ProjectileDefinition,
+    #[visit(skip)]
     hits: HashSet<Hit>,
 }
 
@@ -379,28 +365,9 @@ impl Projectile {
             scene.graph.remove_node(self.model);
         }
     }
-}
 
-impl Visit for Projectile {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        let mut kind = self.kind.id();
-        kind.visit("KindId", visitor)?;
-        if visitor.is_reading() {
-            self.kind = ProjectileKind::new(kind)?;
-        }
-
+    pub fn resolve(&mut self) {
         self.definition = Self::get_definition(self.kind);
-        self.lifetime.visit("Lifetime", visitor)?;
-        self.dir.visit("Direction", visitor)?;
-        self.model.visit("Model", visitor)?;
-        self.body.visit("Body", visitor)?;
-        self.rotation_angle.visit("RotationAngle", visitor)?;
-        self.initial_velocity.visit("InitialVelocity", visitor)?;
-        self.owner.visit("Owner", visitor)?;
-
-        visitor.leave_region()
     }
 }
 
@@ -438,5 +405,11 @@ impl ProjectileContainer {
         }
 
         self.pool.retain(|proj| !proj.is_dead());
+    }
+
+    pub fn resolve(&mut self) {
+        for projectile in self.pool.iter_mut() {
+            projectile.resolve();
+        }
     }
 }

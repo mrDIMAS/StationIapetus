@@ -167,23 +167,23 @@ impl Game {
             LogicalSize::new(1024.0, 768.0)
         };
 
-        let font = SharedFont(Arc::new(std::sync::Mutex::new(
+        let font = SharedFont::new(
             rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 31.0,
                 Font::default_char_set(),
             ))
             .unwrap(),
-        )));
+        );
 
-        let smaller_font = SharedFont(Arc::new(std::sync::Mutex::new(
+        let smaller_font = SharedFont::new(
             rg3d::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 20.0,
                 Font::default_char_set(),
             ))
             .unwrap(),
-        )));
+        );
 
         let window_builder = rg3d::window::WindowBuilder::new()
             .with_title("Station Iapetus")
@@ -523,6 +523,7 @@ impl Game {
 
     fn destroy_level(&mut self) {
         if let Some(ref mut level) = self.level.take() {
+            self.door_ui_container.clear();
             level.destroy(&mut self.engine);
             Log::writeln(
                 MessageKind::Information,

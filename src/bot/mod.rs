@@ -86,11 +86,13 @@ pub struct Target {
     handle: Handle<Actor>,
 }
 
+#[derive(Visit)]
 pub struct Bot {
     target: Option<Target>,
     pub kind: BotKind,
     model: Handle<Node>,
     character: Character,
+    #[visit(skip)]
     pub definition: &'static BotDefinition,
     lower_body_machine: LowerBodyMachine,
     upper_body_machine: UpperBodyMachine,
@@ -98,6 +100,7 @@ pub struct Bot {
     hips: Handle<Node>,
     agent: NavmeshAgent,
     head_exploded: bool,
+    #[visit(skip)]
     pub impact_handler: BodyImpactHandler,
     behavior: BotBehavior,
     v_recoil: SmoothAngle,
@@ -550,6 +553,10 @@ impl Bot {
             }
         }
     }
+
+    pub fn resolve(&mut self) {
+        self.definition = Self::get_definition(self.kind);
+    }
 }
 
 fn clean_machine(machine: &Machine, scene: &mut Scene) {
@@ -557,30 +564,5 @@ fn clean_machine(machine: &Machine, scene: &mut Scene) {
         if let PoseNode::PlayAnimation(node) = node {
             scene.animations.remove(node.animation);
         }
-    }
-}
-
-impl Visit for Bot {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.kind.visit("Kind", visitor)?;
-        self.definition = Self::get_definition(self.kind);
-        self.character.visit("Character", visitor)?;
-        self.model.visit("Model", visitor)?;
-        self.target.visit("Target", visitor)?;
-        self.lower_body_machine
-            .visit("LocomotionMachine", visitor)?;
-        self.upper_body_machine.visit("AimMachine", visitor)?;
-        self.restoration_time.visit("RestorationTime", visitor)?;
-        self.hips.visit("Hips", visitor)?;
-        self.agent.visit("Agent", visitor)?;
-        self.head_exploded.visit("HeadExploded", visitor)?;
-        self.behavior.visit("Behavior", visitor)?;
-        self.v_recoil.visit("VRecoil", visitor)?;
-        self.h_recoil.visit("HRecoil", visitor)?;
-        self.spine.visit("Spine", visitor)?;
-
-        visitor.leave_region()
     }
 }

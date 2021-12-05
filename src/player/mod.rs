@@ -159,7 +159,7 @@ impl DerefMut for Player {
 }
 
 #[derive(Copy, Clone, PartialEq, Eq, Visit)]
-enum RequiredWeapon {
+pub enum RequiredWeapon {
     None,
     Next,
     Previous,
@@ -186,11 +186,12 @@ pub struct PlayerPersistentData {
     pub weapons: Vec<WeaponKind>,
 }
 
-#[derive(Default)]
+#[derive(Default, Visit)]
 pub struct Player {
     character: Character,
     camera_controller: CameraController,
     model: Handle<Node>,
+    #[visit(skip)]
     controller: InputController,
     lower_body_machine: LowerBodyMachine,
     upper_body_machine: UpperBodyMachine,
@@ -220,53 +221,6 @@ pub struct Player {
     h_recoil: SmoothAngle,
     rig_light: Handle<Node>,
     pub journal: Journal,
-}
-
-impl Visit for Player {
-    fn visit(&mut self, name: &str, visitor: &mut Visitor) -> VisitResult {
-        visitor.enter_region(name)?;
-
-        self.character.visit("Character", visitor)?;
-        self.camera_controller.visit("CameraController", visitor)?;
-        self.model.visit("Model", visitor)?;
-        self.lower_body_machine.visit("LowerBodyMachine", visitor)?;
-        self.upper_body_machine.visit("UpperBodyMachine", visitor)?;
-        self.model_yaw.visit("ModelYaw", visitor)?;
-        self.spine_pitch.visit("SpinePitch", visitor)?;
-        self.hips.visit("Hips", visitor)?;
-        self.spine.visit("Spine", visitor)?;
-        self.move_speed.visit("MoveSpeed", visitor)?;
-
-        self.collider.visit("Collider", visitor)?;
-        self.weapon_origin.visit("WeaponOrigin", visitor)?;
-        self.weapon_yaw_correction
-            .visit("WeaponYawCorrection", visitor)?;
-        self.weapon_pitch_correction
-            .visit("WeaponPitchCorrection", visitor)?;
-        self.run_factor.visit("RunFactor", visitor)?;
-        self.target_run_factor.visit("TargetRunFactor", visitor)?;
-        self.in_air_time.visit("InAirTime", visitor)?;
-        self.velocity.visit("Velocity", visitor)?;
-        self.target_velocity.visit("TargetVelocity", visitor)?;
-        self.weapon_change_direction
-            .visit("WeaponChangeDirection", visitor)?;
-        self.weapon_display.visit("WeaponDisplay", visitor)?;
-        self.inventory_display.visit("InventoryDisplay", visitor)?;
-        self.journal_display.visit("JournalDisplay", visitor)?;
-        self.health_cylinder.visit("HealthCylinder", visitor)?;
-        self.last_health.visit("LastHealth", visitor)?;
-        self.item_display.visit("ItemDisplay", visitor)?;
-        self.v_recoil.visit("VRecoil", visitor)?;
-        self.h_recoil.visit("HRecoil", visitor)?;
-        self.journal.visit("Journal", visitor)?;
-        self.rig_light.visit("RigLight", visitor)?;
-
-        if visitor.is_reading() {
-            self.health_color_gradient = make_color_gradient();
-        }
-
-        visitor.leave_region()
-    }
 }
 
 fn make_color_gradient() -> ColorGradient {
@@ -575,7 +529,7 @@ impl Player {
             weapons: self
                 .weapons
                 .iter()
-                .map(|w| weapons[*w].get_kind())
+                .map(|w| weapons[*w].kind())
                 .collect::<Vec<_>>(),
         }
     }
@@ -777,7 +731,7 @@ impl Player {
 
     fn current_weapon_kind(&self, weapons: &WeaponContainer) -> CombatWeaponKind {
         if self.current_weapon().is_some() {
-            match weapons[self.current_weapon()].get_kind() {
+            match weapons[self.current_weapon()].kind() {
                 WeaponKind::M4
                 | WeaponKind::Ak47
                 | WeaponKind::PlasmaRifle
@@ -1297,7 +1251,7 @@ impl Player {
             && self.weapons.len() > 1;
 
         let current_weapon_kind = if self.current_weapon().is_some() {
-            Some(weapons[self.current_weapon()].get_kind())
+            Some(weapons[self.current_weapon()].kind())
         } else {
             None
         };
@@ -1501,5 +1455,7 @@ impl Player {
         scene.graph[self.item_display]
             .as_sprite_mut()
             .set_texture(Some(item_texture));
+
+        self.health_color_gradient = make_color_gradient();
     }
 }

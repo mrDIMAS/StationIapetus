@@ -168,7 +168,7 @@ impl Character {
         if let Some(index) = self
             .weapons
             .iter()
-            .position(|&w| weapons[w].get_kind() == weapon)
+            .position(|&w| weapons[w].kind() == weapon)
         {
             for other_weapon in self.weapons.iter() {
                 sender.send(Message::ShowWeapon {

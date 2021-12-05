@@ -1,17 +1,16 @@
 use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
-use rg3d::core::color::Color;
-use rg3d::gui::brush::Brush;
-use rg3d::gui::widget::WidgetMessage;
 use rg3d::{
-    core::{algebra::Vector2, pool::Handle},
+    core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
     gui::{
+        brush::Brush,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         text::TextBuilder,
         text::TextMessage,
         ttf::SharedFont,
-        HorizontalAlignment, UserInterface,
+        widget::WidgetMessage,
+        HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     renderer::Renderer,
     resource::texture::Texture,
@@ -51,6 +50,19 @@ impl DoorUi {
                     .with_texture(into_gui_texture(
                         resource_manager.request_texture("data/ui/triangles.png", None),
                     ))
+                    .build(ctx),
+                )
+                .with_child(
+                    TextBuilder::new(
+                        WidgetBuilder::new()
+                            .on_row(0)
+                            .on_column(0)
+                            .with_margin(Thickness::top(25.0)),
+                    )
+                    .with_font(font.clone())
+                    .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .with_vertical_text_alignment(VerticalAlignment::Center)
+                    .with_text("D")
                     .build(ctx),
                 )
                 .with_child({
