@@ -14,7 +14,6 @@ use rg3d::{
     engine::resource_manager::ResourceManager,
     gui::ttf::SharedFont,
     material::{Material, PropertyValue},
-    rand::{thread_rng, Rng},
     resource::texture::Texture,
     scene::{graph::Graph, node::Node, Scene},
     utils::log::Log,

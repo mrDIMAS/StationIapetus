@@ -324,6 +324,11 @@ level and ask user if it should be opened.
 
 Some doors can be opened only if user has appropriate key card.
 
+#### Elevators
+
+Floors of vertical maps can be connected via elevators. Elevators should support any amount of levels. Each floor should
+have a button to call the elevator.
+
 #### Items
 
 - Small health pack - restores 20% of health.

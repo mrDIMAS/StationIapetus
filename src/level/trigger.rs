@@ -37,10 +37,6 @@ pub struct TriggerContainer {
 }
 
 impl TriggerContainer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn add(&mut self, trigger: Trigger) {
         let _ = self.pool.spawn(trigger);
     }

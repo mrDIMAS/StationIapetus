@@ -380,10 +380,6 @@ pub struct TurretContainer {
 }
 
 impl TurretContainer {
-    pub fn new() -> Self {
-        Self::default()
-    }
-
     pub fn add(&mut self, turret: Turret) -> Handle<Turret> {
         self.pool.spawn(turret)
     }

@@ -14,7 +14,6 @@ use rg3d::{
         grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
         scroll_bar::ScrollBarBuilder,
-        scroll_viewer::ScrollViewerBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         ttf::SharedFont,
@@ -80,10 +79,6 @@ pub fn create_check_box(
     )
     .checked(Some(checked))
     .build(ctx)
-}
-
-pub fn create_scroll_viewer(ctx: &mut BuildContext) -> Handle<UiNode> {
-    ScrollViewerBuilder::new(WidgetBuilder::new()).build(ctx)
 }
 
 pub struct DeathScreen {
