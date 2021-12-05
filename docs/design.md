@@ -222,31 +222,32 @@ TODO: Write dialogs between these employees and their personal notes on their po
 
 (INSERT IMAGE)
 
-**(WIP)**
+**Status:** Not ready
 
 ### Medical deck
 
 (INSERT IMAGE)
 
-**(WIP)**
+**Status:** Not ready
 
 ### Bridge
 
 (INSERT IMAGE)
 
-**(WIP)**
+**Status:** Not ready
 
 ### Sewage treatment plant
 
 (INSERT IMAGE)
 
-**(WIP)**
+**Status:** Not ready
+
 
 ### Hydroponics and food storage
 
 (INSERT IMAGE)
 
-**(WIP)**
+**Status:** Not ready
 
 ## Gameplay
 
@@ -261,16 +262,36 @@ and to be able to lift heavy things to clean path.
 
 The character can walk, run, jump, use weapons and grenades.
 
+### Character leveling
+
+The player can find power nodes, which can be used to improve suit or weapons.
+
+Possible suit improvements are:
+
+- Health
+- Accuracy (hands will be less shaky)
+
+Possible weapon improvements:
+
+- Damage
+- Shooting speed
+
+**Status:** Not ready
+
 ### Camera
 
 Typical 3rd person camera should be used, when shooting the camera should come closer to the shoulder providing a
 better view. The camera should also avoid obstacles and do not let to see through walls. The camera can be rotated
 freely around Y axis and have limited `[-90;90]` degrees range rotation around X axis.
 
+**Status:** Done
+
 ### Inventory
 
 Inventory is used to store all useful items that player can find. The inventory should allow player to use, examine,
 and drop items. The capacity of the inventory is unlimited.
+
+**Status:** Prototype is done
 
 ### Enemies
 
@@ -279,18 +300,24 @@ enemies.
 
 #### Standard "zombies"
 
-A weak enemy which is basically slightly mutated version of typical employee, some of them can use weapons.
+A weak enemy which is basically slightly mutated version of a typical employee, some of them can use weapons.
 **(WIP)**
+
+**Status:** Partially done
 
 #### Fast zombies
 
 A fast and dangerous melee enemy.
 **(WIP)**
 
+**Status:** Partially done
+
 #### Heavy monsters
 
 Slow, tough and very deadly monster, few hits of his arms is enough to kill main character.
 **(WIP)**
+
+**Status:** Partially done
 
 #### Turrets
 
@@ -303,6 +330,8 @@ modes:
 - Hostile to non-authorized persons - basically it has a list of persons that has right clearance
 
 **(WIP)**
+
+**Status:** Partially done
 
 ### Interactive objects
 
@@ -324,10 +353,14 @@ level and ask user if it should be opened.
 
 Some doors can be opened only if user has appropriate key card.
 
+**Status:** Partially done
+
 #### Elevators
 
 Floors of vertical maps can be connected via elevators. Elevators should support any amount of levels. Each floor should
 have a button to call the elevator.
+
+**Status:** Not ready
 
 #### Items
 
@@ -340,6 +373,8 @@ have a button to call the elevator.
 - Rail gun - powerful gun with high-energy projectiles that are able to penetrate multiple targets.
 - Plasma gun - powerful energy gun that shoots plasma balls.
 - Key-card - customizable key card.
+
+**Status:** Partially done
 
 ### Motivation
 
@@ -354,7 +389,8 @@ already have a gun)
 Key points why player should explore levels:
 
 - A chance to find a new weapon
-- A change to find a new useful item
+- A chance to find a new useful item (power node for example)
+- A chance to find a new piece of story 
 - ???
 
 ## Storytelling
