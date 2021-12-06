@@ -11,6 +11,7 @@ mod config;
 mod control_scheme;
 mod door;
 mod effects;
+mod elevator;
 mod gui;
 mod inventory;
 mod item;

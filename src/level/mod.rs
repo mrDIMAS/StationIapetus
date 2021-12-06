@@ -1,3 +1,4 @@
+use crate::elevator::{CallButton, Elevator, ElevatorContainer};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -145,6 +146,7 @@ pub struct BaseLevel {
     turrets: TurretContainer,
     triggers: TriggerContainer,
     decals: DecalContainer,
+    pub elevators: ElevatorContainer,
 }
 
 #[derive(Visit)]
@@ -168,6 +170,7 @@ pub struct UpdateContext<'a> {
     pub navmesh: Handle<Navmesh>,
     pub weapons: &'a WeaponContainer,
     pub sender: &'a MessageSender,
+    pub elevators: &'a ElevatorContainer,
 }
 
 #[derive(Default)]
@@ -181,6 +184,7 @@ pub struct AnalysisResult {
     lights: LightContainer,
     turrets: TurretContainer,
     triggers: TriggerContainer,
+    elevators: ElevatorContainer,
 }
 
 pub fn footstep_ray_check(
@@ -259,6 +263,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     let mut player_spawn_orientation = Default::default();
     let mut turrets = TurretContainer::default();
     let mut triggers = TriggerContainer::default();
+    let mut elevators = ElevatorContainer::new();
 
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
@@ -295,6 +300,24 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
             if let Node::Mesh(_) = node {
                 death_zones.push(handle);
             }
+        }
+
+        if node.tag().starts_with("Elevator") {
+            let mut points = Vec::new();
+            let mut call_buttons = Vec::new();
+            for (other_node_handle, other_node) in scene.graph.pair_iter() {
+                if other_node.name().starts_with(node.tag()) {
+                    points.push(other_node.global_position())
+                } else if other_node.name().starts_with("CallButton") {
+                    if let Ok(floor) = other_node.tag().parse::<u32>() {
+                        call_buttons.push(CallButton::new(other_node_handle, floor))
+                    }
+                }
+            }
+
+            let mut elevator = Elevator::new(handle, points, call_buttons);
+
+            elevators.add(elevator);
         }
 
         match node.tag() {
@@ -383,6 +406,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     result.player_spawn_orientation = player_spawn_orientation;
     result.turrets = turrets;
     result.triggers = triggers;
+    result.elevators = elevators;
 
     result
 }
@@ -597,6 +621,7 @@ impl BaseLevel {
             lights,
             turrets,
             triggers,
+            elevators,
         } = analyze(&mut scene, resource_manager.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -653,6 +678,7 @@ impl BaseLevel {
             beam: Some(make_beam()),
             trails: Default::default(),
             doors,
+            elevators,
         };
 
         (level, scene)
@@ -1079,6 +1105,7 @@ impl BaseLevel {
             self.sender.as_ref().unwrap(),
             time.delta,
         );
+        self.elevators.update(time.delta, scene);
         let mut ctx = UpdateContext {
             time,
             scene,
@@ -1086,6 +1113,7 @@ impl BaseLevel {
             doors: &self.doors,
             navmesh: self.navmesh,
             weapons: &self.weapons,
+            elevators: &self.elevators,
             sender: self.sender.as_ref().unwrap(),
         };
 
@@ -1352,12 +1380,19 @@ impl BaseLevel {
         self.doors[door].try_open(self.sender.clone().unwrap(), graph, inventory);
     }
 
+    fn call_elevator(&mut self, elevator: Handle<Elevator>, floor: u32) {
+        self.elevators[elevator].call_to(floor);
+    }
+
     pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
         self.sound_manager
             .handle_message(engine.resource_manager.clone(), &message)
             .await;
 
         match message {
+            &Message::CallElevator { elevator, floor } => {
+                self.call_elevator(elevator, floor);
+            }
             &Message::TryOpenDoor { door, actor } => {
                 self.try_open_door(engine, door, actor);
             }

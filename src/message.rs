@@ -4,6 +4,7 @@
 //! strict ownership rules of Rust.
 
 use crate::door::Door;
+use crate::elevator::Elevator;
 use crate::{
     actor::Actor,
     bot::BotKind,
@@ -29,6 +30,10 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
+    CallElevator {
+        elevator: Handle<Elevator>,
+        floor: u32,
+    },
     TryOpenDoor {
         door: Handle<Door>,
         actor: Handle<Actor>,

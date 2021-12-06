@@ -1,4 +1,5 @@
 use crate::door::DoorContainer;
+use crate::elevator::{Elevator, ElevatorContainer};
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -593,6 +594,30 @@ impl Player {
         }
     }
 
+    fn check_elevators(
+        &self,
+        scene: &Scene,
+        elevator_container: &ElevatorContainer,
+        sender: &MessageSender,
+    ) {
+        let graph = &scene.graph;
+        let self_position = graph[self.pivot].global_position();
+
+        for (handle, elevator) in elevator_container.pair_iter() {
+            for call_button in elevator.call_buttons.iter() {
+                let button_position = graph[call_button.node].global_position();
+
+                let distance = (button_position - self_position).norm();
+                if distance < 0.75 && self.controller.action {
+                    sender.send(Message::CallElevator {
+                        elevator: handle,
+                        floor: call_button.floor,
+                    });
+                }
+            }
+        }
+    }
+
     fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
         let mut new_y_vel = None;
         while let Some(event) = scene
@@ -993,6 +1018,7 @@ impl Player {
             items,
             sender,
             doors,
+            elevators,
             ..
         } = context;
 
@@ -1152,6 +1178,7 @@ impl Player {
 
             self.check_items(self_handle, scene, items, sender);
             self.check_doors(self_handle, scene, doors, sender);
+            self.check_elevators(scene, elevators, sender);
             self.update_shooting(scene, weapons, *time, sender);
 
             let spine_transform = scene.graph[self.spine].local_transform_mut();
