@@ -41,6 +41,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use rg3d::core::futures::executor::block_on;
 use rg3d::{
     core::{
         parking_lot::Mutex,
@@ -564,21 +565,20 @@ impl Game {
             let level = {
                 match level_kind {
                     LevelKind::Arrival => {
-                        let (arrival, scene) =
-                            rg3d::core::futures::executor::block_on(ArrivalLevel::new(
-                                resource_manager,
-                                sender,
-                                display_texture,
-                                inventory_texture,
-                                item_texture,
-                                journal_texture,
-                                sound_config,
-                                persistent_data,
-                            ));
+                        let (arrival, scene) = block_on(ArrivalLevel::new(
+                            resource_manager,
+                            sender,
+                            display_texture,
+                            inventory_texture,
+                            item_texture,
+                            journal_texture,
+                            sound_config,
+                            persistent_data,
+                        ));
                         (Level::Arrival(arrival), scene)
                     }
                     LevelKind::Lab => {
-                        let (lab, scene) = rg3d::core::futures::executor::block_on(LabLevel::new(
+                        let (lab, scene) = block_on(LabLevel::new(
                             resource_manager,
                             sender,
                             display_texture,
@@ -591,17 +591,16 @@ impl Game {
                         (Level::Lab(lab), scene)
                     }
                     LevelKind::Testbed => {
-                        let (lab, scene) =
-                            rg3d::core::futures::executor::block_on(TestbedLevel::new(
-                                resource_manager,
-                                sender,
-                                display_texture,
-                                inventory_texture,
-                                item_texture,
-                                journal_texture,
-                                sound_config,
-                                persistent_data,
-                            ));
+                        let (lab, scene) = block_on(TestbedLevel::new(
+                            resource_manager,
+                            sender,
+                            display_texture,
+                            inventory_texture,
+                            item_texture,
+                            journal_texture,
+                            sound_config,
+                            persistent_data,
+                        ));
                         (Level::Testbed(lab), scene)
                     }
                 }
