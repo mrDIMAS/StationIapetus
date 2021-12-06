@@ -604,6 +604,16 @@ impl Player {
         let self_position = graph[self.pivot].global_position();
 
         for (handle, elevator) in elevator_container.pair_iter() {
+            // Handle floors.
+            let elevator_position = graph[elevator.node].global_position();
+            if (elevator_position - self_position).norm() < 0.75 && self.controller.action {
+                sender.send(Message::CallElevator {
+                    elevator: handle,
+                    floor: 1,
+                });
+            }
+
+            // Handle call buttons
             for call_button in elevator.call_buttons.iter() {
                 let button_position = graph[call_button.node].global_position();
 
