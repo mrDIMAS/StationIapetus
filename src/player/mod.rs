@@ -607,10 +607,18 @@ impl Player {
             // Handle floors.
             let elevator_position = graph[elevator.node].global_position();
             if (elevator_position - self_position).norm() < 0.75 && self.controller.action {
-                sender.send(Message::CallElevator {
-                    elevator: handle,
-                    floor: 1,
-                });
+                let last_index = elevator.points.len().saturating_sub(1) as u32;
+                if elevator.current_floor == last_index {
+                    sender.send(Message::CallElevator {
+                        elevator: handle,
+                        floor: 0,
+                    });
+                } else if elevator.current_floor == 0 {
+                    sender.send(Message::CallElevator {
+                        elevator: handle,
+                        floor: last_index,
+                    });
+                }
             }
 
             // Handle call buttons

@@ -19,11 +19,11 @@ impl CallButton {
 
 #[derive(Default, Visit)]
 pub struct Elevator {
-    current_floor: u32,
-    dest_floor: u32,
+    pub current_floor: u32,
+    pub dest_floor: u32,
     k: f32,
     pub node: Handle<Node>,
-    points: Vec<Vector3<f32>>,
+    pub points: Vec<Vector3<f32>>,
     pub call_buttons: Vec<CallButton>,
 }
 
