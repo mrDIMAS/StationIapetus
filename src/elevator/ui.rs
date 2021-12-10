@@ -1,4 +1,4 @@
-use crate::elevator::{CallButton, Elevator};
+use crate::elevator::{CallButton, CallButtonKind, Elevator};
 use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
 use rg3d::gui::border::BorderBuilder;
 use rg3d::{
@@ -25,6 +25,7 @@ use std::hash::{Hash, Hasher};
 pub struct CallButtonUi {
     pub ui: UserInterface,
     pub render_target: Texture,
+    floor_text: Handle<UiNode>,
     text: Handle<UiNode>,
 }
 
@@ -39,6 +40,8 @@ impl CallButtonUi {
         let ctx = &mut ui.build_ctx();
 
         let text;
+        let floor_text;
+
         BorderBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
@@ -46,8 +49,8 @@ impl CallButtonUi {
                 .with_child(
                     GridBuilder::new(
                         WidgetBuilder::new()
-                            .with_child(
-                                TextBuilder::new(
+                            .with_child({
+                                floor_text = TextBuilder::new(
                                     WidgetBuilder::new()
                                         .on_row(0)
                                         .on_column(0)
@@ -57,8 +60,9 @@ impl CallButtonUi {
                                 .with_horizontal_text_alignment(HorizontalAlignment::Center)
                                 .with_vertical_text_alignment(VerticalAlignment::Center)
                                 .with_text(format!("Floor {}", floor))
-                                .build(ctx),
-                            )
+                                .build(ctx);
+                                floor_text
+                            })
                             .with_child({
                                 text = TextBuilder::new(
                                     WidgetBuilder::new()
@@ -85,12 +89,21 @@ impl CallButtonUi {
             ui,
             render_target,
             text,
+            floor_text,
         }
     }
 
     pub fn set_text(&mut self, text: String) {
         self.ui.send_message(TextMessage::text(
             self.text,
+            MessageDirection::ToWidget,
+            text,
+        ));
+    }
+
+    pub fn set_floor_text(&mut self, text: String) {
+        self.ui.send_message(TextMessage::text(
+            self.floor_text,
             MessageDirection::ToWidget,
             text,
         ));

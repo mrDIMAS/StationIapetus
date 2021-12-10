@@ -1,4 +1,4 @@
-use crate::elevator::{CallButton, Elevator, ElevatorContainer};
+use crate::elevator::{CallButton, CallButtonKind, Elevator, ElevatorContainer};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -317,13 +317,23 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                             if let Some(base::PropertyValue::U32(floor)) =
                                 node_ref.find_property_ref("Floor").map(|p| &p.value)
                             {
-                                call_buttons.spawn(CallButton::new(node_handle, *floor));
+                                call_buttons.spawn(CallButton::new(
+                                    node_handle,
+                                    *floor,
+                                    CallButtonKind::EndPoint,
+                                ));
                             } else {
                                 Log::writeln(
                                     MessageKind::Error,
                                     format!("Call button is missing Floor parameter!"),
                                 )
                             }
+                        } else if property.name == "FloorSelector" {
+                            call_buttons.spawn(CallButton::new(
+                                node_handle,
+                                0,
+                                CallButtonKind::FloorSelector,
+                            ));
                         }
                     }
                 }
@@ -1400,12 +1410,27 @@ impl BaseLevel {
         self.elevators[elevator].call_to(floor);
     }
 
+    fn set_call_button_floor(
+        &mut self,
+        elevator: Handle<Elevator>,
+        call_button: Handle<CallButton>,
+        floor: u32,
+    ) {
+        self.elevators[elevator].call_buttons[call_button].floor = floor;
+    }
+
     pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
         self.sound_manager
             .handle_message(engine.resource_manager.clone(), &message)
             .await;
 
         match message {
+            &Message::SetCallButtonFloor {
+                elevator,
+                call_button,
+                floor,
+            } => self.set_call_button_floor(elevator, call_button, floor),
+
             &Message::CallElevator { elevator, floor } => {
                 self.call_elevator(elevator, floor);
             }

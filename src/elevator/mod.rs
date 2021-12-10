@@ -16,15 +16,28 @@ use std::sync::Arc;
 
 pub mod ui;
 
+#[derive(Debug, Visit)]
+pub enum CallButtonKind {
+    FloorSelector,
+    EndPoint,
+}
+
+impl Default for CallButtonKind {
+    fn default() -> Self {
+        Self::EndPoint
+    }
+}
+
 #[derive(Default, Debug, Visit)]
 pub struct CallButton {
     pub node: Handle<Node>,
     pub floor: u32,
+    pub kind: CallButtonKind,
 }
 
 impl CallButton {
-    pub fn new(node: Handle<Node>, floor: u32) -> Self {
-        Self { node, floor }
+    pub fn new(node: Handle<Node>, floor: u32, kind: CallButtonKind) -> Self {
+        Self { node, floor, kind }
     }
 
     pub fn apply_screen_texture(
@@ -123,6 +136,8 @@ impl Elevator {
                     }
                     .to_string(),
                 );
+
+                ui.set_floor_text(format!("Floor {}", call_button_ref.floor));
             }
         }
 

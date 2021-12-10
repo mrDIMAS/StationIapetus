@@ -1,5 +1,5 @@
 use crate::door::DoorContainer;
-use crate::elevator::{Elevator, ElevatorContainer};
+use crate::elevator::{CallButtonKind, Elevator, ElevatorContainer};
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -143,6 +143,8 @@ pub struct InputController {
     shoot: bool,
     run: bool,
     action: bool,
+    cursor_up: bool,
+    cursor_down: bool,
 }
 
 impl Deref for Player {
@@ -622,15 +624,40 @@ impl Player {
             }
 
             // Handle call buttons
-            for call_button in elevator.call_buttons.iter() {
+            for (call_button_handle, call_button) in elevator.call_buttons.pair_iter() {
                 let button_position = graph[call_button.node].global_position();
 
                 let distance = (button_position - self_position).norm();
-                if distance < 0.75 && self.controller.action {
-                    sender.send(Message::CallElevator {
-                        elevator: handle,
-                        floor: call_button.floor,
-                    });
+                if distance < 0.75 {
+                    if let CallButtonKind::FloorSelector = call_button.kind {
+                        let new_floor = if self.controller.cursor_down {
+                            Some(call_button.floor.saturating_sub(1))
+                        } else if self.controller.cursor_up {
+                            Some(
+                                call_button
+                                    .floor
+                                    .saturating_add(1)
+                                    .min((elevator.points.len() as u32).saturating_sub(1)),
+                            )
+                        } else {
+                            None
+                        };
+
+                        if let Some(new_floor) = new_floor {
+                            sender.send(Message::SetCallButtonFloor {
+                                elevator: handle,
+                                call_button: call_button_handle,
+                                floor: new_floor,
+                            });
+                        }
+                    }
+
+                    if self.controller.action {
+                        sender.send(Message::CallElevator {
+                            elevator: handle,
+                            floor: call_button.floor,
+                        });
+                    }
                 }
             }
         }
@@ -1387,6 +1414,10 @@ impl Player {
                 }
             } else if button == control_scheme.shoot.button {
                 self.controller.shoot = state == ElementState::Pressed;
+            } else if button == control_scheme.cursor_up.button {
+                self.controller.cursor_up = state == ElementState::Pressed;
+            } else if button == control_scheme.cursor_down.button {
+                self.controller.cursor_down = state == ElementState::Pressed;
             } else if button == control_scheme.action.button {
                 self.controller.action = state == ElementState::Pressed;
             } else if button == control_scheme.inventory.button
