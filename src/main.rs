@@ -27,6 +27,7 @@ mod utils;
 mod weapon;
 
 use crate::door::ui::DoorUiContainer;
+use crate::elevator::ui::CallButtonUiContainer;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -105,6 +106,7 @@ pub struct Game {
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
     door_ui_container: DoorUiContainer,
+    call_button_ui_container: CallButtonUiContainer,
     // We're storing sound config separately because we can adjust sound
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
@@ -293,6 +295,7 @@ impl Game {
             sound_config,
             update_duration: Default::default(),
             door_ui_container: Default::default(),
+            call_button_ui_container: Default::default(),
         };
 
         game.create_debug_ui();
@@ -440,6 +443,8 @@ impl Game {
         ));
 
         self.door_ui_container.render(&mut self.engine.renderer);
+        self.call_button_ui_container
+            .render(&mut self.engine.renderer);
 
         Log::verify(self.engine.render());
     }
@@ -502,6 +507,7 @@ impl Game {
         self.final_screen
             .set_visible(&self.engine.user_interface, false);
         self.door_ui_container.clear();
+        self.call_button_ui_container.clear();
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
@@ -526,6 +532,7 @@ impl Game {
     fn destroy_level(&mut self) {
         if let Some(ref mut level) = self.level.take() {
             self.door_ui_container.clear();
+            self.call_button_ui_container.clear();
             level.destroy(&mut self.engine);
             Log::writeln(
                 MessageKind::Information,
@@ -645,6 +652,25 @@ impl Game {
                         );
                     }
 
+                    for (elevator_handle, elevator) in level.elevators.pair_iter() {
+                        for (call_button_handle, call_button_ref) in
+                            elevator.call_buttons.pair_iter()
+                        {
+                            let texture = self.call_button_ui_container.create_ui(
+                                self.smaller_font.clone(),
+                                elevator_handle,
+                                call_button_handle,
+                                call_button_ref,
+                            );
+
+                            call_button_ref.apply_screen_texture(
+                                &mut scene.graph,
+                                self.engine.resource_manager.clone(),
+                                texture,
+                            );
+                        }
+                    }
+
                     level.scene = self.engine.scenes.add(scene);
 
                     self.level = Some(level);
@@ -670,7 +696,12 @@ impl Game {
         if let Some(ref mut level) = self.level {
             let menu_visible = self.menu.is_visible(&self.engine.user_interface);
             if !menu_visible {
-                level.update(&mut self.engine, time, &mut self.door_ui_container);
+                level.update(
+                    &mut self.engine,
+                    time,
+                    &mut self.door_ui_container,
+                    &mut self.call_button_ui_container,
+                );
                 let player = level.get_player();
                 if player.is_some() {
                     if let Actor::Player(player) = level.actors().get(player) {
@@ -687,6 +718,7 @@ impl Game {
         self.inventory_interface.update(time.delta);
         self.item_display.update(time.delta);
         self.door_ui_container.update(time.delta);
+        self.call_button_ui_container.update(time.delta);
 
         self.engine.update(time.delta);
 

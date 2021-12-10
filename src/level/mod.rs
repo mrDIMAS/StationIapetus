@@ -29,9 +29,12 @@ use crate::{
         sight::SightReaction,
         Weapon, WeaponContainer,
     },
-    DoorUiContainer, Engine, GameTime, MessageSender,
+    CallButtonUiContainer, DoorUiContainer, Engine, GameTime, MessageSender,
 };
+use rg3d::core::pool::Pool;
 use rg3d::gui::ttf::SharedFont;
+use rg3d::scene::base;
+use rg3d::utils::log::MessageKind;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -304,13 +307,24 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
 
         if node.tag().starts_with("Elevator") {
             let mut points = Vec::new();
-            let mut call_buttons = Vec::new();
-            for (other_node_handle, other_node) in scene.graph.pair_iter() {
-                if other_node.name().starts_with(node.tag()) {
-                    points.push(other_node.global_position())
-                } else if other_node.name().starts_with("CallButton") {
-                    if let Ok(floor) = other_node.tag().parse::<u32>() {
-                        call_buttons.push(CallButton::new(other_node_handle, floor))
+            let mut call_buttons = Pool::new();
+            for property in node.properties.iter() {
+                if let base::PropertyValue::NodeHandle(node_handle) = property.value {
+                    if let Some(node_ref) = scene.graph.try_get(node_handle) {
+                        if property.name == "PathPoint" {
+                            points.push(node_ref.global_position());
+                        } else if property.name == "CallButton" {
+                            if let Some(base::PropertyValue::U32(floor)) =
+                                node_ref.find_property_ref("Floor").map(|p| &p.value)
+                            {
+                                call_buttons.spawn(CallButton::new(node_handle, *floor));
+                            } else {
+                                Log::writeln(
+                                    MessageKind::Error,
+                                    format!("Call button is missing Floor parameter!"),
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -1086,6 +1100,7 @@ impl BaseLevel {
         engine: &mut Engine,
         time: GameTime,
         door_ui_container: &mut DoorUiContainer,
+        call_button_ui_container: &mut CallButtonUiContainer,
     ) {
         self.time += time.delta;
         let scene = &mut engine.scenes[self.scene];
@@ -1105,7 +1120,8 @@ impl BaseLevel {
             self.sender.as_ref().unwrap(),
             time.delta,
         );
-        self.elevators.update(time.delta, scene);
+        self.elevators
+            .update(time.delta, scene, call_button_ui_container);
         let mut ctx = UpdateContext {
             time,
             scene,
