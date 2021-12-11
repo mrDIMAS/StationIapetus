@@ -1,10 +1,13 @@
-use crate::door::DoorContainer;
-use crate::elevator::{CallButtonKind, Elevator, ElevatorContainer};
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
     control_scheme::{ControlButton, ControlScheme},
     create_display_material,
+    door::DoorContainer,
+    elevator::{
+        call_button::{CallButtonContainer, CallButtonKind},
+        ElevatorContainer,
+    },
     gui::journal::Journal,
     inventory::Inventory,
     item::{ItemContainer, ItemKind},
@@ -22,20 +25,19 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::utils::log::Log;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
     },
-    core::parking_lot::Mutex,
     core::{
         algebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         math::{self, SmoothAngle, Vector3Ext},
+        parking_lot::Mutex,
         pool::Handle,
+        sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
@@ -61,6 +63,7 @@ use rg3d::{
         transform::TransformBuilder,
         Scene,
     },
+    utils::log::Log,
 };
 use std::{
     ops::{Deref, DerefMut},
@@ -600,6 +603,7 @@ impl Player {
         &self,
         scene: &Scene,
         elevator_container: &ElevatorContainer,
+        call_button_container: &CallButtonContainer,
         sender: &MessageSender,
     ) {
         let graph = &scene.graph;
@@ -624,7 +628,9 @@ impl Player {
             }
 
             // Handle call buttons
-            for (call_button_handle, call_button) in elevator.call_buttons.pair_iter() {
+            for &call_button_handle in elevator.call_buttons.iter() {
+                let call_button = &call_button_container[call_button_handle];
+
                 let button_position = graph[call_button.node].global_position();
 
                 let distance = (button_position - self_position).norm();
@@ -645,7 +651,6 @@ impl Player {
 
                         if let Some(new_floor) = new_floor {
                             sender.send(Message::SetCallButtonFloor {
-                                elevator: handle,
                                 call_button: call_button_handle,
                                 floor: new_floor,
                             });
@@ -1064,6 +1069,7 @@ impl Player {
             sender,
             doors,
             elevators,
+            call_buttons,
             ..
         } = context;
 
@@ -1223,7 +1229,7 @@ impl Player {
 
             self.check_items(self_handle, scene, items, sender);
             self.check_doors(self_handle, scene, doors, sender);
-            self.check_elevators(scene, elevators, sender);
+            self.check_elevators(scene, elevators, call_buttons, sender);
             self.update_shooting(scene, weapons, *time, sender);
 
             let spine_transform = scene.graph[self.spine].local_transform_mut();

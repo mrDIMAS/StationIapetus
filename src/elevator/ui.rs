@@ -1,26 +1,19 @@
-use crate::elevator::{CallButton, CallButtonKind, Elevator};
-use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
-use rg3d::gui::border::BorderBuilder;
+use crate::{elevator::CallButton, MessageDirection, UiNode, WidgetBuilder};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
-    engine::resource_manager::ResourceManager,
     gui::{
+        border::BorderBuilder,
         brush::Brush,
         grid::{Column, GridBuilder, Row},
-        image::ImageBuilder,
-        text::TextBuilder,
-        text::TextMessage,
+        text::{TextBuilder, TextMessage},
         ttf::SharedFont,
-        widget::WidgetMessage,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     renderer::Renderer,
     resource::texture::Texture,
-    utils::{into_gui_texture, log::Log},
+    utils::log::Log,
 };
-use std::collections::hash_map::DefaultHasher;
 use std::collections::HashMap;
-use std::hash::{Hash, Hasher};
 
 pub struct CallButtonUi {
     pub ui: UserInterface,
@@ -120,40 +113,27 @@ impl CallButtonUi {
 
 #[derive(Default)]
 pub struct CallButtonUiContainer {
-    map: HashMap<u64, CallButtonUi>,
-}
-
-fn calc_hash(elevator_handle: Handle<Elevator>, call_button_handle: Handle<CallButton>) -> u64 {
-    let mut hasher = DefaultHasher::new();
-    elevator_handle.hash(&mut hasher);
-    call_button_handle.hash(&mut hasher);
-    hasher.finish()
+    map: HashMap<Handle<CallButton>, CallButtonUi>,
 }
 
 impl CallButtonUiContainer {
     pub fn create_ui(
         &mut self,
         font: SharedFont,
-        elevator_handle: Handle<Elevator>,
         call_button_handle: Handle<CallButton>,
         call_button: &CallButton,
     ) -> Texture {
         let ui = CallButtonUi::new(font, call_button.floor);
         let texture = ui.render_target.clone();
-        assert!(self
-            .map
-            .insert(calc_hash(elevator_handle, call_button_handle), ui)
-            .is_none());
+        assert!(self.map.insert(call_button_handle, ui).is_none());
         texture
     }
 
     pub fn get_ui_mut(
         &mut self,
-        elevator_handle: Handle<Elevator>,
         call_button_handle: Handle<CallButton>,
     ) -> Option<&mut CallButtonUi> {
-        self.map
-            .get_mut(&calc_hash(elevator_handle, call_button_handle))
+        self.map.get_mut(&call_button_handle)
     }
 
     pub fn render(&mut self, renderer: &mut Renderer) {

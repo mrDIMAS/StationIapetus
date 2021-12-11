@@ -1,4 +1,3 @@
-use crate::elevator::{CallButton, CallButtonKind, Elevator, ElevatorContainer};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -7,6 +6,10 @@ use crate::{
     control_scheme::ControlScheme,
     door::{Door, DoorContainer, DoorDirection, DoorState},
     effects::{self, EffectKind},
+    elevator::{
+        call_button::{CallButton, CallButtonContainer, CallButtonKind},
+        Elevator, ElevatorContainer,
+    },
     item::{Item, ItemContainer, ItemKind},
     level::{
         arrival::ArrivalLevel,
@@ -31,10 +34,6 @@ use crate::{
     },
     CallButtonUiContainer, DoorUiContainer, Engine, GameTime, MessageSender,
 };
-use rg3d::core::pool::Pool;
-use rg3d::gui::ttf::SharedFont;
-use rg3d::scene::base;
-use rg3d::utils::log::MessageKind;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -48,12 +47,13 @@ use rg3d::{
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::Event,
+    gui::ttf::SharedFont,
     material::{Material, PropertyValue},
     physics3d::{ColliderHandle, RayCastOptions},
     rand,
     resource::texture::Texture,
     scene::{
-        self,
+        self, base,
         base::BaseBuilder,
         graph::Graph,
         mesh::{
@@ -64,8 +64,10 @@ use rg3d::{
         transform::TransformBuilder,
         Scene,
     },
-    utils::log::Log,
-    utils::navmesh::Navmesh,
+    utils::{
+        log::{Log, MessageKind},
+        navmesh::Navmesh,
+    },
 };
 use std::{
     ops::{Deref, DerefMut},
@@ -150,6 +152,7 @@ pub struct BaseLevel {
     triggers: TriggerContainer,
     decals: DecalContainer,
     pub elevators: ElevatorContainer,
+    pub call_buttons: CallButtonContainer,
 }
 
 #[derive(Visit)]
@@ -174,6 +177,7 @@ pub struct UpdateContext<'a> {
     pub weapons: &'a WeaponContainer,
     pub sender: &'a MessageSender,
     pub elevators: &'a ElevatorContainer,
+    pub call_buttons: &'a CallButtonContainer,
 }
 
 #[derive(Default)]
@@ -188,6 +192,7 @@ pub struct AnalysisResult {
     turrets: TurretContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
+    call_buttons: CallButtonContainer,
 }
 
 pub fn footstep_ray_check(
@@ -267,6 +272,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     let mut turrets = TurretContainer::default();
     let mut triggers = TriggerContainer::default();
     let mut elevators = ElevatorContainer::new();
+    let mut call_buttons = CallButtonContainer::new();
 
     for (handle, node) in scene.graph.pair_iter() {
         let position = node.global_position();
@@ -306,22 +312,26 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
         }
 
         if node.tag().starts_with("Elevator") {
-            let mut points = Vec::new();
-            let mut call_buttons = Pool::new();
+            let elevator = elevators.add(Elevator::new(handle));
+            let elevator_mut = &mut elevators[elevator];
+
             for property in node.properties.iter() {
                 if let base::PropertyValue::NodeHandle(node_handle) = property.value {
                     if let Some(node_ref) = scene.graph.try_get(node_handle) {
                         if property.name == "PathPoint" {
-                            points.push(node_ref.global_position());
+                            elevator_mut.points.push(node_ref.global_position());
                         } else if property.name == "CallButton" {
                             if let Some(base::PropertyValue::U32(floor)) =
-                                node_ref.find_property_ref("Floor").map(|p| &p.value)
+                                node_ref.find_first_property_ref("Floor").map(|p| &p.value)
                             {
-                                call_buttons.spawn(CallButton::new(
+                                let call_button = call_buttons.add(CallButton::new(
+                                    elevator,
                                     node_handle,
                                     *floor,
                                     CallButtonKind::EndPoint,
                                 ));
+
+                                elevator_mut.call_buttons.push(call_button);
                             } else {
                                 Log::writeln(
                                     MessageKind::Error,
@@ -329,19 +339,18 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                                 )
                             }
                         } else if property.name == "FloorSelector" {
-                            call_buttons.spawn(CallButton::new(
+                            let call_button = call_buttons.add(CallButton::new(
+                                elevator,
                                 node_handle,
                                 0,
                                 CallButtonKind::FloorSelector,
                             ));
+
+                            elevator_mut.call_buttons.push(call_button);
                         }
                     }
                 }
             }
-
-            let mut elevator = Elevator::new(handle, points, call_buttons);
-
-            elevators.add(elevator);
         }
 
         match node.tag() {
@@ -431,6 +440,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     result.turrets = turrets;
     result.triggers = triggers;
     result.elevators = elevators;
+    result.call_buttons = call_buttons;
 
     result
 }
@@ -646,6 +656,7 @@ impl BaseLevel {
             turrets,
             triggers,
             elevators,
+            call_buttons,
         } = analyze(&mut scene, resource_manager.clone()).await;
         let mut actors = ActorContainer::new();
         let mut weapons = WeaponContainer::new();
@@ -703,6 +714,7 @@ impl BaseLevel {
             trails: Default::default(),
             doors,
             elevators,
+            call_buttons,
         };
 
         (level, scene)
@@ -1130,8 +1142,9 @@ impl BaseLevel {
             self.sender.as_ref().unwrap(),
             time.delta,
         );
-        self.elevators
-            .update(time.delta, scene, call_button_ui_container);
+        self.elevators.update(time.delta, scene);
+        self.call_buttons
+            .update(&self.elevators, call_button_ui_container);
         let mut ctx = UpdateContext {
             time,
             scene,
@@ -1140,6 +1153,7 @@ impl BaseLevel {
             navmesh: self.navmesh,
             weapons: &self.weapons,
             elevators: &self.elevators,
+            call_buttons: &self.call_buttons,
             sender: self.sender.as_ref().unwrap(),
         };
 
@@ -1410,13 +1424,8 @@ impl BaseLevel {
         self.elevators[elevator].call_to(floor);
     }
 
-    fn set_call_button_floor(
-        &mut self,
-        elevator: Handle<Elevator>,
-        call_button: Handle<CallButton>,
-        floor: u32,
-    ) {
-        self.elevators[elevator].call_buttons[call_button].floor = floor;
+    fn set_call_button_floor(&mut self, call_button: Handle<CallButton>, floor: u32) {
+        self.call_buttons[call_button].floor = floor;
     }
 
     pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
@@ -1425,11 +1434,9 @@ impl BaseLevel {
             .await;
 
         match message {
-            &Message::SetCallButtonFloor {
-                elevator,
-                call_button,
-                floor,
-            } => self.set_call_button_floor(elevator, call_button, floor),
+            &Message::SetCallButtonFloor { call_button, floor } => {
+                self.set_call_button_floor(call_button, floor)
+            }
 
             &Message::CallElevator { elevator, floor } => {
                 self.call_elevator(elevator, floor);

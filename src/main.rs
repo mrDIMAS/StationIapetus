@@ -26,12 +26,12 @@ mod sound;
 mod utils;
 mod weapon;
 
-use crate::door::ui::DoorUiContainer;
-use crate::elevator::ui::CallButtonUiContainer;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
+    door::ui::DoorUiContainer,
+    elevator::ui::CallButtonUiContainer,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
@@ -43,9 +43,9 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::core::futures::executor::block_on;
 use rg3d::{
     core::{
+        futures::executor::block_on,
         parking_lot::Mutex,
         pool::Handle,
         sstorage::ImmutableString,
@@ -652,23 +652,18 @@ impl Game {
                         );
                     }
 
-                    for (elevator_handle, elevator) in level.elevators.pair_iter() {
-                        for (call_button_handle, call_button_ref) in
-                            elevator.call_buttons.pair_iter()
-                        {
-                            let texture = self.call_button_ui_container.create_ui(
-                                self.smaller_font.clone(),
-                                elevator_handle,
-                                call_button_handle,
-                                call_button_ref,
-                            );
+                    for (call_button_handle, call_button_ref) in level.call_buttons.pair_iter() {
+                        let texture = self.call_button_ui_container.create_ui(
+                            self.smaller_font.clone(),
+                            call_button_handle,
+                            call_button_ref,
+                        );
 
-                            call_button_ref.apply_screen_texture(
-                                &mut scene.graph,
-                                self.engine.resource_manager.clone(),
-                                texture,
-                            );
-                        }
+                        call_button_ref.apply_screen_texture(
+                            &mut scene.graph,
+                            self.engine.resource_manager.clone(),
+                            texture,
+                        );
                     }
 
                     level.scene = self.engine.scenes.add(scene);

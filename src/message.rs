@@ -3,13 +3,13 @@
 //! required entity. This is very effective decoupling mechanism that works perfectly with
 //! strict ownership rules of Rust.
 
-use crate::door::Door;
-use crate::elevator::{CallButton, Elevator};
 use crate::{
     actor::Actor,
     bot::BotKind,
     character::HitBox,
+    door::Door,
     effects::EffectKind,
+    elevator::{call_button::CallButton, Elevator},
     item::{Item, ItemKind},
     sound::SoundKind,
     weapon::{
@@ -31,7 +31,6 @@ use std::path::PathBuf;
 #[derive(Debug)]
 pub enum Message {
     SetCallButtonFloor {
-        elevator: Handle<Elevator>,
         call_button: Handle<CallButton>,
         floor: u32,
     },

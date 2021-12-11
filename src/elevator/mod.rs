@@ -1,85 +1,16 @@
-use crate::CallButtonUiContainer;
-use rg3d::core::algebra::{Translation, Vector3};
-use rg3d::core::parking_lot::Mutex;
-use rg3d::core::pool::{Handle, Pool};
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::core::visitor::prelude::*;
-use rg3d::engine::resource_manager::ResourceManager;
-use rg3d::material::{Material, PropertyValue};
-use rg3d::resource::texture::Texture;
-use rg3d::scene::graph::Graph;
-use rg3d::scene::node::Node;
-use rg3d::scene::Scene;
-use rg3d::utils::log::Log;
+use crate::elevator::call_button::CallButton;
+use rg3d::{
+    core::{
+        algebra::{Translation, Vector3},
+        pool::{Handle, Pool},
+        visitor::prelude::*,
+    },
+    scene::{node::Node, Scene},
+};
 use std::ops::{Index, IndexMut};
-use std::sync::Arc;
 
+pub mod call_button;
 pub mod ui;
-
-#[derive(Debug, Visit)]
-pub enum CallButtonKind {
-    FloorSelector,
-    EndPoint,
-}
-
-impl Default for CallButtonKind {
-    fn default() -> Self {
-        Self::EndPoint
-    }
-}
-
-#[derive(Default, Debug, Visit)]
-pub struct CallButton {
-    pub node: Handle<Node>,
-    pub floor: u32,
-    pub kind: CallButtonKind,
-}
-
-impl CallButton {
-    pub fn new(node: Handle<Node>, floor: u32, kind: CallButtonKind) -> Self {
-        Self { node, floor, kind }
-    }
-
-    pub fn apply_screen_texture(
-        &self,
-        graph: &mut Graph,
-        resource_manager: ResourceManager,
-        texture: Texture,
-    ) {
-        let screens = graph
-            .traverse_handle_iter(self.node)
-            .filter(|h| graph[*h].name().starts_with("Screen"))
-            .collect::<Vec<_>>();
-
-        for node_handle in screens {
-            if let Node::Mesh(ref mut mesh) = graph[node_handle] {
-                let mut material = Material::standard();
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(texture.clone()),
-                        fallback: Default::default(),
-                    },
-                ));
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("emissionTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(
-                            resource_manager.request_texture("data/ui/white_pixel.bmp", None),
-                        ),
-                        fallback: Default::default(),
-                    },
-                ));
-
-                if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface.set_material(Arc::new(Mutex::new(material)));
-                }
-            }
-        }
-    }
-}
 
 #[derive(Default, Debug, Visit)]
 pub struct Elevator {
@@ -88,56 +19,28 @@ pub struct Elevator {
     k: f32,
     pub node: Handle<Node>,
     pub points: Vec<Vector3<f32>>,
-    pub call_buttons: Pool<CallButton>,
+    pub call_buttons: Vec<Handle<CallButton>>,
 }
 
 impl Elevator {
-    pub fn new(
-        node: Handle<Node>,
-        points: Vec<Vector3<f32>>,
-        call_buttons: Pool<CallButton>,
-    ) -> Self {
+    pub fn new(node: Handle<Node>) -> Self {
         Self {
             node,
-            points,
+            points: Default::default(),
             current_floor: 0,
             dest_floor: 0,
             k: 0.0,
-            call_buttons,
+            call_buttons: Default::default(),
         }
     }
 
-    pub fn update(
-        &mut self,
-        owner_handle: Handle<Elevator>,
-        dt: f32,
-        scene: &mut Scene,
-        call_button_ui_container: &mut CallButtonUiContainer,
-    ) {
+    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
         if self.current_floor != self.dest_floor {
             self.k += 0.5 * dt;
 
             if self.k >= 1.0 {
                 self.current_floor = self.dest_floor;
                 self.k = 0.0;
-            }
-        }
-
-        for (call_button_handle, call_button_ref) in self.call_buttons.pair_iter() {
-            if let Some(ui) = call_button_ui_container.get_ui_mut(owner_handle, call_button_handle)
-            {
-                ui.set_text(
-                    if call_button_ref.floor == self.current_floor {
-                        "Ready"
-                    } else if self.k.abs() > f32::EPSILON {
-                        "Called"
-                    } else {
-                        "Call?"
-                    }
-                    .to_string(),
-                );
-
-                ui.set_floor_text(format!("Floor {}", call_button_ref.floor));
             }
         }
 
@@ -186,14 +89,9 @@ impl ElevatorContainer {
         self.pool.pair_iter()
     }
 
-    pub fn update(
-        &mut self,
-        dt: f32,
-        scene: &mut Scene,
-        call_button_ui_container: &mut CallButtonUiContainer,
-    ) {
-        for (elevator_handle, elevator) in self.pool.pair_iter_mut() {
-            elevator.update(elevator_handle, dt, scene, call_button_ui_container);
+    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
+        for elevator in self.pool.iter_mut() {
+            elevator.update(dt, scene);
         }
     }
 }
