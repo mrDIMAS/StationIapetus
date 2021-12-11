@@ -1,4 +1,8 @@
-use crate::{door::Door, MessageDirection, UiNode, WidgetBuilder};
+use crate::{
+    door::Door,
+    ui_container::{InteractiveUi, UiContainer},
+    MessageDirection, UiNode, WidgetBuilder,
+};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -6,22 +10,37 @@ use rg3d::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        text::TextBuilder,
-        text::TextMessage,
+        text::{TextBuilder, TextMessage},
         ttf::SharedFont,
         widget::WidgetMessage,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
-    renderer::Renderer,
     resource::texture::Texture,
-    utils::{into_gui_texture, log::Log},
+    utils::into_gui_texture,
 };
-use std::collections::HashMap;
 
 pub struct DoorUi {
     pub ui: UserInterface,
     pub render_target: Texture,
     text: Handle<UiNode>,
+}
+
+impl InteractiveUi for DoorUi {
+    fn ui(&mut self) -> &mut UserInterface {
+        &mut self.ui
+    }
+
+    fn texture(&self) -> Texture {
+        self.render_target.clone()
+    }
+
+    fn update(&mut self, delta: f32) {
+        self.ui
+            .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
+
+        // Just pump all messages, but ignore them in game code.
+        while self.ui.poll_message().is_some() {}
+    }
 }
 
 impl DoorUi {
@@ -105,20 +124,9 @@ impl DoorUi {
             Brush::Solid(color),
         ));
     }
-
-    pub fn update(&mut self, delta: f32) {
-        self.ui
-            .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
-
-        // Just pump all messages, but ignore them in game code.
-        while self.ui.poll_message().is_some() {}
-    }
 }
 
-#[derive(Default)]
-pub struct DoorUiContainer {
-    map: HashMap<Handle<Door>, DoorUi>,
-}
+pub type DoorUiContainer = UiContainer<Door, DoorUi>;
 
 impl DoorUiContainer {
     pub fn create_ui(
@@ -127,29 +135,6 @@ impl DoorUiContainer {
         resource_manager: ResourceManager,
         door_handle: Handle<Door>,
     ) -> Texture {
-        let ui = DoorUi::new(font, resource_manager);
-        let texture = ui.render_target.clone();
-        assert!(self.map.insert(door_handle, ui).is_none());
-        texture
-    }
-
-    pub fn get_ui_mut(&mut self, door_handle: Handle<Door>) -> Option<&mut DoorUi> {
-        self.map.get_mut(&door_handle)
-    }
-
-    pub fn render(&mut self, renderer: &mut Renderer) {
-        for ui in self.map.values_mut() {
-            Log::verify(renderer.render_ui_to_texture(ui.render_target.clone(), &mut ui.ui));
-        }
-    }
-
-    pub fn update(&mut self, delta: f32) {
-        for ui in self.map.values_mut() {
-            ui.update(delta);
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.map.clear()
+        self.add(door_handle, DoorUi::new(font, resource_manager))
     }
 }

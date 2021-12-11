@@ -23,6 +23,7 @@ mod message;
 mod options_menu;
 mod player;
 mod sound;
+mod ui_container;
 mod utils;
 mod weapon;
 

@@ -1,4 +1,8 @@
-use crate::{elevator::CallButton, MessageDirection, UiNode, WidgetBuilder};
+use crate::{
+    elevator::CallButton,
+    ui_container::{InteractiveUi, UiContainer},
+    MessageDirection, UiNode, WidgetBuilder,
+};
 use rg3d::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -9,17 +13,32 @@ use rg3d::{
         ttf::SharedFont,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
-    renderer::Renderer,
     resource::texture::Texture,
-    utils::log::Log,
 };
-use std::collections::HashMap;
 
 pub struct CallButtonUi {
     pub ui: UserInterface,
     pub render_target: Texture,
     floor_text: Handle<UiNode>,
     text: Handle<UiNode>,
+}
+
+impl InteractiveUi for CallButtonUi {
+    fn ui(&mut self) -> &mut UserInterface {
+        &mut self.ui
+    }
+
+    fn texture(&self) -> Texture {
+        self.render_target.clone()
+    }
+
+    fn update(&mut self, delta: f32) {
+        self.ui
+            .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
+
+        // Just pump all messages, but ignore them in game code.
+        while self.ui.poll_message().is_some() {}
+    }
 }
 
 impl CallButtonUi {
@@ -101,20 +120,9 @@ impl CallButtonUi {
             text,
         ));
     }
-
-    pub fn update(&mut self, delta: f32) {
-        self.ui
-            .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
-
-        // Just pump all messages, but ignore them in game code.
-        while self.ui.poll_message().is_some() {}
-    }
 }
 
-#[derive(Default)]
-pub struct CallButtonUiContainer {
-    map: HashMap<Handle<CallButton>, CallButtonUi>,
-}
+pub type CallButtonUiContainer = UiContainer<CallButton, CallButtonUi>;
 
 impl CallButtonUiContainer {
     pub fn create_ui(
@@ -123,32 +131,9 @@ impl CallButtonUiContainer {
         call_button_handle: Handle<CallButton>,
         call_button: &CallButton,
     ) -> Texture {
-        let ui = CallButtonUi::new(font, call_button.floor);
-        let texture = ui.render_target.clone();
-        assert!(self.map.insert(call_button_handle, ui).is_none());
-        texture
-    }
-
-    pub fn get_ui_mut(
-        &mut self,
-        call_button_handle: Handle<CallButton>,
-    ) -> Option<&mut CallButtonUi> {
-        self.map.get_mut(&call_button_handle)
-    }
-
-    pub fn render(&mut self, renderer: &mut Renderer) {
-        for ui in self.map.values_mut() {
-            Log::verify(renderer.render_ui_to_texture(ui.render_target.clone(), &mut ui.ui));
-        }
-    }
-
-    pub fn update(&mut self, delta: f32) {
-        for ui in self.map.values_mut() {
-            ui.update(delta);
-        }
-    }
-
-    pub fn clear(&mut self) {
-        self.map.clear()
+        self.add(
+            call_button_handle,
+            CallButtonUi::new(font, call_button.floor),
+        )
     }
 }
