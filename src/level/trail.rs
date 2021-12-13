@@ -30,7 +30,7 @@ pub struct ShotTrailContainer {
 
 impl ShotTrailContainer {
     pub fn update(&mut self, dt: f32, scene: &mut Scene) {
-        self.container.retain_mut(|trail| {
+        self.container.retain_mut_ext(|trail| {
             trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
             let k = 1.0 - trail.lifetime / trail.max_lifetime;
             let new_alpha = (255.0 * k) as u8;

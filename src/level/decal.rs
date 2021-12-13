@@ -118,7 +118,7 @@ impl DecalContainer {
     }
 
     pub fn update(&mut self, graph: &mut Graph, dt: f32) {
-        self.decals.retain_mut(|decal| {
+        self.decals.retain_mut_ext(|decal| {
             decal.lifetime -= dt;
 
             let abs_lifetime = decal.lifetime.abs();
