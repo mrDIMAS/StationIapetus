@@ -12,7 +12,7 @@ use crate::{
     CollisionGroups, GameTime, MessageSender,
 };
 use rg3d::core::sstorage::ImmutableString;
-use rg3d::scene::collider::InteractionGroupsDesc;
+use rg3d::scene::collider::InteractionGroups;
 use rg3d::scene::graph::physics::{FeatureId, Intersection, PhysicsWorld, RayCastOptions};
 use rg3d::{
     core::{
@@ -117,7 +117,7 @@ pub fn ray_hit(
             ray_origin: Point3::from(ray.origin),
             ray_direction: ray.dir,
             max_len: ray.dir.norm(),
-            groups: InteractionGroupsDesc::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
             sort_results: true,
         },
         &mut query_buffer,

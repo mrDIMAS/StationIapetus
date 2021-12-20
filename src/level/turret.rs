@@ -5,7 +5,7 @@ use crate::{
     weapon::projectile::{Damage, Shooter},
     MessageSender,
 };
-use rg3d::scene::collider::{ColliderShape, InteractionGroupsDesc};
+use rg3d::scene::collider::{ColliderShape, InteractionGroups};
 use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::{
     core::{
@@ -234,7 +234,7 @@ impl Turret {
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
                         ray_direction: ray.dir,
-                        groups: InteractionGroupsDesc::default(),
+                        groups: InteractionGroups::default(),
                         max_len: ray.dir.norm(),
                         sort_results: true,
                     },

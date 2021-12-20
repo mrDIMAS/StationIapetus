@@ -25,7 +25,7 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::scene::collider::{ColliderBuilder, ColliderShape, InteractionGroupsDesc};
+use rg3d::scene::collider::{ColliderBuilder, ColliderShape, InteractionGroups};
 use rg3d::scene::graph::physics::CoefficientCombineRule;
 use rg3d::scene::rigidbody::RigidBodyBuilder;
 use rg3d::{
@@ -277,7 +277,7 @@ impl Player {
                 .with_children(&[
                     {
                         capsule_collider = ColliderBuilder::new(BaseBuilder::new())
-                            .with_collision_groups(InteractionGroupsDesc::new(
+                            .with_collision_groups(InteractionGroups::new(
                                 CollisionGroups::ActorCapsule as u32,
                                 0xFFFF,
                             ))
@@ -295,9 +295,8 @@ impl Player {
                     },
                 ]),
         )
-        .with_x_rotation_locked(true)
-        .with_y_rotation_locked(true)
-        .with_z_rotation_locked(true)
+        .with_can_sleep(false)
+        .with_locked_rotations(true)
         .build(&mut scene.graph);
 
         let locomotion_machine =

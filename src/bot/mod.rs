@@ -32,7 +32,7 @@ use rg3d::{
     scene::{
         self,
         base::BaseBuilder,
-        collider::{ColliderBuilder, ColliderShape, InteractionGroupsDesc},
+        collider::{ColliderBuilder, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
         graph::{
             physics::{Intersection, RayCastOptions},
@@ -259,6 +259,7 @@ impl Bot {
                 .with_local_transform(
                     TransformBuilder::new()
                         .with_local_position(position)
+                        .with_local_rotation(rotation)
                         .build(),
                 )
                 .with_children(&[
@@ -267,7 +268,7 @@ impl Bot {
                             .with_shape(ColliderShape::capsule_y(body_height * 0.5, body_radius))
                             .with_friction(0.1)
                             .with_friction_combine_rule(CoefficientCombineRule::Min)
-                            .with_collision_groups(InteractionGroupsDesc::new(
+                            .with_collision_groups(InteractionGroups::new(
                                 CollisionGroups::ActorCapsule as u32,
                                 0xFFFF,
                             ))
@@ -282,11 +283,10 @@ impl Bot {
                     },
                 ]),
         )
+        .with_can_sleep(false)
         .with_body_type(RigidBodyType::Dynamic)
         .with_mass(10.0)
-        .with_x_rotation_locked(true)
-        .with_y_rotation_locked(true)
-        .with_z_rotation_locked(true)
+        .with_locked_rotations(true)
         .build(&mut scene.graph);
 
         let hand = scene

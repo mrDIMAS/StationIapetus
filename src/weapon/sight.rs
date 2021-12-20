@@ -1,7 +1,7 @@
 use crate::CollisionGroups;
 use rg3d::core::parking_lot::Mutex;
 use rg3d::core::sstorage::ImmutableString;
-use rg3d::scene::collider::InteractionGroupsDesc;
+use rg3d::scene::collider::InteractionGroups;
 use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::utils::log::Log;
 use rg3d::{
@@ -144,7 +144,7 @@ impl LaserSight {
                 ray_origin: Point3::from(ray.origin),
                 ray_direction: ray.dir,
                 max_len: max_toi,
-                groups: InteractionGroupsDesc::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
                 sort_results: true,
             },
             &mut intersections,
