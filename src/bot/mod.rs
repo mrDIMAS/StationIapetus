@@ -14,11 +14,11 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, Message, MessageSender,
 };
+use rg3d::scene::graph::physics::CoefficientCombineRule;
 use rg3d::{
     animation::machine::{Machine, PoseNode},
     core::{
-        algebra::Point3,
-        algebra::{Isometry3, Translation3, UnitQuaternion, Vector3},
+        algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
         math::SmoothAngle,
@@ -28,15 +28,20 @@ use rg3d::{
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     lazy_static::lazy_static,
-    physics3d::rapier::{
-        dynamics::{CoefficientCombineRule, RigidBodyBuilder, RigidBodyType},
-        geometry::{ColliderBuilder, InteractionGroups},
-    },
-    physics3d::{Intersection, RayCastOptions},
     rand,
     scene::{
-        self, base::BaseBuilder, debug::SceneDrawingContext, graph::Graph, node::Node,
-        transform::TransformBuilder, Scene,
+        self,
+        base::BaseBuilder,
+        collider::{ColliderBuilder, ColliderShape, InteractionGroupsDesc},
+        debug::SceneDrawingContext,
+        graph::{
+            physics::{Intersection, RayCastOptions},
+            Graph,
+        },
+        node::Node,
+        rigidbody::{RigidBodyBuilder, RigidBodyType},
+        transform::TransformBuilder,
+        Scene,
     },
     utils::{
         log::{Log, MessageKind},
@@ -247,33 +252,42 @@ impl Bot {
             );
         }
 
-        let pivot = BaseBuilder::new()
-            .with_children(&[model])
-            .build(&mut scene.graph);
-
-        let body = scene.physics.add_body(
-            RigidBodyBuilder::new(RigidBodyType::Dynamic)
-                .lock_rotations()
-                .additional_mass(10.0)
-                .position(Isometry3 {
-                    translation: Translation3 { vector: position },
-                    rotation,
-                })
-                .build(),
-        );
-        scene.physics.add_collider(
-            ColliderBuilder::capsule_y(body_height * 0.5, body_radius)
-                .friction(0.1)
-                .friction_combine_rule(CoefficientCombineRule::Min)
-                .collision_groups(InteractionGroups::new(
-                    CollisionGroups::ActorCapsule as u32,
-                    0xFFFF,
-                ))
-                .build(),
-            &body,
-        );
-
-        scene.physics_binder.bind(pivot, body);
+        let pivot;
+        let capsule_collider;
+        let body = RigidBodyBuilder::new(
+            BaseBuilder::new()
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(position)
+                        .build(),
+                )
+                .with_children(&[
+                    {
+                        capsule_collider = ColliderBuilder::new(BaseBuilder::new())
+                            .with_shape(ColliderShape::capsule_y(body_height * 0.5, body_radius))
+                            .with_friction(0.1)
+                            .with_friction_combine_rule(CoefficientCombineRule::Min)
+                            .with_collision_groups(InteractionGroupsDesc::new(
+                                CollisionGroups::ActorCapsule as u32,
+                                0xFFFF,
+                            ))
+                            .build(&mut scene.graph);
+                        capsule_collider
+                    },
+                    {
+                        pivot = BaseBuilder::new()
+                            .with_children(&[model])
+                            .build(&mut scene.graph);
+                        pivot
+                    },
+                ]),
+        )
+        .with_body_type(RigidBodyType::Dynamic)
+        .with_mass(10.0)
+        .with_x_rotation_locked(true)
+        .with_y_rotation_locked(true)
+        .with_z_rotation_locked(true)
+        .build(&mut scene.graph);
 
         let hand = scene
             .graph
@@ -328,7 +342,8 @@ impl Bot {
         Self {
             character: Character {
                 pivot,
-                body: Some(body),
+                body,
+                capsule_collider,
                 weapon_pivot,
                 health: definition.health,
                 hit_boxes: find_hit_boxes(pivot, scene),
@@ -364,7 +379,7 @@ impl Bot {
             let position = self.position(&scene.graph);
             let ray_direction = target.position - position;
 
-            scene.physics.cast_ray(
+            scene.graph.physics.cast_ray(
                 RayCastOptions {
                     ray_origin: Point3::from(position),
                     ray_direction,
@@ -382,18 +397,15 @@ impl Bot {
                         continue;
                     }
 
-                    if let Some(rigid_body_handle) = scene.physics_binder.body_of(door.node()) {
-                        if let Some(rigid_body) = scene.physics.bodies.get(rigid_body_handle) {
-                            if rigid_body
-                                .colliders()
-                                .iter()
-                                .filter_map(|c| scene.physics.colliders.handle_map().key_of(c))
-                                .any(|c| *c == intersection.collider)
-                            {
-                                sender.send(Message::TryOpenDoor {
-                                    door: door_handle,
-                                    actor: self_handle,
-                                });
+                    for &child in scene.graph[door.node()].children() {
+                        if let Node::RigidBody(rigid_body) = &scene.graph[child] {
+                            for &collider in rigid_body.children() {
+                                if collider == intersection.collider {
+                                    sender.send(Message::TryOpenDoor {
+                                        door: door_handle,
+                                        actor: self_handle,
+                                    });
+                                }
                             }
                         }
                     }
@@ -513,13 +525,14 @@ impl Bot {
         self.v_recoil.update(time.delta);
         self.h_recoil.update(time.delta);
 
-        let spine_transform = context.scene.graph[self.spine].local_transform_mut();
+        let mut spine_transform = context.scene.graph[self.spine].local_transform_mut();
         let rotation = **spine_transform.rotation();
         spine_transform.set_rotation(
             rotation
                 * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
                 * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
         );
+        drop(spine_transform);
 
         if self.head_exploded {
             let head = context

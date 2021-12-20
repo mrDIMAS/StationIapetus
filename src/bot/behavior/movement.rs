@@ -29,8 +29,8 @@ fn calculate_movement_speed_factor(
 
     // Slowdown bot according to damaged body parts.
     for hitbox in hit_boxes.iter() {
-        let body = scene.physics.collider_parent(&hitbox.collider).unwrap();
-        if impact_handler.is_affected(*body) {
+        let body = scene.graph[hitbox.collider].parent();
+        if impact_handler.is_affected(body) {
             k = hitbox.movement_speed_factor.min(k);
         }
     }
@@ -49,13 +49,8 @@ impl<'a> Behavior<'a> for MoveToTarget {
             context.scene,
         );
 
-        let body = context
-            .scene
-            .physics
-            .bodies
-            .get_mut(context.character.body.as_ref().unwrap())
-            .unwrap();
-        let position = body.position().translation.vector;
+        let body = context.scene.graph[context.character.body].as_rigid_body_mut();
+        let position = body.global_position();
 
         *context.target_move_speed = context.definition.walk_speed * context.movement_speed_factor;
 
@@ -71,11 +66,11 @@ impl<'a> Behavior<'a> for MoveToTarget {
         let has_reached_destination =
             context.agent.target().metric_distance(&position) <= self.min_distance;
         if has_reached_destination {
-            body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
+            body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         } else {
             let mut vel = (context.agent.position() - position).scale(1.0 / context.time.delta);
-            vel.y = body.linvel().y;
-            body.set_linvel(vel, true);
+            vel.y = body.lin_vel().y;
+            body.set_lin_vel(vel);
         }
 
         // Emit step sounds from walking animation.
@@ -90,19 +85,12 @@ impl<'a> Behavior<'a> for MoveToTarget {
                     let begin = context.scene.graph[context.model].global_position()
                         + Vector3::new(0.0, 0.5, 0.0);
 
-                    let self_collider = if let Some(body) = context.character.body.as_ref() {
-                        *context
-                            .scene
-                            .physics
-                            .colliders
-                            .handle_map()
-                            .key_of(&context.scene.physics.bodies.get(body).unwrap().colliders()[0])
-                            .unwrap()
-                    } else {
-                        Default::default()
-                    };
-
-                    footstep_ray_check(begin, context.scene, self_collider, context.sender.clone());
+                    footstep_ray_check(
+                        begin,
+                        context.scene,
+                        context.character.capsule_collider,
+                        context.sender.clone(),
+                    );
                 }
             }
         }

@@ -17,7 +17,6 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    physics3d::ColliderHandle,
     resource::model::Model,
     scene::{node::Node, Scene},
 };
@@ -438,7 +437,7 @@ impl LowerBodyMachine {
         input: LowerBodyMachineInput,
         sender: &MessageSender,
         has_ground_contact: bool,
-        self_collider: ColliderHandle,
+        self_collider: Handle<Node>,
     ) {
         let (current_hit_reaction_animation, index) = match input.weapon_kind {
             CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),

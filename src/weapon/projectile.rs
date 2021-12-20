@@ -8,14 +8,13 @@ use crate::{
 };
 use rg3d::{
     core::{
-        algebra::{Isometry3, Translation3, Vector3},
+        algebra::Vector3,
         math::{vector_to_quat, Vector3Ext},
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     lazy_static::lazy_static,
-    physics3d::{ColliderHandle, RigidBodyHandle},
     scene::{graph::Graph, node::Node, Scene},
 };
 use serde::Deserialize;
@@ -81,7 +80,7 @@ pub struct Projectile {
     /// rockets, plasma balls could have rigid body to detect collisions with
     /// environment. Some projectiles do not have rigid body - they're ray-based -
     /// interaction with environment handled with ray cast.
-    body: Option<RigidBodyHandle>,
+    body: Handle<Node>,
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
@@ -168,17 +167,15 @@ impl Projectile {
             .unwrap();
         let model = resource.instantiate_geometry(scene);
         let body = scene.graph.find_by_name(model, "Projectile");
-        let body_handle = scene.physics_binder.body_of(body).unwrap();
-        let phys_body = scene.physics.bodies.get_mut(body_handle).unwrap();
-        phys_body.set_position(
-            Isometry3::translation(position.x, position.y, position.z),
-            true,
-        );
-        phys_body.set_linvel(initial_velocity, true);
+        let body_ref = &mut scene.graph[body];
+        body_ref.local_transform_mut().set_position(position);
+        if let Node::RigidBody(body) = body_ref {
+            body.set_lin_vel(initial_velocity);
+        }
 
         Self {
             lifetime: definition.lifetime,
-            body: Some(*body_handle),
+            body,
             initial_velocity,
             dir: dir
                 .try_normalize(std::f32::EPSILON)
@@ -209,21 +206,19 @@ impl Projectile {
         sender: &MessageSender,
     ) {
         // Fetch current position of projectile.
-        let (position, collider) = if let Some(body) = self.body.as_ref() {
-            let body = scene.physics.bodies.get(body).unwrap();
-            let collider: ColliderHandle = scene
-                .physics
-                .colliders
-                .handle_map()
-                .key_of(body.colliders().first().unwrap())
+        let (position, collider) = if self.body.is_some() {
+            let body_ref = &scene.graph[self.body];
+            let position = body_ref.global_position();
+            let collider = body_ref
+                .children()
+                .iter()
                 .cloned()
-                .unwrap();
-            (body.position().translation.vector, collider)
+                .filter(|c| scene.graph[*c].is_collider())
+                .next()
+                .unwrap_or_default();
+            (position, collider)
         } else {
-            (
-                scene.graph[self.model].global_position(),
-                ColliderHandle::default(),
-            )
+            (scene.graph[self.model].global_position(), Handle::NONE)
         };
 
         let ray_hit = ray_hit(
@@ -232,7 +227,7 @@ impl Projectile {
             self.owner,
             weapons,
             actors,
-            &mut scene.physics,
+            &mut scene.graph.physics,
             collider,
         );
 
@@ -266,16 +261,10 @@ impl Projectile {
             let total_velocity = self.dir.scale(self.definition.speed);
 
             // Special case for projectiles with rigid body.
-            if let Some(body) = self.body.as_ref() {
-                // Move rigid body explicitly.
-                let body = scene.physics.bodies.get_mut(body).unwrap();
-                let position = Isometry3 {
-                    rotation: Default::default(),
-                    translation: Translation3 {
-                        vector: body.position().translation.vector + total_velocity,
-                    },
-                };
-                body.set_next_kinematic_position(position);
+            if self.body.is_some() {
+                scene.graph[self.body]
+                    .local_transform_mut()
+                    .offset(total_velocity);
             } else {
                 // We have just model - move it.
                 scene.graph[self.model]
@@ -358,10 +347,9 @@ impl Projectile {
     }
 
     fn clean_up(&mut self, scene: &mut Scene) {
-        if let Some(body) = self.body.as_ref() {
-            scene.physics.remove_body(body);
-        }
-        if self.model.is_some() {
+        if scene.graph.is_valid_handle(self.body) {
+            scene.graph.remove_node(self.body);
+        } else {
             scene.graph.remove_node(self.model);
         }
     }

@@ -5,6 +5,8 @@ use crate::{
     weapon::projectile::{Damage, Shooter},
     MessageSender,
 };
+use rg3d::scene::collider::{ColliderShape, InteractionGroupsDesc};
+use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -15,7 +17,6 @@ use rg3d::{
         rand::{seq::SliceRandom, thread_rng},
         visitor::{Visit, VisitResult, Visitor},
     },
-    physics3d::{rapier::geometry::InteractionGroups, RayCastOptions},
     scene::{debug::SceneDrawingContext, node::Node, Scene},
 };
 use std::iter::FromIterator;
@@ -198,7 +199,12 @@ impl Turret {
     fn select_target(&mut self, scene: &Scene, actors: &ActorContainer) {
         let self_position = scene.graph[self.model].global_position();
 
-        let self_body = scene.physics_binder.body_of(self.model);
+        let self_collider = scene.graph[scene.graph[self.model].parent()]
+            .children()
+            .iter()
+            .filter(|h| scene.graph[**h].is_collider())
+            .next()
+            .cloned();
 
         if !actors.contains(self.target) || !actors.get(self.target).is_dead() {
             let mut closest = Handle::NONE;
@@ -224,11 +230,11 @@ impl Turret {
                 }
 
                 let ray = Ray::from_two_points(actor_position, self_position);
-                scene.physics.cast_ray(
+                scene.graph.physics.cast_ray(
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
                         ray_direction: ray.dir,
-                        groups: InteractionGroups::all(),
+                        groups: InteractionGroupsDesc::default(),
                         max_len: ray.dir.norm(),
                         sort_results: true,
                     },
@@ -236,25 +242,18 @@ impl Turret {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    if let Some(body) = self_body {
-                        if scene
-                            .physics
-                            .colliders
-                            .handle_map()
-                            .key_of(&scene.physics.bodies.get(body).unwrap().colliders()[0])
-                            .cloned()
-                            .unwrap()
-                            == hit.collider
-                        {
+                    if let Some(self_collider) = self_collider {
+                        if self_collider == hit.collider {
                             continue 'hit_loop;
                         }
                     }
 
-                    let collider = scene.physics.colliders.get(&hit.collider).unwrap();
-                    if collider.shape().as_capsule().is_none() {
-                        self.target = Default::default();
-                        // Target is behind something.
-                        continue 'target_loop;
+                    if let Node::Collider(collider) = &scene.graph[hit.collider] {
+                        if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
+                            self.target = Default::default();
+                            // Target is behind something.
+                            continue 'target_loop;
+                        }
                     }
                 }
 

@@ -4,7 +4,7 @@ use crate::{
 };
 use rg3d::{
     core::{
-        algebra::{Isometry3, Translation3, Vector3},
+        algebra::Vector3,
         color::Color,
         parking_lot::Mutex,
         pool::{Handle, Pool},
@@ -328,20 +328,14 @@ impl DoorContainer {
                 }
             };
 
-            if let Some(body) = scene.physics_binder.body_of(door.node) {
-                let body = scene.physics.bodies.get_mut(body).unwrap();
-                body.set_position(
-                    Isometry3 {
-                        translation: Translation3 {
-                            vector: door.initial_position
-                                + move_direction
-                                    .try_normalize(std::f32::EPSILON)
-                                    .unwrap_or_default()
-                                    .scale(door.offset),
-                        },
-                        rotation: body.position().rotation,
-                    },
-                    true,
+            let body_handle = scene.graph[door.node].parent();
+            if let Node::RigidBody(body) = &mut scene.graph[body_handle] {
+                body.local_transform_mut().set_position(
+                    door.initial_position
+                        + move_direction
+                            .try_normalize(f32::EPSILON)
+                            .unwrap_or_default()
+                            .scale(door.offset),
                 );
             }
         }

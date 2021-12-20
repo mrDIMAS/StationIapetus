@@ -2,6 +2,8 @@ use crate::{
     actor::TargetKind,
     bot::{behavior::BehaviorContext, BotHostility, Target},
 };
+use rg3d::scene::collider::{ColliderShape, InteractionGroupsDesc};
+use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
@@ -9,7 +11,6 @@ use rg3d::{
         pool::Handle,
         visitor::prelude::*,
     },
-    physics3d::{rapier::prelude::InteractionGroups, RayCastOptions},
     scene::{graph::Graph, node::Node},
     utils::behavior::{Behavior, Status},
 };
@@ -81,11 +82,11 @@ impl<'a> Behavior<'a> for FindTarget {
             let distance = position.metric_distance(&desc.position);
             if distance != 0.0 && distance < 1.6 || self.frustum.is_contains_point(desc.position) {
                 let ray = Ray::from_two_points(desc.position, position);
-                context.scene.physics.cast_ray(
+                context.scene.graph.physics.cast_ray(
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
                         ray_direction: ray.dir,
-                        groups: InteractionGroups::all(),
+                        groups: InteractionGroupsDesc::default(),
                         max_len: ray.dir.norm(),
                         sort_results: true,
                     },
@@ -93,24 +94,16 @@ impl<'a> Behavior<'a> for FindTarget {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    let collider = context.scene.physics.colliders.get(&hit.collider).unwrap();
-                    let body = context
-                        .scene
-                        .physics
-                        .bodies
-                        .handle_map()
-                        .key_of(&collider.parent().unwrap())
-                        .cloned()
-                        .unwrap();
+                    let collider = context.scene.graph[hit.collider].as_collider();
 
-                    if collider.shape().as_capsule().is_none() {
-                        // Target is behind something.
-                        continue 'target_loop;
-                    } else {
+                    if let ColliderShape::Capsule(_) = collider.shape() {
                         // Prevent setting self as target.
-                        if context.character.body.map_or(false, |b| b == body) {
+                        if context.character.capsule_collider == hit.collider {
                             continue 'hit_loop;
                         }
+                    } else {
+                        // Target is behind something.
+                        continue 'target_loop;
                     }
                 }
 

@@ -1,10 +1,10 @@
 use crate::message::Message;
 use rg3d::core::sstorage::ImmutableString;
 use rg3d::material::PropertyValue;
+use rg3d::scene::graph::physics::FeatureId;
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
-    physics3d::{rapier::geometry::FeatureId, ColliderHandle},
     rand::{self, seq::SliceRandom},
     scene::{node::Node, Scene},
     sound::{
@@ -76,35 +76,18 @@ impl SoundBase {
 
 #[derive(Default)]
 pub struct SoundMap {
-    sound_map: HashMap<ColliderHandle, Vec<TriangleRange>>,
+    sound_map: HashMap<Handle<Node>, Vec<TriangleRange>>,
 }
 
 impl SoundMap {
     pub fn new(scene: &Scene, sound_base: &SoundBase) -> Self {
         let mut sound_map = HashMap::new();
 
-        let mut nodes_with_physics = Vec::new();
-        for (handle, _) in scene.graph.pair_iter() {
-            if scene.physics_binder.body_of(handle).is_some() {
-                nodes_with_physics.push(handle)
-            }
-        }
-
         let mut stack = Vec::new();
 
-        for node in nodes_with_physics {
-            let body = scene.physics_binder.body_of(node).unwrap();
-
-            if let Some(body) = scene.physics.bodies.get(body) {
-                if let Some(&collider) = body.colliders().first() {
-                    let collider = scene
-                        .physics
-                        .colliders
-                        .handle_map()
-                        .key_of(&collider)
-                        .cloned()
-                        .unwrap();
-
+        for (node, body) in scene.graph.pair_iter().filter(|(_, n)| n.is_rigid_body()) {
+            for &collider in body.children() {
+                if scene.graph[collider].is_collider() {
                     let mut ranges = Vec::new();
 
                     stack.clear();
@@ -184,7 +167,7 @@ impl SoundMap {
         Self { sound_map }
     }
 
-    pub fn ranges_of(&self, collider: ColliderHandle) -> Option<&[TriangleRange]> {
+    pub fn ranges_of(&self, collider: Handle<Node>) -> Option<&[TriangleRange]> {
         self.sound_map.get(&collider).map(|r| r.as_slice())
     }
 }

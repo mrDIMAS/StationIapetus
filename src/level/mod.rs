@@ -34,6 +34,8 @@ use crate::{
     },
     CallButtonUiContainer, DoorUiContainer, Engine, GameTime, MessageSender,
 };
+use rg3d::scene::collider::ColliderShape;
+use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -49,7 +51,6 @@ use rg3d::{
     event::Event,
     gui::ttf::SharedFont,
     material::{Material, PropertyValue},
-    physics3d::{ColliderHandle, RayCastOptions},
     rand,
     resource::texture::Texture,
     scene::{
@@ -198,14 +199,14 @@ pub struct AnalysisResult {
 pub fn footstep_ray_check(
     begin: Vector3<f32>,
     scene: &mut Scene,
-    self_collider: ColliderHandle,
+    self_collider: Handle<Node>,
     sender: MessageSender,
 ) {
     let mut query_buffer = Vec::new();
 
     let ray = Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0));
 
-    scene.physics.cast_ray(
+    scene.graph.physics.cast_ray(
         RayCastOptions {
             ray_origin: Point3::from(ray.origin),
             ray_direction: ray.dir,
@@ -474,7 +475,7 @@ async fn spawn_player(
     let player = actors.add(Actor::Player(player));
     actors
         .get_mut(player)
-        .set_position(&mut scene.physics, spawn_position);
+        .set_position(&mut scene.graph, spawn_position);
 
     let weapons_to_give = if let Some(data) = persistent_data {
         data.weapons
@@ -590,7 +591,7 @@ async fn spawn_item(
 fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
     let mut intersections = Vec::new();
     let ray = Ray::from_two_points(from, to);
-    scene.physics.cast_ray(
+    scene.graph.physics.cast_ray(
         RayCastOptions {
             ray_origin: Point3::from(ray.origin),
             ray_direction: ray.dir,
@@ -603,8 +604,10 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
 
     if let Some(intersection) = intersections.iter().find(|i| {
         // HACK: Check everything but capsules (helps correctly drop items from actors)
-        let shape = scene.physics.colliders.get(&i.collider).unwrap().shape();
-        shape.as_capsule().is_none()
+        !matches!(
+            scene.graph[i.collider].as_collider().shape(),
+            ColliderShape::Capsule(_)
+        )
     }) {
         intersection.position.coords
     } else {
@@ -643,7 +646,7 @@ impl BaseLevel {
         // Instantiate map
         let map_root = map_model.instantiate_geometry(&mut scene);
 
-        scene.graph.update_nodes(Default::default(), 0.0);
+        scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
             items,
@@ -1196,7 +1199,7 @@ impl BaseLevel {
             shooter,
             &self.weapons,
             &self.actors,
-            &mut scene.physics,
+            &mut scene.graph.physics,
             Default::default(),
         ) {
             let sender = self.sender.as_ref().unwrap();
@@ -1251,36 +1254,26 @@ impl BaseLevel {
 
             let dir = hit.position - begin;
 
-            let parent = if let Some(collider_parent) = scene.physics.collider_parent(&hit.collider)
-            {
-                let body_handle = *collider_parent;
-                scene
-                    .physics
-                    .bodies
-                    .get_mut(&body_handle)
-                    .unwrap()
-                    .apply_force_at_point(
+            let hit_collider_body = scene.graph[hit.collider].parent();
+            let parent =
+                if let Node::RigidBody(collider_parent) = &mut scene.graph[hit_collider_body] {
+                    collider_parent.apply_force_at_point(
                         dir.try_normalize(std::f32::EPSILON)
                             .unwrap_or_default()
                             .scale(30.0),
-                        Point3::from(hit.position),
-                        true,
+                        hit.position,
                     );
-
-                scene
-                    .physics_binder
-                    .node_of(body_handle)
-                    .unwrap_or_default()
-            } else {
-                Default::default()
-            };
+                    hit_collider_body
+                } else {
+                    Default::default()
+                };
 
             if hit.actor.is_some() {
                 if let Actor::Bot(actor) = self.actors.get_mut(hit.actor) {
-                    let body = scene.physics.collider_parent(&hit.collider).unwrap();
+                    let body = scene.graph[hit.collider].parent();
                     actor
                         .impact_handler
-                        .handle_impact(scene, *body, hit.position, dir);
+                        .handle_impact(scene, body, hit.position, dir);
                 }
             }
 
@@ -1297,13 +1290,14 @@ impl BaseLevel {
                 },
             ));
 
-            // Add blood splatter on a surface behind actor that was shot.
+            // Add blood splatter on a surface behind an actor that was shot.
             if hit.actor.is_some() && !self.actors.get(hit.actor).is_dead() {
                 for intersection in hit.query_buffer.iter() {
-                    if let Some(collider) = scene.physics.colliders.get(&intersection.collider) {
-                        if collider.shared_shape().as_trimesh().is_some()
-                            && intersection.position.coords.metric_distance(&hit.position) < 2.0
-                        {
+                    if matches!(
+                        scene.graph[intersection.collider].as_collider().shape(),
+                        ColliderShape::Trimesh(_)
+                    ) {
+                        if intersection.position.coords.metric_distance(&hit.position) < 2.0 {
                             self.decals.add(Decal::new(
                                 &mut scene.graph,
                                 intersection.position.coords,
@@ -1615,7 +1609,7 @@ impl BaseLevel {
 
         drawing_context.clear_lines();
 
-        scene.physics.draw(drawing_context);
+        scene.graph.physics.draw(drawing_context);
 
         if self.navmesh.is_some() {
             let navmesh = &scene.navmeshes[self.navmesh];

@@ -1,6 +1,8 @@
 use crate::CollisionGroups;
 use rg3d::core::parking_lot::Mutex;
 use rg3d::core::sstorage::ImmutableString;
+use rg3d::scene::collider::InteractionGroupsDesc;
+use rg3d::scene::graph::physics::RayCastOptions;
 use rg3d::utils::log::Log;
 use rg3d::{
     core::{
@@ -13,7 +15,6 @@ use rg3d::{
     },
     engine::resource_manager::ResourceManager,
     material::{Material, PropertyValue},
-    physics3d::{rapier::geometry::InteractionGroups, ColliderHandle, RayCastOptions},
     scene::{
         base::BaseBuilder,
         graph::Graph,
@@ -129,27 +130,27 @@ impl LaserSight {
         scene: &mut Scene,
         position: Vector3<f32>,
         direction: Vector3<f32>,
-        ignore_collider: ColliderHandle,
+        ignore_collider: Handle<Node>,
         dt: f32,
     ) {
         let mut intersections = ArrayVec::<_, 64>::new();
 
-        let ray_node = &mut scene.graph[self.ray];
         let max_toi = 100.0;
 
         let ray = Ray::new(position, direction.scale(max_toi));
 
-        scene.physics.cast_ray(
+        scene.graph.physics.cast_ray(
             RayCastOptions {
                 ray_origin: Point3::from(ray.origin),
                 ray_direction: ray.dir,
                 max_len: max_toi,
-                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+                groups: InteractionGroupsDesc::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
                 sort_results: true,
             },
             &mut intersections,
         );
 
+        let ray_node = &mut scene.graph[self.ray];
         if let Some(result) = intersections
             .into_iter()
             .find(|i| i.collider != ignore_collider)
@@ -237,7 +238,7 @@ impl LaserSight {
     }
 
     fn dilate(&self, graph: &mut Graph, factor: f32) {
-        let transform = graph[self.ray].local_transform_mut();
+        let mut transform = graph[self.ray].local_transform_mut();
         let scale = **transform.scale();
         transform.set_scale(Vector3::new(
             NORMAL_RADIUS * factor,

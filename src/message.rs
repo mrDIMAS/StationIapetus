@@ -19,13 +19,12 @@ use crate::{
         Weapon,
     },
 };
-use rg3d::{
-    core::{
-        algebra::{UnitQuaternion, Vector3},
-        pool::Handle,
-    },
-    physics3d::{rapier::parry::shape::FeatureId, ColliderHandle},
+use rg3d::core::{
+    algebra::{UnitQuaternion, Vector3},
+    pool::Handle,
 };
+use rg3d::scene::graph::physics::FeatureId;
+use rg3d::scene::node::Node;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -105,7 +104,7 @@ pub enum Message {
     },
     /// Plays environment-specific sound. It also handles foot step sounds.
     PlayEnvironmentSound {
-        collider: ColliderHandle,
+        collider: Handle<Node>,
         feature: FeatureId,
         position: Vector3<f32>,
         sound_kind: SoundKind,

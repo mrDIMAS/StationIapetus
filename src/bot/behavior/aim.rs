@@ -7,7 +7,6 @@ use rg3d::{
         pool::Handle,
         visitor::prelude::*,
     },
-    physics3d::RigidBodyHandle,
     scene::{graph::Graph, node::Node, Scene},
     utils::behavior::{Behavior, Status},
 };
@@ -77,7 +76,7 @@ impl AimOnTarget {
         scene: &mut Scene,
         model: Handle<Node>,
         time: GameTime,
-        body: Option<RigidBodyHandle>,
+        body: Handle<Node>,
     ) -> bool {
         if self.yaw.angle.is_nan() {
             let local_look = scene.graph[model].look_vector();
@@ -90,11 +89,9 @@ impl AimOnTarget {
             .set_target(look_dir.x.atan2(look_dir.z))
             .update(time.delta);
 
-        if let Some(body) = body.as_ref() {
-            let body = scene.physics.bodies.get_mut(body).unwrap();
-            let mut position = *body.position();
-            position.rotation = UnitQuaternion::from_axis_angle(&Vector3::y_axis(), angle);
-            body.set_position(position, true);
+        if let Some(body) = scene.graph.try_get_mut(body) {
+            body.local_transform_mut()
+                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), angle));
         }
 
         self.yaw.at_target()

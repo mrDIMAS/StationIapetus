@@ -1,7 +1,7 @@
 use crate::elevator::call_button::CallButton;
 use rg3d::{
     core::{
-        algebra::{Translation, Vector3},
+        algebra::Vector3,
         pool::{Handle, Pool},
         visitor::prelude::*,
     },
@@ -44,20 +44,14 @@ impl Elevator {
             }
         }
 
-        if let Some(rigid_body_handle) = scene.physics_binder.body_of(self.node) {
-            if let Some(rigid_body_ref) = scene.physics.bodies.get_mut(rigid_body_handle) {
-                if let (Some(current), Some(dest)) = (
-                    self.points.get(self.current_floor as usize),
-                    self.points.get(self.dest_floor as usize),
-                ) {
-                    let position = current.lerp(dest, self.k);
-
-                    let mut isometry = rigid_body_ref.position().clone();
-
-                    isometry.translation = Translation { vector: position };
-
-                    rigid_body_ref.set_position(isometry, true);
-                }
+        let body_handle = scene.graph[self.node].parent();
+        if let Node::RigidBody(rigid_body_ref) = &mut scene.graph[body_handle] {
+            if let (Some(current), Some(dest)) = (
+                self.points.get(self.current_floor as usize),
+                self.points.get(self.dest_floor as usize),
+            ) {
+                let position = current.lerp(dest, self.k);
+                rigid_body_ref.local_transform_mut().set_position(position);
             }
         }
     }

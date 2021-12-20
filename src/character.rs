@@ -6,14 +6,14 @@ use crate::{
 };
 use rg3d::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
-    physics3d::{ColliderHandle, RigidBodyHandle},
-    scene::{graph::Graph, node::Node, physics::Physics, Scene},
+    scene::{graph::Graph, node::Node, Scene},
 };
 
 #[derive(Visit)]
 pub struct Character {
     pub pivot: Handle<Node>,
-    pub body: Option<RigidBodyHandle>,
+    pub capsule_collider: Handle<Node>,
+    pub body: Handle<Node>,
     pub health: f32,
     pub last_health: f32,
     pub weapons: Vec<Handle<Weapon>>,
@@ -28,6 +28,7 @@ impl Default for Character {
     fn default() -> Self {
         Self {
             pivot: Handle::NONE,
+            capsule_collider: Default::default(),
             body: Default::default(),
             health: 100.0,
             last_health: 100.0,
@@ -44,44 +45,33 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
     let mut hit_boxes = Vec::new();
 
     for descendant in scene.graph.traverse_handle_iter(from) {
-        if let Some(body) = scene.physics_binder.body_of(descendant) {
-            if let Some(body) = scene.physics.bodies.get(body) {
-                let collider = scene
-                    .physics
-                    .colliders
-                    .handle_map()
-                    .key_of(body.colliders().first().unwrap())
-                    .cloned()
-                    .unwrap();
-                let node = &scene.graph[descendant];
-                match node.tag() {
-                    "HitBoxArm" => hit_boxes.push(HitBox {
-                        collider,
-                        damage_factor: 0.25,
-                        movement_speed_factor: 1.0,
-                        is_head: false,
-                    }),
-                    "HitBoxLeg" => hit_boxes.push(HitBox {
-                        collider,
-                        damage_factor: 0.35,
-                        movement_speed_factor: 0.5,
-                        is_head: false,
-                    }),
-                    "HitBoxBody" => hit_boxes.push(HitBox {
-                        collider,
-                        damage_factor: 0.60,
-                        movement_speed_factor: 0.75,
-                        is_head: false,
-                    }),
-                    "HitBoxHead" => hit_boxes.push(HitBox {
-                        collider,
-                        damage_factor: 1.0,
-                        movement_speed_factor: 0.1,
-                        is_head: true,
-                    }),
-                    _ => (),
-                }
-            }
+        let node = &scene.graph[descendant];
+        match node.tag() {
+            "HitBoxArm" => hit_boxes.push(HitBox {
+                collider: descendant,
+                damage_factor: 0.25,
+                movement_speed_factor: 1.0,
+                is_head: false,
+            }),
+            "HitBoxLeg" => hit_boxes.push(HitBox {
+                collider: descendant,
+                damage_factor: 0.35,
+                movement_speed_factor: 0.5,
+                is_head: false,
+            }),
+            "HitBoxBody" => hit_boxes.push(HitBox {
+                collider: descendant,
+                damage_factor: 0.60,
+                movement_speed_factor: 0.75,
+                is_head: false,
+            }),
+            "HitBoxHead" => hit_boxes.push(HitBox {
+                collider: descendant,
+                damage_factor: 1.0,
+                movement_speed_factor: 0.1,
+                is_head: true,
+            }),
+            _ => (),
         }
     }
 
@@ -89,11 +79,9 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 }
 
 impl Character {
-    pub fn has_ground_contact(&self, physics: &Physics) -> bool {
-        if let Some(body) = self.body.as_ref() {
-            let body = physics.bodies.get(body).unwrap();
-
-            for contact in physics.narrow_phase.contacts_with(body.colliders()[0]) {
+    pub fn has_ground_contact(&self, graph: &Graph) -> bool {
+        if let Some(Node::Collider(collider)) = graph.try_get(self.capsule_collider) {
+            for contact in collider.contacts(&graph.physics) {
                 for manifold in contact.manifolds.iter() {
                     if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
                         return true;
@@ -108,12 +96,9 @@ impl Character {
         self.health
     }
 
-    pub fn set_position(&mut self, physics: &mut Physics, position: Vector3<f32>) {
-        if let Some(body) = self.body.as_ref() {
-            let body = physics.bodies.get_mut(body).unwrap();
-            let mut body_position = *body.position();
-            body_position.translation.vector = position;
-            body.set_position(body_position, true);
+    pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) {
+        if let Some(body) = graph.try_get_mut(self.body) {
+            body.local_transform_mut().set_position(position);
         }
     }
 
@@ -241,9 +226,10 @@ impl Character {
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
-        scene.remove_node(self.pivot);
-        if let Some(body) = self.body.as_ref() {
-            scene.physics.remove_body(body);
+        if scene.graph.is_valid_handle(self.body) {
+            scene.remove_node(self.body);
+        } else {
+            scene.remove_node(self.pivot);
         }
     }
 
@@ -262,7 +248,7 @@ impl Character {
 
 #[derive(Default, Clone, Copy, PartialEq, Debug)]
 pub struct HitBox {
-    pub collider: ColliderHandle,
+    pub collider: Handle<Node>,
     pub damage_factor: f32,
     pub movement_speed_factor: f32,
     pub is_head: bool,

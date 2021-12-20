@@ -25,13 +25,16 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
+use rg3d::scene::collider::{ColliderBuilder, ColliderShape, InteractionGroupsDesc};
+use rg3d::scene::graph::physics::CoefficientCombineRule;
+use rg3d::scene::rigidbody::RigidBodyBuilder;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
     },
     core::{
-        algebra::{Isometry3, Matrix4, Translation3, UnitQuaternion, Vector3},
+        algebra::{Matrix4, UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         math::{self, SmoothAngle, Vector3Ext},
@@ -43,13 +46,6 @@ use rg3d::{
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     material::{shader::SamplerFallback, PropertyValue},
-    physics3d::{
-        rapier::{
-            dynamics::{CoefficientCombineRule, RigidBodyBuilder},
-            geometry::{ColliderBuilder, InteractionGroups},
-        },
-        ColliderHandle,
-    },
     resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
@@ -206,7 +202,6 @@ pub struct Player {
     spine: Handle<Node>,
     hips: Handle<Node>,
     move_speed: f32,
-    collider: ColliderHandle,
     weapon_change_direction: RequiredWeapon,
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
@@ -270,30 +265,40 @@ impl Player {
             .local_transform_mut()
             .set_position(Vector3::new(0.0, -body_height - body_radius, 0.0));
 
-        let pivot = BaseBuilder::new()
-            .with_children(&[model_handle])
-            .build(&mut scene.graph);
-
-        let capsule = ColliderBuilder::capsule_y(body_height, body_radius)
-            .collision_groups(InteractionGroups::new(
-                CollisionGroups::ActorCapsule as u32,
-                0xFFFF,
-            ))
-            .friction_combine_rule(CoefficientCombineRule::Min)
-            .friction(0.0)
-            .build();
-        let body = scene.physics.add_body(
-            RigidBodyBuilder::new_dynamic()
-                .lock_rotations()
-                .position(Isometry3 {
-                    translation: Translation3 { vector: position },
-                    rotation: orientation,
-                })
-                .build(),
-        );
-        let collider = scene.physics.add_collider(capsule, &body);
-
-        scene.physics_binder.bind(pivot, body);
+        let pivot;
+        let capsule_collider;
+        let body = RigidBodyBuilder::new(
+            BaseBuilder::new()
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(position)
+                        .build(),
+                )
+                .with_children(&[
+                    {
+                        capsule_collider = ColliderBuilder::new(BaseBuilder::new())
+                            .with_collision_groups(InteractionGroupsDesc::new(
+                                CollisionGroups::ActorCapsule as u32,
+                                0xFFFF,
+                            ))
+                            .with_shape(ColliderShape::capsule_y(body_height, body_radius))
+                            .with_friction_combine_rule(CoefficientCombineRule::Min)
+                            .with_friction(0.0)
+                            .build(&mut scene.graph);
+                        capsule_collider
+                    },
+                    {
+                        pivot = BaseBuilder::new()
+                            .with_children(&[model_handle])
+                            .build(&mut scene.graph);
+                        pivot
+                    },
+                ]),
+        )
+        .with_x_rotation_locked(true)
+        .with_y_rotation_locked(true)
+        .with_z_rotation_locked(true)
+        .build(&mut scene.graph);
 
         let locomotion_machine =
             LowerBodyMachine::new(scene, model_handle, resource_manager.clone()).await;
@@ -457,7 +462,8 @@ impl Player {
         Self {
             character: Character {
                 pivot,
-                body: Some(body),
+                body,
+                capsule_collider,
                 weapon_pivot,
                 hit_boxes: find_hit_boxes(pivot, scene),
                 health,
@@ -491,7 +497,6 @@ impl Player {
                 target: 0.0,
                 speed: 10.0,
             },
-            collider,
             weapon_change_direction: RequiredWeapon::None,
             weapon_yaw_correction: SmoothAngle {
                 angle: 0.0,
@@ -890,7 +895,7 @@ impl Player {
             },
             sender,
             has_ground_contact,
-            self.collider,
+            self.capsule_collider,
         );
 
         self.upper_body_machine.apply(
@@ -1075,10 +1080,10 @@ impl Player {
 
         self.update_health_cylinder(scene);
 
-        let has_ground_contact = self.has_ground_contact(&scene.physics);
+        let has_ground_contact = self.has_ground_contact(&scene.graph);
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
-        let position = **scene.graph[self.pivot].local_transform().position();
+        let position = scene.graph[self.pivot].global_position();
 
         self.update_animation_machines(
             time.delta,
@@ -1109,26 +1114,20 @@ impl Player {
             self.handle_put_back_weapon_end_signal(scene);
             self.handle_toss_grenade_signal(self_handle, scene, sender);
 
-            let body = scene.physics.bodies.get_mut(&self.body.unwrap()).unwrap();
-            body.set_angvel(Default::default(), true);
+            let body = scene.graph[self.body].as_rigid_body_mut();
+            body.set_ang_vel(Default::default());
             if let Some(new_y_vel) = new_y_vel {
-                body.set_linvel(
-                    Vector3::new(
-                        self.velocity.x / time.delta,
-                        new_y_vel / time.delta,
-                        self.velocity.z / time.delta,
-                    ),
-                    true,
-                );
+                body.set_lin_vel(Vector3::new(
+                    self.velocity.x / time.delta,
+                    new_y_vel / time.delta,
+                    self.velocity.z / time.delta,
+                ));
             } else {
-                body.set_linvel(
-                    Vector3::new(
-                        self.velocity.x / time.delta,
-                        body.linvel().y,
-                        self.velocity.z / time.delta,
-                    ),
-                    true,
-                );
+                body.set_lin_vel(Vector3::new(
+                    self.velocity.x / time.delta,
+                    body.lin_vel().y,
+                    self.velocity.z / time.delta,
+                ));
             }
 
             if self.controller.aim {
@@ -1142,9 +1141,7 @@ impl Player {
             if can_move && (is_walking || self.controller.aim) {
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
-                let mut current_position = *body.position();
-                current_position.rotation = quat_yaw;
-                body.set_position(current_position, true);
+                body.local_transform_mut().set_rotation(quat_yaw);
 
                 // Apply additional rotation to model - it will turn in front of walking direction.
                 let angle = self.calculate_model_angle();
@@ -1159,9 +1156,10 @@ impl Player {
                         .local_transform_mut()
                         .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
 
-                    let spine_transform = scene.graph[self.spine].local_transform_mut();
+                    let mut spine_transform = scene.graph[self.spine].local_transform_mut();
+                    let spine_rotation = **spine_transform.rotation();
                     spine_transform.set_rotation(
-                        **spine_transform.rotation()
+                        spine_rotation
                             * UnitQuaternion::from_axis_angle(
                                 &Vector3::x_axis(),
                                 self.spine_pitch.angle,
@@ -1232,7 +1230,7 @@ impl Player {
             self.check_elevators(scene, elevators, call_buttons, sender);
             self.update_shooting(scene, weapons, *time, sender);
 
-            let spine_transform = scene.graph[self.spine].local_transform_mut();
+            let mut spine_transform = scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
             spine_transform.set_rotation(
                 rotation
@@ -1248,9 +1246,9 @@ impl Player {
             }
 
             // Lock player on the place he died.
-            let body = scene.physics.bodies.get_mut(&self.body.unwrap()).unwrap();
-            body.set_angvel(Default::default(), true);
-            body.set_linvel(Vector3::new(0.0, body.linvel().y, 0.0), true);
+            let body = scene.graph[self.body].as_rigid_body_mut();
+            body.set_ang_vel(Default::default());
+            body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         }
 
         self.camera_controller.update(
@@ -1260,7 +1258,7 @@ impl Player {
             is_walking,
             is_running,
             self.controller.aim,
-            self.collider,
+            self.capsule_collider,
             scene,
             *time,
         );

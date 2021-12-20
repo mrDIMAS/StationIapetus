@@ -1,5 +1,6 @@
 use crate::utils::create_camera;
 use crate::GameTime;
+use rg3d::scene::graph::physics::{Intersection, RayCastOptions};
 use rg3d::sound::context::SoundContext;
 use rg3d::{
     core::{
@@ -10,7 +11,6 @@ use rg3d::{
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
-    physics3d::{ColliderHandle, Intersection, RayCastOptions},
     rand,
     scene::{base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene},
 };
@@ -87,7 +87,7 @@ impl CameraController {
         is_walking: bool,
         is_running: bool,
         is_aiming: bool,
-        owner_collider: ColliderHandle,
+        owner_collider: Handle<Node>,
         scene: &mut Scene,
         time: GameTime,
     ) {
@@ -132,7 +132,7 @@ impl CameraController {
         self.update_listener(&scene.graph, scene.sound_context.clone())
     }
 
-    fn check_occlusion(&mut self, owner_collider: ColliderHandle, scene: &mut Scene) {
+    fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) {
         let ray_origin = scene.graph[self.camera_hinge].global_position();
         let ray_end = scene.graph[self.camera].global_position();
         let dir = (ray_end - ray_origin)
@@ -143,7 +143,7 @@ impl CameraController {
             origin: ray_origin,
             dir,
         };
-        scene.physics.cast_ray(
+        scene.graph.physics.cast_ray(
             RayCastOptions {
                 ray_origin: Point3::from(ray.origin),
                 ray_direction: ray.dir,

@@ -9,7 +9,6 @@ use rg3d::{
         pool::Handle,
     },
     engine::resource_manager::ResourceManager,
-    physics3d::RigidBodyHandle,
     rand,
     resource::{model::Model, texture::TextureWrapMode},
     scene::{
@@ -33,18 +32,18 @@ struct ImpactEntry {
 
 #[derive(Default)]
 pub struct BodyImpactHandler {
-    additional_rotations: HashMap<RigidBodyHandle, ImpactEntry>,
+    additional_rotations: HashMap<Handle<Node>, ImpactEntry>,
 }
 
 impl BodyImpactHandler {
     pub fn handle_impact(
         &mut self,
         scene: &Scene,
-        handle: RigidBodyHandle,
+        handle: Handle<Node>,
         impact_point: Vector3<f32>,
         direction: Vector3<f32>,
     ) {
-        let global_transform = scene.graph[scene.physics_binder.node_of(handle).unwrap()]
+        let global_transform = scene.graph[handle]
             .global_transform()
             .try_inverse()
             .unwrap_or_default();
@@ -55,7 +54,7 @@ impl BodyImpactHandler {
         if let Some(axis) = local_impact_point
             .coords
             .cross(&local_direction)
-            .try_normalize(std::f32::EPSILON)
+            .try_normalize(f32::EPSILON)
         {
             let additional_rotation =
                 UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), 24.0f32.to_radians());
@@ -76,15 +75,14 @@ impl BodyImpactHandler {
         for (body, entry) in self.additional_rotations.iter_mut() {
             let additional_rotation = entry.source.nlerp(&UnitQuaternion::default(), entry.k);
             entry.k += dt;
-            let node = scene.physics_binder.node_of(*body).unwrap();
-            let transform = scene.graph[node].local_transform_mut();
+            let mut transform = scene.graph[*body].local_transform_mut();
             let new_rotation = **transform.rotation() * additional_rotation;
             transform.set_rotation(new_rotation);
         }
         self.additional_rotations.retain(|_, e| e.k < 1.0);
     }
 
-    pub fn is_affected(&self, handle: RigidBodyHandle) -> bool {
+    pub fn is_affected(&self, handle: Handle<Node>) -> bool {
         self.additional_rotations.contains_key(&handle)
     }
 }

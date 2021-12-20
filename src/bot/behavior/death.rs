@@ -61,7 +61,7 @@ impl<'a> Behavior<'a> for StayDead {
                 .set_enabled(false);
         }
 
-        if let Some(body) = context.character.body.as_ref() {
+        if context.character.body.is_some() {
             for item in context.character.inventory.items() {
                 context.sender.send(Message::DropItems {
                     actor: context.bot_handle,
@@ -70,8 +70,9 @@ impl<'a> Behavior<'a> for StayDead {
                 })
             }
 
-            context.scene.physics.remove_body(body);
-            context.character.body = None;
+            // TODO
+            context.scene.remove_node(context.character.body);
+            context.character.body = Default::default();
         }
 
         Status::Success

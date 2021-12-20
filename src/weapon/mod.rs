@@ -12,6 +12,8 @@ use crate::{
     CollisionGroups, GameTime, MessageSender,
 };
 use rg3d::core::sstorage::ImmutableString;
+use rg3d::scene::collider::InteractionGroupsDesc;
+use rg3d::scene::graph::physics::{FeatureId, Intersection, PhysicsWorld, RayCastOptions};
 use rg3d::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
@@ -22,10 +24,6 @@ use rg3d::{
     },
     engine::resource_manager::{MaterialSearchOptions, ResourceManager},
     material::{shader::SamplerFallback, PropertyValue},
-    physics3d::{
-        rapier::{geometry::InteractionGroups, parry::shape::FeatureId},
-        ColliderHandle, Intersection, RayCastOptions,
-    },
     rand::seq::SliceRandom,
     scene::{
         base::BaseBuilder,
@@ -33,7 +31,6 @@ use rg3d::{
         light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
         mesh::RenderPath,
         node::Node,
-        physics::Physics,
         Scene,
     },
     utils::{
@@ -74,7 +71,7 @@ pub struct Hit {
     pub who: Handle<Actor>,
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
-    pub collider: ColliderHandle,
+    pub collider: Handle<Node>,
     pub feature: FeatureId,
     pub hit_box: Option<HitBox>,
     pub query_buffer: Vec<Intersection>,
@@ -107,8 +104,8 @@ pub fn ray_hit(
     shooter: Shooter,
     weapons: &WeaponContainer,
     actors: &ActorContainer,
-    physics: &mut Physics,
-    ignored_collider: ColliderHandle,
+    physics: &mut PhysicsWorld,
+    ignored_collider: Handle<Node>,
 ) -> Option<Hit> {
     let ray = Ray::from_two_points(begin, end);
 
@@ -120,7 +117,7 @@ pub fn ray_hit(
             ray_origin: Point3::from(ray.origin),
             ray_direction: ray.dir,
             max_len: ray.dir.norm(),
-            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+            groups: InteractionGroupsDesc::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
             sort_results: true,
         },
         &mut query_buffer,
@@ -311,17 +308,7 @@ impl Weapon {
 
         let mut ignored_collider = Default::default();
         if actors.contains(self.owner) {
-            if let Some(body) = actors.get(self.owner).body.as_ref() {
-                if let Some(body) = scene.physics.bodies.get(body) {
-                    ignored_collider = scene
-                        .physics
-                        .colliders
-                        .handle_map()
-                        .key_of(&body.colliders()[0])
-                        .cloned()
-                        .unwrap();
-                }
-            }
+            ignored_collider = actors.get(self.owner).capsule_collider;
         }
 
         let dir = self.shot_direction(&scene.graph);
