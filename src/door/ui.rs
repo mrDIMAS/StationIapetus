@@ -67,7 +67,7 @@ impl DoorUi {
                             .on_column(0),
                     )
                     .with_texture(into_gui_texture(
-                        resource_manager.request_texture("data/ui/triangles.png", None),
+                        resource_manager.request_texture("data/ui/triangles.png"),
                     ))
                     .build(ctx),
                 )

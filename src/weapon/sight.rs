@@ -112,7 +112,7 @@ impl LaserSight {
             .build(&mut scene.graph);
             light
         }]))
-        .with_texture(resource_manager.request_texture("data/particles/star_09.png", None))
+        .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
         .with_color(NORMAL_COLOR)
         .with_size(0.025)
         .build(&mut scene.graph);
@@ -238,7 +238,7 @@ impl LaserSight {
     }
 
     fn dilate(&self, graph: &mut Graph, factor: f32) {
-        let mut transform = graph[self.ray].local_transform_mut();
+        let transform = graph[self.ray].local_transform_mut();
         let scale = **transform.scale();
         transform.set_scale(Vector3::new(
             NORMAL_RADIUS * factor,

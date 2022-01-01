@@ -98,7 +98,7 @@ impl ItemDisplay {
             self.item_image,
             MessageDirection::ToWidget,
             Some(rg3d::utils::into_gui_texture(
-                resource_manager.request_texture(&definition.preview, None),
+                resource_manager.request_texture(&definition.preview),
             )),
         ));
     }

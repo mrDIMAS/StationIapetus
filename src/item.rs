@@ -151,9 +151,7 @@ impl Item {
                 spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
                     .with_size(0.04)
                     .with_color(Color::from_rgba(255, 255, 255, 160))
-                    .with_texture(
-                        resource_manager.request_texture("data/particles/star_09.png", None),
-                    )
+                    .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
                     .build(&mut scene.graph);
                 spark
             }])

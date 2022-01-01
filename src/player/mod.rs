@@ -358,7 +358,7 @@ impl Player {
         )
         .with_distance(1.0)
         .with_hotspot_cone_angle(155.0f32.to_radians())
-        .with_cookie_texture(resource_manager.request_texture("data/textures/mask.png", None))
+        .with_cookie_texture(resource_manager.request_texture("data/textures/mask.png"))
         .build(&mut scene.graph);
 
         scene.graph.link_nodes(rig_light, health_rig);
@@ -1155,7 +1155,7 @@ impl Player {
                         .local_transform_mut()
                         .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
 
-                    let mut spine_transform = scene.graph[self.spine].local_transform_mut();
+                    let spine_transform = scene.graph[self.spine].local_transform_mut();
                     let spine_rotation = **spine_transform.rotation();
                     spine_transform.set_rotation(
                         spine_rotation
@@ -1229,7 +1229,7 @@ impl Player {
             self.check_elevators(scene, elevators, call_buttons, sender);
             self.update_shooting(scene, weapons, *time, sender);
 
-            let mut spine_transform = scene.graph[self.spine].local_transform_mut();
+            let spine_transform = scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
             spine_transform.set_rotation(
                 rotation

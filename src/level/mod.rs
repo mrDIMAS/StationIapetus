@@ -1307,7 +1307,6 @@ impl BaseLevel {
                                 Vector3::new(0.45, 0.45, 0.2),
                                 engine.resource_manager.request_texture(
                                     "data/textures/decals/BloodSplatter_BaseColor.png",
-                                    None,
                                 ),
                             ));
 

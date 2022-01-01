@@ -144,9 +144,7 @@ impl Door {
                 Log::verify(material.set_property(
                     &ImmutableString::new("emissionTexture"),
                     PropertyValue::Sampler {
-                        value: Some(
-                            resource_manager.request_texture("data/ui/white_pixel.bmp", None),
-                        ),
+                        value: Some(resource_manager.request_texture("data/ui/white_pixel.bmp")),
                         fallback: Default::default(),
                     },
                 ));

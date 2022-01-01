@@ -259,9 +259,7 @@ impl Weapon {
                     .with_scatter_factor(Vector3::new(0.1, 0.1, 0.1)),
             )
             .with_distance(10.0)
-            .with_cookie_texture(
-                resource_manager.request_texture("data/particles/light_01.png", None),
-            )
+            .with_cookie_texture(resource_manager.request_texture("data/particles/light_01.png"))
             .with_hotspot_cone_angle(30.0f32.to_radians())
             .build(&mut scene.graph);
 
@@ -409,7 +407,6 @@ impl Weapon {
                     PropertyValue::Sampler {
                         value: Some(resource_manager.request_texture(
                             textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
-                            None,
                         )),
                         fallback: SamplerFallback::White,
                     },

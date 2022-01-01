@@ -525,14 +525,13 @@ impl Bot {
         self.v_recoil.update(time.delta);
         self.h_recoil.update(time.delta);
 
-        let mut spine_transform = context.scene.graph[self.spine].local_transform_mut();
+        let spine_transform = context.scene.graph[self.spine].local_transform_mut();
         let rotation = **spine_transform.rotation();
         spine_transform.set_rotation(
             rotation
                 * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
                 * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
         );
-        drop(spine_transform);
 
         if self.head_exploded {
             let head = context

@@ -48,7 +48,7 @@ impl WeaponDisplay {
                             .on_column(0),
                     )
                     .with_texture(utils::into_gui_texture(
-                        resource_manager.request_texture(Path::new("data/ui/ammo_icon.png"), None),
+                        resource_manager.request_texture(Path::new("data/ui/ammo_icon.png")),
                     ))
                     .build(&mut ui.build_ctx()),
                 )
@@ -73,7 +73,7 @@ impl WeaponDisplay {
                             .on_column(0),
                     )
                     .with_texture(utils::into_gui_texture(
-                        resource_manager.request_texture(Path::new("data/ui/grenade.png"), None),
+                        resource_manager.request_texture(Path::new("data/ui/grenade.png")),
                     ))
                     .build(&mut ui.build_ctx()),
                 )
