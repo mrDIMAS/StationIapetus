@@ -26,7 +26,7 @@ use rg3d::{
         rand::{seq::IteratorRandom, Rng},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
     rand,
     scene::{
@@ -230,7 +230,7 @@ impl Bot {
         let body_radius = 0.16;
 
         let model = resource_manager
-            .request_model(&definition.model, MaterialSearchOptions::UsePathDirectly)
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);

@@ -1,5 +1,4 @@
 use crate::weapon::definition::WeaponKind;
-use rg3d::engine::resource_manager::MaterialSearchOptions;
 use rg3d::{
     core::{
         algebra::Vector3,
@@ -131,7 +130,7 @@ impl Item {
 
         let spark;
         let model = resource_manager
-            .request_model(&definition.model, MaterialSearchOptions::RecursiveUp)
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);

@@ -11,7 +11,7 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     scene::{node::Node, Scene},
 };
 
@@ -56,22 +56,10 @@ impl LowerBodyMachine {
             scream_animation_resource,
             dying_animation_resource,
         ) = rg3d::core::futures::join!(
-            resource_manager.request_model(
-                &definition.idle_animation,
-                MaterialSearchOptions::RecursiveUp
-            ),
-            resource_manager.request_model(
-                &definition.walk_animation,
-                MaterialSearchOptions::RecursiveUp
-            ),
-            resource_manager.request_model(
-                &definition.scream_animation,
-                MaterialSearchOptions::RecursiveUp
-            ),
-            resource_manager.request_model(
-                &definition.dying_animation,
-                MaterialSearchOptions::RecursiveUp
-            ),
+            resource_manager.request_model(&definition.idle_animation,),
+            resource_manager.request_model(&definition.walk_animation,),
+            resource_manager.request_model(&definition.scream_animation,),
+            resource_manager.request_model(&definition.dying_animation,),
         );
 
         let mut machine = Machine::new();

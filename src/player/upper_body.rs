@@ -284,38 +284,23 @@ impl UpperBodyMachine {
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
         ) = rg3d::core::futures::join!(
-            resource_manager
-                .request_model("data/animations/agent_walk_rifle.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_idle_pistol.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_idle.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_idle_pistol.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_jump.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_falling.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_landing.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_aim_rifle.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_aim_pistol.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_toss_grenade.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_put_back.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_grab.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_run_rifle.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_run_pistol.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_dying.fbx", Default::default()),
-            resource_manager.request_model(
-                "data/animations/agent_hit_reaction_rifle.fbx",
-                Default::default()
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_hit_reaction_pistol.fbx",
-                Default::default()
-            ),
+            resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_idle_pistol.fbx"),
+            resource_manager.request_model("data/animations/agent_idle.fbx"),
+            resource_manager.request_model("data/animations/agent_idle_pistol.fbx"),
+            resource_manager.request_model("data/animations/agent_jump.fbx"),
+            resource_manager.request_model("data/animations/agent_falling.fbx"),
+            resource_manager.request_model("data/animations/agent_landing.fbx"),
+            resource_manager.request_model("data/animations/agent_aim_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_aim_pistol.fbx"),
+            resource_manager.request_model("data/animations/agent_toss_grenade.fbx"),
+            resource_manager.request_model("data/animations/agent_put_back.fbx"),
+            resource_manager.request_model("data/animations/agent_grab.fbx"),
+            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_run_pistol.fbx"),
+            resource_manager.request_model("data/animations/agent_dying.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_pistol.fbx"),
         );
 
         let HitReactionStateDefinition {

@@ -1,12 +1,5 @@
-use rg3d::{
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
-    resource::model::Model,
-};
-use std::{
-    collections::HashMap,
-    ops::Index,
-    path::{Path, PathBuf},
-};
+use rg3d::{engine::resource_manager::ResourceManager, resource::model::Model};
+use std::{collections::HashMap, ops::Index, path::Path};
 
 pub struct ModelMap {
     pub map: HashMap<String, Model>,
@@ -22,14 +15,7 @@ impl ModelMap {
             map: rg3d::core::futures::future::join_all(
                 paths
                     .into_iter()
-                    .map(|path| {
-                        resource_manager.request_model(
-                            path,
-                            MaterialSearchOptions::MaterialsDirectory(PathBuf::from(
-                                "data/textures",
-                            )),
-                        )
-                    })
+                    .map(|path| resource_manager.request_model(path))
                     .collect::<Vec<_>>(),
             )
             .await

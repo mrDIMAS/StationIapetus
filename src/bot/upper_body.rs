@@ -15,7 +15,7 @@ use rg3d::{
         pool::Handle,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     resource::model::Model,
     scene::{node::Node, Scene},
 };
@@ -147,10 +147,7 @@ impl UpperBodyMachine {
         let aim_animation_resource =
             if definition.can_use_weapons && !definition.aim_animation.is_empty() {
                 resource_manager
-                    .request_model(
-                        &definition.aim_animation,
-                        MaterialSearchOptions::RecursiveUp,
-                    )
+                    .request_model(&definition.aim_animation)
                     .await
                     .ok()
             } else {

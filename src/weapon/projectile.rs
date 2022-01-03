@@ -13,7 +13,7 @@ use rg3d::{
         pool::{Handle, Pool, PoolIteratorMut},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
     scene::{graph::Graph, node::Node, Scene},
 };
@@ -159,10 +159,7 @@ impl Projectile {
         let definition = Self::get_definition(kind);
 
         let resource = resource_manager
-            .request_model(
-                definition.model.clone(),
-                MaterialSearchOptions::UsePathDirectly,
-            )
+            .request_model(definition.model.clone())
             .await
             .unwrap();
         let model = resource.instantiate_geometry(scene);

@@ -8,7 +8,6 @@ use rg3d::{
         color::Color,
         pool::Handle,
     },
-    engine::resource_manager::MaterialSearchOptions,
     event::{Event, WindowEvent},
     gui::{
         button::{ButtonBuilder, ButtonMessage},
@@ -45,13 +44,9 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub async fn new(engine: &mut Engine, sound_config: &SoundConfig) -> Self {
-        let mut scene = Scene::from_file(
-            "data/levels/menu.rgs",
-            engine.resource_manager.clone(),
-            &MaterialSearchOptions::UsePathDirectly,
-        )
-        .await
-        .unwrap();
+        let mut scene = Scene::from_file("data/levels/menu.rgs", engine.resource_manager.clone())
+            .await
+            .unwrap();
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 

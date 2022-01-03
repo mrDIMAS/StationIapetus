@@ -139,25 +139,15 @@ impl LowerBodyMachine {
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
         ) = rg3d::core::futures::join!(
-            resource_manager.request_model(
-                "data/animations/agent_walking_lower_body.fbx",
-                Default::default()
-            ),
-            resource_manager.request_model("data/animations/agent_idle.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_jump.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_falling.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_landing.fbx", Default::default()),
-            resource_manager
-                .request_model("data/animations/agent_run_rifle.fbx", Default::default()),
-            resource_manager.request_model("data/animations/agent_dying.fbx", Default::default()),
-            resource_manager.request_model(
-                "data/animations/agent_hit_reaction_rifle.fbx",
-                Default::default()
-            ),
-            resource_manager.request_model(
-                "data/animations/agent_hit_reaction_pistol.fbx",
-                Default::default()
-            ),
+            resource_manager.request_model("data/animations/agent_walking_lower_body.fbx",),
+            resource_manager.request_model("data/animations/agent_idle.fbx"),
+            resource_manager.request_model("data/animations/agent_jump.fbx"),
+            resource_manager.request_model("data/animations/agent_falling.fbx"),
+            resource_manager.request_model("data/animations/agent_landing.fbx"),
+            resource_manager.request_model("data/animations/agent_run_rifle.fbx"),
+            resource_manager.request_model("data/animations/agent_dying.fbx"),
+            resource_manager.request_model("data/animations/agent_hit_reaction_rifle.fbx",),
+            resource_manager.request_model("data/animations/agent_hit_reaction_pistol.fbx",),
         );
 
         let HitReactionStateDefinition {

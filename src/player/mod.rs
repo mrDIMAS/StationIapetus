@@ -25,9 +25,6 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::scene::collider::{ColliderBuilder, ColliderShape, InteractionGroups};
-use rg3d::scene::graph::physics::CoefficientCombineRule;
-use rg3d::scene::rigidbody::RigidBodyBuilder;
 use rg3d::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
@@ -43,18 +40,21 @@ use rg3d::{
         sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     material::{shader::SamplerFallback, PropertyValue},
     resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
+        collider::{ColliderBuilder, ColliderShape, InteractionGroups},
+        graph::physics::CoefficientCombineRule,
         light::{spot::SpotLightBuilder, BaseLightBuilder},
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
         },
         node::Node,
+        rigidbody::RigidBodyBuilder,
         sprite::SpriteBuilder,
         transform::TransformBuilder,
         Scene,
@@ -247,14 +247,8 @@ impl Player {
         let body_height = 0.25;
 
         let (model_resource, health_rig_resource) = rg3d::core::futures::join!(
-            resource_manager.request_model(
-                "data/models/agent/agent.rgs",
-                MaterialSearchOptions::UsePathDirectly
-            ),
-            resource_manager.request_model(
-                "data/models/health_rig.FBX",
-                MaterialSearchOptions::RecursiveUp
-            ),
+            resource_manager.request_model("data/models/agent/agent.rgs"),
+            resource_manager.request_model("data/models/health_rig.FBX"),
         );
 
         let model_resource = model_resource.unwrap();

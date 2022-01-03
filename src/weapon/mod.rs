@@ -11,23 +11,25 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::scene::collider::InteractionGroups;
-use rg3d::scene::graph::physics::{FeatureId, Intersection, PhysicsWorld, RayCastOptions};
 use rg3d::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
         color::Color,
         math::{ray::Ray, Matrix4Ext},
         pool::{Handle, Pool, PoolIteratorMut},
+        sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     material::{shader::SamplerFallback, PropertyValue},
     rand::seq::SliceRandom,
     scene::{
         base::BaseBuilder,
-        graph::Graph,
+        collider::InteractionGroups,
+        graph::{
+            physics::{FeatureId, Intersection, PhysicsWorld, RayCastOptions},
+            Graph,
+        },
         light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
         mesh::RenderPath,
         node::Node,
@@ -209,7 +211,7 @@ impl Weapon {
         let definition = Self::definition(kind);
 
         let model = resource_manager
-            .request_model(&definition.model, MaterialSearchOptions::RecursiveUp)
+            .request_model(&definition.model)
             .await
             .unwrap()
             .instantiate_geometry(scene);

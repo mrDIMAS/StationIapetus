@@ -47,7 +47,7 @@ use rg3d::{
         sstorage::ImmutableString,
         visitor::prelude::*,
     },
-    engine::resource_manager::{MaterialSearchOptions, ResourceManager},
+    engine::resource_manager::ResourceManager,
     event::Event,
     gui::ttf::SharedFont,
     material::{Material, PropertyValue},
@@ -639,7 +639,7 @@ impl BaseLevel {
         }
 
         let map_model = resource_manager
-            .request_model(Path::new(map), MaterialSearchOptions::UsePathDirectly)
+            .request_model(Path::new(map))
             .await
             .unwrap();
 
