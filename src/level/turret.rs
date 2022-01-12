@@ -5,9 +5,9 @@ use crate::{
     weapon::projectile::{Damage, Shooter},
     MessageSender,
 };
-use rg3d::scene::collider::{ColliderShape, InteractionGroups};
-use rg3d::scene::graph::physics::RayCastOptions;
-use rg3d::{
+use fyrox::scene::collider::{ColliderShape, InteractionGroups};
+use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,

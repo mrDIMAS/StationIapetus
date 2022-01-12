@@ -1,5 +1,5 @@
 use crate::{item::ItemKind, player::Player, weapon::WeaponContainer};
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
     gui::{

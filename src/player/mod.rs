@@ -25,7 +25,7 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
@@ -246,7 +246,7 @@ impl Player {
         let body_radius = 0.2;
         let body_height = 0.25;
 
-        let (model_resource, health_rig_resource) = rg3d::core::futures::join!(
+        let (model_resource, health_rig_resource) = fyrox::core::futures::join!(
             resource_manager.request_model("data/models/agent/agent.rgs"),
             resource_manager.request_model("data/models/health_rig.FBX"),
         );

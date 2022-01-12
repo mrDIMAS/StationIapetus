@@ -1,6 +1,6 @@
-use rg3d::core::algebra::Point3;
-use rg3d::resource::texture::Texture;
-use rg3d::{
+use fyrox::core::algebra::Point3;
+use fyrox::resource::texture::Texture;
+use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,

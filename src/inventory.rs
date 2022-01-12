@@ -1,5 +1,5 @@
 use crate::item::ItemKind;
-use rg3d::core::visitor::{Visit, VisitResult, Visitor};
+use fyrox::core::visitor::{Visit, VisitResult, Visitor};
 
 #[derive(Default, Debug, Clone, Visit)]
 pub struct ItemEntry {

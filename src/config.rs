@@ -1,5 +1,5 @@
 use crate::{control_scheme::ControlScheme, Engine};
-use rg3d::renderer::QualitySettings;
+use fyrox::renderer::QualitySettings;
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use std::fs::File;

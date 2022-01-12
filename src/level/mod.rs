@@ -34,9 +34,9 @@ use crate::{
     },
     CallButtonUiContainer, DoorUiContainer, Engine, GameTime, MessageSender,
 };
-use rg3d::scene::collider::ColliderShape;
-use rg3d::scene::graph::physics::RayCastOptions;
-use rg3d::{
+use fyrox::scene::collider::ColliderShape;
+use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
@@ -635,7 +635,7 @@ impl BaseLevel {
             scene
                 .sound_context
                 .state()
-                .set_renderer(rg3d::sound::renderer::Renderer::Default);
+                .set_renderer(fyrox::sound::renderer::Renderer::Default);
         }
 
         let map_model = resource_manager

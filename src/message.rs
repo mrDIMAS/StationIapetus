@@ -19,12 +19,12 @@ use crate::{
         Weapon,
     },
 };
-use rg3d::core::{
+use fyrox::core::{
     algebra::{UnitQuaternion, Vector3},
     pool::Handle,
 };
-use rg3d::scene::graph::physics::FeatureId;
-use rg3d::scene::node::Node;
+use fyrox::scene::graph::physics::FeatureId;
+use fyrox::scene::node::Node;
 use std::path::PathBuf;
 
 #[derive(Debug)]

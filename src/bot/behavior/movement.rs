@@ -4,7 +4,7 @@ use crate::{
     level::footstep_ray_check,
     utils::BodyImpactHandler,
 };
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
     scene::Scene,
     utils::behavior::{Behavior, Status},

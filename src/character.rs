@@ -4,7 +4,7 @@ use crate::{
     weapon::{definition::WeaponKind, Weapon, WeaponContainer},
     MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     scene::{graph::Graph, node::Node, Scene},
 };

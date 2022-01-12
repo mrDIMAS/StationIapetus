@@ -2,9 +2,9 @@ use crate::{
     actor::TargetKind,
     bot::{behavior::BehaviorContext, BotHostility, Target},
 };
-use rg3d::scene::collider::{ColliderShape, InteractionGroups};
-use rg3d::scene::graph::physics::RayCastOptions;
-use rg3d::{
+use fyrox::scene::collider::{ColliderShape, InteractionGroups};
+use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
         math::{frustum::Frustum, ray::Ray},

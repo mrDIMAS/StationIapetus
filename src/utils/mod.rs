@@ -1,4 +1,4 @@
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{Machine, PoseNode, State},
         Animation,
@@ -95,7 +95,7 @@ pub async fn create_camera(
     z_far: f32,
 ) -> Handle<Node> {
     // Load skybox textures in parallel.
-    let (front, back, left, right, top, bottom) = rg3d::core::futures::join!(
+    let (front, back, left, right, top, bottom) = fyrox::core::futures::join!(
         resource_manager.request_texture("data/textures/skyboxes/space/front.png"),
         resource_manager.request_texture("data/textures/skyboxes/space/back.png"),
         resource_manager.request_texture("data/textures/skyboxes/space/left.png"),
@@ -138,15 +138,15 @@ pub async fn create_camera(
 }
 
 pub fn use_hrtf(context: SoundContext) {
-    let hrtf_sphere = rg3d::sound::hrtf::HrirSphere::from_file(
+    let hrtf_sphere = fyrox::sound::hrtf::HrirSphere::from_file(
         "data/sounds/hrtf.bin",
         sound::context::SAMPLE_RATE,
     )
     .unwrap();
     context
         .state()
-        .set_renderer(rg3d::sound::renderer::Renderer::HrtfRenderer(
-            rg3d::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
+        .set_renderer(fyrox::sound::renderer::Renderer::HrtfRenderer(
+            fyrox::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
         ));
 }
 

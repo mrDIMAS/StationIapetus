@@ -6,7 +6,7 @@ use crate::{
     player::Player,
     MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     engine::resource_manager::ResourceManager,
     gui::{
@@ -143,7 +143,7 @@ impl InventoryItemBuilder {
                                         .with_margin(Thickness::uniform(1.0))
                                         .on_row(0),
                                 )
-                                .with_texture(rg3d::utils::into_gui_texture(
+                                .with_texture(fyrox::utils::into_gui_texture(
                                     resource_manager.request_texture(&definition.preview),
                                 ))
                                 .build(ctx),
@@ -425,27 +425,27 @@ impl InventoryInterface {
                 if state == ButtonState::Pressed {
                     // TODO: Add support for other input bindings.
                     if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             self.try_move_selection(MoveDirection::Up);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             self.try_move_selection(MoveDirection::Down);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_left.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             self.try_move_selection(MoveDirection::Left);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_right.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             self.try_move_selection(MoveDirection::Right);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.action.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             let selection = self.selection();
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
@@ -478,7 +478,7 @@ impl InventoryInterface {
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.drop_item.button {
-                        if rg3d::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key(key) == button {
                             let selection = self.selection();
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()

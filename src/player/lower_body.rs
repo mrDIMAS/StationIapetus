@@ -4,7 +4,7 @@ use crate::{
     utils::create_play_animation_state,
     MessageSender,
 };
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{
             blend_nodes::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
@@ -138,7 +138,7 @@ impl LowerBodyMachine {
             dying_animation_resource,
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
-        ) = rg3d::core::futures::join!(
+        ) = fyrox::core::futures::join!(
             resource_manager.request_model("data/animations/agent_walking_lower_body.fbx",),
             resource_manager.request_model("data/animations/agent_idle.fbx"),
             resource_manager.request_model("data/animations/agent_jump.fbx"),

@@ -1,10 +1,10 @@
 use crate::CollisionGroups;
-use rg3d::core::parking_lot::Mutex;
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::scene::collider::InteractionGroups;
-use rg3d::scene::graph::physics::RayCastOptions;
-use rg3d::utils::log::Log;
-use rg3d::{
+use fyrox::core::parking_lot::Mutex;
+use fyrox::core::sstorage::ImmutableString;
+use fyrox::scene::collider::InteractionGroups;
+use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::utils::log::Log;
+use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,

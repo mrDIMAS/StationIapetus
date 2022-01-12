@@ -2,7 +2,7 @@ use crate::{
     actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
     DoorUiContainer, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{
         algebra::Vector3,
         color::Color,

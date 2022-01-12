@@ -1,5 +1,5 @@
-use rg3d::gui::UserInterface;
-use rg3d::{core::pool::Handle, renderer::Renderer, resource::texture::Texture, utils::log::Log};
+use fyrox::gui::UserInterface;
+use fyrox::{core::pool::Handle, renderer::Renderer, resource::texture::Texture, utils::log::Log};
 use std::collections::HashMap;
 
 pub trait InteractiveUi {

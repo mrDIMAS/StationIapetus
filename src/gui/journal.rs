@@ -1,7 +1,7 @@
 #![allow(dead_code)] // TODO
 
 use crate::control_scheme::{ControlButton, ControlScheme};
-use rg3d::{
+use fyrox::{
     core::{
         algebra::Vector2,
         pool::Handle,
@@ -200,7 +200,7 @@ impl JournalDisplay {
         if let OsEvent::KeyboardInput { button, state } = *os_event {
             if state == ButtonState::Pressed {
                 if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                    if rg3d::utils::translate_key(key) == button {
+                    if fyrox::utils::translate_key(key) == button {
                         self.current_message = match self.current_message {
                             None => Some(0),
                             Some(n) => Some(n.saturating_sub(1)),
@@ -213,7 +213,7 @@ impl JournalDisplay {
                     }
                 }
                 if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                    if rg3d::utils::translate_key(key) == button {
+                    if fyrox::utils::translate_key(key) == button {
                         self.current_message = match self.current_message {
                             None => Some(0),
                             Some(n) => Some(n + 1),

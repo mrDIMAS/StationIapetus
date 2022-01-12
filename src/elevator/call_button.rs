@@ -2,7 +2,7 @@ use crate::{
     elevator::{Elevator, ElevatorContainer},
     CallButtonUiContainer,
 };
-use rg3d::{
+use fyrox::{
     core::{
         parking_lot::Mutex,
         pool::{Handle, Pool},

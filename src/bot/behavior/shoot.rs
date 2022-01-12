@@ -1,6 +1,6 @@
 use crate::item::ItemKind;
 use crate::{bot::behavior::BehaviorContext, message::Message};
-use rg3d::{
+use fyrox::{
     core::visitor::prelude::*,
     utils::behavior::{Behavior, Status},
 };

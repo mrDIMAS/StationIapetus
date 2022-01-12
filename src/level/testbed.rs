@@ -1,5 +1,5 @@
 use crate::{config::SoundConfig, level::BaseLevel, player::PlayerPersistentData, MessageSender};
-use rg3d::{
+use fyrox::{
     core::{color::Color, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
     resource::texture::Texture,

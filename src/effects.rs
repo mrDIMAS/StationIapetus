@@ -1,7 +1,7 @@
-use rg3d::scene::light::{point::PointLightBuilder, BaseLightBuilder};
+use fyrox::scene::light::{point::PointLightBuilder, BaseLightBuilder};
 
-use rg3d::scene::particle_system::particle::Particle;
-use rg3d::{
+use fyrox::scene::particle_system::particle::Particle;
+use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,

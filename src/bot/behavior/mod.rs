@@ -19,8 +19,8 @@ use crate::{
     weapon::WeaponContainer,
     GameTime, MessageSender,
 };
-use rg3d::core::math::SmoothAngle;
-use rg3d::{
+use fyrox::core::math::SmoothAngle;
+use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     scene::{node::Node, Scene},
     utils::{

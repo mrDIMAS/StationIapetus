@@ -1,7 +1,7 @@
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::material::PropertyValue;
-use rg3d::utils::log::Log;
-use rg3d::{
+use fyrox::core::sstorage::ImmutableString;
+use fyrox::material::PropertyValue;
+use fyrox::utils::log::Log;
+use fyrox::{
     core::{pool::Handle, visitor::prelude::*, VecExtensions},
     scene::{node::Node, Scene},
 };

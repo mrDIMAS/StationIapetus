@@ -1,5 +1,5 @@
 use crate::weapon::definition::WeaponKind;
-use rg3d::{
+use fyrox::{
     core::{
         algebra::Vector3,
         color::Color,

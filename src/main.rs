@@ -1,9 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 
-extern crate rg3d;
-extern crate ron;
-extern crate serde;
-
 mod actor;
 mod bot;
 mod character;
@@ -44,7 +40,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
-use rg3d::{
+use fyrox::{
     core::{
         futures::executor::block_on,
         parking_lot::Mutex,
@@ -173,7 +169,7 @@ impl Game {
         };
 
         let font = SharedFont::new(
-            rg3d::core::futures::executor::block_on(Font::from_file(
+            fyrox::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 31.0,
                 Font::default_char_set(),
@@ -182,7 +178,7 @@ impl Game {
         );
 
         let smaller_font = SharedFont::new(
-            rg3d::core::futures::executor::block_on(Font::from_file(
+            fyrox::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
                 20.0,
                 Font::default_char_set(),
@@ -190,7 +186,7 @@ impl Game {
             .unwrap(),
         );
 
-        let window_builder = rg3d::window::WindowBuilder::new()
+        let window_builder = fyrox::window::WindowBuilder::new()
             .with_title("Station Iapetus")
             .with_inner_size(inner_size)
             .with_resizable(true);
@@ -261,7 +257,7 @@ impl Game {
                 inner_size.height,
             ),
             running: true,
-            menu: rg3d::core::futures::executor::block_on(Menu::new(
+            menu: fyrox::core::futures::executor::block_on(Menu::new(
                 &mut engine,
                 &control_scheme,
                 message_sender.clone(),
@@ -379,7 +375,7 @@ impl Game {
                     _ => (),
                 },
                 Event::LoopDestroyed => {
-                    if let Ok(profiling_results) = rg3d::core::profiler::print() {
+                    if let Ok(profiling_results) = fyrox::core::profiler::print() {
                         if let Ok(mut file) = File::create("profiling.log") {
                             let _ = writeln!(file, "{}", profiling_results);
                         }
@@ -483,7 +479,7 @@ impl Game {
         );
 
         let mut visitor =
-            rg3d::core::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
+            fyrox::core::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
 
         // Clean up.
         self.destroy_level();
@@ -807,7 +803,7 @@ impl Game {
                             scene
                                 .sound_context
                                 .state()
-                                .set_renderer(rg3d::sound::renderer::Renderer::Default);
+                                .set_renderer(fyrox::sound::renderer::Renderer::Default);
                         }
                     }
                 }
@@ -865,7 +861,7 @@ impl Game {
                     );
                 }
                 Message::Play2DSound { path, gain } => {
-                    if let Ok(buffer) = rg3d::core::futures::executor::block_on(
+                    if let Ok(buffer) = fyrox::core::futures::executor::block_on(
                         self.engine
                             .resource_manager
                             .request_sound_buffer(path, false),
@@ -888,7 +884,7 @@ impl Game {
             }
 
             if let Some(ref mut level) = self.level {
-                rg3d::core::futures::executor::block_on(level.handle_message(
+                fyrox::core::futures::executor::block_on(level.handle_message(
                     &mut self.engine,
                     &message,
                     time,

@@ -11,7 +11,7 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
         color::Color,
@@ -382,7 +382,7 @@ impl Weapon {
         if let Some(random_shot_sound) = self
             .definition
             .shot_sounds
-            .choose(&mut rg3d::rand::thread_rng())
+            .choose(&mut fyrox::rand::thread_rng())
         {
             sender.send(Message::PlaySound {
                 path: PathBuf::from(random_shot_sound.clone()),
@@ -408,7 +408,7 @@ impl Weapon {
                     &ImmutableString::new("diffuseTexture"),
                     PropertyValue::Sampler {
                         value: Some(resource_manager.request_texture(
-                            textures.choose(&mut rg3d::rand::thread_rng()).unwrap(),
+                            textures.choose(&mut fyrox::rand::thread_rng()).unwrap(),
                         )),
                         fallback: SamplerFallback::White,
                     },

@@ -1,5 +1,5 @@
 use crate::{actor::ActorContainer, message::Message, MessageSender};
-use rg3d::{
+use fyrox::{
     core::{
         pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},

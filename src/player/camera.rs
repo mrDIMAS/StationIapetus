@@ -1,8 +1,8 @@
 use crate::utils::create_camera;
 use crate::GameTime;
-use rg3d::scene::graph::physics::{Intersection, RayCastOptions};
-use rg3d::sound::context::SoundContext;
-use rg3d::{
+use fyrox::scene::graph::physics::{Intersection, RayCastOptions};
+use fyrox::sound::context::SoundContext;
+use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         math::{ray::Ray, Matrix4Ext, Vector3Ext},

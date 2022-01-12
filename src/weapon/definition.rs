@@ -2,7 +2,7 @@ use crate::{
     item::ItemKind,
     weapon::projectile::{Damage, ProjectileKind},
 };
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector3, rand::Rng, visitor::prelude::*},
     lazy_static::lazy_static,
 };
@@ -80,12 +80,12 @@ impl WeaponDefinition {
     }
 
     pub fn gen_v_recoil_angle(&self) -> f32 {
-        rg3d::rand::thread_rng()
+        fyrox::rand::thread_rng()
             .gen_range(self.v_recoil.0.to_radians()..self.v_recoil.1.to_radians())
     }
 
     pub fn gen_h_recoil_angle(&self) -> f32 {
-        rg3d::rand::thread_rng()
+        fyrox::rand::thread_rng()
             .gen_range(self.h_recoil.0.to_radians()..self.h_recoil.1.to_radians())
     }
 }

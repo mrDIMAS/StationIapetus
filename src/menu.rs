@@ -2,7 +2,7 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, utils::create_camera, Engine, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,

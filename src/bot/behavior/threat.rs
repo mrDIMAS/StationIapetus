@@ -1,7 +1,7 @@
 //! Bots can threaten the player before attack, this mod has behavior nodes for this.
 
 use crate::bot::behavior::BehaviorContext;
-use rg3d::{
+use fyrox::{
     core::{rand::Rng, visitor::prelude::*},
     rand,
     utils::behavior::{Behavior, Status},

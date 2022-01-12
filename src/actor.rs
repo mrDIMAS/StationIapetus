@@ -1,6 +1,6 @@
 use crate::bot::BotKind;
 use crate::{bot::Bot, character::Character, level::UpdateContext, player::Player};
-use rg3d::{
+use fyrox::{
     core::{
         algebra::Vector3,
         pool::{

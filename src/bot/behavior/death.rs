@@ -1,9 +1,9 @@
 use crate::bot::behavior::Action;
 use crate::{bot::behavior::BehaviorContext, message::Message};
-use rg3d::core::pool::Handle;
-use rg3d::utils::behavior::leaf::LeafNode;
-use rg3d::utils::behavior::{BehaviorNode, BehaviorTree};
-use rg3d::{
+use fyrox::core::pool::Handle;
+use fyrox::utils::behavior::leaf::LeafNode;
+use fyrox::utils::behavior::{BehaviorNode, BehaviorTree};
+use fyrox::{
     core::visitor::prelude::*,
     utils::behavior::{Behavior, Status},
 };

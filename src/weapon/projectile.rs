@@ -6,7 +6,7 @@ use crate::{
     weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
     GameTime, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{
         algebra::Vector3,
         math::{vector_to_quat, Vector3Ext},

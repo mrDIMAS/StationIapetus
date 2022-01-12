@@ -2,7 +2,7 @@ use crate::{
     player::{make_hit_reaction_state, HitReactionStateDefinition},
     utils::create_play_animation_state,
 };
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{
             blend_nodes::BlendPose, blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode,
@@ -283,7 +283,7 @@ impl UpperBodyMachine {
             dying_animation_resource,
             hit_reaction_rifle_animation_resource,
             hit_reaction_pistol_animation_resource,
-        ) = rg3d::core::futures::join!(
+        ) = fyrox::core::futures::join!(
             resource_manager.request_model("data/animations/agent_walk_rifle.fbx"),
             resource_manager.request_model("data/animations/agent_idle_pistol.fbx"),
             resource_manager.request_model("data/animations/agent_idle.fbx"),

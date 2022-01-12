@@ -2,7 +2,7 @@ use crate::{
     bot::{behavior::BehaviorContext, upper_body::UpperBodyMachine, BotDefinition},
     message::Message,
 };
-use rg3d::{
+use fyrox::{
     asset::core::rand::prelude::IteratorRandom,
     core::{rand::Rng, visitor::prelude::*},
     utils::behavior::{Behavior, Status},
@@ -34,7 +34,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
             // HACK: setting this to false messes up animation, so set speed to 0.0.
             attack_animation.set_enabled(true).set_speed(0.0).rewind();
 
-            self.attack_animation_index = rg3d::core::rand::thread_rng()
+            self.attack_animation_index = fyrox::core::rand::thread_rng()
                 .gen_range(0..context.upper_body_machine.attack_animations.len())
                 as u32;
 
@@ -86,7 +86,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                         .definition
                         .attack_sounds
                         .iter()
-                        .choose(&mut rg3d::rand::thread_rng())
+                        .choose(&mut fyrox::rand::thread_rng())
                     {
                         context.sender.send(Message::PlaySound {
                             path: attack_sound.clone().into(),

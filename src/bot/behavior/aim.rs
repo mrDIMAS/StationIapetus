@@ -1,6 +1,6 @@
 use crate::bot::behavior::Action;
 use crate::{bot::behavior::BehaviorContext, GameTime};
-use rg3d::{
+use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
         math::SmoothAngle,

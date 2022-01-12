@@ -1,8 +1,8 @@
 use crate::message::Message;
-use rg3d::core::sstorage::ImmutableString;
-use rg3d::material::PropertyValue;
-use rg3d::scene::graph::physics::FeatureId;
-use rg3d::{
+use fyrox::core::sstorage::ImmutableString;
+use fyrox::material::PropertyValue;
+use fyrox::scene::graph::physics::FeatureId;
+use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
     rand::{self, seq::SliceRandom},
@@ -186,13 +186,13 @@ impl SoundManager {
     pub fn new(context: SoundContext, scene: &Scene) -> Self {
         let mut base_effect = BaseEffect::default();
         base_effect.set_gain(0.7);
-        let mut reverb = rg3d::sound::effects::reverb::Reverb::new(base_effect);
+        let mut reverb = fyrox::sound::effects::reverb::Reverb::new(base_effect);
         reverb.set_dry(0.5);
         reverb.set_wet(0.5);
         reverb.set_decay_time(Duration::from_secs_f32(3.0));
         let reverb = context
             .state()
-            .add_effect(rg3d::sound::effects::Effect::Reverb(reverb));
+            .add_effect(fyrox::sound::effects::Effect::Reverb(reverb));
 
         let sound_base = SoundBase::load();
 

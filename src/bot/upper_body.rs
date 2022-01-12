@@ -4,7 +4,7 @@ use crate::{
     utils::model_map::ModelMap,
     GameTime,
 };
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{
             blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,

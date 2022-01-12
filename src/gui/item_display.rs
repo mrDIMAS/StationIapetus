@@ -1,5 +1,5 @@
 use crate::item::{Item, ItemKind};
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
     gui::{
@@ -97,7 +97,7 @@ impl ItemDisplay {
         self.ui.send_message(ImageMessage::texture(
             self.item_image,
             MessageDirection::ToWidget,
-            Some(rg3d::utils::into_gui_texture(
+            Some(fyrox::utils::into_gui_texture(
                 resource_manager.request_texture(&definition.preview),
             )),
         ));

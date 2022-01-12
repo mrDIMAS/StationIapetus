@@ -1,4 +1,4 @@
-use rg3d::{engine::resource_manager::ResourceManager, resource::model::Model};
+use fyrox::{engine::resource_manager::ResourceManager, resource::model::Model};
 use std::{collections::HashMap, ops::Index, path::Path};
 
 pub struct ModelMap {
@@ -12,7 +12,7 @@ impl ModelMap {
         I::Item: AsRef<Path>,
     {
         Self {
-            map: rg3d::core::futures::future::join_all(
+            map: fyrox::core::futures::future::join_all(
                 paths
                     .into_iter()
                     .map(|path| resource_manager.request_model(path))

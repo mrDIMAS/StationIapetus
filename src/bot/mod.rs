@@ -14,8 +14,8 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, Message, MessageSender,
 };
-use rg3d::scene::graph::physics::CoefficientCombineRule;
-use rg3d::{
+use fyrox::scene::graph::physics::CoefficientCombineRule;
+use fyrox::{
     animation::machine::{Machine, PoseNode},
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},

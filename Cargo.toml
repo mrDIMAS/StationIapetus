@@ -8,7 +8,7 @@ edition = "2018"
 opt-level = 3
 
 [dependencies]
-rg3d = { path = "../rg3d" }
+fyrox = { path = "../fyrox" }
 ron = "0.7.0"
 serde = "^1.0.0"
 
@@ -17,4 +17,4 @@ opt-level = 3
 debug = true
 
 [features]
-enable_profiler = ["rg3d/enable_profiler"]
+enable_profiler = ["fyrox/enable_profiler"]

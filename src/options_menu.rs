@@ -5,7 +5,7 @@ use crate::{
     message::Message,
     Engine, MessageSender,
 };
-use rg3d::{
+use fyrox::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
     gui::{

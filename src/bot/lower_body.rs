@@ -2,7 +2,7 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     utils::create_play_animation_state,
 };
-use rg3d::{
+use fyrox::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
         Animation, AnimationSignal,
@@ -55,7 +55,7 @@ impl LowerBodyMachine {
             walk_animation_resource,
             scream_animation_resource,
             dying_animation_resource,
-        ) = rg3d::core::futures::join!(
+        ) = fyrox::core::futures::join!(
             resource_manager.request_model(&definition.idle_animation,),
             resource_manager.request_model(&definition.walk_animation,),
             resource_manager.request_model(&definition.scream_animation,),
