@@ -1,11 +1,10 @@
 use crate::utils::create_camera;
 use crate::GameTime;
 use fyrox::scene::graph::physics::{Intersection, RayCastOptions};
-use fyrox::sound::context::SoundContext;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
-        math::{ray::Ray, Matrix4Ext, Vector3Ext},
+        math::{ray::Ray, Vector3Ext},
         pool::Handle,
         rand::Rng,
         visitor::{Visit, VisitResult, Visitor},
@@ -128,8 +127,6 @@ impl CameraController {
         scene.graph[self.camera_hinge]
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
-
-        self.update_listener(&scene.graph, scene.sound_context.clone())
     }
 
     fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) {
@@ -163,15 +160,6 @@ impl CameraController {
                 break;
             }
         }
-    }
-
-    fn update_listener(&self, graph: &Graph, context: SoundContext) {
-        let mut sound_context = context.state();
-        let listener = sound_context.listener_mut();
-        let camera = &graph[self.camera];
-        let camera_position = camera.global_position();
-        listener.set_basis(camera.global_transform().basis());
-        listener.set_position(camera_position);
     }
 
     fn update_shake(&mut self, dt: f32) {

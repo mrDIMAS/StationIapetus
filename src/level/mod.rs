@@ -630,12 +630,12 @@ impl BaseLevel {
         let mut scene = Scene::new();
 
         if sound_config.use_hrtf {
-            use_hrtf(scene.sound_context.clone())
+            use_hrtf(&mut scene.graph.sound_context)
         } else {
             scene
+                .graph
                 .sound_context
-                .state()
-                .set_renderer(fyrox::sound::renderer::Renderer::Default);
+                .set_renderer(fyrox::scene::sound::Renderer::Default);
         }
 
         let map_model = resource_manager
@@ -712,7 +712,7 @@ impl BaseLevel {
             sender: Some(sender),
             time: 0.0,
             projectiles: ProjectileContainer::new(),
-            sound_manager: SoundManager::new(scene.sound_context.clone(), &scene),
+            sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
             trails: Default::default(),
             doors,
@@ -1423,7 +1423,11 @@ impl BaseLevel {
 
     pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
         self.sound_manager
-            .handle_message(engine.resource_manager.clone(), &message)
+            .handle_message(
+                &mut engine.scenes[self.scene].graph,
+                engine.resource_manager.clone(),
+                &message,
+            )
             .await;
 
         match message {

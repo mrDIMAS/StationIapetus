@@ -1,4 +1,5 @@
 use crate::weapon::definition::WeaponKind;
+use fyrox::core::pool::PoolIteratorMut;
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -12,7 +13,6 @@ use fyrox::{
         base::BaseBuilder, graph::Graph, node::Node, sprite::SpriteBuilder,
         transform::TransformBuilder, Scene,
     },
-    sound::pool::PoolIteratorMut,
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};

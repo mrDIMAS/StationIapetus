@@ -2,6 +2,8 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, utils::create_camera, Engine, MessageSender,
 };
+use fyrox::scene::base::BaseBuilder;
+use fyrox::scene::sound::{SoundBuilder, Status};
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -19,7 +21,6 @@ use fyrox::{
         HorizontalAlignment, Thickness, UiNode, UserInterface,
     },
     scene::{node::Node, Scene},
-    sound::source::{generic::GenericSourceBuilder, SoundSource, Status},
 };
 
 pub struct Menu {
@@ -39,7 +40,7 @@ pub struct MenuScene {
     pub scene: Handle<Scene>,
     iapetus: Handle<Node>,
     angle: f32,
-    pub music: Handle<SoundSource>,
+    pub music: Handle<Node>,
 }
 
 impl MenuScene {
@@ -59,15 +60,12 @@ impl MenuScene {
             .await
             .unwrap();
 
-        let music = scene.sound_context.state().add_source(
-            GenericSourceBuilder::new()
-                .with_buffer(buffer.into())
-                .with_looping(true)
-                .with_status(Status::Playing)
-                .with_gain(sound_config.music_volume)
-                .build_source()
-                .unwrap(),
-        );
+        let music = SoundBuilder::new(BaseBuilder::new())
+            .with_buffer(buffer.into())
+            .with_looping(true)
+            .with_status(Status::Playing)
+            .with_gain(sound_config.music_volume)
+            .build(&mut scene.graph);
 
         let position = scene.graph[scene
             .graph

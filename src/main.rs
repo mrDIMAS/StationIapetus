@@ -40,6 +40,8 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use fyrox::scene::base::BaseBuilder;
+use fyrox::scene::sound::{SoundBuilder, Status};
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -64,7 +66,6 @@ use fyrox::{
     material::{shader::SamplerFallback, Material, PropertyValue},
     resource::texture::Texture,
     scene::Scene,
-    sound::source::{generic::GenericSourceBuilder, Status},
     utils::{
         log::{Log, MessageKind},
         translate_event,
@@ -241,11 +242,7 @@ impl Game {
 
         let (tx, rx) = mpsc::channel();
 
-        engine
-            .sound_engine
-            .lock()
-            .unwrap()
-            .set_master_gain(sound_config.master_volume);
+        engine.set_sound_gain(sound_config.master_volume);
 
         let message_sender = MessageSender { sender: tx };
 
@@ -786,34 +783,28 @@ impl Game {
                 Message::SetMusicVolume(volume) => {
                     self.sound_config.music_volume = *volume;
                     // TODO: Apply to sound manager of level when it will handle music!
-                    self.engine.scenes[self.menu.scene.scene]
-                        .sound_context
-                        .state()
-                        .source_mut(self.menu.scene.music)
+                    self.engine.scenes[self.menu.scene.scene].graph[self.menu.scene.music]
+                        .as_sound_mut()
                         .set_gain(*volume);
                 }
                 Message::SetUseHrtf(state) => {
                     self.sound_config.use_hrtf = *state;
                     // Hrtf is applied **only** to game scene!
                     if let Some(level) = self.level.as_ref() {
-                        let scene = &self.engine.scenes[level.scene];
+                        let scene = &mut self.engine.scenes[level.scene];
                         if self.sound_config.use_hrtf {
-                            use_hrtf(scene.sound_context.clone())
+                            use_hrtf(&mut scene.graph.sound_context)
                         } else {
                             scene
+                                .graph
                                 .sound_context
-                                .state()
-                                .set_renderer(fyrox::sound::renderer::Renderer::Default);
+                                .set_renderer(fyrox::scene::sound::Renderer::Default);
                         }
                     }
                 }
                 Message::SetMasterVolume(volume) => {
                     self.sound_config.master_volume = *volume;
-                    self.engine
-                        .sound_engine
-                        .lock()
-                        .unwrap()
-                        .set_master_gain(*volume);
+                    self.engine.set_sound_gain(*volume);
                 }
                 Message::SaveConfig => {
                     match Config::save(
@@ -866,18 +857,13 @@ impl Game {
                             .resource_manager
                             .request_sound_buffer(path, false),
                     ) {
-                        if let Ok(shot_sound) = GenericSourceBuilder::new()
+                        let menu_scene = &mut self.engine.scenes[self.menu.scene.scene];
+                        SoundBuilder::new(BaseBuilder::new())
                             .with_buffer(buffer.into())
                             .with_status(Status::Playing)
                             .with_play_once(true)
                             .with_gain(*gain)
-                            .build_source()
-                        {
-                            let mut state = self.engine.scenes[self.menu.scene.scene]
-                                .sound_context
-                                .state();
-                            state.add_source(shot_sound);
-                        }
+                            .build(&mut menu_scene.graph);
                     }
                 }
                 _ => (),

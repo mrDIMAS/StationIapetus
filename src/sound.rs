@@ -1,21 +1,24 @@
 use crate::message::Message;
-use fyrox::core::sstorage::ImmutableString;
-use fyrox::material::PropertyValue;
-use fyrox::scene::graph::physics::FeatureId;
 use fyrox::{
-    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
+    core::{algebra::Vector3, pool::Handle, sstorage::ImmutableString, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
+    material::PropertyValue,
     rand::{self, seq::SliceRandom},
-    scene::{node::Node, Scene},
-    sound::{
-        context::SoundContext,
-        effects::{BaseEffect, Effect, EffectInput},
-        source::{generic::GenericSourceBuilder, spatial::SpatialSourceBuilder, Status},
+    scene::{
+        base::BaseBuilder,
+        graph::{physics::FeatureId, Graph},
+        node::Node,
+        sound::{
+            effect::{BaseEffectBuilder, Effect, EffectInput, ReverbEffectBuilder},
+            SoundBuilder, Status,
+        },
+        transform::TransformBuilder,
+        Scene,
     },
     utils::log::{Log, MessageKind},
 };
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf, time::Duration};
+use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf};
 
 #[derive(Debug)]
 pub struct TriangleRange {
@@ -174,7 +177,6 @@ impl SoundMap {
 
 #[derive(Default, Visit)]
 pub struct SoundManager {
-    context: SoundContext,
     reverb: Handle<Effect>,
     #[visit(skip)]
     sound_base: SoundBase,
@@ -183,21 +185,16 @@ pub struct SoundManager {
 }
 
 impl SoundManager {
-    pub fn new(context: SoundContext, scene: &Scene) -> Self {
-        let mut base_effect = BaseEffect::default();
-        base_effect.set_gain(0.7);
-        let mut reverb = fyrox::sound::effects::reverb::Reverb::new(base_effect);
-        reverb.set_dry(0.5);
-        reverb.set_wet(0.5);
-        reverb.set_decay_time(Duration::from_secs_f32(3.0));
-        let reverb = context
-            .state()
-            .add_effect(fyrox::sound::effects::Effect::Reverb(reverb));
+    pub fn new(scene: &mut Scene) -> Self {
+        let reverb = ReverbEffectBuilder::new(BaseEffectBuilder::new().with_gain(0.7))
+            .with_wet(0.5)
+            .with_dry(0.5)
+            .with_decay_time(3.0)
+            .build(&mut scene.graph.sound_context);
 
         let sound_base = SoundBase::load();
 
         Self {
-            context,
             reverb,
             sound_map: SoundMap::new(scene, &sound_base),
             sound_base,
@@ -206,6 +203,7 @@ impl SoundManager {
 
     async fn play_sound(
         &self,
+        graph: &mut Graph,
         path: &Path,
         position: Vector3<f32>,
         gain: f32,
@@ -214,25 +212,29 @@ impl SoundManager {
         resource_manager: ResourceManager,
     ) {
         if let Ok(buffer) = resource_manager.request_sound_buffer(path, false).await {
-            let shot_sound = SpatialSourceBuilder::new(
-                GenericSourceBuilder::new()
-                    .with_buffer(buffer.into())
-                    .with_status(Status::Playing)
-                    .with_play_once(true)
-                    .with_gain(gain)
-                    .build()
-                    .unwrap(),
+            let sound = SoundBuilder::new(
+                BaseBuilder::new().with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(position)
+                        .build(),
+                ),
             )
-            .with_position(position)
+            .with_buffer(buffer.into())
+            .with_status(Status::Playing)
+            .with_play_once(true)
+            .with_gain(gain)
             .with_radius(radius)
             .with_rolloff_factor(rolloff_factor)
-            .build_source();
+            .build(graph);
 
-            let mut state = self.context.state();
-            let source = state.add_source(shot_sound);
-            state
+            graph
+                .sound_context
                 .effect_mut(self.reverb)
-                .add_input(EffectInput::direct(source));
+                .inputs_mut()
+                .push(EffectInput {
+                    sound,
+                    filter: None,
+                });
         } else {
             Log::writeln(
                 MessageKind::Error,
@@ -241,7 +243,12 @@ impl SoundManager {
         }
     }
 
-    pub async fn handle_message(&mut self, resource_manager: ResourceManager, message: &Message) {
+    pub async fn handle_message(
+        &mut self,
+        graph: &mut Graph,
+        resource_manager: ResourceManager,
+        message: &Message,
+    ) {
         match message {
             Message::PlaySound {
                 path,
@@ -251,6 +258,7 @@ impl SoundManager {
                 radius,
             } => {
                 self.play_sound(
+                    graph,
                     path,
                     *position,
                     *gain,
@@ -299,6 +307,7 @@ impl SoundManager {
                         if let Some(sound_list) = map.get(&sound_kind) {
                             if let Some(sound) = sound_list.choose(&mut rand::thread_rng()) {
                                 self.play_sound(
+                                    graph,
                                     sound.as_ref(),
                                     position,
                                     gain,

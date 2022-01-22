@@ -1,3 +1,6 @@
+use fyrox::scene::sound;
+use fyrox::scene::sound::context::SoundContext;
+use fyrox::scene::sound::listener::ListenerBuilder;
 use fyrox::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -19,7 +22,6 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
-    sound::{self, context::SoundContext},
 };
 use std::collections::HashMap;
 
@@ -126,28 +128,26 @@ pub async fn create_camera(
 
     // Camera is our eyes in the world - you won't see anything without it.
     CameraBuilder::new(
-        BaseBuilder::new().with_local_transform(
-            TransformBuilder::new()
-                .with_local_position(position)
-                .build(),
-        ),
+        BaseBuilder::new()
+            .with_children(&[ListenerBuilder::new(BaseBuilder::new()).build(graph)])
+            .with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(position)
+                    .build(),
+            ),
     )
     .with_z_far(z_far)
     .with_skybox(skybox)
     .build(graph)
 }
 
-pub fn use_hrtf(context: SoundContext) {
-    let hrtf_sphere = fyrox::sound::hrtf::HrirSphere::from_file(
-        "data/sounds/hrtf.bin",
-        sound::context::SAMPLE_RATE,
-    )
-    .unwrap();
-    context
-        .state()
-        .set_renderer(fyrox::sound::renderer::Renderer::HrtfRenderer(
-            fyrox::sound::renderer::hrtf::HrtfRenderer::new(hrtf_sphere),
-        ));
+pub fn use_hrtf(context: &mut SoundContext) {
+    let hrtf_sphere =
+        fyrox::scene::sound::HrirSphere::from_file("data/sounds/hrtf.bin", sound::SAMPLE_RATE)
+            .unwrap();
+    context.set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
+        fyrox::scene::sound::HrtfRenderer::new(hrtf_sphere),
+    ));
 }
 
 pub fn create_play_animation_state(
