@@ -53,10 +53,7 @@ impl MenuScene {
 
         let buffer = engine
             .resource_manager
-            .request_sound_buffer(
-                "data/music/Pura Sombar - Tongues falling from an opened sky.ogg",
-                true,
-            )
+            .request_sound_buffer("data/music/Pura Sombar - Tongues falling from an opened sky.ogg")
             .await
             .unwrap();
 

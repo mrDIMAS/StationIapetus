@@ -211,7 +211,7 @@ impl SoundManager {
         radius: f32,
         resource_manager: ResourceManager,
     ) {
-        if let Ok(buffer) = resource_manager.request_sound_buffer(path, false).await {
+        if let Ok(buffer) = resource_manager.request_sound_buffer(path).await {
             let sound = SoundBuilder::new(
                 BaseBuilder::new().with_local_transform(
                     TransformBuilder::new()
