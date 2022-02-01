@@ -4,6 +4,7 @@ use crate::{
 };
 use fyrox::scene::base::BaseBuilder;
 use fyrox::scene::sound::{SoundBuilder, Status};
+use fyrox::scene::SceneLoader;
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -45,9 +46,11 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub async fn new(engine: &mut Engine, sound_config: &SoundConfig) -> Self {
-        let mut scene = Scene::from_file("data/levels/menu.rgs", engine.resource_manager.clone())
+        let mut scene = SceneLoader::from_file("data/levels/menu.rgs")
             .await
-            .unwrap();
+            .unwrap()
+            .finish(engine.resource_manager.clone())
+            .await;
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 

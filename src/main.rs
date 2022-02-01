@@ -42,6 +42,7 @@ use crate::{
 };
 use fyrox::scene::base::BaseBuilder;
 use fyrox::scene::sound::{SoundBuilder, Status};
+use fyrox::scene::SceneLoader;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -455,18 +456,21 @@ impl Game {
     }
 
     pub fn save_game(&mut self) -> VisitResult {
-        let mut visitor = Visitor::new();
+        if let Some(level) = self.level.as_mut() {
+            let mut visitor = Visitor::new();
 
-        // Visit engine state first.
-        self.engine.visit("Engine", &mut visitor)?;
-        self.level.visit("Level", &mut visitor)?;
+            self.engine.scenes[level.scene].save("Scene", &mut visitor)?;
+            level.visit("Level", &mut visitor)?;
 
-        // Debug output
-        if let Ok(mut file) = File::create(Path::new("save.txt")) {
-            file.write_all(visitor.save_text().as_bytes()).unwrap();
+            // Debug output
+            if let Ok(mut file) = File::create(Path::new("save.txt")) {
+                file.write_all(visitor.save_text().as_bytes()).unwrap();
+            }
+
+            visitor.save_binary(Path::new("save.bin"))
+        } else {
+            Ok(())
         }
-
-        visitor.save_binary(Path::new("save.bin"))
     }
 
     pub fn load_game(&mut self) -> VisitResult {
@@ -475,8 +479,7 @@ impl Game {
             "Attempting load a save...".to_owned(),
         );
 
-        let mut visitor =
-            fyrox::core::futures::executor::block_on(Visitor::load_binary(Path::new("save.bin")))?;
+        let mut visitor = block_on(Visitor::load_binary(Path::new("save.bin")))?;
 
         // Clean up.
         self.destroy_level();
@@ -486,8 +489,15 @@ impl Game {
             MessageKind::Information,
             "Trying to load a save file...".to_owned(),
         );
-        self.engine.visit("Engine", &mut visitor)?;
-        self.level.visit("Level", &mut visitor)?;
+
+        let scene = block_on(
+            SceneLoader::load("Scene", &mut visitor)?.finish(self.engine.resource_manager.clone()),
+        );
+
+        let mut level = Level::default();
+        level.visit("Level", &mut visitor)?;
+        level.scene = self.engine.scenes.add(scene);
+        self.level = Some(level);
 
         Log::writeln(
             MessageKind::Information,
