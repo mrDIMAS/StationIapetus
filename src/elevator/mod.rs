@@ -1,4 +1,5 @@
 use crate::elevator::call_button::CallButton;
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -45,7 +46,7 @@ impl Elevator {
         }
 
         let body_handle = scene.graph[self.node].parent();
-        if let Node::RigidBody(rigid_body_ref) = &mut scene.graph[body_handle] {
+        if let Some(rigid_body_ref) = scene.graph[body_handle].cast_mut::<RigidBody>() {
             if let (Some(current), Some(dest)) = (
                 self.points.get(self.current_floor as usize),
                 self.points.get(self.dest_floor as usize),

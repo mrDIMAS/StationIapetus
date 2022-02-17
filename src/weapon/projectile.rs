@@ -6,11 +6,13 @@ use crate::{
     weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
     GameTime, MessageSender,
 };
+use fyrox::scene::rigidbody::RigidBody;
+use fyrox::scene::sprite::Sprite;
 use fyrox::{
     core::{
         algebra::Vector3,
         math::{vector_to_quat, Vector3Ext},
-        pool::{Handle, Pool, PoolIteratorMut},
+        pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -166,7 +168,7 @@ impl Projectile {
         let body = scene.graph.find_by_name(model, "Projectile");
         let body_ref = &mut scene.graph[body];
         body_ref.local_transform_mut().set_position(position);
-        if let Node::RigidBody(body) = body_ref {
+        if let Some(body) = body_ref.cast_mut::<RigidBody>() {
             body.set_lin_vel(initial_velocity);
         }
 
@@ -270,7 +272,7 @@ impl Projectile {
             }
         }
 
-        if let Node::Sprite(sprite) = &mut scene.graph[self.model] {
+        if let Some(sprite) = scene.graph[self.model].cast_mut::<Sprite>() {
             sprite.set_rotation(self.rotation_angle);
             self.rotation_angle += 1.5;
         }
@@ -370,7 +372,7 @@ impl ProjectileContainer {
         self.pool.spawn(projectile)
     }
 
-    pub fn iter_mut(&mut self) -> PoolIteratorMut<Projectile> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Projectile> {
         self.pool.iter_mut()
     }
 

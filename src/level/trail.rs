@@ -1,5 +1,7 @@
 use fyrox::core::sstorage::ImmutableString;
 use fyrox::material::PropertyValue;
+use fyrox::scene::mesh::Mesh;
+use fyrox::scene::sprite::Sprite;
 use fyrox::utils::log::Log;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*, VecExtensions},
@@ -34,23 +36,23 @@ impl ShotTrailContainer {
             trail.lifetime = (trail.lifetime + dt).min(trail.max_lifetime);
             let k = 1.0 - trail.lifetime / trail.max_lifetime;
             let new_alpha = (255.0 * k) as u8;
-            match &mut scene.graph[trail.node] {
-                Node::Mesh(mesh) => {
-                    for surface in mesh.surfaces_mut() {
-                        let mut material = surface.material().lock();
-                        let color = material
-                            .property_ref(&ImmutableString::new("diffuseColor"))
-                            .unwrap()
-                            .as_color()
-                            .unwrap();
-                        Log::verify(material.set_property(
-                            &ImmutableString::new("diffuseColor"),
-                            PropertyValue::Color(color.with_new_alpha(new_alpha)),
-                        ));
-                    }
+
+            let trait_node = &mut scene.graph[trail.node];
+            if let Some(mesh) = trait_node.cast_mut::<Mesh>() {
+                for surface in mesh.surfaces_mut() {
+                    let mut material = surface.material().lock();
+                    let color = material
+                        .property_ref(&ImmutableString::new("diffuseColor"))
+                        .unwrap()
+                        .as_color()
+                        .unwrap();
+                    Log::verify(material.set_property(
+                        &ImmutableString::new("diffuseColor"),
+                        PropertyValue::Color(color.with_new_alpha(new_alpha)),
+                    ));
                 }
-                Node::Sprite(sprite) => sprite.set_color(sprite.color().with_new_alpha(new_alpha)),
-                _ => (),
+            } else if let Some(sprite) = trait_node.cast_mut::<Sprite>() {
+                sprite.set_color(sprite.color().with_new_alpha(new_alpha))
             }
 
             if trail.lifetime >= trail.max_lifetime {

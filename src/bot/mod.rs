@@ -15,6 +15,8 @@ use crate::{
     CollisionGroups, Message, MessageSender,
 };
 use fyrox::scene::graph::physics::CoefficientCombineRule;
+use fyrox::scene::pivot::PivotBuilder;
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -276,8 +278,7 @@ impl Bot {
                         capsule_collider
                     },
                     {
-                        pivot = BaseBuilder::new()
-                            .with_children(&[model])
+                        pivot = PivotBuilder::new(BaseBuilder::new().with_children(&[model]))
                             .build(&mut scene.graph);
                         pivot
                     },
@@ -293,8 +294,8 @@ impl Bot {
             .graph
             .find_by_name(model, &definition.weapon_hand_name);
         let wpn_scale = definition.weapon_scale * (1.0 / definition.scale);
-        let weapon_pivot = BaseBuilder::new()
-            .with_local_transform(
+        let weapon_pivot = PivotBuilder::new(
+            BaseBuilder::new().with_local_transform(
                 TransformBuilder::new()
                     .with_local_scale(Vector3::new(wpn_scale, wpn_scale, wpn_scale))
                     .with_local_rotation(
@@ -305,8 +306,9 @@ impl Bot {
                             ),
                     )
                     .build(),
-            )
-            .build(&mut scene.graph);
+            ),
+        )
+        .build(&mut scene.graph);
 
         scene.graph.link_nodes(weapon_pivot, hand);
 
@@ -398,7 +400,7 @@ impl Bot {
                     }
 
                     for &child in scene.graph[door.node()].children() {
-                        if let Node::RigidBody(rigid_body) = &scene.graph[child] {
+                        if let Some(rigid_body) = scene.graph[child].cast::<RigidBody>() {
                             for &collider in rigid_body.children() {
                                 if collider == intersection.collider {
                                     sender.send(Message::TryOpenDoor {

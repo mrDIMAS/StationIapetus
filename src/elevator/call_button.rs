@@ -2,6 +2,7 @@ use crate::{
     elevator::{Elevator, ElevatorContainer},
     CallButtonUiContainer,
 };
+use fyrox::scene::mesh::Mesh;
 use fyrox::{
     core::{
         parking_lot::Mutex,
@@ -67,7 +68,7 @@ impl CallButton {
             .collect::<Vec<_>>();
 
         for node_handle in screens {
-            if let Node::Mesh(ref mut mesh) = graph[node_handle] {
+            if let Some(ref mut mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
                 Log::verify(material.set_property(

@@ -3,6 +3,7 @@ use fyrox::core::parking_lot::Mutex;
 use fyrox::core::sstorage::ImmutableString;
 use fyrox::scene::collider::InteractionGroups;
 use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::scene::light::BaseLight;
 use fyrox::utils::log::Log;
 use fyrox::{
     core::{
@@ -76,29 +77,32 @@ const HIT_DETECTED_TIME: f32 = 0.4;
 
 impl LaserSight {
     pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
-        let ray = MeshBuilder::new(BaseBuilder::new().with_visibility(false))
-            .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
-                SurfaceData::make_cylinder(
-                    6,
-                    1.0,
-                    1.0,
-                    false,
-                    &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
-                        .to_homogeneous(),
-                ),
-            )))
-            .with_material(Arc::new(Mutex::new({
-                let mut material = Material::standard();
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseColor"),
-                    PropertyValue::Color(NORMAL_COLOR),
-                ));
-                material
-            })))
-            .build()])
-            .with_cast_shadows(false)
-            .with_render_path(RenderPath::Forward)
-            .build(&mut scene.graph);
+        let ray = MeshBuilder::new(
+            BaseBuilder::new()
+                .with_cast_shadows(false)
+                .with_visibility(false),
+        )
+        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
+            SurfaceData::make_cylinder(
+                6,
+                1.0,
+                1.0,
+                false,
+                &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
+                    .to_homogeneous(),
+            ),
+        )))
+        .with_material(Arc::new(Mutex::new({
+            let mut material = Material::standard();
+            Log::verify(material.set_property(
+                &ImmutableString::new("diffuseColor"),
+                PropertyValue::Color(NORMAL_COLOR),
+            ));
+            material
+        })))
+        .build()])
+        .with_render_path(RenderPath::Forward)
+        .build(&mut scene.graph);
 
         let light;
         let tip = SpriteBuilder::new(BaseBuilder::new().with_visibility(false).with_children(&[{
@@ -233,7 +237,10 @@ impl LaserSight {
                     PropertyValue::Color(color),
                 ),
         );
-        graph[self.light].as_light_mut().set_color(color);
+        graph[self.light]
+            .query_component_mut::<BaseLight>()
+            .unwrap()
+            .set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);
     }
 

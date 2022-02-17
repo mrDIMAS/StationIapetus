@@ -40,6 +40,7 @@ use crate::{
     player::PlayerPersistentData,
     utils::use_hrtf,
 };
+use fyrox::engine::resource_manager::ResourceManager;
 use fyrox::scene::base::BaseBuilder;
 use fyrox::scene::sound::{SoundBuilder, Status};
 use fyrox::scene::SceneLoader;
@@ -193,7 +194,8 @@ impl Game {
             .with_inner_size(inner_size)
             .with_resizable(true);
 
-        let mut engine = Engine::new(window_builder, &events_loop, false).unwrap();
+        let mut engine =
+            Engine::new(window_builder, ResourceManager::new(), &events_loop, false).unwrap();
 
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();

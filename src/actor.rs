@@ -3,9 +3,7 @@ use crate::{bot::Bot, character::Character, level::UpdateContext, player::Player
 use fyrox::{
     core::{
         algebra::Vector3,
-        pool::{
-            Handle, Pool, PoolIterator, PoolIteratorMut, PoolPairIterator, PoolPairIteratorMut,
-        },
+        pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},
     },
     resource::texture::Texture,
@@ -154,19 +152,19 @@ impl ActorContainer {
         }
     }
 
-    pub fn iter(&self) -> PoolIterator<Actor> {
+    pub fn iter(&self) -> impl Iterator<Item = &Actor> {
         self.pool.iter()
     }
 
-    pub fn pair_iter(&self) -> PoolPairIterator<Actor> {
+    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Actor>, &Actor)> {
         self.pool.pair_iter()
     }
 
-    pub fn pair_iter_mut(&mut self) -> PoolPairIteratorMut<Actor> {
+    pub fn pair_iter_mut(&mut self) -> impl Iterator<Item = (Handle<Actor>, &mut Actor)> {
         self.pool.pair_iter_mut()
     }
 
-    pub fn iter_mut(&mut self) -> PoolIteratorMut<Actor> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Actor> {
         self.pool.iter_mut()
     }
 

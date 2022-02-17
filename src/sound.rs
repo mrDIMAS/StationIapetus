@@ -1,4 +1,5 @@
 use crate::message::Message;
+use fyrox::scene::mesh::Mesh;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle, sstorage::ImmutableString, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
@@ -100,7 +101,7 @@ impl SoundMap {
                     while let Some(handle) = stack.pop() {
                         let descendant = &scene.graph[handle];
 
-                        if let Node::Mesh(descendant_mesh) = descendant {
+                        if let Some(descendant_mesh) = descendant.cast::<Mesh>() {
                             for surface in descendant_mesh.surfaces() {
                                 let data = surface.data();
                                 let data = data.lock();

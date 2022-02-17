@@ -1,10 +1,10 @@
 use crate::weapon::definition::WeaponKind;
-use fyrox::core::pool::PoolIteratorMut;
+use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
     core::{
         algebra::Vector3,
         color::Color,
-        pool::{Handle, Pool, PoolIterator, PoolPairIterator},
+        pool::{Handle, Pool},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -135,26 +135,30 @@ impl Item {
             .unwrap()
             .instantiate_geometry(scene);
 
-        let pivot = BaseBuilder::new()
-            .with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(position)
-                    .with_local_scale(Vector3::new(
-                        definition.scale,
-                        definition.scale,
-                        definition.scale,
-                    ))
-                    .build(),
-            )
-            .with_children(&[model, {
-                spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
-                    .with_size(0.04)
-                    .with_color(Color::from_rgba(255, 255, 255, 160))
-                    .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
-                    .build(&mut scene.graph);
-                spark
-            }])
-            .build(&mut scene.graph);
+        let pivot = PivotBuilder::new(
+            BaseBuilder::new()
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(position)
+                        .with_local_scale(Vector3::new(
+                            definition.scale,
+                            definition.scale,
+                            definition.scale,
+                        ))
+                        .build(),
+                )
+                .with_children(&[model, {
+                    spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
+                        .with_size(0.04)
+                        .with_color(Color::from_rgba(255, 255, 255, 160))
+                        .with_texture(
+                            resource_manager.request_texture("data/particles/star_09.png"),
+                        )
+                        .build(&mut scene.graph);
+                    spark
+                }]),
+        )
+        .build(&mut scene.graph);
 
         Self {
             pivot,
@@ -227,15 +231,15 @@ impl ItemContainer {
         self.pool.is_valid_handle(item)
     }
 
-    pub fn pair_iter(&self) -> PoolPairIterator<Item> {
+    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Item>, &Item)> {
         self.pool.pair_iter()
     }
 
-    pub fn iter(&self) -> PoolIterator<Item> {
+    pub fn iter(&self) -> impl Iterator<Item = &Item> {
         self.pool.iter()
     }
 
-    pub fn iter_mut(&mut self) -> PoolIteratorMut<Item> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Item> {
         self.pool.iter_mut()
     }
 

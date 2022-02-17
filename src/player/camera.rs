@@ -1,6 +1,7 @@
 use crate::utils::create_camera;
 use crate::GameTime;
 use fyrox::scene::graph::physics::{Intersection, RayCastOptions};
+use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -34,9 +35,9 @@ impl CameraController {
 
         let camera;
         let camera_hinge;
-        let camera_pivot = BaseBuilder::new()
-            .with_children(&[{
-                camera_hinge = BaseBuilder::new()
+        let camera_pivot = PivotBuilder::new(BaseBuilder::new().with_children(&[{
+            camera_hinge = PivotBuilder::new(
+                BaseBuilder::new()
                     .with_local_transform(
                         TransformBuilder::new()
                             .with_local_position(Vector3::new(-0.22, 0.25, 0.0))
@@ -51,11 +52,12 @@ impl CameraController {
                         )
                         .await;
                         camera
-                    }])
-                    .build(graph);
-                camera_hinge
-            }])
+                    }]),
+            )
             .build(graph);
+            camera_hinge
+        }]))
+        .build(graph);
 
         Self {
             camera_pivot,

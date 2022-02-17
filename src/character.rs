@@ -4,6 +4,7 @@ use crate::{
     weapon::{definition::WeaponKind, Weapon, WeaponContainer},
     MessageSender,
 };
+use fyrox::scene::collider::Collider;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     scene::{graph::Graph, node::Node, Scene},
@@ -80,7 +81,10 @@ pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
 
 impl Character {
     pub fn has_ground_contact(&self, graph: &Graph) -> bool {
-        if let Some(Node::Collider(collider)) = graph.try_get(self.capsule_collider) {
+        if let Some(collider) = graph
+            .try_get(self.capsule_collider)
+            .and_then(|n| n.cast::<Collider>())
+        {
             for contact in collider.contacts(&graph.physics) {
                 for manifold in contact.manifolds.iter() {
                     if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {

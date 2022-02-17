@@ -25,6 +25,8 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
+use fyrox::scene::light::BaseLight;
+use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
     animation::{
         machine::{blend_nodes::IndexedBlendInput, Machine, PoseNode, State},
@@ -282,9 +284,9 @@ impl Player {
                         capsule_collider
                     },
                     {
-                        pivot = BaseBuilder::new()
-                            .with_children(&[model_handle])
-                            .build(&mut scene.graph);
+                        pivot =
+                            PivotBuilder::new(BaseBuilder::new().with_children(&[model_handle]))
+                                .build(&mut scene.graph);
                         pivot
                     },
                 ]),
@@ -308,28 +310,32 @@ impl Player {
         let hand_scale = scene.graph.global_scale(hand);
 
         let weapon_pivot;
-        let weapon_origin = BaseBuilder::new()
-            .with_local_transform(
-                TransformBuilder::new()
-                    .with_local_scale(Vector3::new(
-                        1.0 / hand_scale.x,
-                        1.0 / hand_scale.y,
-                        1.0 / hand_scale.z,
-                    ))
-                    .with_local_rotation(
-                        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), -90.0f32.to_radians())
-                            * UnitQuaternion::from_axis_angle(
+        let weapon_origin = PivotBuilder::new(
+            BaseBuilder::new()
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_scale(Vector3::new(
+                            1.0 / hand_scale.x,
+                            1.0 / hand_scale.y,
+                            1.0 / hand_scale.z,
+                        ))
+                        .with_local_rotation(
+                            UnitQuaternion::from_axis_angle(
+                                &Vector3::x_axis(),
+                                -90.0f32.to_radians(),
+                            ) * UnitQuaternion::from_axis_angle(
                                 &Vector3::z_axis(),
                                 -90.0f32.to_radians(),
                             ),
-                    )
-                    .build(),
-            )
-            .with_children(&[{
-                weapon_pivot = BaseBuilder::new().build(&mut scene.graph);
-                weapon_pivot
-            }])
-            .build(&mut scene.graph);
+                        )
+                        .build(),
+                )
+                .with_children(&[{
+                    weapon_pivot = PivotBuilder::new(BaseBuilder::new()).build(&mut scene.graph);
+                    weapon_pivot
+                }]),
+        )
+        .build(&mut scene.graph);
 
         scene.graph.link_nodes(weapon_origin, hand);
 
@@ -371,13 +377,12 @@ impl Player {
 
         let health_cylinder = scene.graph.find_by_name(health_rig, "HealthCylinder");
 
-        let weapon_display = MeshBuilder::new(BaseBuilder::new())
+        let weapon_display = MeshBuilder::new(BaseBuilder::new().with_cast_shadows(false))
             .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
                 SurfaceData::make_quad(&Matrix4::new_scaling(0.07)),
             )))
             .with_material(create_display_material(display_texture))
             .build()])
-            .with_cast_shadows(false)
             .with_render_path(RenderPath::Forward)
             .build(&mut scene.graph);
         scene.graph.link_nodes(weapon_display, weapon_pivot);
@@ -390,6 +395,7 @@ impl Player {
         let s = 0.8;
         let inventory_display = MeshBuilder::new(
             BaseBuilder::new()
+                .with_cast_shadows(false)
                 .with_depth_offset(0.2)
                 .with_visibility(false)
                 .with_local_transform(
@@ -398,7 +404,6 @@ impl Player {
                         .build(),
                 ),
         )
-        .with_cast_shadows(false)
         .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
             SurfaceData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
                 s,
@@ -414,6 +419,7 @@ impl Player {
 
         let journal_display = MeshBuilder::new(
             BaseBuilder::new()
+                .with_cast_shadows(false)
                 .with_depth_offset(0.2)
                 .with_visibility(false)
                 .with_local_transform(
@@ -422,7 +428,6 @@ impl Player {
                         .build(),
                 ),
         )
-        .with_cast_shadows(false)
         .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
             SurfaceData::make_quad(&Matrix4::new_nonuniform_scaling(&Vector3::new(
                 s,
@@ -854,7 +859,10 @@ impl Player {
             PropertyValue::Vector3(color.as_frgb().scale(10.0)),
         ));
         drop(material);
-        scene.graph[self.rig_light].as_light_mut().set_color(color);
+        scene.graph[self.rig_light]
+            .query_component_mut::<BaseLight>()
+            .unwrap()
+            .set_color(color);
     }
 
     fn update_animation_machines(

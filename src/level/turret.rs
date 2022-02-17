@@ -5,8 +5,9 @@ use crate::{
     weapon::projectile::{Damage, Shooter},
     MessageSender,
 };
-use fyrox::scene::collider::{ColliderShape, InteractionGroups};
+use fyrox::scene::collider::{Collider, ColliderShape, InteractionGroups};
 use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::scene::light::BaseLight;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -248,7 +249,7 @@ impl Turret {
                         }
                     }
 
-                    if let Node::Collider(collider) = &scene.graph[hit.collider] {
+                    if let Some(collider) = &scene.graph[hit.collider].cast::<Collider>() {
                         if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
                             self.target = Default::default();
                             // Target is behind something.
@@ -340,7 +341,8 @@ impl Turret {
 
             if self.projector.is_some() {
                 scene.graph[self.projector]
-                    .as_light_mut()
+                    .query_component_mut::<BaseLight>()
+                    .unwrap()
                     .set_color(Color::opaque(255, 0, 0));
             }
         } else {
@@ -350,7 +352,8 @@ impl Turret {
 
             if self.projector.is_some() {
                 scene.graph[self.projector]
-                    .as_light_mut()
+                    .query_component_mut::<BaseLight>()
+                    .unwrap()
                     .set_color(Color::opaque(255, 127, 40));
             }
         }

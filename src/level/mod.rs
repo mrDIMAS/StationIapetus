@@ -36,6 +36,7 @@ use crate::{
 };
 use fyrox::scene::collider::ColliderShape;
 use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -307,7 +308,7 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
             player_spawn_position = node.global_position();
             player_spawn_orientation = scene.graph.global_rotation(handle);
         } else if name.starts_with("DeathZone") {
-            if let Node::Mesh(_) = node {
+            if node.is_mesh() {
                 death_zones.push(handle);
             }
         }
@@ -1255,18 +1256,19 @@ impl BaseLevel {
             let dir = hit.position - begin;
 
             let hit_collider_body = scene.graph[hit.collider].parent();
-            let parent =
-                if let Node::RigidBody(collider_parent) = &mut scene.graph[hit_collider_body] {
-                    collider_parent.apply_force_at_point(
-                        dir.try_normalize(std::f32::EPSILON)
-                            .unwrap_or_default()
-                            .scale(30.0),
-                        hit.position,
-                    );
-                    hit_collider_body
-                } else {
-                    Default::default()
-                };
+            let parent = if let Some(collider_parent) =
+                scene.graph[hit_collider_body].cast_mut::<RigidBody>()
+            {
+                collider_parent.apply_force_at_point(
+                    dir.try_normalize(std::f32::EPSILON)
+                        .unwrap_or_default()
+                        .scale(30.0),
+                    hit.position,
+                );
+                hit_collider_body
+            } else {
+                Default::default()
+            };
 
             if hit.actor.is_some() {
                 if let Actor::Bot(actor) = self.actors.get_mut(hit.actor) {
@@ -1338,16 +1340,22 @@ impl BaseLevel {
                 let trail_radius = 0.0014;
 
                 let trail = MeshBuilder::new(
-                    BaseBuilder::new().with_local_transform(
-                        TransformBuilder::new()
-                            .with_local_position(begin)
-                            .with_local_scale(Vector3::new(trail_radius, trail_radius, trail_len))
-                            .with_local_rotation(UnitQuaternion::face_towards(
-                                &(end - begin),
-                                &Vector3::y(),
-                            ))
-                            .build(),
-                    ),
+                    BaseBuilder::new()
+                        .with_cast_shadows(false)
+                        .with_local_transform(
+                            TransformBuilder::new()
+                                .with_local_position(begin)
+                                .with_local_scale(Vector3::new(
+                                    trail_radius,
+                                    trail_radius,
+                                    trail_len,
+                                ))
+                                .with_local_rotation(UnitQuaternion::face_towards(
+                                    &(end - begin),
+                                    &Vector3::y(),
+                                ))
+                                .build(),
+                        ),
                 )
                 .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
                     .with_material(Arc::new(Mutex::new({
@@ -1359,7 +1367,6 @@ impl BaseLevel {
                         material
                     })))
                     .build()])
-                .with_cast_shadows(false)
                 .with_render_path(RenderPath::Forward)
                 .build(&mut scene.graph);
 

@@ -16,7 +16,7 @@ use fyrox::{
         algebra::{Matrix3, Point3, Vector3},
         color::Color,
         math::{ray::Ray, Matrix4Ext},
-        pool::{Handle, Pool, PoolIteratorMut},
+        pool::{Handle, Pool},
         sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -480,7 +480,7 @@ impl WeaponContainer {
         self.pool.free(weapon);
     }
 
-    pub fn iter_mut(&mut self) -> PoolIteratorMut<Weapon> {
+    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Weapon> {
         self.pool.iter_mut()
     }
 

@@ -2,6 +2,9 @@ use crate::{
     actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
     DoorUiContainer, MessageSender,
 };
+use fyrox::scene::light::BaseLight;
+use fyrox::scene::mesh::Mesh;
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -79,7 +82,7 @@ impl Door {
             node,
             lights: graph
                 .traverse_handle_iter(node)
-                .filter(|&handle| graph[handle].is_light())
+                .filter(|&handle| graph[handle].query_component_ref::<BaseLight>().is_some())
                 .collect(),
             state,
             offset: 0.0,
@@ -95,7 +98,10 @@ impl Door {
 
     fn set_lights_color(&self, graph: &mut Graph, color: Color) {
         for &light in self.lights.iter() {
-            graph[light].as_light_mut().set_color(color);
+            graph[light]
+                .query_component_mut::<BaseLight>()
+                .unwrap()
+                .set_color(color);
         }
     }
 
@@ -130,7 +136,7 @@ impl Door {
             .collect::<Vec<_>>();
 
         for node_handle in screens {
-            if let Node::Mesh(ref mut mesh) = graph[node_handle] {
+            if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
                 Log::verify(material.set_property(
@@ -327,7 +333,7 @@ impl DoorContainer {
             };
 
             let body_handle = scene.graph[door.node].parent();
-            if let Node::RigidBody(body) = &mut scene.graph[body_handle] {
+            if let Some(body) = scene.graph[body_handle].cast_mut::<RigidBody>() {
                 body.local_transform_mut().set_position(
                     door.initial_position
                         + move_direction
