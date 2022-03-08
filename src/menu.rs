@@ -46,11 +46,12 @@ pub struct MenuScene {
 
 impl MenuScene {
     pub async fn new(engine: &mut Engine, sound_config: &SoundConfig) -> Self {
-        let mut scene = SceneLoader::from_file("data/levels/menu.rgs")
-            .await
-            .unwrap()
-            .finish(engine.resource_manager.clone())
-            .await;
+        let mut scene =
+            SceneLoader::from_file("data/levels/menu.rgs", engine.serialization_context.clone())
+                .await
+                .unwrap()
+                .finish(engine.resource_manager.clone())
+                .await;
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 
