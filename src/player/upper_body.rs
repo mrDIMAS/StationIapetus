@@ -5,8 +5,8 @@ use crate::{
 use fyrox::{
     animation::{
         machine::{
-            blend_nodes::BlendPose, blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode,
-            PoseWeight, State, Transition,
+            BlendPose, IndexedBlendInput, Machine, Parameter, PoseNode, PoseWeight, State,
+            Transition,
         },
         Animation, AnimationSignal,
     },

@@ -6,9 +6,7 @@ use crate::{
 };
 use fyrox::{
     animation::{
-        machine::{
-            blend_nodes::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,
-        },
+        machine::{IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition},
         Animation, AnimationSignal, PoseEvaluationFlags,
     },
     core::{
