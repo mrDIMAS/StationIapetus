@@ -6,7 +6,9 @@ use crate::{
 };
 use fyrox::{
     animation::{
-        machine::{BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition},
+        machine::{
+            node::blend::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+        },
         Animation, AnimationSignal,
     },
     core::{
@@ -123,7 +125,7 @@ impl LowerBodyMachine {
         model: Handle<Node>,
         resource_manager: ResourceManager,
     ) -> Self {
-        let mut machine = Machine::new();
+        let mut machine = Machine::new(model);
 
         // Load animations in parallel.
         let (

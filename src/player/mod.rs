@@ -29,7 +29,7 @@ use fyrox::scene::light::BaseLight;
 use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
     animation::{
-        machine::{IndexedBlendInput, Machine, PoseNode, State},
+        machine::{node::blend::IndexedBlendInput, Machine, PoseNode, State},
         Animation,
     },
     core::{

@@ -62,7 +62,7 @@ impl LowerBodyMachine {
             resource_manager.request_model(&definition.dying_animation,),
         );
 
-        let mut machine = Machine::new();
+        let mut machine = Machine::new(model);
 
         let (_, idle_state) = create_play_animation_state(
             idle_animation_resource.unwrap(),

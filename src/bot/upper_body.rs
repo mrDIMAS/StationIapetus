@@ -6,7 +6,9 @@ use crate::{
 };
 use fyrox::{
     animation::{
-        machine::{IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition},
+        machine::{
+            node::blend::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,
+        },
         Animation, AnimationSignal, PoseEvaluationFlags,
     },
     core::{
@@ -152,7 +154,7 @@ impl UpperBodyMachine {
                 None
             };
 
-        let mut machine = Machine::new();
+        let mut machine = Machine::new(model);
 
         let (aim_animation, aim_state) = if let Some(aim_animation_resource) =
             aim_animation_resource.clone()

@@ -5,8 +5,8 @@ use crate::{
 use fyrox::{
     animation::{
         machine::{
-            BlendPose, IndexedBlendInput, Machine, Parameter, PoseNode, PoseWeight, State,
-            Transition,
+            node::blend::{BlendPose, IndexedBlendInput},
+            Machine, Parameter, PoseNode, PoseWeight, State, Transition,
         },
         Animation, AnimationSignal,
     },
@@ -263,7 +263,7 @@ impl UpperBodyMachine {
         model: Handle<Node>,
         resource_manager: ResourceManager,
     ) -> Self {
-        let mut machine = Machine::new();
+        let mut machine = Machine::new(model);
 
         let (
             walk_animation_resource,
