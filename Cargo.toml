@@ -8,7 +8,7 @@ edition = "2018"
 opt-level = 3
 
 [dependencies]
-fyrox = { path = "../fyrox" }
+fyrox = { path = "../rg3d" }
 ron = "0.7.0"
 serde = "^1.0.0"
 
