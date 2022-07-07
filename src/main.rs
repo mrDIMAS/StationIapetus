@@ -315,7 +315,7 @@ impl Game {
                         dt -= fixed_timestep as f64;
                         game.time.elapsed += fixed_timestep as f64;
 
-                        game.update(game.time);
+                        game.update(game.time, control_flow);
 
                         while let Some(ui_event) = game.engine.user_interface.poll_message() {
                             game.handle_ui_message(&ui_event);
@@ -647,7 +647,7 @@ impl Game {
             || self.final_screen.is_visible(&self.engine.user_interface)
     }
 
-    pub fn update(&mut self, time: GameTime) {
+    pub fn update(&mut self, time: GameTime, control_flow: &mut ControlFlow) {
         let last_time = std::time::Instant::now();
 
         let window = self.engine.get_window();
@@ -734,7 +734,7 @@ impl Game {
         self.door_ui_container.update(time.delta);
         self.call_button_ui_container.update(time.delta);
 
-        self.engine.update(time.delta);
+        self.engine.update(time.delta, control_flow);
 
         self.handle_messages(time);
 
