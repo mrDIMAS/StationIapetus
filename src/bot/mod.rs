@@ -14,6 +14,7 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, Message, MessageSender,
 };
+use fyrox::scene::collider::BitMask;
 use fyrox::scene::graph::physics::CoefficientCombineRule;
 use fyrox::scene::pivot::PivotBuilder;
 use fyrox::scene::rigidbody::RigidBody;
@@ -271,8 +272,8 @@ impl Bot {
                             .with_friction(0.1)
                             .with_friction_combine_rule(CoefficientCombineRule::Min)
                             .with_collision_groups(InteractionGroups::new(
-                                CollisionGroups::ActorCapsule as u32,
-                                0xFFFF,
+                                BitMask(CollisionGroups::ActorCapsule as u32),
+                                BitMask(0xFFFF),
                             ))
                             .build(&mut scene.graph);
                         capsule_collider

@@ -25,6 +25,7 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
+use fyrox::scene::collider::BitMask;
 use fyrox::scene::light::BaseLight;
 use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
@@ -274,8 +275,8 @@ impl Player {
                     {
                         capsule_collider = ColliderBuilder::new(BaseBuilder::new())
                             .with_collision_groups(InteractionGroups::new(
-                                CollisionGroups::ActorCapsule as u32,
-                                0xFFFF,
+                                BitMask(CollisionGroups::ActorCapsule as u32),
+                                BitMask(0xFFFF),
                             ))
                             .with_shape(ColliderShape::capsule_y(body_height, body_radius))
                             .with_friction_combine_rule(CoefficientCombineRule::Min)
@@ -976,8 +977,9 @@ impl Player {
             if self.upper_body_machine.machine.active_state() == self.upper_body_machine.aim_state {
                 let weapon = &weapons[current_weapon_handle];
                 weapon.laser_sight().set_visible(true, &mut scene.graph);
-                scene.graph[self.weapon_display]
-                    .set_visibility(true)
+                let weapon_display = &mut scene.graph[self.weapon_display];
+                weapon_display.set_visibility(true);
+                weapon_display
                     .local_transform_mut()
                     .set_position(weapon.definition.ammo_indicator_offset());
 

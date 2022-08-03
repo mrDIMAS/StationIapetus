@@ -1,7 +1,7 @@
 use crate::CollisionGroups;
 use fyrox::core::parking_lot::Mutex;
 use fyrox::core::sstorage::ImmutableString;
-use fyrox::scene::collider::InteractionGroups;
+use fyrox::scene::collider::{BitMask, InteractionGroups};
 use fyrox::scene::graph::physics::RayCastOptions;
 use fyrox::scene::light::BaseLight;
 use fyrox::utils::log::Log;
@@ -148,7 +148,10 @@ impl LaserSight {
                 ray_origin: Point3::from(ray.origin),
                 ray_direction: ray.dir,
                 max_len: max_toi,
-                groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+                groups: InteractionGroups::new(
+                    BitMask(0xFFFF),
+                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
+                ),
                 sort_results: true,
             },
             &mut intersections,

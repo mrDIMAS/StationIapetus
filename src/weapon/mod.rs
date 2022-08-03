@@ -11,6 +11,7 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
+use fyrox::scene::collider::BitMask;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
@@ -119,7 +120,10 @@ pub fn ray_hit(
             ray_origin: Point3::from(ray.origin),
             ray_direction: ray.dir,
             max_len: ray.dir.norm(),
-            groups: InteractionGroups::new(0xFFFF, !(CollisionGroups::ActorCapsule as u32)),
+            groups: InteractionGroups::new(
+                BitMask(0xFFFF),
+                BitMask(!(CollisionGroups::ActorCapsule as u32)),
+            ),
             sort_results: true,
         },
         &mut query_buffer,

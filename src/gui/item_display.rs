@@ -28,7 +28,7 @@ impl ItemDisplay {
     pub const HEIGHT: f32 = 160.0;
 
     pub fn new(font: SharedFont) -> Self {
-        let mut ui = UserInterface::new();
+        let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 

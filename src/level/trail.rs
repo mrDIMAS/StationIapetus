@@ -52,7 +52,7 @@ impl ShotTrailContainer {
                     ));
                 }
             } else if let Some(sprite) = trait_node.cast_mut::<Sprite>() {
-                sprite.set_color(sprite.color().with_new_alpha(new_alpha))
+                sprite.set_color(sprite.color().with_new_alpha(new_alpha));
             }
 
             if trail.lifetime >= trail.max_lifetime {
