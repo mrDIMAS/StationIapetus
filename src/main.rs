@@ -45,6 +45,7 @@ use fyrox::engine::{EngineInitParams, SerializationContext};
 use fyrox::scene::base::BaseBuilder;
 use fyrox::scene::sound::{SoundBuilder, Status};
 use fyrox::scene::SceneLoader;
+use fyrox::window::CursorGrabMode;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -653,7 +654,11 @@ impl Game {
         let window = self.engine.get_window();
 
         window.set_cursor_visible(self.is_any_menu_visible());
-        let _ = window.set_cursor_grab(!self.is_any_menu_visible());
+        let _ = window.set_cursor_grab(if !self.is_any_menu_visible() {
+            CursorGrabMode::Confined
+        } else {
+            CursorGrabMode::None
+        });
 
         if let Some(ctx) = self.load_context.clone() {
             if let Some(mut ctx) = ctx.try_lock() {

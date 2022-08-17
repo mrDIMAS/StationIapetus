@@ -85,7 +85,7 @@ fn make_tab_header(text: &str, ctx: &mut BuildContext) -> Handle<UiNode> {
 
 fn make_video_mode_item(video_mode: &VideoMode, ctx: &mut BuildContext) -> Handle<UiNode> {
     let size = video_mode.size();
-    let rate = video_mode.refresh_rate();
+    let rate = video_mode.refresh_rate_millihertz() / 1000;
     DecoratorBuilder::new(
         BorderBuilder::new(
             WidgetBuilder::new().with_child(
