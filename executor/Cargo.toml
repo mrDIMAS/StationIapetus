@@ -5,4 +5,4 @@ edition = "2021"
 
 [dependencies]
 fyrox = { path = "../../Fyrox" }
-StationIapetus = { path = "../game" }
+station_iapetus = { path = "../game" }

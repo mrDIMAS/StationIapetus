@@ -33,7 +33,7 @@ use crate::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
-    level::{arrival::ArrivalLevel, lab::LabLevel, testbed::TestbedLevel, Level, LevelKind},
+    level::Level,
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
@@ -241,7 +241,9 @@ impl Game {
 
         let (tx, rx) = mpsc::channel();
 
-        // engine.set_sound_gain(sound_config.master_volume);
+        context
+            .sound_engine
+            .set_sound_gain(sound_config.master_volume);
 
         let message_sender = MessageSender { sender: tx };
 
@@ -454,9 +456,9 @@ impl Game {
         }
     }
 
-    pub fn load_level(
+    pub fn load_level<S: AsRef<str>>(
         &mut self,
-        level_kind: LevelKind,
+        map: S,
         persistent_data: Option<PlayerPersistentData>,
         context: &mut PluginContext,
     ) {
@@ -483,49 +485,21 @@ impl Game {
         let journal_texture = self.journal_display.render_target.clone();
         let sound_config = self.sound_config.clone();
 
+        let map_path = map.as_ref().to_owned();
         std::thread::spawn(move || {
             let level = {
-                match level_kind {
-                    LevelKind::Arrival => {
-                        let (arrival, scene) = block_on(ArrivalLevel::new(
-                            resource_manager,
-                            sender,
-                            display_texture,
-                            inventory_texture,
-                            item_texture,
-                            journal_texture,
-                            sound_config,
-                            persistent_data,
-                        ));
-                        (Level::Arrival(arrival), scene)
-                    }
-                    LevelKind::Lab => {
-                        let (lab, scene) = block_on(LabLevel::new(
-                            resource_manager,
-                            sender,
-                            display_texture,
-                            inventory_texture,
-                            item_texture,
-                            journal_texture,
-                            sound_config,
-                            persistent_data,
-                        ));
-                        (Level::Lab(lab), scene)
-                    }
-                    LevelKind::Testbed => {
-                        let (lab, scene) = block_on(TestbedLevel::new(
-                            resource_manager,
-                            sender,
-                            display_texture,
-                            inventory_texture,
-                            item_texture,
-                            journal_texture,
-                            sound_config,
-                            persistent_data,
-                        ));
-                        (Level::Testbed(lab), scene)
-                    }
-                }
+                let (arrival, scene) = block_on(Level::new(
+                    map_path,
+                    resource_manager,
+                    sender,
+                    display_texture,
+                    inventory_texture,
+                    item_texture,
+                    journal_texture,
+                    sound_config,
+                    persistent_data,
+                ));
+                (arrival, scene)
             };
 
             ctx.lock().level = Some(level);
@@ -650,10 +624,10 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(LevelKind::Arrival, None, context);
+                    self.load_level(Level::ARRIVAL_PATH, None, context);
                 }
                 Message::LoadTestbed => {
-                    self.load_level(LevelKind::Testbed, None, context);
+                    self.load_level(Level::TESTBED_PATH, None, context);
                 }
                 Message::SaveGame => match self.save_game(context) {
                     Ok(_) => {
@@ -674,11 +648,9 @@ impl Game {
                 }
                 Message::LoadNextLevel => {
                     if let Some(level) = self.level.as_ref() {
-                        let kind = match level {
-                            Level::Unknown => None,
-                            Level::Arrival(_) => Some(LevelKind::Lab),
-                            Level::Lab(_) => None,
-                            Level::Testbed(_) => None,
+                        let kind = match level.map_path.as_ref() {
+                            Level::ARRIVAL_PATH => Some(Level::LAB_PATH),
+                            _ => None,
                         };
 
                         if let Some(kind) = kind {

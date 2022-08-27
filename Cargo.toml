@@ -1,2 +1,5 @@
 [workspace]
 members = ["editor", "executor", "game"]
+
+[profile.dev.package."*"]
+opt-level = 3

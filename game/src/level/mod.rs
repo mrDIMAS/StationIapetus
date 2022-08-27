@@ -12,10 +12,7 @@ use crate::{
     },
     item::{Item, ItemContainer, ItemKind},
     level::{
-        arrival::ArrivalLevel,
         decal::{Decal, DecalContainer},
-        lab::LabLevel,
-        testbed::TestbedLevel,
         trail::{ShotTrail, ShotTrailContainer},
         trigger::{Trigger, TriggerContainer, TriggerKind},
         turret::{Hostility, ShootMode, Turret, TurretContainer},
@@ -73,65 +70,18 @@ use fyrox::{
     },
 };
 use std::{
-    ops::{Deref, DerefMut},
     path::{Path, PathBuf},
     sync::Arc,
 };
 
-pub mod arrival;
 pub mod decal;
-pub mod lab;
-pub mod testbed;
 pub mod trail;
 pub mod trigger;
 pub mod turret;
 
-pub enum LevelKind {
-    Arrival,
-    Lab,
-    Testbed,
-}
-
-#[derive(Visit)]
-pub enum Level {
-    Unknown,
-    Arrival(ArrivalLevel),
-    Lab(LabLevel),
-    Testbed(TestbedLevel),
-}
-
-impl Default for Level {
-    fn default() -> Self {
-        Self::Unknown
-    }
-}
-
-impl Deref for Level {
-    type Target = BaseLevel;
-
-    fn deref(&self) -> &Self::Target {
-        match self {
-            Level::Unknown => unreachable!(),
-            Level::Arrival(v) => v,
-            Level::Lab(v) => v,
-            Level::Testbed(v) => v,
-        }
-    }
-}
-
-impl DerefMut for Level {
-    fn deref_mut(&mut self) -> &mut Self::Target {
-        match self {
-            Level::Unknown => unreachable!(),
-            Level::Arrival(v) => v,
-            Level::Lab(v) => v,
-            Level::Testbed(v) => v,
-        }
-    }
-}
-
 #[derive(Default, Visit)]
-pub struct BaseLevel {
+pub struct Level {
+    pub map_path: String,
     map_root: Handle<Node>,
     pub scene: Handle<Scene>,
     player: Handle<Actor>,
@@ -617,9 +567,13 @@ fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32>
     }
 }
 
-impl BaseLevel {
+impl Level {
+    pub const ARRIVAL_PATH: &'static str = "data/levels/loading_bay.rgs";
+    pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
+    pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
+
     pub async fn new(
-        map: &str,
+        map: String,
         resource_manager: ResourceManager,
         sender: MessageSender,
         display_texture: Texture,
@@ -641,7 +595,7 @@ impl BaseLevel {
         }
 
         let map_model = resource_manager
-            .request_model(Path::new(map))
+            .request_model(Path::new(&map))
             .await
             .unwrap();
 
@@ -720,6 +674,7 @@ impl BaseLevel {
             doors,
             elevators,
             call_buttons,
+            map_path: map,
         };
 
         (level, scene)
