@@ -28,8 +28,10 @@ use fyrox::{
     },
     resource::texture::Texture,
 };
-use std::any::{Any, TypeId};
-use std::ops::{Deref, DerefMut};
+use std::{
+    any::{Any, TypeId},
+    ops::{Deref, DerefMut},
+};
 
 pub struct InventoryInterface {
     pub ui: UserInterface,

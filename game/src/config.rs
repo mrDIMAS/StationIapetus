@@ -1,5 +1,5 @@
-use crate::{control_scheme::ControlScheme, Engine};
-use fyrox::renderer::QualitySettings;
+use crate::control_scheme::ControlScheme;
+use fyrox::{plugin::PluginContext, renderer::QualitySettings};
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
@@ -56,13 +56,13 @@ impl Config {
     }
 
     pub fn save(
-        engine: &Engine,
+        context: &PluginContext,
         control_scheme: ControlScheme,
         sound_config: SoundConfig,
         show_debug_info: bool,
     ) -> Result<(), ConfigError> {
         let config = Self {
-            graphics_settings: engine.renderer.get_quality_settings(),
+            graphics_settings: context.renderer.get_quality_settings(),
             controls: control_scheme,
             sound: sound_config,
             show_debug_info,

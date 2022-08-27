@@ -1,10 +1,7 @@
 use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
-    options_menu::OptionsMenu, utils::create_camera, Engine, MessageSender,
+    options_menu::OptionsMenu, utils::create_camera, MessageSender,
 };
-use fyrox::scene::base::BaseBuilder;
-use fyrox::scene::sound::{SoundBuilder, Status};
-use fyrox::scene::SceneLoader;
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -21,7 +18,13 @@ use fyrox::{
         window::{WindowBuilder, WindowMessage, WindowTitle},
         HorizontalAlignment, Thickness, UiNode, UserInterface,
     },
-    scene::{node::Node, Scene},
+    plugin::PluginContext,
+    scene::{
+        base::BaseBuilder,
+        node::Node,
+        sound::{SoundBuilder, Status},
+        Scene, SceneLoader,
+    },
 };
 
 pub struct Menu {
@@ -45,17 +48,19 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub async fn new(engine: &mut Engine, sound_config: &SoundConfig) -> Self {
-        let mut scene =
-            SceneLoader::from_file("data/levels/menu.rgs", engine.serialization_context.clone())
-                .await
-                .unwrap()
-                .finish(engine.resource_manager.clone())
-                .await;
+    pub async fn new(context: &mut PluginContext<'_>, sound_config: &SoundConfig) -> Self {
+        let mut scene = SceneLoader::from_file(
+            "data/levels/menu.rgs",
+            context.serialization_context.clone(),
+        )
+        .await
+        .unwrap()
+        .finish(context.resource_manager.clone())
+        .await;
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 
-        let buffer = engine
+        let buffer = context
             .resource_manager
             .request_sound_buffer("data/music/Pura Sombar - Tongues falling from an opened sky.ogg")
             .await
@@ -74,7 +79,7 @@ impl MenuScene {
         .global_position();
 
         create_camera(
-            engine.resource_manager.clone(),
+            context.resource_manager.clone(),
             position,
             &mut scene.graph,
             200.0,
@@ -85,11 +90,11 @@ impl MenuScene {
             music,
             angle: 0.0,
             iapetus: scene.graph.find_from_root(&mut |n| n.tag() == "Iapetus"),
-            scene: engine.scenes.add(scene),
+            scene: context.scenes.add(scene),
         }
     }
 
-    pub fn update(&mut self, engine: &mut Engine, dt: f32) {
+    pub fn update(&mut self, engine: &mut PluginContext, dt: f32) {
         let scene = &mut engine.scenes[self.scene];
 
         self.angle += 0.18 * dt;
@@ -105,18 +110,18 @@ impl MenuScene {
 
 impl Menu {
     pub async fn new(
-        engine: &mut Engine,
+        context: &mut PluginContext<'_>,
         control_scheme: &ControlScheme,
         sender: MessageSender,
         font: SharedFont,
         show_debug_info: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let frame_size = engine.renderer.get_frame_size();
+        let frame_size = context.renderer.get_frame_size();
 
-        let scene = MenuScene::new(engine, sound_config).await;
+        let scene = MenuScene::new(context, sound_config).await;
 
-        let ctx = &mut engine.user_interface.build_ctx();
+        let ctx = &mut context.user_interface.build_ctx();
 
         let btn_load_test_bed;
         let btn_new_game;
@@ -243,7 +248,7 @@ impl Menu {
             btn_quit_game,
             btn_load_test_bed,
             options_menu: OptionsMenu::new(
-                engine,
+                context,
                 control_scheme,
                 sender,
                 show_debug_info,
@@ -252,10 +257,10 @@ impl Menu {
         }
     }
 
-    pub fn set_visible(&mut self, engine: &mut Engine, visible: bool) {
-        engine.scenes[self.scene.scene].enabled = visible;
+    pub fn set_visible(&mut self, context: &mut PluginContext, visible: bool) {
+        context.scenes[self.scene.scene].enabled = visible;
 
-        engine
+        context
             .user_interface
             .send_message(WidgetMessage::visibility(
                 self.root,
@@ -263,7 +268,7 @@ impl Menu {
                 visible,
             ));
         if !visible {
-            engine.user_interface.send_message(WindowMessage::close(
+            context.user_interface.send_message(WindowMessage::close(
                 self.options_menu.window,
                 MessageDirection::ToWidget,
             ));
@@ -276,7 +281,7 @@ impl Menu {
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
@@ -301,7 +306,7 @@ impl Menu {
             .process_input_event(engine, event, control_scheme);
     }
 
-    pub fn sync_to_model(&mut self, engine: &mut Engine, level_loaded: bool) {
+    pub fn sync_to_model(&mut self, engine: &mut PluginContext, level_loaded: bool) {
         engine.user_interface.send_message(WidgetMessage::enabled(
             self.btn_save_game,
             MessageDirection::ToWidget,
@@ -311,7 +316,7 @@ impl Menu {
 
     pub fn handle_ui_message(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         message: &UiMessage,
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,

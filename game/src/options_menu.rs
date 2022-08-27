@@ -3,7 +3,7 @@ use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, ScrollBarData},
     message::Message,
-    Engine, MessageSender,
+    MessageSender,
 };
 use fyrox::{
     core::{algebra::Vector2, pool::Handle},
@@ -25,6 +25,7 @@ use fyrox::{
         BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
     },
     monitor::VideoMode,
+    plugin::PluginContext,
     renderer::ShadowMapPrecision,
     utils::log::{Log, MessageKind},
     window::Fullscreen,
@@ -159,23 +160,22 @@ fn index_to_shadow_map_size(index: usize) -> usize {
 
 impl OptionsMenu {
     pub fn new(
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         control_scheme: &ControlScheme,
         sender: MessageSender,
         show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let video_modes: Vec<VideoMode> =
-            if let Some(monitor) = engine.get_window().current_monitor() {
-                monitor
-                    .video_modes()
-                    .filter(|vm| {
-                        vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
-                    })
-                    .collect()
-            } else {
-                vec![]
-            };
+        let video_modes: Vec<VideoMode> = if let Some(monitor) = engine.window.current_monitor() {
+            monitor
+                .video_modes()
+                .filter(|vm| {
+                    vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
+                })
+                .collect()
+        } else {
+            vec![]
+        };
 
         let ctx = &mut engine.user_interface.build_ctx();
 
@@ -567,7 +567,7 @@ impl OptionsMenu {
 
     pub fn sync_to_model(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         control_scheme: &ControlScheme,
         show_debug_info: bool,
         sound_config: &SoundConfig,
@@ -613,7 +613,7 @@ impl OptionsMenu {
         {
             if let Some(button) = ui.node(*btn).cast::<Button>() {
                 ui.send_message(TextMessage::text(
-                    button.content(),
+                    button.content,
                     MessageDirection::ToWidget,
                     def.button.name().to_owned(),
                 ));
@@ -623,7 +623,7 @@ impl OptionsMenu {
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
@@ -669,7 +669,7 @@ impl OptionsMenu {
                         .cast::<Button>()
                     {
                         engine.user_interface.send_message(TextMessage::text(
-                            button.content(),
+                            button.content,
                             MessageDirection::ToWidget,
                             control_button.name().to_owned(),
                         ));
@@ -686,13 +686,13 @@ impl OptionsMenu {
     #[allow(clippy::cognitive_complexity)]
     pub fn handle_ui_event(
         &mut self,
-        engine: &mut Engine,
+        context: &mut PluginContext,
         message: &UiMessage,
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
     ) {
-        let old_settings = engine.renderer.get_quality_settings();
+        let old_settings = context.renderer.get_quality_settings();
         let mut settings = old_settings;
 
         let mut changed = false;
@@ -720,12 +720,12 @@ impl OptionsMenu {
             if message.destination() == self.video_mode {
                 // -1 here because we have Windowed item in the list.
                 if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
-                    engine
-                        .get_window()
+                    context
+                        .window
                         .set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
                     changed = true;
                 } else {
-                    engine.get_window().set_fullscreen(None);
+                    context.window.set_fullscreen(None);
                     changed = true;
                 }
             } else if message.destination() == self.spot_shadows_quality {
@@ -781,19 +781,19 @@ impl OptionsMenu {
         } else if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.reset_control_scheme {
                 control_scheme.reset();
-                self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
+                self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
                 changed = true;
             } else if message.destination() == self.reset_audio_settings {
-                engine.set_sound_gain(1.0);
-                self.sync_to_model(engine, control_scheme, *show_debug_info, sound_config);
+                context.sound_engine.set_sound_gain(1.0);
+                self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
                 changed = true;
             }
 
             for (i, button) in self.control_scheme_buttons.iter().enumerate() {
                 if message.destination() == *button {
-                    if let Some(button) = engine.user_interface.node(*button).cast::<Button>() {
-                        engine.user_interface.send_message(TextMessage::text(
-                            button.content(),
+                    if let Some(button) = context.user_interface.node(*button).cast::<Button>() {
+                        context.user_interface.send_message(TextMessage::text(
+                            button.content,
                             MessageDirection::ToWidget,
                             "[WAITING INPUT]".to_owned(),
                         ))
@@ -805,7 +805,7 @@ impl OptionsMenu {
         }
 
         if settings != old_settings {
-            if let Err(err) = engine.renderer.set_quality_settings(&settings) {
+            if let Err(err) = context.renderer.set_quality_settings(&settings) {
                 Log::writeln(
                     MessageKind::Error,
                     format!("Failed to set renderer quality settings! Reason: {:?}", err),

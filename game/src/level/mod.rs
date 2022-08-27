@@ -32,11 +32,8 @@ use crate::{
         sight::SightReaction,
         Weapon, WeaponContainer,
     },
-    CallButtonUiContainer, DoorUiContainer, Engine, GameTime, MessageSender,
+    CallButtonUiContainer, DoorUiContainer, GameTime, MessageSender,
 };
-use fyrox::scene::collider::ColliderShape;
-use fyrox::scene::graph::physics::RayCastOptions;
-use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -52,17 +49,21 @@ use fyrox::{
     event::Event,
     gui::ttf::SharedFont,
     material::{Material, PropertyValue},
+    plugin::PluginContext,
     rand,
     resource::texture::Texture,
     scene::{
         self, base,
         base::BaseBuilder,
+        collider::ColliderShape,
+        graph::physics::RayCastOptions,
         graph::Graph,
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
         },
         node::Node,
+        rigidbody::RigidBody,
         transform::TransformBuilder,
         Scene,
     },
@@ -724,13 +725,13 @@ impl BaseLevel {
         (level, scene)
     }
 
-    pub fn destroy(&mut self, engine: &mut Engine) {
-        engine.scenes.remove(self.scene);
+    pub fn destroy(&mut self, context: &mut PluginContext) {
+        context.scenes.remove(self.scene);
     }
 
     async fn give_new_weapon(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         actor: Handle<Actor>,
         kind: WeaponKind,
     ) {
@@ -778,7 +779,7 @@ impl BaseLevel {
         &self.weapons
     }
 
-    fn remove_weapon(&mut self, engine: &mut Engine, weapon: Handle<Weapon>) {
+    fn remove_weapon(&mut self, engine: &mut PluginContext, weapon: Handle<Weapon>) {
         for projectile in self.projectiles.iter_mut() {
             if let Shooter::Weapon(ref mut owner) = projectile.owner {
                 // Reset owner because handle to weapon will be invalid after weapon freed.
@@ -809,7 +810,7 @@ impl BaseLevel {
 
     async fn add_bot(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         kind: BotKind,
         position: Vector3<f32>,
         rotation: UnitQuaternion<f32>,
@@ -825,7 +826,7 @@ impl BaseLevel {
         .await
     }
 
-    async fn remove_actor(&mut self, engine: &mut Engine, actor: Handle<Actor>) {
+    async fn remove_actor(&mut self, engine: &mut PluginContext<'_>, actor: Handle<Actor>) {
         if self.actors.contains(actor) {
             let scene = &mut engine.scenes[self.scene];
             self.actors.get_mut(actor).clean_up(scene);
@@ -839,7 +840,7 @@ impl BaseLevel {
 
     async fn drop_items(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         actor: Handle<Actor>,
         item: ItemKind,
         count: u32,
@@ -893,7 +894,7 @@ impl BaseLevel {
 
     async fn pickup_item(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         actor: Handle<Actor>,
         item_handle: Handle<Item>,
     ) {
@@ -956,7 +957,7 @@ impl BaseLevel {
 
     async fn create_projectile(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         kind: ProjectileKind,
         position: Vector3<f32>,
         direction: Vector3<f32>,
@@ -979,7 +980,7 @@ impl BaseLevel {
 
     async fn shoot_weapon(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         weapon_handle: Handle<Weapon>,
         time: GameTime,
         direction: Option<Vector3<f32>>,
@@ -998,13 +999,18 @@ impl BaseLevel {
         }
     }
 
-    fn show_weapon(&mut self, engine: &mut Engine, weapon_handle: Handle<Weapon>, state: bool) {
+    fn show_weapon(
+        &mut self,
+        engine: &mut PluginContext,
+        weapon_handle: Handle<Weapon>,
+        state: bool,
+    ) {
         self.weapons[weapon_handle].set_visibility(state, &mut engine.scenes[self.scene].graph)
     }
 
     fn damage_actor(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         actor_handle: Handle<Actor>,
         who: Handle<Actor>,
         mut amount: f32,
@@ -1076,7 +1082,7 @@ impl BaseLevel {
 
     async fn spawn_item(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext<'_>,
         kind: ItemKind,
         position: Vector3<f32>,
         adjust_height: bool,
@@ -1123,7 +1129,7 @@ impl BaseLevel {
 
     pub fn update(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         time: GameTime,
         door_ui_container: &mut DoorUiContainer,
         call_button_ui_container: &mut CallButtonUiContainer,
@@ -1184,7 +1190,7 @@ impl BaseLevel {
 
     fn shoot_ray(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         shooter: Shooter,
         begin: Vector3<f32>,
         end: Vector3<f32>,
@@ -1389,7 +1395,7 @@ impl BaseLevel {
 
     fn apply_splash_damage(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         amount: f32,
         radius: f32,
         center: Vector3<f32>,
@@ -1414,7 +1420,12 @@ impl BaseLevel {
         }
     }
 
-    fn try_open_door(&mut self, engine: &mut Engine, door: Handle<Door>, actor: Handle<Actor>) {
+    fn try_open_door(
+        &mut self,
+        engine: &mut PluginContext,
+        door: Handle<Door>,
+        actor: Handle<Actor>,
+    ) {
         let graph = &engine.scenes[self.scene].graph;
         let inventory = self.actors.try_get(actor).map(|a| &a.inventory);
         self.doors[door].try_open(self.sender.clone().unwrap(), graph, inventory);
@@ -1428,7 +1439,12 @@ impl BaseLevel {
         self.call_buttons[call_button].floor = floor;
     }
 
-    pub async fn handle_message(&mut self, engine: &mut Engine, message: &Message, time: GameTime) {
+    pub async fn handle_message(
+        &mut self,
+        engine: &mut PluginContext<'_>,
+        message: &Message,
+        time: GameTime,
+    ) {
         self.sound_manager
             .handle_message(
                 &mut engine.scenes[self.scene].graph,
@@ -1575,7 +1591,7 @@ impl BaseLevel {
 
     pub fn resolve(
         &mut self,
-        engine: &mut Engine,
+        engine: &mut PluginContext,
         sender: MessageSender,
         display_texture: Texture,
         inventory_texture: Texture,
@@ -1612,8 +1628,8 @@ impl BaseLevel {
         self.sender = Some(sender.clone());
     }
 
-    pub fn debug_draw(&self, engine: &mut Engine) {
-        let scene = &mut engine.scenes[self.scene];
+    pub fn debug_draw(&self, context: &mut PluginContext) {
+        let scene = &mut context.scenes[self.scene];
 
         let drawing_context = &mut scene.drawing_context;
 
