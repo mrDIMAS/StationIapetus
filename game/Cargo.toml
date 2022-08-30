@@ -7,3 +7,5 @@ edition = "2021"
 fyrox = { path = "../../Fyrox" }
 ron = "0.7.0"
 serde = "^1.0.0"
+strum = "0.24.1"
+strum_macros = "0.24.3"

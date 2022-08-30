@@ -25,9 +25,6 @@ use crate::{
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use fyrox::scene::collider::BitMask;
-use fyrox::scene::light::BaseLight;
-use fyrox::scene::pivot::PivotBuilder;
 use fyrox::{
     animation::{
         machine::{node::blend::IndexedBlendInput, Machine, PoseNode, State},
@@ -49,14 +46,15 @@ use fyrox::{
     resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
-        collider::{ColliderBuilder, ColliderShape, InteractionGroups},
+        collider::{BitMask, ColliderBuilder, ColliderShape, InteractionGroups},
         graph::physics::CoefficientCombineRule,
-        light::{spot::SpotLightBuilder, BaseLightBuilder},
+        light::{spot::SpotLightBuilder, BaseLight, BaseLightBuilder},
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
         },
         node::Node,
+        pivot::PivotBuilder,
         rigidbody::RigidBodyBuilder,
         sprite::SpriteBuilder,
         transform::TransformBuilder,
@@ -599,7 +597,12 @@ impl Player {
         sender: &MessageSender,
     ) {
         if self.controller.action {
-            door_container.check_actor(self.position(&scene.graph), self_handle, sender);
+            door_container.check_actor(
+                self.position(&scene.graph),
+                self_handle,
+                &scene.graph,
+                sender,
+            );
         }
     }
 

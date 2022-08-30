@@ -1,8 +1,8 @@
 use crate::{
-    door::Door,
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
+use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -126,14 +126,14 @@ impl DoorUi {
     }
 }
 
-pub type DoorUiContainer = UiContainer<Door, DoorUi>;
+pub type DoorUiContainer = UiContainer<Node, DoorUi>;
 
 impl DoorUiContainer {
     pub fn create_ui(
         &mut self,
         font: SharedFont,
         resource_manager: ResourceManager,
-        door_handle: Handle<Door>,
+        door_handle: Handle<Node>,
     ) -> Texture {
         self.add(door_handle, DoorUi::new(font, resource_manager))
     }

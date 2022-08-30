@@ -6,7 +6,7 @@ use crate::{
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
     character::{find_hit_boxes, Character},
-    door::DoorContainer,
+    door::{door_ref, DoorContainer},
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
     level::UpdateContext,
@@ -14,10 +14,6 @@ use crate::{
     weapon::projectile::Damage,
     CollisionGroups, Message, MessageSender,
 };
-use fyrox::scene::collider::BitMask;
-use fyrox::scene::graph::physics::CoefficientCombineRule;
-use fyrox::scene::pivot::PivotBuilder;
-use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     animation::machine::{Machine, PoseNode},
     core::{
@@ -35,14 +31,16 @@ use fyrox::{
     scene::{
         self,
         base::BaseBuilder,
-        collider::{ColliderBuilder, ColliderShape, InteractionGroups},
+        collider::{BitMask, ColliderBuilder, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
         graph::{
+            physics::CoefficientCombineRule,
             physics::{Intersection, RayCastOptions},
             Graph,
         },
         node::Node,
-        rigidbody::{RigidBodyBuilder, RigidBodyType},
+        pivot::PivotBuilder,
+        rigidbody::{RigidBody, RigidBodyBuilder, RigidBodyType},
         transform::TransformBuilder,
         Scene,
     },
@@ -394,13 +392,15 @@ impl Bot {
             );
 
             for intersection in query_storage {
-                for (door_handle, door) in door_container.pair_iter() {
+                for &door_handle in &door_container.doors {
+                    let door = door_ref(door_handle, &scene.graph);
+
                     let close_enough = position.metric_distance(&door.initial_position()) < 1.25;
                     if !close_enough {
                         continue;
                     }
 
-                    for &child in scene.graph[door.node()].children() {
+                    for &child in scene.graph[door_handle].children() {
                         if let Some(rigid_body) = scene.graph[child].cast::<RigidBody>() {
                             for &collider in rigid_body.children() {
                                 if collider == intersection.collider {

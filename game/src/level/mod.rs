@@ -4,7 +4,7 @@ use crate::{
     character::HitBox,
     config::SoundConfig,
     control_scheme::ControlScheme,
-    door::{Door, DoorContainer, DoorDirection, DoorState},
+    door::{door_mut, DoorContainer},
     effects::{self, EffectKind},
     elevator::{
         call_button::{CallButton, CallButtonContainer, CallButtonKind},
@@ -29,12 +29,13 @@ use crate::{
         sight::SightReaction,
         Weapon, WeaponContainer,
     },
-    CallButtonUiContainer, DoorUiContainer, GameTime, MessageSender,
+    CallButtonUiContainer, GameTime, MessageSender,
 };
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
+        futures::executor::block_on,
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, vector_to_quat, PositionProvider},
         parking_lot::Mutex,
         pool::Handle,
@@ -44,7 +45,6 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     event::Event,
-    gui::ttf::SharedFont,
     material::{Material, PropertyValue},
     plugin::PluginContext,
     rand,
@@ -54,7 +54,6 @@ use fyrox::{
         base::BaseBuilder,
         collider::ColliderShape,
         graph::physics::RayCastOptions,
-        graph::Graph,
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
@@ -82,7 +81,6 @@ pub mod turret;
 #[derive(Default, Visit)]
 pub struct Level {
     pub map_path: String,
-    map_root: Handle<Node>,
     pub scene: Handle<Scene>,
     player: Handle<Actor>,
     projectiles: ProjectileContainer,
@@ -195,25 +193,6 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
     )))
 }
 
-fn total_bounding_box(node: Handle<Node>, graph: &Graph) -> AxisAlignedBoundingBox {
-    let node_ref = &graph[node];
-    let mut aabb = node_ref.world_bounding_box();
-    for child in node_ref.children() {
-        aabb.add_box(total_bounding_box(*child, graph))
-    }
-    aabb
-}
-
-fn side_door_offset(node: Handle<Node>, graph: &Graph) -> f32 {
-    let aabb = total_bounding_box(node, graph);
-    (aabb.max.x - aabb.min.x).max(aabb.max.z - aabb.min.z)
-}
-
-fn up_door_offset(node: Handle<Node>, graph: &Graph) -> f32 {
-    let aabb = total_bounding_box(node, graph);
-    aabb.max.y - aabb.min.y
-}
-
 pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
@@ -310,42 +289,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
             "PlayerSpawnPoint" => {
                 player_spawn_position = node.global_position();
                 player_spawn_orientation = scene.graph.global_rotation(handle);
-            }
-            "SideDoor" => {
-                result.doors.add(Door::new(
-                    handle,
-                    &scene.graph,
-                    DoorState::Closed,
-                    DoorDirection::Side,
-                    side_door_offset(handle, &scene.graph),
-                ));
-            }
-            "SideDoorBroken" => {
-                result.doors.add(Door::new(
-                    handle,
-                    &scene.graph,
-                    DoorState::Broken,
-                    DoorDirection::Side,
-                    0.0,
-                ));
-            }
-            "SideDoorLocked" => {
-                result.doors.add(Door::new(
-                    handle,
-                    &scene.graph,
-                    DoorState::Locked,
-                    DoorDirection::Side,
-                    side_door_offset(handle, &scene.graph),
-                ));
-            }
-            "UpDoor" => {
-                result.doors.add(Door::new(
-                    handle,
-                    &scene.graph,
-                    DoorState::Closed,
-                    DoorDirection::Up,
-                    up_door_offset(handle, &scene.graph),
-                ));
             }
             "FlashingLight" => result.lights.add(Light::new(handle)),
             "Medkit" => items.push((ItemKind::Medkit, position)),
@@ -572,6 +515,100 @@ impl Level {
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
     pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
 
+    pub fn from_existing_scene(
+        scene: &mut Scene,
+        scene_handle: Handle<Scene>,
+        resource_manager: ResourceManager,
+        sender: MessageSender,
+        display_texture: Texture,
+        inventory_texture: Texture,
+        item_texture: Texture,
+        journal_texture: Texture,
+        sound_config: SoundConfig, // Using copy, instead of reference because of async.
+        persistent_data: Option<PlayerPersistentData>,
+    ) -> Self {
+        if sound_config.use_hrtf {
+            use_hrtf(&mut scene.graph.sound_context)
+        } else {
+            scene
+                .graph
+                .sound_context
+                .set_renderer(fyrox::scene::sound::Renderer::Default);
+        }
+
+        scene.graph.update(Default::default(), 0.0);
+
+        let AnalysisResult {
+            items,
+            death_zones,
+            mut spawn_points,
+            player_spawn_position,
+            player_spawn_orientation,
+            doors,
+            lights,
+            turrets,
+            triggers,
+            elevators,
+            call_buttons,
+        } = block_on(analyze(scene, resource_manager.clone()));
+        let mut actors = ActorContainer::new();
+        let mut weapons = WeaponContainer::new();
+
+        for pt in spawn_points.iter_mut() {
+            block_on(spawn_bot(
+                pt,
+                &mut actors,
+                resource_manager.clone(),
+                &sender,
+                scene,
+                if pt.with_gun {
+                    Some(WeaponKind::Ak47)
+                } else {
+                    None
+                },
+                &mut weapons,
+            ));
+        }
+
+        Self {
+            player: block_on(spawn_player(
+                player_spawn_position,
+                player_spawn_orientation,
+                &mut actors,
+                &mut weapons,
+                &sender,
+                resource_manager.clone(),
+                scene,
+                display_texture,
+                inventory_texture,
+                item_texture,
+                journal_texture,
+                persistent_data,
+            )),
+            actors,
+            weapons,
+            items,
+            lights,
+            death_zones,
+            spawn_points,
+            turrets,
+            triggers,
+            decals: Default::default(),
+            navmesh: scene.navmeshes.handle_from_index(0),
+            scene: scene_handle,
+            sender: Some(sender),
+            time: 0.0,
+            projectiles: ProjectileContainer::new(),
+            sound_manager: SoundManager::new(scene),
+            beam: Some(make_beam()),
+            trails: Default::default(),
+            doors,
+            elevators,
+            call_buttons,
+            map_path: Default::default(),
+        }
+    }
+
     pub async fn new(
         map: String,
         resource_manager: ResourceManager,
@@ -600,7 +637,7 @@ impl Level {
             .unwrap();
 
         // Instantiate map
-        let map_root = map_model.instantiate_geometry(&mut scene);
+        map_model.instantiate_geometry(&mut scene);
 
         scene.graph.update(Default::default(), 0.0);
 
@@ -653,7 +690,6 @@ impl Level {
                 persistent_data,
             )
             .await,
-            map_root,
             actors,
             weapons,
             items,
@@ -1086,7 +1122,6 @@ impl Level {
         &mut self,
         engine: &mut PluginContext,
         time: GameTime,
-        door_ui_container: &mut DoorUiContainer,
         call_button_ui_container: &mut CallButtonUiContainer,
     ) {
         self.time += time.delta;
@@ -1126,13 +1161,6 @@ impl Level {
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
         self.decals.update(&mut scene.graph, time.delta);
-        self.doors.update(
-            &self.actors,
-            self.sender.clone().unwrap(),
-            scene,
-            time.delta,
-            door_ui_container,
-        );
         self.lights.update(scene, time.delta);
         self.items.update(time.delta, &mut scene.graph);
         self.triggers
@@ -1378,12 +1406,12 @@ impl Level {
     fn try_open_door(
         &mut self,
         engine: &mut PluginContext,
-        door: Handle<Door>,
+        door: Handle<Node>,
         actor: Handle<Actor>,
     ) {
-        let graph = &engine.scenes[self.scene].graph;
+        let graph = &mut engine.scenes[self.scene].graph;
         let inventory = self.actors.try_get(actor).map(|a| &a.inventory);
-        self.doors[door].try_open(self.sender.clone().unwrap(), graph, inventory);
+        door_mut(door, graph).try_open(inventory);
     }
 
     fn call_elevator(&mut self, elevator: Handle<Elevator>, floor: u32) {
@@ -1552,8 +1580,6 @@ impl Level {
         inventory_texture: Texture,
         item_texture: Texture,
         journal_texture: Texture,
-        font: SharedFont,
-        door_ui_container: &mut DoorUiContainer,
     ) {
         self.set_message_sender(sender);
 
@@ -1568,12 +1594,6 @@ impl Level {
         self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
-        self.doors.resolve(
-            scene,
-            font,
-            door_ui_container,
-            engine.resource_manager.clone(),
-        );
         self.weapons.resolve();
         self.items.resolve();
         self.projectiles.resolve();

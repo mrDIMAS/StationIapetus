@@ -1,28 +1,29 @@
 #![allow(clippy::too_many_arguments)]
 
-mod actor;
-mod bot;
-mod character;
-mod config;
-mod control_scheme;
-mod door;
-mod effects;
-mod elevator;
-mod gui;
-mod inventory;
-mod item;
-mod level;
-mod light;
-mod loading_screen;
-mod menu;
-mod message;
-mod options_menu;
-mod player;
-mod sound;
-mod ui_container;
-mod utils;
-mod weapon;
+pub mod actor;
+pub mod bot;
+pub mod character;
+pub mod config;
+pub mod control_scheme;
+pub mod door;
+pub mod effects;
+pub mod elevator;
+pub mod gui;
+pub mod inventory;
+pub mod item;
+pub mod level;
+pub mod light;
+pub mod loading_screen;
+pub mod menu;
+pub mod message;
+pub mod options_menu;
+pub mod player;
+pub mod sound;
+pub mod ui_container;
+pub mod utils;
+pub mod weapon;
 
+use crate::door::Door;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -116,6 +117,22 @@ pub struct Game {
     update_duration: Duration,
     show_debug_info: bool,
     smaller_font: SharedFont,
+}
+
+pub fn game_ref(plugin: &dyn Plugin) -> &Game {
+    plugin.cast::<Game>().unwrap()
+}
+
+pub fn game_mut(plugin: &mut dyn Plugin) -> &mut Game {
+    plugin.cast_mut::<Game>().unwrap()
+}
+
+pub fn current_level_ref(plugin: &dyn Plugin) -> &Level {
+    game_ref(plugin).level.as_ref().unwrap()
+}
+
+pub fn current_level_mut(plugin: &mut dyn Plugin) -> &mut Level {
+    game_mut(plugin).level.as_mut().unwrap()
 }
 
 #[derive(Copy, Clone)]
@@ -246,6 +263,33 @@ impl Game {
             .set_sound_gain(sound_config.master_volume);
 
         let message_sender = MessageSender { sender: tx };
+        let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
+        let inventory_interface = InventoryInterface::new(message_sender.clone());
+        let item_display = ItemDisplay::new(smaller_font.clone());
+        let journal_display = JournalDisplay::new();
+
+        let level = if override_scene.is_some() {
+            let display_texture = weapon_display.render_target.clone();
+            let inventory_texture = inventory_interface.render_target.clone();
+            let item_texture = item_display.render_target.clone();
+            let journal_texture = journal_display.render_target.clone();
+            let sound_config = sound_config.clone();
+
+            Some(Level::from_existing_scene(
+                &mut context.scenes[override_scene],
+                override_scene,
+                context.resource_manager.clone(),
+                message_sender.clone(),
+                display_texture,
+                inventory_texture,
+                item_texture,
+                journal_texture,
+                sound_config,
+                None,
+            ))
+        } else {
+            None
+        };
 
         let mut game = Game {
             show_debug_info,
@@ -275,15 +319,15 @@ impl Game {
             ),
             control_scheme,
             debug_text: Handle::NONE,
-            weapon_display: WeaponDisplay::new(font, context.resource_manager.clone()),
-            item_display: ItemDisplay::new(smaller_font.clone()),
-            journal_display: JournalDisplay::new(),
+            weapon_display,
+            item_display,
+            journal_display,
             smaller_font,
-            level: None,
+            level,
             debug_string: String::new(),
             time,
             load_context: None,
-            inventory_interface: InventoryInterface::new(message_sender.clone()),
+            inventory_interface,
             message_receiver: rx,
             message_sender,
             sound_config,
@@ -433,8 +477,6 @@ impl Game {
                 self.inventory_interface.render_target.clone(),
                 self.item_display.render_target.clone(),
                 self.journal_display.render_target.clone(),
-                self.smaller_font.clone(),
-                &mut self.door_ui_container,
             );
         }
 
@@ -533,19 +575,6 @@ impl Game {
         if let Some(ctx) = self.load_context.clone() {
             if let Some(mut ctx) = ctx.try_lock() {
                 if let Some((mut level, mut scene)) = ctx.level.take() {
-                    for (door_handle, door) in level.doors.pair_iter() {
-                        let texture = self.door_ui_container.create_ui(
-                            self.smaller_font.clone(),
-                            context.resource_manager.clone(),
-                            door_handle,
-                        );
-                        door.apply_screen_texture(
-                            &mut scene.graph,
-                            context.resource_manager.clone(),
-                            texture,
-                        );
-                    }
-
                     for (call_button_handle, call_button_ref) in level.call_buttons.pair_iter() {
                         let texture = self.call_button_ui_container.create_ui(
                             self.smaller_font.clone(),
@@ -585,12 +614,7 @@ impl Game {
         if let Some(ref mut level) = self.level {
             let menu_visible = self.menu.is_visible(&context.user_interface);
             if !menu_visible {
-                level.update(
-                    context,
-                    time,
-                    &mut self.door_ui_container,
-                    &mut self.call_button_ui_container,
-                );
+                level.update(context, time, &mut self.call_button_ui_container);
                 let player = level.get_player();
                 if player.is_some() {
                     if let Actor::Player(player) = level.actors().get(player) {
@@ -877,8 +901,11 @@ impl TypeUuidProvider for GameConstructor {
 }
 
 impl PluginConstructor for GameConstructor {
-    fn register(&self, _context: PluginRegistrationContext) {
-        // Register your scripts here.
+    fn register(&self, context: PluginRegistrationContext) {
+        context
+            .serialization_context
+            .script_constructors
+            .add::<Door>("Door");
     }
 
     fn create_instance(

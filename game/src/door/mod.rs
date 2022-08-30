@@ -1,35 +1,58 @@
 use crate::{
-    actor::ActorContainer, inventory::Inventory, item::ItemKind, message::Message, Actor,
-    DoorUiContainer, MessageSender,
+    current_level_mut, game_mut, inventory::Inventory, item::ItemKind, message::Message, Actor,
+    MessageSender,
 };
-use fyrox::scene::light::BaseLight;
-use fyrox::scene::mesh::Mesh;
-use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::Vector3,
         color::Color,
+        inspect::prelude::*,
         parking_lot::Mutex,
-        pool::{Handle, Pool},
+        pool::Handle,
+        reflect::Reflect,
         sstorage::ImmutableString,
-        visitor::{Visit, VisitResult, Visitor},
+        uuid::{uuid, Uuid},
+        variable::{InheritableVariable, TemplateVariable},
+        visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
-    gui::ttf::SharedFont,
+    impl_component_provider, impl_directly_inheritable_entity_trait,
     material::{Material, PropertyValue},
     resource::texture::Texture,
-    scene::{graph::Graph, node::Node, Scene},
+    scene::{
+        graph::{map::NodeHandleMap, Graph},
+        light::BaseLight,
+        mesh::Mesh,
+        node::{Node, NodeHandle, TypeUuidProvider},
+        rigidbody::RigidBody,
+    },
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::log::Log,
 };
 use std::{
-    ops::{Index, IndexMut},
+    ops::{Deref, DerefMut},
     path::PathBuf,
     sync::Arc,
 };
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+
+use crate::GameConstructor;
 
 pub mod ui;
 
-#[derive(Copy, Clone, Eq, PartialEq, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    Eq,
+    PartialEq,
+    Reflect,
+    Inspect,
+    Visit,
+    Debug,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+)]
 #[repr(u32)]
 pub enum DoorState {
     Opened = 0,
@@ -46,7 +69,19 @@ impl Default for DoorState {
     }
 }
 
-#[derive(Copy, Clone, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    Reflect,
+    Inspect,
+    Visit,
+    Debug,
+    AsRefStr,
+    PartialEq,
+    Eq,
+    EnumString,
+    EnumVariantNames,
+)]
 #[repr(C)]
 pub enum DoorDirection {
     Side,
@@ -59,55 +94,285 @@ impl Default for DoorDirection {
     }
 }
 
-#[derive(Default, Visit)]
-pub struct Door {
-    node: Handle<Node>,
-    lights: Vec<Handle<Node>>,
-    state: DoorState,
-    offset: f32,
-    initial_position: Vector3<f32>,
-    open_direction: DoorDirection,
-    open_offset_amount: f32,
+#[derive(Debug, Clone, Default)]
+struct OpenRequest {
+    has_key: bool,
 }
 
-impl Door {
-    pub fn new(
-        node: Handle<Node>,
-        graph: &Graph,
-        state: DoorState,
-        open_direction: DoorDirection,
-        open_offset_amount: f32,
-    ) -> Self {
-        Self {
-            node,
-            lights: graph
-                .traverse_handle_iter(node)
-                .filter(|&handle| graph[handle].query_component_ref::<BaseLight>().is_some())
-                .collect(),
-            state,
-            offset: 0.0,
-            initial_position: graph[node].global_position(),
-            open_direction,
-            open_offset_amount,
+#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+pub struct Door {
+    #[inspect(
+        description = "An array of handles to light sources that indicates state of the door."
+    )]
+    lights: Vec<NodeHandle>,
+
+    #[inspect(description = "An array of handles to meshes that represents interactive screens.")]
+    screens: Vec<NodeHandle>,
+
+    #[inspect(
+        deref,
+        description = "A fixed direction of door to open. Given in local coordinates of the door.",
+        is_modified = "is_modified()"
+    )]
+    #[visit(optional)]
+    #[reflect(deref)]
+    open_direction: TemplateVariable<DoorDirection>,
+
+    #[inspect(
+        deref,
+        description = "Maximum offset along open_direction axis.",
+        min_value = "0.0",
+        is_modified = "is_modified()"
+    )]
+    #[visit(optional)]
+    #[reflect(deref)]
+    open_offset_amount: TemplateVariable<f32>,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    #[visit(skip)]
+    offset: f32,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    #[visit(skip)]
+    state: DoorState,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    #[visit(skip)]
+    initial_position: Vector3<f32>,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    #[visit(skip)]
+    open_request: Option<OpenRequest>,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    #[visit(skip)]
+    self_handle: Handle<Node>,
+}
+
+impl_component_provider!(Door);
+impl_directly_inheritable_entity_trait!(Door; open_offset_amount);
+
+impl TypeUuidProvider for Door {
+    fn type_uuid() -> Uuid {
+        uuid!("4b8aa92a-fe10-47d6-91bf-2878b834ff18")
+    }
+}
+
+impl ScriptTrait for Door {
+    fn on_init(&mut self, context: ScriptContext) {
+        self.self_handle = context.handle;
+        self.initial_position = context.scene.graph[context.handle].global_position();
+
+        let game = game_mut(context.plugin);
+        let texture = game.door_ui_container.create_ui(
+            game.smaller_font.clone(),
+            context.resource_manager.clone(),
+            context.handle,
+        );
+        self.apply_screen_texture(
+            &mut context.scene.graph,
+            context.resource_manager.clone(),
+            texture,
+        );
+
+        current_level_mut(context.plugin)
+            .doors
+            .doors
+            .push(context.handle);
+    }
+
+    fn on_deinit(&mut self, context: ScriptDeinitContext) {
+        let doors = &mut current_level_mut(context.plugin).doors.doors;
+        if let Some(position) = doors.iter().position(|d| *d == context.node_handle) {
+            doors.remove(position);
         }
     }
 
-    pub fn resolve(&mut self, scene: &Scene) {
-        self.initial_position = scene.graph[self.node].global_position();
+    fn on_update(&mut self, context: ScriptContext) {
+        let ScriptContext {
+            dt,
+            plugin,
+            handle,
+            scene,
+            ..
+        } = context;
+
+        let game = game_mut(plugin);
+
+        let speed = 0.55;
+
+        let node = &scene.graph[handle];
+        let move_direction = match *self.open_direction {
+            DoorDirection::Side => node.look_vector(),
+            DoorDirection::Up => node.up_vector(),
+        };
+
+        let mut closest_actor = None;
+
+        let someone_nearby = game.level.as_ref().map_or(false, |level| {
+            level.actors.iter().any(|a| {
+                let actor_position = a.position(&scene.graph);
+                let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
+                if close_enough {
+                    closest_actor = Some(a);
+                }
+                close_enough
+            })
+        });
+
+        if !someone_nearby && self.state == DoorState::Opened {
+            self.state = DoorState::Closing;
+
+            game.message_sender.send(Message::PlaySound {
+                path: PathBuf::from("data/sounds/door_close.ogg"),
+                position: node.global_position(),
+                gain: 0.6,
+                rolloff_factor: 1.0,
+                radius: 1.0,
+            });
+        }
+
+        if let Some(ui) = game.door_ui_container.get_ui_mut(handle) {
+            let text = match self.state {
+                DoorState::Opened => "Opened",
+                DoorState::Opening => "Opening...",
+                DoorState::Closed => {
+                    if someone_nearby {
+                        "Open?"
+                    } else {
+                        "Closed"
+                    }
+                }
+                DoorState::Closing => "Closing..",
+                DoorState::Locked => "Locked",
+                DoorState::Broken => "Broken",
+            };
+
+            ui.set_text(text.to_owned());
+        }
+
+        match self.state {
+            DoorState::Opening => {
+                if self.offset < *self.open_offset_amount {
+                    self.offset += speed * dt;
+                    if self.offset >= *self.open_offset_amount {
+                        self.state = DoorState::Opened;
+                        self.offset = *self.open_offset_amount;
+                    }
+                }
+
+                self.set_lights_enabled(&mut scene.graph, false);
+            }
+            DoorState::Closing => {
+                if self.offset > 0.0 {
+                    self.offset -= speed * dt;
+                    if self.offset <= 0.0 {
+                        self.state = DoorState::Closed;
+                        self.offset = 0.0;
+                    }
+                }
+
+                self.set_lights_enabled(&mut scene.graph, false);
+            }
+            DoorState::Closed => {
+                self.set_lights_enabled(&mut scene.graph, true);
+                self.set_lights_color(&mut scene.graph, Color::opaque(0, 200, 0));
+            }
+            DoorState::Locked => {
+                self.set_lights_enabled(&mut scene.graph, true);
+                self.set_lights_color(&mut scene.graph, Color::opaque(200, 0, 0));
+            }
+            DoorState::Broken | DoorState::Opened => {
+                self.set_lights_enabled(&mut scene.graph, false);
+            }
+        };
+
+        if let Some(body) = scene.graph[context.handle].cast_mut::<RigidBody>() {
+            body.local_transform_mut().set_position(
+                self.initial_position
+                    + move_direction
+                        .try_normalize(f32::EPSILON)
+                        .unwrap_or_default()
+                        .scale(self.offset),
+            );
+        }
+
+        if let Some(open_request) = self.open_request.take() {
+            let position = self.actual_position(&scene.graph);
+
+            if self.state == DoorState::Closed {
+                self.state = DoorState::Opening;
+
+                game.message_sender.send(Message::PlaySound {
+                    path: PathBuf::from("data/sounds/door_open.ogg"),
+                    position,
+                    gain: 0.6,
+                    rolloff_factor: 1.0,
+                    radius: 1.0,
+                });
+            } else if self.state == DoorState::Locked {
+                if open_request.has_key {
+                    self.state = DoorState::Opening;
+
+                    game.message_sender.send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/door_open.ogg"),
+                        position,
+                        gain: 0.6,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    });
+
+                    game.message_sender.send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/access_granted.ogg"),
+                        position,
+                        gain: 1.0,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    });
+                } else {
+                    game.message_sender.send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/door_deny.ogg"),
+                        position,
+                        gain: 1.0,
+                        rolloff_factor: 1.0,
+                        radius: 1.0,
+                    });
+                }
+            }
+        }
     }
 
+    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping.try_map_slice(&mut self.lights);
+        old_new_mapping.try_map_slice(&mut self.screens);
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+
+    fn plugin_uuid(&self) -> Uuid {
+        GameConstructor::type_uuid()
+    }
+}
+
+impl Door {
     fn set_lights_color(&self, graph: &mut Graph, color: Color) {
         for &light in self.lights.iter() {
-            graph[light]
-                .query_component_mut::<BaseLight>()
-                .unwrap()
-                .set_color(color);
+            if let Some(light_ref) = graph[*light].query_component_mut::<BaseLight>() {
+                light_ref.set_color(color);
+            }
         }
     }
 
     fn set_lights_enabled(&self, graph: &mut Graph, enabled: bool) {
         for &light in self.lights.iter() {
-            graph[light].set_visibility(enabled);
+            graph[*light].set_visibility(enabled);
         }
     }
 
@@ -116,27 +381,17 @@ impl Door {
     }
 
     pub fn actual_position(&self, graph: &Graph) -> Vector3<f32> {
-        let node_ref = &graph[self.node];
-        node_ref.global_position()
+        graph[self.self_handle].global_position()
     }
 
-    pub fn node(&self) -> Handle<Node> {
-        self.node
-    }
-
-    pub fn apply_screen_texture(
+    fn apply_screen_texture(
         &self,
         graph: &mut Graph,
         resource_manager: ResourceManager,
         texture: Texture,
     ) {
-        let screens = graph
-            .traverse_handle_iter(self.node)
-            .filter(|h| graph[*h].name().starts_with("DoorUI"))
-            .collect::<Vec<_>>();
-
-        for node_handle in screens {
-            if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
+        for &node_handle in &self.screens {
+            if let Some(mesh) = graph[*node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
                 Log::verify(material.set_property(
@@ -162,63 +417,31 @@ impl Door {
         }
     }
 
-    pub fn try_open(
-        &mut self,
-        sender: MessageSender,
-        graph: &Graph,
-        inventory: Option<&Inventory>,
-    ) {
-        let position = self.actual_position(graph);
-
-        if self.state == DoorState::Closed {
-            self.state = DoorState::Opening;
-
-            sender.send(Message::PlaySound {
-                path: PathBuf::from("data/sounds/door_open.ogg"),
-                position,
-                gain: 0.6,
-                rolloff_factor: 1.0,
-                radius: 1.0,
-            });
-        } else if self.state == DoorState::Locked {
-            let should_be_unlocked = inventory
-                .map(|i| i.item_count(ItemKind::MasterKey) > 0)
-                .unwrap_or(false);
-
-            if should_be_unlocked {
-                self.state = DoorState::Opening;
-
-                sender.send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/door_open.ogg"),
-                    position,
-                    gain: 0.6,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                });
-
-                sender.send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/access_granted.ogg"),
-                    position,
-                    gain: 1.0,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                });
-            } else {
-                sender.send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/door_deny.ogg"),
-                    position,
-                    gain: 1.0,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                });
-            }
-        }
+    pub fn try_open(&mut self, inventory: Option<&Inventory>) {
+        let has_key = inventory
+            .map(|i| i.item_count(ItemKind::MasterKey) > 0)
+            .unwrap_or(false);
+        self.open_request = Some(OpenRequest { has_key });
     }
 }
 
 #[derive(Default, Visit)]
 pub struct DoorContainer {
-    doors: Pool<Door>,
+    pub doors: Vec<Handle<Node>>,
+}
+
+pub fn door_ref(handle: Handle<Node>, graph: &Graph) -> &Door {
+    graph[handle]
+        .script()
+        .and_then(|s| s.cast::<Door>())
+        .unwrap()
+}
+
+pub fn door_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Door {
+    graph[handle]
+        .script_mut()
+        .and_then(|s| s.cast_mut::<Door>())
+        .unwrap()
 }
 
 impl DoorContainer {
@@ -228,146 +451,15 @@ impl DoorContainer {
         }
     }
 
-    pub fn add(&mut self, door: Door) -> Handle<Door> {
-        self.doors.spawn(door)
-    }
-
-    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Door>, &Door)> {
-        self.doors.pair_iter()
-    }
-
-    pub fn update(
-        &mut self,
-        actors: &ActorContainer,
-        sender: MessageSender,
-        scene: &mut Scene,
-        dt: f32,
-        door_ui_container: &mut DoorUiContainer,
-    ) {
-        let speed = 0.55;
-
-        for (door_handle, door) in self.doors.pair_iter_mut() {
-            let node = &scene.graph[door.node];
-            let move_direction = match door.open_direction {
-                DoorDirection::Side => node.look_vector(),
-                DoorDirection::Up => node.up_vector(),
-            };
-
-            let mut closest_actor = None;
-
-            let someone_nearby = actors.iter().any(|a| {
-                let actor_position = a.position(&scene.graph);
-                // TODO: Replace with triggers.
-                let close_enough = actor_position.metric_distance(&door.initial_position) < 1.25;
-                if close_enough {
-                    closest_actor = Some(a);
-                }
-                close_enough
-            });
-
-            if !someone_nearby && door.state == DoorState::Opened {
-                door.state = DoorState::Closing;
-
-                sender.send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/door_close.ogg"),
-                    position: node.global_position(),
-                    gain: 0.6,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                });
-            }
-
-            if let Some(ui) = door_ui_container.get_ui_mut(door_handle) {
-                let text = match door.state {
-                    DoorState::Opened => "Opened",
-                    DoorState::Opening => "Opening...",
-                    DoorState::Closed => {
-                        if someone_nearby {
-                            "Open?"
-                        } else {
-                            "Closed"
-                        }
-                    }
-                    DoorState::Closing => "Closing..",
-                    DoorState::Locked => "Locked",
-                    DoorState::Broken => "Broken",
-                };
-
-                ui.set_text(text.to_owned());
-            }
-
-            match door.state {
-                DoorState::Opening => {
-                    if door.offset < door.open_offset_amount {
-                        door.offset += speed * dt;
-                        if door.offset >= door.open_offset_amount {
-                            door.state = DoorState::Opened;
-                            door.offset = door.open_offset_amount;
-                        }
-                    }
-
-                    door.set_lights_enabled(&mut scene.graph, false);
-                }
-                DoorState::Closing => {
-                    if door.offset > 0.0 {
-                        door.offset -= speed * dt;
-                        if door.offset <= 0.0 {
-                            door.state = DoorState::Closed;
-                            door.offset = 0.0;
-                        }
-                    }
-
-                    door.set_lights_enabled(&mut scene.graph, false);
-                }
-                DoorState::Closed => {
-                    door.set_lights_enabled(&mut scene.graph, true);
-                    door.set_lights_color(&mut scene.graph, Color::opaque(0, 200, 0));
-                }
-                DoorState::Locked => {
-                    door.set_lights_enabled(&mut scene.graph, true);
-                    door.set_lights_color(&mut scene.graph, Color::opaque(200, 0, 0));
-                }
-                DoorState::Broken | DoorState::Opened => {
-                    door.set_lights_enabled(&mut scene.graph, false);
-                }
-            };
-
-            let body_handle = scene.graph[door.node].parent();
-            if let Some(body) = scene.graph[body_handle].cast_mut::<RigidBody>() {
-                body.local_transform_mut().set_position(
-                    door.initial_position
-                        + move_direction
-                            .try_normalize(f32::EPSILON)
-                            .unwrap_or_default()
-                            .scale(door.offset),
-                );
-            }
-        }
-    }
-
-    pub fn resolve(
-        &mut self,
-        scene: &mut Scene,
-        font: SharedFont,
-        door_ui_container: &mut DoorUiContainer,
-        resource_manager: ResourceManager,
-    ) {
-        for (door_handle, door) in self.doors.pair_iter_mut() {
-            door.resolve(scene);
-
-            let texture =
-                door_ui_container.create_ui(font.clone(), resource_manager.clone(), door_handle);
-            door.apply_screen_texture(&mut scene.graph, resource_manager.clone(), texture);
-        }
-    }
-
     pub fn check_actor(
         &self,
         actor_position: Vector3<f32>,
         actor_handle: Handle<Actor>,
+        graph: &Graph,
         sender: &MessageSender,
     ) {
-        for (door_handle, door) in self.pair_iter() {
+        for &door_handle in &self.doors {
+            let door = door_ref(door_handle, graph);
             let close_enough = actor_position.metric_distance(&door.initial_position()) < 1.25;
             if close_enough {
                 sender.send(Message::TryOpenDoor {
@@ -376,19 +468,5 @@ impl DoorContainer {
                 });
             }
         }
-    }
-}
-
-impl Index<Handle<Door>> for DoorContainer {
-    type Output = Door;
-
-    fn index(&self, index: Handle<Door>) -> &Self::Output {
-        &self.doors[index]
-    }
-}
-
-impl IndexMut<Handle<Door>> for DoorContainer {
-    fn index_mut(&mut self, index: Handle<Door>) -> &mut Self::Output {
-        &mut self.doors[index]
     }
 }

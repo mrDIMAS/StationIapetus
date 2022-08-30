@@ -7,7 +7,6 @@ use crate::{
     actor::Actor,
     bot::BotKind,
     character::HitBox,
-    door::Door,
     effects::EffectKind,
     elevator::{call_button::CallButton, Elevator},
     item::{Item, ItemKind},
@@ -38,7 +37,7 @@ pub enum Message {
         floor: u32,
     },
     TryOpenDoor {
-        door: Handle<Door>,
+        door: Handle<Node>,
         actor: Handle<Actor>,
     },
     GiveNewWeapon {
