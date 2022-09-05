@@ -1,7 +1,5 @@
 //! Editor with your game connected to it as a plugin.
-use fyrox::{
-    event_loop::EventLoop, gui::inspector::editors::enumeration::EnumPropertyEditorDefinition,
-};
+use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
     door::{DoorDirection, DoorState},
@@ -19,8 +17,8 @@ fn main() {
     );
 
     let editors = &editor.inspector.property_editors;
-    editors.insert(EnumPropertyEditorDefinition::<DoorState>::new());
-    editors.insert(EnumPropertyEditorDefinition::<DoorDirection>::new());
+    editors.register_inheritable_enum::<DoorState, _>();
+    editors.register_inheritable_enum::<DoorDirection, _>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)

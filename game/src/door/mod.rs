@@ -12,11 +12,11 @@ use fyrox::{
         reflect::Reflect,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
-        variable::{InheritableVariable, TemplateVariable},
+        variable::InheritableVariable,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
-    impl_component_provider, impl_directly_inheritable_entity_trait,
+    impl_component_provider,
     material::{Material, PropertyValue},
     resource::texture::Texture,
     scene::{
@@ -29,11 +29,7 @@ use fyrox::{
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::log::Log,
 };
-use std::{
-    ops::{Deref, DerefMut},
-    path::PathBuf,
-    sync::Arc,
-};
+use std::{path::PathBuf, sync::Arc};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 use crate::GameConstructor;
@@ -110,23 +106,17 @@ pub struct Door {
     screens: Vec<NodeHandle>,
 
     #[inspect(
-        deref,
-        description = "A fixed direction of door to open. Given in local coordinates of the door.",
-        is_modified = "is_modified()"
+        description = "A fixed direction of door to open. Given in local coordinates of the door."
     )]
     #[visit(optional)]
-    #[reflect(deref)]
-    open_direction: TemplateVariable<DoorDirection>,
+    open_direction: InheritableVariable<DoorDirection>,
 
     #[inspect(
-        deref,
         description = "Maximum offset along open_direction axis.",
-        min_value = "0.0",
-        is_modified = "is_modified()"
+        min_value = "0.0"
     )]
     #[visit(optional)]
-    #[reflect(deref)]
-    open_offset_amount: TemplateVariable<f32>,
+    open_offset_amount: InheritableVariable<f32>,
 
     #[inspect(skip)]
     #[reflect(hidden)]
@@ -155,7 +145,6 @@ pub struct Door {
 }
 
 impl_component_provider!(Door);
-impl_directly_inheritable_entity_trait!(Door; open_offset_amount);
 
 impl TypeUuidProvider for Door {
     fn type_uuid() -> Uuid {
