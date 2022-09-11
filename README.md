@@ -41,10 +41,10 @@ Install Rust toolchain first (https://rustup.rs/), then:
 
 In case of clean build:
 ```shell
-git clone https://github.com/mrDIMAS/rg3d
+git clone https://github.com/FyroxEngine/Fyrox.git
 git clone https://github.com/mrDIMAS/StationIapetus
 cd StationIapetus
-cargo run --release
+cargo run --bin executor
 ```
 
 In case if you're updating to the latest version:
