@@ -1,13 +1,10 @@
 use crate::{
     actor::{Actor, ActorContainer},
     effects::EffectKind,
-    level::turret::Turret,
     message::Message,
     weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
     GameTime, MessageSender,
 };
-use fyrox::scene::rigidbody::RigidBody;
-use fyrox::scene::sprite::Sprite;
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -17,7 +14,7 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     lazy_static::lazy_static,
-    scene::{graph::Graph, node::Node, Scene},
+    scene::{graph::Graph, node::Node, rigidbody::RigidBody, sprite::Sprite, Scene},
 };
 use serde::Deserialize;
 use std::{collections::HashMap, collections::HashSet, fs::File, path::PathBuf};
@@ -33,7 +30,7 @@ pub enum Shooter {
     None,
     Actor(Handle<Actor>),
     Weapon(Handle<Weapon>),
-    Turret(Handle<Turret>),
+    Turret(Handle<Node>),
 }
 
 impl Default for Shooter {

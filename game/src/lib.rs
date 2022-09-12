@@ -23,18 +23,17 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::door::Door;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
-    door::ui::DoorUiContainer,
+    door::{ui::DoorUiContainer, Door},
     elevator::ui::CallButtonUiContainer,
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
-    level::Level,
+    level::{turret::Turret, Level},
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
@@ -42,12 +41,12 @@ use crate::{
     utils::use_hrtf,
 };
 use fyrox::{
-    core::uuid::{uuid, Uuid},
     core::{
         futures::executor::block_on,
         parking_lot::Mutex,
         pool::Handle,
         sstorage::ImmutableString,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
@@ -905,7 +904,8 @@ impl PluginConstructor for GameConstructor {
         context
             .serialization_context
             .script_constructors
-            .add::<Door>("Door");
+            .add::<Door>("Door")
+            .add::<Turret>("Turret");
     }
 
     fn create_instance(

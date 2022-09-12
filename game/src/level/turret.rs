@@ -1,32 +1,56 @@
-use crate::weapon::definition::ShotEffect;
 use crate::{
     actor::{Actor, ActorContainer},
+    current_level_ref,
     message::Message,
+    weapon::definition::ShotEffect,
     weapon::projectile::{Damage, Shooter},
-    MessageSender,
+    GameConstructor, MessageSender,
 };
-use fyrox::scene::collider::{Collider, ColliderShape, InteractionGroups};
-use fyrox::scene::graph::physics::RayCastOptions;
-use fyrox::scene::light::BaseLight;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
         math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
-        pool::{Handle, Pool},
+        pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
         visitor::{Visit, VisitResult, Visitor},
     },
-    scene::{debug::SceneDrawingContext, node::Node, Scene},
+    core::{
+        inspect::prelude::*,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+    },
+    impl_component_provider,
+    scene::{
+        collider::{Collider, ColliderShape, InteractionGroups},
+        debug::SceneDrawingContext,
+        graph::{map::NodeHandleMap, physics::RayCastOptions},
+        light::BaseLight,
+        node::{Node, TypeUuidProvider},
+        Scene,
+    },
+    script::{ScriptContext, ScriptTrait},
 };
-use std::iter::FromIterator;
-use std::{
-    ops::{Index, IndexMut},
-    path::PathBuf,
-};
+use std::path::PathBuf;
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    Hash,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Ord,
+    Visit,
+    Inspect,
+    Reflect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+    Debug,
+)]
 #[repr(u32)]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
@@ -41,7 +65,22 @@ impl Default for ShootMode {
     }
 }
 
-#[derive(Copy, Clone, Hash, PartialOrd, PartialEq, Eq, Ord, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    Hash,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Ord,
+    Visit,
+    Inspect,
+    Reflect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+    Debug,
+)]
 #[repr(u32)]
 pub enum Hostility {
     Player,
@@ -55,36 +94,236 @@ impl Default for Hostility {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Turret {
     model: Handle<Node>,
     body: Handle<Node>,
     barrel_stand: Handle<Node>,
     barrels: Vec<Barrel>,
     shoot_mode: ShootMode,
-    target: Handle<Actor>,
-    shoot_timer: f32,
-    barrel_index: u32,
-    frustum: Frustum,
     hostility: Hostility,
     yaw: SmoothAngle,
     pitch: SmoothAngle,
-    target_check_timer: f32,
     projector: Handle<Node>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    shoot_timer: f32,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    barrel_index: u32,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    target_check_timer: f32,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    #[visit(skip)]
+    target: Handle<Actor>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    #[visit(skip)]
+    frustum: Frustum,
 }
 
-#[derive(Default, Visit)]
+impl Default for Turret {
+    fn default() -> Self {
+        Self {
+            body: Default::default(),
+            model: Default::default(),
+            barrel_stand: Default::default(),
+            projector: Default::default(),
+            barrels: Default::default(),
+            shoot_mode: Default::default(),
+            target: Default::default(),
+            shoot_timer: Default::default(),
+            barrel_index: Default::default(),
+            frustum: Default::default(),
+            hostility: Default::default(),
+            yaw: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: 3.0, // rad/s
+            },
+            pitch: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: 3.0, // rad/s
+            },
+            target_check_timer: 0.0,
+        }
+    }
+}
+
+impl_component_provider!(Turret);
+
+impl TypeUuidProvider for Turret {
+    fn type_uuid() -> Uuid {
+        uuid!("7a23ce43-500e-4a49-995d-57f44486ed20")
+    }
+}
+
+impl ScriptTrait for Turret {
+    fn on_update(&mut self, context: ScriptContext) {
+        let ScriptContext {
+            dt,
+            plugin,
+            handle,
+            scene,
+            ..
+        } = context;
+
+        let level_ref = current_level_ref(plugin);
+
+        self.update_frustum(scene);
+
+        self.shoot_timer -= dt;
+        self.target_check_timer -= dt;
+
+        if self.target_check_timer <= 0.0 {
+            self.select_target(scene, &level_ref.actors);
+            self.target_check_timer = 0.15;
+        }
+
+        if level_ref.actors.contains(self.target) {
+            let target_position = level_ref.actors.get(self.target).position(&scene.graph);
+
+            let position = scene.graph[self.model].global_position();
+
+            let d = target_position - position;
+
+            // Aim horizontally.
+            let d_model_rel = scene.graph[self.model]
+                .global_transform()
+                .try_inverse()
+                .unwrap_or_default()
+                .transform_vector(&d);
+            self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
+
+            // Aim vertically.
+            if let Some(d_body_rel) = scene.graph[self.body]
+                .global_transform()
+                .try_inverse()
+                .unwrap_or_default()
+                .transform_vector(&d)
+                .try_normalize(f32::EPSILON)
+            {
+                self.pitch.set_target(d_body_rel.dot(&Vector3::y()).acos());
+            }
+
+            if self.shoot_timer <= 0.0 {
+                self.shoot_timer = 0.1;
+
+                match self.shoot_mode {
+                    ShootMode::Consecutive => {
+                        if let Some(barrel) = self.barrels.get_mut(self.barrel_index as usize) {
+                            barrel.shoot(
+                                handle,
+                                scene,
+                                target_position,
+                                level_ref.sender.as_ref().unwrap(),
+                            );
+                            self.barrel_index += 1;
+                            if self.barrel_index >= self.barrels.len() as u32 {
+                                self.barrel_index = 0;
+                            }
+                        }
+                    }
+                    ShootMode::Simultaneously => {
+                        for barrel in self.barrels.iter_mut() {
+                            barrel.shoot(
+                                handle,
+                                scene,
+                                target_position,
+                                level_ref.sender.as_ref().unwrap(),
+                            );
+                        }
+                    }
+                }
+            }
+
+            for barrel in self.barrels.iter_mut() {
+                barrel.update(scene);
+            }
+
+            if self.projector.is_some() {
+                scene.graph[self.projector]
+                    .query_component_mut::<BaseLight>()
+                    .unwrap()
+                    .set_color(Color::opaque(255, 0, 0));
+            }
+        } else {
+            self.pitch.set_target(90.0f32.to_radians());
+            self.yaw
+                .set_target(self.yaw.angle() + 50.0f32.to_radians() * dt);
+
+            if self.projector.is_some() {
+                scene.graph[self.projector]
+                    .query_component_mut::<BaseLight>()
+                    .unwrap()
+                    .set_color(Color::opaque(255, 127, 40));
+            }
+        }
+
+        self.pitch.update(dt);
+        self.yaw.update(dt);
+
+        scene.graph[self.body]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::y_axis(),
+                90.0f32.to_radians() + self.yaw.angle(),
+            ));
+        scene.graph[self.barrel_stand]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::z_axis(),
+                self.pitch.angle() - std::f32::consts::FRAC_PI_2,
+            ));
+    }
+
+    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping
+            .map(&mut self.barrel_stand)
+            .map(&mut self.body)
+            .map(&mut self.model)
+            .map(&mut self.projector);
+
+        for barrel in self.barrels.iter_mut() {
+            barrel.remap_handles(old_new_mapping);
+        }
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+
+    fn plugin_uuid(&self) -> Uuid {
+        GameConstructor::type_uuid()
+    }
+}
+
+#[derive(Default, Visit, Reflect, Inspect, Clone, Debug)]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
     initial_position: Vector3<f32>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
     offset: Vector3<f32>,
 }
 
 impl Barrel {
     fn shoot(
         &mut self,
-        owner_handle: Handle<Turret>,
+        owner_handle: Handle<Node>,
         scene: &Scene,
         target_position: Vector3<f32>,
         sender: &MessageSender,
@@ -123,62 +362,15 @@ impl Barrel {
             .local_transform_mut()
             .set_position(self.initial_position + self.offset);
     }
+
+    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping
+            .map(&mut self.handle)
+            .map(&mut self.shoot_point);
+    }
 }
 
 impl Turret {
-    pub async fn new(
-        model: Handle<Node>,
-        scene: &Scene,
-        shoot_mode: ShootMode,
-        hostility: Hostility,
-    ) -> Self {
-        let stand = scene.graph.find_by_name(model, "Body");
-        let barrel_stand = scene.graph.find_by_name(model, "BarrelStand");
-        let projector = scene.graph.find_by_name(model, "Projector");
-
-        Self {
-            body: stand,
-            model,
-            barrel_stand,
-            projector,
-            barrels: scene
-                .graph
-                .traverse_handle_iter(barrel_stand)
-                .filter_map(|h| {
-                    if h != barrel_stand && scene.graph[h].name().starts_with("Barrel") {
-                        Some(Barrel {
-                            handle: h,
-                            shoot_point: scene
-                                .graph
-                                .find(h, &mut |n| n.name().starts_with("ShootPoint")),
-                            offset: Default::default(),
-                            initial_position: **scene.graph[h].local_transform().position(),
-                        })
-                    } else {
-                        None
-                    }
-                })
-                .collect(),
-            shoot_mode,
-            target: Default::default(),
-            shoot_timer: 0.0,
-            barrel_index: 0,
-            frustum: Default::default(),
-            hostility,
-            yaw: SmoothAngle {
-                angle: 0.0,
-                target: 0.0,
-                speed: 3.0, // rad/s
-            },
-            pitch: SmoothAngle {
-                angle: 0.0,
-                target: 0.0,
-                speed: 3.0, // rad/s
-            },
-            target_check_timer: 0.0,
-        }
-    }
-
     pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
         context.draw_frustum(&self.frustum, Color::from_rgba(0, 200, 0, 255));
     }
@@ -267,162 +459,6 @@ impl Turret {
             self.target = closest;
         } else if actors.get(self.target).is_dead() {
             self.target = Default::default();
-        }
-    }
-
-    fn update(
-        &mut self,
-        self_handle: Handle<Self>,
-        scene: &mut Scene,
-        actors: &ActorContainer,
-        sender: &MessageSender,
-        dt: f32,
-    ) {
-        self.update_frustum(scene);
-
-        self.shoot_timer -= dt;
-        self.target_check_timer -= dt;
-
-        if self.target_check_timer <= 0.0 {
-            self.select_target(scene, actors);
-            self.target_check_timer = 0.15;
-        }
-
-        if actors.contains(self.target) {
-            let target_position = actors.get(self.target).position(&scene.graph);
-
-            let position = scene.graph[self.model].global_position();
-
-            let d = target_position - position;
-
-            // Aim horizontally.
-            let d_model_rel = scene.graph[self.model]
-                .global_transform()
-                .try_inverse()
-                .unwrap_or_default()
-                .transform_vector(&d);
-            self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
-
-            // Aim vertically.
-            if let Some(d_body_rel) = scene.graph[self.body]
-                .global_transform()
-                .try_inverse()
-                .unwrap_or_default()
-                .transform_vector(&d)
-                .try_normalize(f32::EPSILON)
-            {
-                self.pitch.set_target(d_body_rel.dot(&Vector3::y()).acos());
-            }
-
-            if self.shoot_timer <= 0.0 {
-                self.shoot_timer = 0.1;
-
-                match self.shoot_mode {
-                    ShootMode::Consecutive => {
-                        if let Some(barrel) = self.barrels.get_mut(self.barrel_index as usize) {
-                            barrel.shoot(self_handle, scene, target_position, sender);
-                            self.barrel_index += 1;
-                            if self.barrel_index >= self.barrels.len() as u32 {
-                                self.barrel_index = 0;
-                            }
-                        }
-                    }
-                    ShootMode::Simultaneously => {
-                        for barrel in self.barrels.iter_mut() {
-                            barrel.shoot(self_handle, scene, target_position, sender);
-                        }
-                    }
-                }
-            }
-
-            for barrel in self.barrels.iter_mut() {
-                barrel.update(scene);
-            }
-
-            if self.projector.is_some() {
-                scene.graph[self.projector]
-                    .query_component_mut::<BaseLight>()
-                    .unwrap()
-                    .set_color(Color::opaque(255, 0, 0));
-            }
-        } else {
-            self.pitch.set_target(90.0f32.to_radians());
-            self.yaw
-                .set_target(self.yaw.angle() + 50.0f32.to_radians() * dt);
-
-            if self.projector.is_some() {
-                scene.graph[self.projector]
-                    .query_component_mut::<BaseLight>()
-                    .unwrap()
-                    .set_color(Color::opaque(255, 127, 40));
-            }
-        }
-
-        self.pitch.update(dt);
-        self.yaw.update(dt);
-
-        scene.graph[self.body]
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::y_axis(),
-                90.0f32.to_radians() + self.yaw.angle(),
-            ));
-        scene.graph[self.barrel_stand]
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::z_axis(),
-                self.pitch.angle() - std::f32::consts::FRAC_PI_2,
-            ));
-    }
-}
-
-#[derive(Default, Visit)]
-pub struct TurretContainer {
-    pool: Pool<Turret>,
-}
-
-impl TurretContainer {
-    pub fn add(&mut self, turret: Turret) -> Handle<Turret> {
-        self.pool.spawn(turret)
-    }
-
-    pub fn update(
-        &mut self,
-        scene: &mut Scene,
-        actors: &ActorContainer,
-        sender: &MessageSender,
-        dt: f32,
-    ) {
-        for (self_handle, turret) in self.pool.pair_iter_mut() {
-            turret.update(self_handle, scene, actors, sender, dt);
-        }
-    }
-
-    pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
-        for turret in self.pool.iter() {
-            turret.debug_draw(context);
-        }
-    }
-}
-
-impl Index<Handle<Turret>> for TurretContainer {
-    type Output = Turret;
-
-    fn index(&self, index: Handle<Turret>) -> &Self::Output {
-        &self.pool[index]
-    }
-}
-
-impl IndexMut<Handle<Turret>> for TurretContainer {
-    fn index_mut(&mut self, index: Handle<Turret>) -> &mut Self::Output {
-        &mut self.pool[index]
-    }
-}
-
-impl FromIterator<Turret> for TurretContainer {
-    fn from_iter<T: IntoIterator<Item = Turret>>(iter: T) -> Self {
-        Self {
-            pool: Pool::from_iter(iter),
         }
     }
 }

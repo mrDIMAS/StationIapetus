@@ -3,6 +3,7 @@ use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
     door::{DoorDirection, DoorState},
+    level::turret::{Barrel, Hostility, ShootMode},
     GameConstructor,
 };
 
@@ -19,6 +20,10 @@ fn main() {
     let editors = &editor.inspector.property_editors;
     editors.register_inheritable_enum::<DoorState, _>();
     editors.register_inheritable_enum::<DoorDirection, _>();
+    editors.register_inheritable_enum::<Hostility, _>();
+    editors.register_inheritable_enum::<ShootMode, _>();
+    editors.register_inheritable_inspectable::<Barrel>();
+    editors.register_inheritable_vec_collection::<Barrel>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)

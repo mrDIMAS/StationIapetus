@@ -15,7 +15,6 @@ use crate::{
         decal::{Decal, DecalContainer},
         trail::{ShotTrail, ShotTrailContainer},
         trigger::{Trigger, TriggerContainer, TriggerKind},
-        turret::{Hostility, ShootMode, Turret, TurretContainer},
     },
     light::{Light, LightContainer},
     message::Message,
@@ -99,7 +98,6 @@ pub struct Level {
     trails: ShotTrailContainer,
     pub doors: DoorContainer,
     lights: LightContainer,
-    turrets: TurretContainer,
     triggers: TriggerContainer,
     decals: DecalContainer,
     pub elevators: ElevatorContainer,
@@ -140,7 +138,6 @@ pub struct AnalysisResult {
     player_spawn_orientation: UnitQuaternion<f32>,
     doors: DoorContainer,
     lights: LightContainer,
-    turrets: TurretContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
     call_buttons: CallButtonContainer,
@@ -201,7 +198,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
     let mut player_spawn_orientation = Default::default();
-    let mut turrets = TurretContainer::default();
     let mut triggers = TriggerContainer::default();
     let mut elevators = ElevatorContainer::new();
     let mut call_buttons = CallButtonContainer::new();
@@ -301,10 +297,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
             "Glock" => items.push((ItemKind::Glock, position)),
             "RailGun" => items.push((ItemKind::RailGun, position)),
             "MasterKey" => items.push((ItemKind::MasterKey, position)),
-            "Turret" => {
-                turrets
-                    .add(Turret::new(handle, scene, ShootMode::Consecutive, Hostility::All).await);
-            }
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
             "ZombieWithGun" => spawn_points.push(SpawnPoint {
@@ -333,7 +325,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     result.spawn_points = spawn_points;
     result.player_spawn_position = player_spawn_position;
     result.player_spawn_orientation = player_spawn_orientation;
-    result.turrets = turrets;
     result.triggers = triggers;
     result.elevators = elevators;
     result.call_buttons = call_buttons;
@@ -546,7 +537,6 @@ impl Level {
             player_spawn_orientation,
             doors,
             lights,
-            turrets,
             triggers,
             elevators,
             call_buttons,
@@ -591,7 +581,6 @@ impl Level {
             lights,
             death_zones,
             spawn_points,
-            turrets,
             triggers,
             decals: Default::default(),
             navmesh: scene.navmeshes.handle_from_index(0),
@@ -649,7 +638,6 @@ impl Level {
             player_spawn_orientation,
             doors,
             lights,
-            turrets,
             triggers,
             elevators,
             call_buttons,
@@ -696,7 +684,6 @@ impl Level {
             lights,
             death_zones,
             spawn_points,
-            turrets,
             triggers,
             decals: Default::default(),
             navmesh: scene.navmeshes.handle_from_index(0),
@@ -1135,12 +1122,6 @@ impl Level {
             &self.weapons,
             time,
             self.sender.as_ref().unwrap(),
-        );
-        self.turrets.update(
-            scene,
-            &self.actors,
-            self.sender.as_ref().unwrap(),
-            time.delta,
         );
         self.elevators.update(time.delta, scene);
         self.call_buttons
@@ -1635,8 +1616,6 @@ impl Level {
         for death_zone in self.death_zones.iter() {
             drawing_context.draw_aabb(&death_zone.bounds, Color::opaque(0, 0, 200));
         }
-
-        self.turrets.debug_draw(&mut scene.drawing_context);
     }
 }
 
