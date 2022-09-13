@@ -170,15 +170,24 @@ impl ScriptTrait for Door {
         );
 
         current_level_mut(context.plugin)
-            .doors
+            .expect("Level must exist!")
+            .doors_container
             .doors
             .push(context.handle);
     }
 
     fn on_deinit(&mut self, context: ScriptDeinitContext) {
-        let doors = &mut current_level_mut(context.plugin).doors.doors;
-        if let Some(position) = doors.iter().position(|d| *d == context.node_handle) {
-            doors.remove(position);
+        // Level can not exist in case if we're changing the level. In this case there is no need
+        // to unregister doors anyway, because the registry is already removed.
+        if let Some(level) = current_level_mut(context.plugin) {
+            if let Some(position) = level
+                .doors_container
+                .doors
+                .iter()
+                .position(|d| *d == context.node_handle)
+            {
+                level.doors_container.doors.remove(position);
+            }
         }
     }
 

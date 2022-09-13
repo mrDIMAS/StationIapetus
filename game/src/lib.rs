@@ -126,12 +126,12 @@ pub fn game_mut(plugin: &mut dyn Plugin) -> &mut Game {
     plugin.cast_mut::<Game>().unwrap()
 }
 
-pub fn current_level_ref(plugin: &dyn Plugin) -> &Level {
-    game_ref(plugin).level.as_ref().unwrap()
+pub fn current_level_ref(plugin: &dyn Plugin) -> Option<&Level> {
+    game_ref(plugin).level.as_ref()
 }
 
-pub fn current_level_mut(plugin: &mut dyn Plugin) -> &mut Level {
-    game_mut(plugin).level.as_mut().unwrap()
+pub fn current_level_mut(plugin: &mut dyn Plugin) -> Option<&mut Level> {
+    game_mut(plugin).level.as_mut()
 }
 
 #[derive(Copy, Clone)]

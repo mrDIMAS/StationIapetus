@@ -176,7 +176,7 @@ impl ScriptTrait for Turret {
             ..
         } = context;
 
-        let level_ref = current_level_ref(plugin);
+        let level_ref = current_level_ref(plugin).expect("Level must exist!");
 
         self.update_frustum(scene);
 
