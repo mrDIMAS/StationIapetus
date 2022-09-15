@@ -390,19 +390,21 @@ async fn give_new_weapon(
     scene: &mut Scene,
 ) {
     if actors.contains(actor) {
-        let root = resource_manager
+        let weapon = resource_manager
             .request_model(Weapon::definition(kind).model.clone())
             .await
             .unwrap()
             .instantiate_geometry(scene);
-        let weapon = scene.graph.find_first_by_script::<Weapon>(root);
-        assert!(weapon.is_some());
+
+        // Root node must have Weapon script.
+        assert!(scene.graph[weapon].has_script::<Weapon>());
+
         weapon_mut(weapon, &mut scene.graph).set_owner(actor);
         scene.graph[weapon].set_visibility(visible);
 
         let actor = actors.get_mut(actor);
         actor.add_weapon(weapon, &mut scene.graph);
-        scene.graph.link_nodes(root, actor.weapon_pivot());
+        scene.graph.link_nodes(weapon, actor.weapon_pivot());
         actor.inventory_mut().add_item(kind.associated_item(), 1);
     }
 }
@@ -726,6 +728,10 @@ impl Level {
     }
 
     fn remove_weapon(&mut self, engine: &mut PluginContext, weapon: Handle<Node>) {
+        let scene = &mut engine.scenes[self.scene];
+
+        assert!(scene.graph[weapon].has_script::<Weapon>());
+
         for projectile in self.projectiles.iter_mut() {
             if let Shooter::Weapon(ref mut owner) = projectile.owner {
                 // Reset owner because handle to weapon will be invalid after weapon freed.
@@ -734,8 +740,6 @@ impl Level {
                 }
             }
         }
-
-        let scene = &mut engine.scenes[self.scene];
 
         for actor in self.actors.iter_mut() {
             if actor.current_weapon() == weapon {
@@ -750,9 +754,7 @@ impl Level {
             }
         }
 
-        // We must delete the weapon using the parent handle, because we using one of descendant nodes
-        // in a weapon's prefab instance.
-        scene.graph.remove_node(scene.graph[weapon].parent());
+        scene.graph.remove_node(weapon);
     }
 
     async fn add_bot(

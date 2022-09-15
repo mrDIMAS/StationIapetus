@@ -440,15 +440,11 @@ impl ScriptTrait for Weapon {
 }
 
 pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {
-    graph[handle]
-        .script_mut()
-        .unwrap()
-        .cast_mut::<Weapon>()
-        .unwrap()
+    graph[handle].try_get_script_mut::<Weapon>().unwrap()
 }
 
 pub fn try_weapon_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Weapon> {
-    graph[handle].script().and_then(|s| s.cast::<Weapon>())
+    graph[handle].try_get_script::<Weapon>()
 }
 
 pub fn weapon_ref(handle: Handle<Node>, graph: &Graph) -> &Weapon {
