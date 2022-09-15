@@ -452,7 +452,6 @@ impl Bot {
             scene: context.scene,
             bot_handle: self_handle,
             targets,
-            weapons: context.weapons,
             sender: context.sender,
             time: context.time,
             navmesh: context.navmesh,

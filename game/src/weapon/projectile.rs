@@ -1,8 +1,9 @@
+use crate::weapon::{weapon_mut, weapon_ref};
 use crate::{
     actor::{Actor, ActorContainer},
     effects::EffectKind,
     message::Message,
-    weapon::{ray_hit, sight::SightReaction, Hit, Weapon, WeaponContainer},
+    weapon::{ray_hit, sight::SightReaction, Hit},
     GameTime, MessageSender,
 };
 use fyrox::{
@@ -29,7 +30,7 @@ pub enum ProjectileKind {
 pub enum Shooter {
     None,
     Actor(Handle<Actor>),
-    Weapon(Handle<Weapon>),
+    Weapon(Handle<Node>),
     Turret(Handle<Node>),
 }
 
@@ -197,7 +198,6 @@ impl Projectile {
         &mut self,
         scene: &mut Scene,
         actors: &ActorContainer,
-        weapons: &WeaponContainer,
         time: GameTime,
         sender: &MessageSender,
     ) {
@@ -221,9 +221,8 @@ impl Projectile {
             self.last_position,
             position,
             self.owner,
-            weapons,
             actors,
-            &mut scene.graph.physics,
+            &mut scene.graph,
             collider,
         );
 
@@ -305,13 +304,13 @@ impl Projectile {
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        sender.send(Message::SightReaction {
-                            weapon,
-                            reaction: SightReaction::HitDetected,
-                        });
+                        weapon_mut(weapon, &mut scene.graph)
+                            .set_sight_reaction(SightReaction::HitDetected);
                     }
 
-                    weapons[weapon].definition.base_critical_shot_probability
+                    weapon_ref(weapon, &scene.graph)
+                        .definition
+                        .base_critical_shot_probability
                 }
                 Shooter::Turret(_) => 0.01,
                 _ => 0.0,
@@ -377,12 +376,11 @@ impl ProjectileContainer {
         &mut self,
         scene: &mut Scene,
         actors: &ActorContainer,
-        weapons: &WeaponContainer,
         time: GameTime,
         sender: &MessageSender,
     ) {
         for projectile in self.pool.iter_mut() {
-            projectile.update(scene, actors, weapons, time, sender);
+            projectile.update(scene, actors, time, sender);
             if projectile.is_dead() {
                 projectile.clean_up(scene);
             }

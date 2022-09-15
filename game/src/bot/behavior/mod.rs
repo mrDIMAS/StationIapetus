@@ -16,7 +16,6 @@ use crate::{
     },
     character::Character,
     utils::BodyImpactHandler,
-    weapon::WeaponContainer,
     GameTime, MessageSender,
 };
 use fyrox::core::math::SmoothAngle;
@@ -88,7 +87,6 @@ pub struct BehaviorContext<'a> {
     pub scene: &'a mut Scene,
     pub bot_handle: Handle<Actor>,
     pub targets: &'a [TargetDescriptor],
-    pub weapons: &'a WeaponContainer,
     pub sender: &'a MessageSender,
     pub time: GameTime,
     pub navmesh: Handle<Navmesh>,

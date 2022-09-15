@@ -1,4 +1,6 @@
-use crate::{item::ItemKind, player::Player, weapon::WeaponContainer};
+use crate::weapon::weapon_ref;
+use crate::{item::ItemKind, player::Player};
+use fyrox::scene::graph::Graph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -105,11 +107,11 @@ impl WeaponDisplay {
         }
     }
 
-    pub fn sync_to_model(&self, player: &Player, weapons: &WeaponContainer) {
+    pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
         let ammo = if player.current_weapon().is_some() {
             let total_ammo = player.inventory().item_count(ItemKind::Ammo);
             total_ammo
-                / weapons[player.current_weapon()]
+                / weapon_ref(player.current_weapon(), graph)
                     .definition
                     .ammo_consumption_per_shot
         } else {

@@ -1,5 +1,6 @@
+use crate::bot::behavior::BehaviorContext;
 use crate::item::ItemKind;
-use crate::{bot::behavior::BehaviorContext, message::Message};
+use crate::weapon::{weapon_mut, weapon_ref};
 use fyrox::{
     core::visitor::prelude::*,
     utils::behavior::{Behavior, Status},
@@ -21,7 +22,7 @@ impl<'a> Behavior<'a> for ShootTarget {
 
             context.is_aiming_weapon = true;
 
-            let weapon = &context.weapons[weapon_handle];
+            let weapon = weapon_ref(weapon_handle, &context.scene.graph);
             if weapon.can_shoot(context.time) {
                 let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
 
@@ -31,17 +32,14 @@ impl<'a> Behavior<'a> for ShootTarget {
                     .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                     == ammo_per_shot
                 {
-                    context.sender.send(Message::ShootWeapon {
-                        weapon: weapon_handle,
-                        direction: None,
-                    });
-
                     context
                         .v_recoil
                         .set_target(weapon.definition.gen_v_recoil_angle());
                     context
                         .h_recoil
                         .set_target(weapon.definition.gen_h_recoil_angle());
+
+                    weapon_mut(weapon_handle, &mut context.scene.graph).request_shot(None);
 
                     return Status::Success;
                 } else {
@@ -67,7 +65,7 @@ impl<'a> Behavior<'a> for CanShootTarget {
             .get(context.character.current_weapon as usize)
         {
             let weapon_handle = *weapon;
-            let weapon = &context.weapons[weapon_handle];
+            let weapon = weapon_ref(weapon_handle, &context.scene.graph);
             let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
 
             if context.restoration_time <= 0.0

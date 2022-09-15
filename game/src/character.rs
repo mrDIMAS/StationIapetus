@@ -1,9 +1,5 @@
-use crate::{
-    inventory::Inventory,
-    message::Message,
-    weapon::{definition::WeaponKind, Weapon, WeaponContainer},
-    MessageSender,
-};
+use crate::weapon::{weapon_mut, weapon_ref};
+use crate::{inventory::Inventory, weapon::definition::WeaponKind};
 use fyrox::scene::collider::Collider;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
@@ -17,7 +13,7 @@ pub struct Character {
     pub body: Handle<Node>,
     pub health: f32,
     pub last_health: f32,
-    pub weapons: Vec<Handle<Weapon>>,
+    pub weapons: Vec<Handle<Node>>,
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
     #[visit(skip)]
@@ -130,49 +126,38 @@ impl Character {
         self.weapon_pivot
     }
 
-    pub fn weapons(&self) -> &[Handle<Weapon>] {
+    pub fn weapons(&self) -> &[Handle<Node>] {
         &self.weapons
     }
 
-    pub fn add_weapon(&mut self, weapon: Handle<Weapon>, sender: &MessageSender) {
+    pub fn add_weapon(&mut self, weapon: Handle<Node>, graph: &mut Graph) {
         for other_weapon in self.weapons.iter() {
-            sender.send(Message::ShowWeapon {
-                weapon: *other_weapon,
-                state: false,
-            });
+            weapon_mut(*other_weapon, graph).enabled = false;
         }
 
         self.current_weapon = self.weapons.len() as u32;
         self.weapons.push(weapon);
 
-        self.request_current_weapon_visible(true, sender);
+        self.request_current_weapon_enabled(true, graph);
     }
 
-    pub fn select_weapon(
-        &mut self,
-        weapon: WeaponKind,
-        weapons: &WeaponContainer,
-        sender: &MessageSender,
-    ) {
+    pub fn select_weapon(&mut self, weapon: WeaponKind, graph: &mut Graph) {
         if let Some(index) = self
             .weapons
             .iter()
-            .position(|&w| weapons[w].kind() == weapon)
+            .position(|&w| weapon_ref(w, graph).kind() == weapon)
         {
             for other_weapon in self.weapons.iter() {
-                sender.send(Message::ShowWeapon {
-                    weapon: *other_weapon,
-                    state: false,
-                });
+                weapon_mut(*other_weapon, graph).enabled = false;
             }
 
             self.current_weapon = index as u32;
 
-            self.request_current_weapon_visible(true, sender);
+            self.request_current_weapon_enabled(true, graph);
         }
     }
 
-    pub fn current_weapon(&self) -> Handle<Weapon> {
+    pub fn current_weapon(&self) -> Handle<Node> {
         if let Some(weapon) = self.weapons.get(self.current_weapon as usize) {
             *weapon
         } else {
@@ -180,52 +165,49 @@ impl Character {
         }
     }
 
-    fn request_current_weapon_visible(&self, state: bool, sender: &MessageSender) {
+    fn request_current_weapon_enabled(&self, state: bool, graph: &mut Graph) {
         if let Some(current_weapon) = self.weapons.get(self.current_weapon as usize) {
-            sender.send(Message::ShowWeapon {
-                weapon: *current_weapon,
-                state,
-            });
+            weapon_mut(*current_weapon, graph).enabled = state;
         }
     }
 
-    pub fn next_weapon(&mut self, sender: &MessageSender) {
+    pub fn next_weapon(&mut self, graph: &mut Graph) {
         if !self.weapons.is_empty() && (self.current_weapon as usize) < self.weapons.len() - 1 {
-            self.request_current_weapon_visible(false, sender);
+            self.request_current_weapon_enabled(false, graph);
 
             self.current_weapon += 1;
 
-            self.request_current_weapon_visible(true, sender);
+            self.request_current_weapon_enabled(true, graph);
         }
     }
 
-    pub fn prev_weapon(&mut self, sender: &MessageSender) {
+    pub fn prev_weapon(&mut self, graph: &mut Graph) {
         if self.current_weapon > 0 {
-            self.request_current_weapon_visible(false, sender);
+            self.request_current_weapon_enabled(false, graph);
 
             self.current_weapon -= 1;
 
-            self.request_current_weapon_visible(true, sender);
+            self.request_current_weapon_enabled(true, graph);
         }
     }
 
-    pub fn use_first_weapon_or_none(&mut self, sender: &MessageSender) {
+    pub fn use_first_weapon_or_none(&mut self, graph: &mut Graph) {
         if !self.weapons.is_empty() {
-            self.request_current_weapon_visible(false, sender);
+            self.request_current_weapon_enabled(false, graph);
 
             self.current_weapon = 0;
 
-            self.request_current_weapon_visible(true, sender);
+            self.request_current_weapon_enabled(true, graph);
         }
     }
 
-    pub fn set_current_weapon(&mut self, i: usize, sender: &MessageSender) {
+    pub fn set_current_weapon(&mut self, i: usize, graph: &mut Graph) {
         if i < self.weapons.len() {
-            self.request_current_weapon_visible(false, sender);
+            self.request_current_weapon_enabled(false, graph);
 
             self.current_weapon = i as u32;
 
-            self.request_current_weapon_visible(true, sender);
+            self.request_current_weapon_enabled(true, graph);
         }
     }
 

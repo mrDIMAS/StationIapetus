@@ -39,6 +39,7 @@ use crate::{
     message::Message,
     player::PlayerPersistentData,
     utils::use_hrtf,
+    weapon::Weapon,
 };
 use fyrox::{
     core::{
@@ -46,7 +47,6 @@ use fyrox::{
         parking_lot::Mutex,
         pool::Handle,
         sstorage::ImmutableString,
-        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
@@ -66,7 +66,6 @@ use fyrox::{
     resource::texture::Texture,
     scene::{
         base::BaseBuilder,
-        node::TypeUuidProvider,
         sound::{SoundBuilder, Status},
         Scene, SceneLoader,
     },
@@ -118,20 +117,20 @@ pub struct Game {
     smaller_font: SharedFont,
 }
 
-pub fn game_ref(plugin: &dyn Plugin) -> &Game {
-    plugin.cast::<Game>().unwrap()
+pub fn game_ref(plugins: &[Box<dyn Plugin>]) -> &Game {
+    plugins.first().unwrap().cast::<Game>().unwrap()
 }
 
-pub fn game_mut(plugin: &mut dyn Plugin) -> &mut Game {
-    plugin.cast_mut::<Game>().unwrap()
+pub fn game_mut(plugins: &mut [Box<dyn Plugin>]) -> &mut Game {
+    plugins.first_mut().unwrap().cast_mut::<Game>().unwrap()
 }
 
-pub fn current_level_ref(plugin: &dyn Plugin) -> Option<&Level> {
-    game_ref(plugin).level.as_ref()
+pub fn current_level_ref(plugins: &[Box<dyn Plugin>]) -> Option<&Level> {
+    game_ref(plugins).level.as_ref()
 }
 
-pub fn current_level_mut(plugin: &mut dyn Plugin) -> Option<&mut Level> {
-    game_mut(plugin).level.as_mut()
+pub fn current_level_mut(plugins: &mut [Box<dyn Plugin>]) -> Option<&mut Level> {
+    game_mut(plugins).level.as_mut()
 }
 
 #[derive(Copy, Clone)]
@@ -617,7 +616,8 @@ impl Game {
                 let player = level.get_player();
                 if player.is_some() {
                     if let Actor::Player(player) = level.actors().get(player) {
-                        self.weapon_display.sync_to_model(player, level.weapons());
+                        self.weapon_display
+                            .sync_to_model(player, &context.scenes[level.scene].graph);
                         self.journal_display.update(time.delta, &player.journal);
                     }
                 }
@@ -632,7 +632,7 @@ impl Game {
         self.door_ui_container.update(time.delta);
         self.call_button_ui_container.update(time.delta);
 
-        self.handle_messages(time, context);
+        self.handle_messages(context);
 
         self.update_duration = std::time::Instant::now() - last_time;
         self.update_statistics(0.0, context);
@@ -643,7 +643,7 @@ impl Game {
         }
     }
 
-    fn handle_messages(&mut self, time: GameTime, mut context: &mut PluginContext) {
+    fn handle_messages(&mut self, mut context: &mut PluginContext) {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
@@ -680,7 +680,7 @@ impl Game {
                             let persistent_data = if let Actor::Player(player) =
                                 level.actors().get(level.get_player())
                             {
-                                player.persistent_data(&level.weapons())
+                                player.persistent_data(&context.scenes[level.scene].graph)
                             } else {
                                 unreachable!()
                             };
@@ -788,11 +788,9 @@ impl Game {
             }
 
             if let Some(ref mut level) = self.level {
-                fyrox::core::futures::executor::block_on(level.handle_message(
-                    &mut context,
-                    &message,
-                    time,
-                ));
+                fyrox::core::futures::executor::block_on(
+                    level.handle_message(&mut context, &message),
+                );
             }
         }
     }
@@ -893,19 +891,14 @@ impl Game {
 
 pub struct GameConstructor;
 
-impl TypeUuidProvider for GameConstructor {
-    fn type_uuid() -> Uuid {
-        uuid!("f615ac42-b259-4a23-bb44-407d753ac178")
-    }
-}
-
 impl PluginConstructor for GameConstructor {
     fn register(&self, context: PluginRegistrationContext) {
         context
             .serialization_context
             .script_constructors
             .add::<Door>("Door")
-            .add::<Turret>("Turret");
+            .add::<Turret>("Turret")
+            .add::<Weapon>("Weapon");
     }
 
     fn create_instance(
@@ -934,10 +927,6 @@ impl Plugin for Game {
         if !self.running {
             *control_flow = ControlFlow::Exit;
         }
-    }
-
-    fn id(&self) -> Uuid {
-        GameConstructor::type_uuid()
     }
 
     fn on_os_event(

@@ -32,8 +32,6 @@ use fyrox::{
 use std::{path::PathBuf, sync::Arc};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-use crate::GameConstructor;
-
 pub mod ui;
 
 #[derive(
@@ -153,58 +151,46 @@ impl TypeUuidProvider for Door {
 }
 
 impl ScriptTrait for Door {
-    fn on_init(&mut self, context: ScriptContext) {
-        self.self_handle = context.handle;
-        self.initial_position = context.scene.graph[context.handle].global_position();
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        self.self_handle = ctx.handle;
+        self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
-        let game = game_mut(context.plugin);
+        let game = game_mut(ctx.plugins);
         let texture = game.door_ui_container.create_ui(
             game.smaller_font.clone(),
-            context.resource_manager.clone(),
-            context.handle,
+            ctx.resource_manager.clone(),
+            ctx.handle,
         );
-        self.apply_screen_texture(
-            &mut context.scene.graph,
-            context.resource_manager.clone(),
-            texture,
-        );
+        self.apply_screen_texture(&mut ctx.scene.graph, ctx.resource_manager.clone(), texture);
 
-        current_level_mut(context.plugin)
+        current_level_mut(ctx.plugins)
             .expect("Level must exist!")
             .doors_container
             .doors
-            .push(context.handle);
+            .push(ctx.handle);
     }
 
-    fn on_deinit(&mut self, context: ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
         // Level can not exist in case if we're changing the level. In this case there is no need
         // to unregister doors anyway, because the registry is already removed.
-        if let Some(level) = current_level_mut(context.plugin) {
+        if let Some(level) = current_level_mut(ctx.plugins) {
             if let Some(position) = level
                 .doors_container
                 .doors
                 .iter()
-                .position(|d| *d == context.node_handle)
+                .position(|d| *d == ctx.node_handle)
             {
                 level.doors_container.doors.remove(position);
             }
         }
     }
 
-    fn on_update(&mut self, context: ScriptContext) {
-        let ScriptContext {
-            dt,
-            plugin,
-            handle,
-            scene,
-            ..
-        } = context;
-
-        let game = game_mut(plugin);
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let game = game_mut(ctx.plugins);
 
         let speed = 0.55;
 
-        let node = &scene.graph[handle];
+        let node = &ctx.scene.graph[ctx.handle];
         let move_direction = match *self.open_direction {
             DoorDirection::Side => node.look_vector(),
             DoorDirection::Up => node.up_vector(),
@@ -214,7 +200,7 @@ impl ScriptTrait for Door {
 
         let someone_nearby = game.level.as_ref().map_or(false, |level| {
             level.actors.iter().any(|a| {
-                let actor_position = a.position(&scene.graph);
+                let actor_position = a.position(&ctx.scene.graph);
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {
                     closest_actor = Some(a);
@@ -235,7 +221,7 @@ impl ScriptTrait for Door {
             });
         }
 
-        if let Some(ui) = game.door_ui_container.get_ui_mut(handle) {
+        if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
             let text = match self.state {
                 DoorState::Opened => "Opened",
                 DoorState::Opening => "Opening...",
@@ -257,40 +243,40 @@ impl ScriptTrait for Door {
         match self.state {
             DoorState::Opening => {
                 if self.offset < *self.open_offset_amount {
-                    self.offset += speed * dt;
+                    self.offset += speed * ctx.dt;
                     if self.offset >= *self.open_offset_amount {
                         self.state = DoorState::Opened;
                         self.offset = *self.open_offset_amount;
                     }
                 }
 
-                self.set_lights_enabled(&mut scene.graph, false);
+                self.set_lights_enabled(&mut ctx.scene.graph, false);
             }
             DoorState::Closing => {
                 if self.offset > 0.0 {
-                    self.offset -= speed * dt;
+                    self.offset -= speed * ctx.dt;
                     if self.offset <= 0.0 {
                         self.state = DoorState::Closed;
                         self.offset = 0.0;
                     }
                 }
 
-                self.set_lights_enabled(&mut scene.graph, false);
+                self.set_lights_enabled(&mut ctx.scene.graph, false);
             }
             DoorState::Closed => {
-                self.set_lights_enabled(&mut scene.graph, true);
-                self.set_lights_color(&mut scene.graph, Color::opaque(0, 200, 0));
+                self.set_lights_enabled(&mut ctx.scene.graph, true);
+                self.set_lights_color(&mut ctx.scene.graph, Color::opaque(0, 200, 0));
             }
             DoorState::Locked => {
-                self.set_lights_enabled(&mut scene.graph, true);
-                self.set_lights_color(&mut scene.graph, Color::opaque(200, 0, 0));
+                self.set_lights_enabled(&mut ctx.scene.graph, true);
+                self.set_lights_color(&mut ctx.scene.graph, Color::opaque(200, 0, 0));
             }
             DoorState::Broken | DoorState::Opened => {
-                self.set_lights_enabled(&mut scene.graph, false);
+                self.set_lights_enabled(&mut ctx.scene.graph, false);
             }
         };
 
-        if let Some(body) = scene.graph[context.handle].cast_mut::<RigidBody>() {
+        if let Some(body) = ctx.scene.graph[ctx.handle].cast_mut::<RigidBody>() {
             body.local_transform_mut().set_position(
                 self.initial_position
                     + move_direction
@@ -301,7 +287,7 @@ impl ScriptTrait for Door {
         }
 
         if let Some(open_request) = self.open_request.take() {
-            let position = self.actual_position(&scene.graph);
+            let position = self.actual_position(&ctx.scene.graph);
 
             if self.state == DoorState::Closed {
                 self.state = DoorState::Opening;
@@ -352,10 +338,6 @@ impl ScriptTrait for Door {
 
     fn id(&self) -> Uuid {
         Self::type_uuid()
-    }
-
-    fn plugin_uuid(&self) -> Uuid {
-        GameConstructor::type_uuid()
     }
 }
 

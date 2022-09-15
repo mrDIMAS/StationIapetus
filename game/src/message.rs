@@ -14,16 +14,15 @@ use crate::{
     weapon::{
         definition::{ShotEffect, WeaponKind},
         projectile::{Damage, ProjectileKind, Shooter},
-        sight::SightReaction,
-        Weapon,
     },
 };
-use fyrox::core::{
-    algebra::{UnitQuaternion, Vector3},
-    pool::Handle,
+use fyrox::{
+    core::{
+        algebra::{UnitQuaternion, Vector3},
+        pool::Handle,
+    },
+    scene::{graph::physics::FeatureId, node::Node},
 };
-use fyrox::scene::graph::physics::FeatureId;
-use fyrox::scene::node::Node;
 use std::path::PathBuf;
 
 #[derive(Debug)]
@@ -79,10 +78,6 @@ pub enum Message {
         initial_velocity: Vector3<f32>,
         shooter: Shooter,
     },
-    ShootWeapon {
-        weapon: Handle<Weapon>,
-        direction: Option<Vector3<f32>>,
-    },
     ShootRay {
         shooter: Shooter,
         begin: Vector3<f32>,
@@ -111,17 +106,10 @@ pub enum Message {
         rolloff_factor: f32,
         radius: f32,
     },
-    ShowWeapon {
-        weapon: Handle<Weapon>,
-        state: bool,
-    },
     /// Forces actor to use a weapon of given kind.
     GrabWeapon {
         kind: WeaponKind,
         actor: Handle<Actor>,
-    },
-    SwitchFlashLight {
-        weapon: Handle<Weapon>,
     },
     DamageActor {
         /// Which actor should be damaged.
@@ -148,12 +136,6 @@ pub enum Message {
         /// Damage initiator
         who: Handle<Actor>,
         critical_shot_probability: f32,
-    },
-    /// Forces weapon's sight to react in given manner. It is used to indicate hits and
-    /// moment when enemy dies.
-    SightReaction {
-        weapon: Handle<Weapon>,
-        reaction: SightReaction,
     },
     /// Save game state to a file. TODO: Add filename field.
     SaveGame,

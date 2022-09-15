@@ -1,3 +1,4 @@
+use crate::weapon::{try_weapon_ref, weapon_mut, weapon_ref};
 use crate::{
     actor::Actor,
     character::{find_hit_boxes, Character},
@@ -21,10 +22,10 @@ use crate::{
     weapon::{
         definition::WeaponKind,
         projectile::{ProjectileKind, Shooter},
-        WeaponContainer,
     },
     CollisionGroups, GameTime, MessageSender,
 };
+use fyrox::scene::graph::Graph;
 use fyrox::{
     animation::{
         machine::{node::blend::IndexedBlendInput, Machine, PoseNode, State},
@@ -529,7 +530,7 @@ impl Player {
         }
     }
 
-    pub fn persistent_data(&self, weapons: &WeaponContainer) -> PlayerPersistentData {
+    pub fn persistent_data(&self, graph: &Graph) -> PlayerPersistentData {
         PlayerPersistentData {
             inventory: self.inventory.clone(),
             health: self.health,
@@ -537,7 +538,7 @@ impl Player {
             weapons: self
                 .weapons
                 .iter()
-                .map(|w| weapons[*w].kind())
+                .map(|w| weapon_ref(*w, graph).kind())
                 .collect::<Vec<_>>(),
         }
     }
@@ -710,8 +711,8 @@ impl Player {
             if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
                 match self.weapon_change_direction {
                     RequiredWeapon::None => (),
-                    RequiredWeapon::Next => self.next_weapon(sender),
-                    RequiredWeapon::Previous => self.prev_weapon(sender),
+                    RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
+                    RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
                     RequiredWeapon::Specific(kind) => {
                         sender.send(Message::GrabWeapon {
                             kind,
@@ -811,9 +812,9 @@ impl Player {
         self.velocity.follow(&self.target_velocity, 0.15);
     }
 
-    fn current_weapon_kind(&self, weapons: &WeaponContainer) -> CombatWeaponKind {
+    fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
         if self.current_weapon().is_some() {
-            match weapons[self.current_weapon()].kind() {
+            match weapon_ref(self.current_weapon(), graph).kind() {
                 WeaponKind::M4
                 | WeaponKind::Ak47
                 | WeaponKind::PlasmaRifle
@@ -876,10 +877,9 @@ impl Player {
         is_walking: bool,
         is_jumping: bool,
         has_ground_contact: bool,
-        weapons: &WeaponContainer,
         sender: &MessageSender,
     ) {
-        let weapon_kind = self.current_weapon_kind(weapons);
+        let weapon_kind = self.current_weapon_kind(&scene.graph);
 
         let should_be_stunned = self.should_be_stunned();
         if should_be_stunned {
@@ -962,13 +962,7 @@ impl Player {
         }
     }
 
-    fn update_shooting(
-        &mut self,
-        scene: &mut Scene,
-        weapons: &WeaponContainer,
-        time: GameTime,
-        sender: &MessageSender,
-    ) {
+    fn update_shooting(&mut self, scene: &mut Scene, time: GameTime) {
         self.v_recoil.update(time.delta);
         self.h_recoil.update(time.delta);
 
@@ -978,16 +972,23 @@ impl Player {
             .get(self.character.current_weapon as usize)
         {
             if self.upper_body_machine.machine.active_state() == self.upper_body_machine.aim_state {
-                let weapon = &weapons[current_weapon_handle];
-                weapon.laser_sight().set_visible(true, &mut scene.graph);
+                weapon_mut(current_weapon_handle, &mut scene.graph)
+                    .laser_sight_mut()
+                    .enabled = true;
+
+                let ammo_indicator_offset = weapon_ref(current_weapon_handle, &scene.graph)
+                    .definition
+                    .ammo_indicator_offset();
                 let weapon_display = &mut scene.graph[self.weapon_display];
                 weapon_display.set_visibility(true);
                 weapon_display
                     .local_transform_mut()
-                    .set_position(weapon.definition.ammo_indicator_offset());
+                    .set_position(ammo_indicator_offset);
 
-                if self.controller.shoot && weapon.can_shoot(time) {
-                    let ammo_per_shot = weapons[current_weapon_handle]
+                if self.controller.shoot
+                    && weapon_ref(current_weapon_handle, &scene.graph).can_shoot(time)
+                {
+                    let ammo_per_shot = weapon_ref(current_weapon_handle, &scene.graph)
                         .definition
                         .ammo_consumption_per_shot;
 
@@ -996,22 +997,25 @@ impl Player {
                         .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                         == ammo_per_shot
                     {
-                        sender.send(Message::ShootWeapon {
-                            weapon: current_weapon_handle,
-                            direction: None,
-                        });
+                        weapon_mut(current_weapon_handle, &mut scene.graph).request_shot(None);
 
                         self.camera_controller.request_shake_camera();
-                        self.v_recoil
-                            .set_target(weapon.definition.gen_v_recoil_angle());
-                        self.h_recoil
-                            .set_target(weapon.definition.gen_h_recoil_angle());
+                        self.v_recoil.set_target(
+                            weapon_ref(current_weapon_handle, &scene.graph)
+                                .definition
+                                .gen_v_recoil_angle(),
+                        );
+                        self.h_recoil.set_target(
+                            weapon_ref(current_weapon_handle, &scene.graph)
+                                .definition
+                                .gen_h_recoil_angle(),
+                        );
                     }
                 }
             } else {
-                weapons[current_weapon_handle]
-                    .laser_sight()
-                    .set_visible(false, &mut scene.graph);
+                weapon_mut(current_weapon_handle, &mut scene.graph)
+                    .laser_sight_mut()
+                    .enabled = false;
                 scene.graph[self.weapon_display].set_visibility(false);
             }
         }
@@ -1022,16 +1026,10 @@ impl Player {
             && self.lower_body_machine.machine.active_state() != self.lower_body_machine.land_state
     }
 
-    fn apply_weapon_angular_correction(
-        &mut self,
-        scene: &mut Scene,
-        can_move: bool,
-        dt: f32,
-        weapons: &WeaponContainer,
-    ) {
+    fn apply_weapon_angular_correction(&mut self, scene: &mut Scene, can_move: bool, dt: f32) {
         if self.controller.aim {
             let (pitch_correction, yaw_correction) =
-                if let Some(weapon) = weapons.try_get(self.current_weapon()) {
+                if let Some(weapon) = try_weapon_ref(self.current_weapon(), &scene.graph) {
                     (
                         weapon.definition.pitch_correction,
                         weapon.definition.yaw_correction,
@@ -1075,7 +1073,6 @@ impl Player {
         let UpdateContext {
             time,
             scene,
-            weapons,
             items,
             sender,
             doors,
@@ -1097,7 +1094,6 @@ impl Player {
             is_walking,
             is_jumping,
             has_ground_contact,
-            weapons,
             sender,
         );
 
@@ -1212,7 +1208,7 @@ impl Player {
                 }
             }
 
-            self.apply_weapon_angular_correction(scene, can_move, time.delta, weapons);
+            self.apply_weapon_angular_correction(scene, can_move, time.delta);
 
             if has_ground_contact {
                 self.in_air_time = 0.0;
@@ -1234,7 +1230,7 @@ impl Player {
             self.check_items(self_handle, scene, items, sender);
             self.check_doors(self_handle, scene, doors, sender);
             self.check_elevators(scene, elevators, call_buttons, sender);
-            self.update_shooting(scene, weapons, *time, sender);
+            self.update_shooting(scene, *time);
 
             let spine_transform = scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
@@ -1275,7 +1271,6 @@ impl Player {
         event: &Event<()>,
         dt: f32,
         scene: &mut Scene,
-        weapons: &WeaponContainer,
         control_scheme: &ControlScheme,
         sender: &MessageSender,
     ) {
@@ -1333,7 +1328,7 @@ impl Player {
             && self.weapons.len() > 1;
 
         let current_weapon_kind = if self.current_weapon().is_some() {
-            Some(weapons[self.current_weapon()].kind())
+            Some(weapon_ref(self.current_weapon(), &scene.graph).kind())
         } else {
             None
         };
@@ -1379,9 +1374,9 @@ impl Player {
             } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
                     let current_weapon = self.current_weapon();
-                    sender.send(Message::SwitchFlashLight {
-                        weapon: current_weapon,
-                    });
+                    if current_weapon.is_some() {
+                        weapon_mut(current_weapon, &mut scene.graph).switch_flash_light();
+                    }
                 }
             } else if button == control_scheme.grab_ak47.button && can_change_weapon {
                 if current_weapon_kind.map_or(false, |k| k != WeaponKind::Ak47) {

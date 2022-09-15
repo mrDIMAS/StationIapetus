@@ -1,25 +1,24 @@
 use crate::CollisionGroups;
-use fyrox::core::parking_lot::Mutex;
-use fyrox::core::sstorage::ImmutableString;
-use fyrox::scene::collider::{BitMask, InteractionGroups};
-use fyrox::scene::graph::physics::RayCastOptions;
-use fyrox::scene::light::BaseLight;
-use fyrox::utils::log::Log;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
+        inspect::prelude::*,
         math::{lerpf, ray::Ray},
+        parking_lot::Mutex,
         pool::Handle,
+        reflect::Reflect,
+        sstorage::ImmutableString,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
     material::{Material, PropertyValue},
     scene::{
         base::BaseBuilder,
-        graph::Graph,
-        light::{point::PointLightBuilder, BaseLightBuilder},
+        collider::{BitMask, InteractionGroups},
+        graph::{physics::RayCastOptions, Graph},
+        light::{point::PointLightBuilder, BaseLight, BaseLightBuilder},
         mesh::{
             surface::{SurfaceBuilder, SurfaceData},
             MeshBuilder, RenderPath,
@@ -28,18 +27,23 @@ use fyrox::{
         sprite::SpriteBuilder,
         Scene,
     },
+    utils::log::Log,
 };
 use std::sync::Arc;
 
-#[derive(Default, Visit)]
+#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
 pub struct LaserSight {
     ray: Handle<Node>,
     tip: Handle<Node>,
     light: Handle<Node>,
+    pub enabled: bool,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
     reaction_state: Option<ReactionState>,
 }
 
-#[derive(Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub enum ReactionState {
     HitDetected {
         time_remaining: f32,
@@ -125,6 +129,7 @@ impl LaserSight {
             ray,
             tip,
             light,
+            enabled: true,
             reaction_state: None,
         }
     }
@@ -137,6 +142,9 @@ impl LaserSight {
         ignore_collider: Handle<Node>,
         dt: f32,
     ) {
+        scene.graph[self.tip].set_visibility(self.enabled);
+        scene.graph[self.ray].set_visibility(self.enabled);
+
         let mut intersections = ArrayVec::<_, 64>::new();
 
         let max_toi = 100.0;
@@ -255,11 +263,6 @@ impl LaserSight {
             NORMAL_RADIUS * factor,
             scale.z,
         ));
-    }
-
-    pub fn set_visible(&self, visibility: bool, graph: &mut Graph) {
-        graph[self.tip].set_visibility(visibility);
-        graph[self.ray].set_visibility(visibility);
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {

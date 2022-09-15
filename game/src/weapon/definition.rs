@@ -3,13 +3,30 @@ use crate::{
     weapon::projectile::{Damage, ProjectileKind},
 };
 use fyrox::{
-    core::{algebra::Vector3, rand::Rng, visitor::prelude::*},
+    core::{
+        algebra::Vector3, inspect::prelude::*, rand::Rng, reflect::Reflect, visitor::prelude::*,
+    },
     lazy_static::lazy_static,
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+    Deserialize,
+    Hash,
+    Visit,
+    Inspect,
+    Reflect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+)]
 #[repr(u32)]
 pub enum WeaponKind {
     M4 = 0,
@@ -54,7 +71,7 @@ pub enum WeaponProjectile {
     },
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct WeaponDefinition {
     pub model: String,
     pub shot_sounds: Vec<String>,

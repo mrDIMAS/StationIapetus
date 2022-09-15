@@ -1,7 +1,7 @@
 (
     map: {
         M4: (
-            model: "data/models/m4/m4.FBX",
+            model: "data/models/m4/m4.rgs",
             shot_sounds: [
                 // Not M4 sounds, but ok.
                 "data/sounds/enfield_l85_shot_1.wav",
@@ -20,7 +20,7 @@
             base_critical_shot_probability: 0.028
         ),
         Ak47: (
-            model: "data/models/ak47/ak47.FBX",
+            model: "data/models/ak47/ak47.rgs",
             shot_sounds: [
                 "data/sounds/akm_shot_1.wav",
                 "data/sounds/akm_shot_2.wav",
@@ -38,7 +38,7 @@
             base_critical_shot_probability: 0.025
         ),
         PlasmaRifle: (
-            model: "data/models/plasma_rifle/plasma_rifle.fbx",
+            model: "data/models/plasma_rifle/plasma_rifle.rgs",
             shot_sounds: ["data/sounds/plasma_shot.ogg"],
             projectile: Projectile(Plasma),
             shoot_interval: 0.25,
@@ -52,7 +52,7 @@
             base_critical_shot_probability: 0.01
         ),
         Glock: (
-            model: "data/models/glock/glock.FBX",
+            model: "data/models/glock/glock.rgs",
             shot_sounds: [
                 "data/sounds/glock_shot_1.wav",
                 "data/sounds/glock_shot_2.wav",
@@ -70,7 +70,7 @@
             base_critical_shot_probability: 0.03
         ),
         RailGun: (
-            model: "data/models/rail_gun/Sniper_Railgun.fbx",
+            model: "data/models/rail_gun/rail_gun.rgs",
             shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
             projectile: Ray(damage: Point(240.0)),
             shoot_interval: 2.0,

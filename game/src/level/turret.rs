@@ -4,7 +4,7 @@ use crate::{
     message::Message,
     weapon::definition::ShotEffect,
     weapon::projectile::{Damage, Shooter},
-    GameConstructor, MessageSender,
+    MessageSender,
 };
 use fyrox::{
     core::{
@@ -167,36 +167,28 @@ impl TypeUuidProvider for Turret {
 }
 
 impl ScriptTrait for Turret {
-    fn on_update(&mut self, context: ScriptContext) {
-        let ScriptContext {
-            dt,
-            plugin,
-            handle,
-            scene,
-            ..
-        } = context;
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let level_ref = current_level_ref(ctx.plugins).expect("Level must exist!");
 
-        let level_ref = current_level_ref(plugin).expect("Level must exist!");
+        self.update_frustum(ctx.scene);
 
-        self.update_frustum(scene);
-
-        self.shoot_timer -= dt;
-        self.target_check_timer -= dt;
+        self.shoot_timer -= ctx.dt;
+        self.target_check_timer -= ctx.dt;
 
         if self.target_check_timer <= 0.0 {
-            self.select_target(scene, &level_ref.actors);
+            self.select_target(ctx.scene, &level_ref.actors);
             self.target_check_timer = 0.15;
         }
 
         if level_ref.actors.contains(self.target) {
-            let target_position = level_ref.actors.get(self.target).position(&scene.graph);
+            let target_position = level_ref.actors.get(self.target).position(&ctx.scene.graph);
 
-            let position = scene.graph[self.model].global_position();
+            let position = ctx.scene.graph[self.model].global_position();
 
             let d = target_position - position;
 
             // Aim horizontally.
-            let d_model_rel = scene.graph[self.model]
+            let d_model_rel = ctx.scene.graph[self.model]
                 .global_transform()
                 .try_inverse()
                 .unwrap_or_default()
@@ -204,7 +196,7 @@ impl ScriptTrait for Turret {
             self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
 
             // Aim vertically.
-            if let Some(d_body_rel) = scene.graph[self.body]
+            if let Some(d_body_rel) = ctx.scene.graph[self.body]
                 .global_transform()
                 .try_inverse()
                 .unwrap_or_default()
@@ -221,8 +213,8 @@ impl ScriptTrait for Turret {
                     ShootMode::Consecutive => {
                         if let Some(barrel) = self.barrels.get_mut(self.barrel_index as usize) {
                             barrel.shoot(
-                                handle,
-                                scene,
+                                ctx.handle,
+                                ctx.scene,
                                 target_position,
                                 level_ref.sender.as_ref().unwrap(),
                             );
@@ -235,8 +227,8 @@ impl ScriptTrait for Turret {
                     ShootMode::Simultaneously => {
                         for barrel in self.barrels.iter_mut() {
                             barrel.shoot(
-                                handle,
-                                scene,
+                                ctx.handle,
+                                ctx.scene,
                                 target_position,
                                 level_ref.sender.as_ref().unwrap(),
                             );
@@ -246,11 +238,11 @@ impl ScriptTrait for Turret {
             }
 
             for barrel in self.barrels.iter_mut() {
-                barrel.update(scene);
+                barrel.update(ctx.scene);
             }
 
             if self.projector.is_some() {
-                scene.graph[self.projector]
+                ctx.scene.graph[self.projector]
                     .query_component_mut::<BaseLight>()
                     .unwrap()
                     .set_color(Color::opaque(255, 0, 0));
@@ -258,26 +250,26 @@ impl ScriptTrait for Turret {
         } else {
             self.pitch.set_target(90.0f32.to_radians());
             self.yaw
-                .set_target(self.yaw.angle() + 50.0f32.to_radians() * dt);
+                .set_target(self.yaw.angle() + 50.0f32.to_radians() * ctx.dt);
 
             if self.projector.is_some() {
-                scene.graph[self.projector]
+                ctx.scene.graph[self.projector]
                     .query_component_mut::<BaseLight>()
                     .unwrap()
                     .set_color(Color::opaque(255, 127, 40));
             }
         }
 
-        self.pitch.update(dt);
-        self.yaw.update(dt);
+        self.pitch.update(ctx.dt);
+        self.yaw.update(ctx.dt);
 
-        scene.graph[self.body]
+        ctx.scene.graph[self.body]
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::y_axis(),
                 90.0f32.to_radians() + self.yaw.angle(),
             ));
-        scene.graph[self.barrel_stand]
+        ctx.scene.graph[self.barrel_stand]
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::z_axis(),
@@ -299,10 +291,6 @@ impl ScriptTrait for Turret {
 
     fn id(&self) -> Uuid {
         Self::type_uuid()
-    }
-
-    fn plugin_uuid(&self) -> Uuid {
-        GameConstructor::type_uuid()
     }
 }
 

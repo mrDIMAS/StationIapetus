@@ -1,3 +1,4 @@
+use crate::weapon::{weapon_mut, weapon_ref};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -26,7 +27,7 @@ use crate::{
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit,
         sight::SightReaction,
-        Weapon, WeaponContainer,
+        Weapon,
     },
     CallButtonUiContainer, GameTime, MessageSender,
 };
@@ -84,7 +85,6 @@ pub struct Level {
     player: Handle<Actor>,
     projectiles: ProjectileContainer,
     pub actors: ActorContainer,
-    weapons: WeaponContainer,
     items: ItemContainer,
     spawn_points: Vec<SpawnPoint>,
     #[visit(skip)]
@@ -123,7 +123,6 @@ pub struct UpdateContext<'a> {
     pub items: &'a ItemContainer,
     pub doors: &'a DoorContainer,
     pub navmesh: Handle<Navmesh>,
-    pub weapons: &'a WeaponContainer,
     pub sender: &'a MessageSender,
     pub elevators: &'a ElevatorContainer,
     pub call_buttons: &'a CallButtonContainer,
@@ -336,8 +335,6 @@ async fn spawn_player(
     spawn_position: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
     actors: &mut ActorContainer,
-    weapons: &mut WeaponContainer,
-    sender: &MessageSender,
     resource_manager: ResourceManager,
     scene: &mut Scene,
     display_texture: Texture,
@@ -375,10 +372,8 @@ async fn spawn_player(
             player,
             resource_manager.clone(),
             i == weapons_to_give.len() - 1,
-            weapons,
             actors,
             scene,
-            sender,
         )
         .await;
     }
@@ -391,20 +386,23 @@ async fn give_new_weapon(
     actor: Handle<Actor>,
     resource_manager: ResourceManager,
     visible: bool,
-    weapons: &mut WeaponContainer,
     actors: &mut ActorContainer,
     scene: &mut Scene,
-    sender: &MessageSender,
 ) {
     if actors.contains(actor) {
-        let mut weapon = Weapon::new(kind, resource_manager, scene).await;
-        weapon.set_owner(actor);
-        let weapon_model = weapon.model();
-        scene.graph[weapon_model].set_visibility(visible);
+        let root = resource_manager
+            .request_model(Weapon::definition(kind).model.clone())
+            .await
+            .unwrap()
+            .instantiate_geometry(scene);
+        let weapon = scene.graph.find_first_by_script::<Weapon>(root);
+        assert!(weapon.is_some());
+        weapon_mut(weapon, &mut scene.graph).set_owner(actor);
+        scene.graph[weapon].set_visibility(visible);
+
         let actor = actors.get_mut(actor);
-        let weapon_handle = weapons.add(weapon);
-        actor.add_weapon(weapon_handle, sender);
-        scene.graph.link_nodes(weapon_model, actor.weapon_pivot());
+        actor.add_weapon(weapon, &mut scene.graph);
+        scene.graph.link_nodes(root, actor.weapon_pivot());
         actor.inventory_mut().add_item(kind.associated_item(), 1);
     }
 }
@@ -413,10 +411,8 @@ async fn spawn_bot(
     spawn_point: &mut SpawnPoint,
     actors: &mut ActorContainer,
     resource_manager: ResourceManager,
-    sender: &MessageSender,
     scene: &mut Scene,
     weapon: Option<WeaponKind>,
-    weapons: &mut WeaponContainer,
 ) -> Handle<Actor> {
     spawn_point.spawned = true;
 
@@ -431,17 +427,7 @@ async fn spawn_bot(
     .await;
 
     if let Some(weapon) = weapon {
-        give_new_weapon(
-            weapon,
-            bot,
-            resource_manager.clone(),
-            true,
-            weapons,
-            actors,
-            scene,
-            sender,
-        )
-        .await
+        give_new_weapon(weapon, bot, resource_manager.clone(), true, actors, scene).await
     }
 
     bot
@@ -542,21 +528,18 @@ impl Level {
             call_buttons,
         } = block_on(analyze(scene, resource_manager.clone()));
         let mut actors = ActorContainer::new();
-        let mut weapons = WeaponContainer::new();
 
         for pt in spawn_points.iter_mut() {
             block_on(spawn_bot(
                 pt,
                 &mut actors,
                 resource_manager.clone(),
-                &sender,
                 scene,
                 if pt.with_gun {
                     Some(WeaponKind::Ak47)
                 } else {
                     None
                 },
-                &mut weapons,
             ));
         }
 
@@ -565,8 +548,6 @@ impl Level {
                 player_spawn_position,
                 player_spawn_orientation,
                 &mut actors,
-                &mut weapons,
-                &sender,
                 resource_manager.clone(),
                 scene,
                 display_texture,
@@ -576,7 +557,6 @@ impl Level {
                 persistent_data,
             )),
             actors,
-            weapons,
             items,
             lights,
             death_zones,
@@ -643,21 +623,18 @@ impl Level {
             call_buttons,
         } = analyze(&mut scene, resource_manager.clone()).await;
         let mut actors = ActorContainer::new();
-        let mut weapons = WeaponContainer::new();
 
         for pt in spawn_points.iter_mut() {
             spawn_bot(
                 pt,
                 &mut actors,
                 resource_manager.clone(),
-                &sender,
                 &mut scene,
                 if pt.with_gun {
                     Some(WeaponKind::Ak47)
                 } else {
                     None
                 },
-                &mut weapons,
             )
             .await;
         }
@@ -667,8 +644,6 @@ impl Level {
                 player_spawn_position,
                 player_spawn_orientation,
                 &mut actors,
-                &mut weapons,
-                &sender,
                 resource_manager.clone(),
                 &mut scene,
                 display_texture,
@@ -679,7 +654,6 @@ impl Level {
             )
             .await,
             actors,
-            weapons,
             items,
             lights,
             death_zones,
@@ -718,10 +692,8 @@ impl Level {
             actor,
             engine.resource_manager.clone(),
             true,
-            &mut self.weapons,
             &mut self.actors,
             &mut engine.scenes[self.scene],
-            self.sender.as_ref().unwrap(),
         )
         .await;
     }
@@ -740,7 +712,7 @@ impl Level {
     ) {
         if self.player.is_some() {
             if let Actor::Player(player) = self.actors.get_mut(self.player) {
-                player.process_input_event(event, dt, scene, &self.weapons, control_scheme, sender);
+                player.process_input_event(event, dt, scene, control_scheme, sender);
             }
         }
     }
@@ -753,11 +725,7 @@ impl Level {
         &mut self.actors
     }
 
-    pub fn weapons(&self) -> &WeaponContainer {
-        &self.weapons
-    }
-
-    fn remove_weapon(&mut self, engine: &mut PluginContext, weapon: Handle<Weapon>) {
+    fn remove_weapon(&mut self, engine: &mut PluginContext, weapon: Handle<Node>) {
         for projectile in self.projectiles.iter_mut() {
             if let Shooter::Weapon(ref mut owner) = projectile.owner {
                 // Reset owner because handle to weapon will be invalid after weapon freed.
@@ -773,7 +741,7 @@ impl Level {
             if actor.current_weapon() == weapon {
                 if let Some(&first_weapon) = actor.weapons.first() {
                     actor.current_weapon = 0;
-                    self.weapons[first_weapon].set_visibility(true, &mut scene.graph);
+                    weapon_mut(first_weapon, &mut scene.graph).enabled = true;
                 }
             }
 
@@ -782,8 +750,9 @@ impl Level {
             }
         }
 
-        self.weapons[weapon].clean_up(scene);
-        self.weapons.free(weapon);
+        // We must delete the weapon using the parent handle, because we using one of descendant nodes
+        // in a weapon's prefab instance.
+        scene.graph.remove_node(scene.graph[weapon].parent());
     }
 
     async fn add_bot(
@@ -831,23 +800,23 @@ impl Level {
             .weapons()
             .iter()
             .copied()
-            .collect::<Vec<Handle<Weapon>>>();
+            .collect::<Vec<Handle<Node>>>();
 
         if character
             .inventory_mut()
             .try_extract_exact_items(item, count)
             == count
         {
-            self.spawn_item(engine, item, drop_position, true).await;
-
             // Make sure to remove weapons associated with items.
             if let Some(weapon_kind) = item.associated_weapon() {
                 for weapon in weapons {
-                    if self.weapons[weapon].kind() == weapon_kind {
+                    if weapon_ref(weapon, &engine.scenes[self.scene].graph).kind() == weapon_kind {
                         self.remove_weapon(engine, weapon);
                     }
                 }
             }
+
+            self.spawn_item(engine, item, drop_position, true).await;
         }
     }
 
@@ -907,7 +876,7 @@ impl Level {
 
                     let mut found = false;
                     for weapon_handle in character.weapons() {
-                        let weapon = &mut self.weapons[*weapon_handle];
+                        let weapon = weapon_ref(*weapon_handle, &scene.graph);
                         if weapon.kind() == weapon_kind {
                             found = true;
                             break;
@@ -954,36 +923,6 @@ impl Level {
         )
         .await;
         self.projectiles.add(projectile);
-    }
-
-    async fn shoot_weapon(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        weapon_handle: Handle<Weapon>,
-        time: GameTime,
-        direction: Option<Vector3<f32>>,
-    ) {
-        if self.weapons.contains(weapon_handle) {
-            let scene = &mut engine.scenes[self.scene];
-            let weapon = &mut self.weapons[weapon_handle];
-            weapon.shoot(
-                weapon_handle,
-                scene,
-                time,
-                engine.resource_manager.clone(),
-                direction,
-                self.sender.as_ref().unwrap(),
-            );
-        }
-    }
-
-    fn show_weapon(
-        &mut self,
-        engine: &mut PluginContext,
-        weapon_handle: Handle<Weapon>,
-        state: bool,
-    ) {
-        self.weapons[weapon_handle].set_visibility(state, &mut engine.scenes[self.scene].graph)
     }
 
     fn damage_actor(
@@ -1115,14 +1054,8 @@ impl Level {
         let scene = &mut engine.scenes[self.scene];
 
         self.update_death_zones(scene);
-        self.weapons.update(scene, &self.actors, time.delta);
-        self.projectiles.update(
-            scene,
-            &self.actors,
-            &self.weapons,
-            time,
-            self.sender.as_ref().unwrap(),
-        );
+        self.projectiles
+            .update(scene, &self.actors, time, self.sender.as_ref().unwrap());
         self.elevators.update(time.delta, scene);
         self.call_buttons
             .update(&self.elevators, call_button_ui_container);
@@ -1132,7 +1065,6 @@ impl Level {
             items: &self.items,
             doors: &self.doors_container,
             navmesh: self.navmesh,
-            weapons: &self.weapons,
             elevators: &self.elevators,
             call_buttons: &self.call_buttons,
             sender: self.sender.as_ref().unwrap(),
@@ -1168,9 +1100,8 @@ impl Level {
             begin,
             end,
             shooter,
-            &self.weapons,
             &self.actors,
-            &mut scene.graph.physics,
+            &mut scene.graph,
             Default::default(),
         ) {
             let sender = self.sender.as_ref().unwrap();
@@ -1198,16 +1129,13 @@ impl Level {
 
             let critical_shot_probability = match shooter {
                 Shooter::Weapon(weapon) => {
+                    let weapon = weapon_mut(weapon, &mut scene.graph);
+
                     if hit.actor.is_some() {
-                        sender.send(Message::SightReaction {
-                            weapon,
-                            reaction: SightReaction::HitDetected,
-                        });
+                        weapon.set_sight_reaction(SightReaction::HitDetected);
                     }
 
-                    self.weapons[weapon]
-                        .definition
-                        .base_critical_shot_probability
+                    weapon.definition.base_critical_shot_probability
                 }
                 Shooter::Turret(_) => 0.01,
                 _ => 0.0,
@@ -1403,12 +1331,7 @@ impl Level {
         self.call_buttons[call_button].floor = floor;
     }
 
-    pub async fn handle_message(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        message: &Message,
-        time: GameTime,
-    ) {
+    pub async fn handle_message(&mut self, engine: &mut PluginContext<'_>, message: &Message) {
         self.sound_manager
             .handle_message(
                 &mut engine.scenes[self.scene].graph,
@@ -1445,9 +1368,6 @@ impl Level {
             &Message::PickUpItem { actor, item } => {
                 self.pickup_item(engine, actor, item).await;
             }
-            &Message::ShootWeapon { weapon, direction } => {
-                self.shoot_weapon(engine, weapon, time, direction).await
-            }
             &Message::CreateProjectile {
                 kind,
                 position,
@@ -1458,17 +1378,14 @@ impl Level {
                 self.create_projectile(engine, kind, position, direction, initial_velocity, owner)
                     .await
             }
-            &Message::ShowWeapon { weapon, state } => self.show_weapon(engine, weapon, state),
             &Message::SpawnBot { spawn_point_id } => {
                 if let Some(spawn_point) = self.spawn_points.get_mut(spawn_point_id) {
                     spawn_bot(
                         spawn_point,
                         &mut self.actors,
                         engine.resource_manager.clone(),
-                        self.sender.as_ref().unwrap(),
                         &mut engine.scenes[self.scene],
                         None,
-                        &mut self.weapons,
                     )
                     .await;
                 }
@@ -1503,11 +1420,6 @@ impl Level {
                     critical_shot_probability,
                 );
             }
-            &Message::SightReaction { weapon, reaction } => {
-                self.weapons[weapon]
-                    .laser_sight_mut()
-                    .set_reaction(reaction);
-            }
             &Message::CreateEffect {
                 kind,
                 position,
@@ -1538,12 +1450,7 @@ impl Level {
             &Message::GrabWeapon { kind, actor } => {
                 if self.actors.contains(actor) {
                     let actor = self.actors.get_mut(actor);
-                    actor.select_weapon(kind, &self.weapons, self.sender.as_ref().unwrap());
-                }
-            }
-            &Message::SwitchFlashLight { weapon } => {
-                if self.weapons.contains(weapon) {
-                    self.weapons[weapon].switch_flash_light(&mut engine.scenes[self.scene].graph);
+                    actor.select_weapon(kind, &mut engine.scenes[self.scene].graph);
                 }
             }
             &Message::DropItems { actor, item, count } => {
@@ -1575,7 +1482,6 @@ impl Level {
         self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
-        self.weapons.resolve();
         self.items.resolve();
         self.projectiles.resolve();
     }

@@ -3,47 +3,45 @@
 use crate::{
     actor::{Actor, ActorContainer},
     character::HitBox,
+    current_level_ref, game_ref,
     message::Message,
     weapon::{
         definition::{WeaponDefinition, WeaponKind, WeaponProjectile},
         projectile::Shooter,
-        sight::LaserSight,
+        sight::{LaserSight, SightReaction},
     },
     CollisionGroups, GameTime, MessageSender,
 };
-use fyrox::scene::collider::BitMask;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, Vector3},
-        color::Color,
+        inspect::prelude::*,
         math::{ray::Ray, Matrix4Ext},
-        pool::{Handle, Pool},
+        pool::Handle,
+        reflect::Reflect,
         sstorage::ImmutableString,
-        visitor::{Visit, VisitResult, Visitor},
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
+    impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
     rand::seq::SliceRandom,
     scene::{
-        base::BaseBuilder,
-        collider::InteractionGroups,
+        collider::{BitMask, InteractionGroups},
         graph::{
-            physics::{FeatureId, Intersection, PhysicsWorld, RayCastOptions},
+            map::NodeHandleMap,
+            physics::{FeatureId, Intersection, RayCastOptions},
             Graph,
         },
-        light::{point::PointLightBuilder, spot::SpotLightBuilder, BaseLightBuilder},
-        mesh::RenderPath,
-        node::Node,
+        node::{Node, TypeUuidProvider},
         Scene,
     },
-    utils::{
-        self,
-        log::{Log, MessageKind},
-    },
+    script::{ScriptContext, ScriptTrait},
+    utils::{self, log::Log},
 };
 use std::{
     hash::{Hash, Hasher},
-    ops::{Index, IndexMut},
     path::PathBuf,
 };
 
@@ -51,21 +49,71 @@ pub mod definition;
 pub mod projectile;
 pub mod sight;
 
-#[derive(Visit)]
+#[derive(Debug, Default, Clone)]
+pub struct ShotRequest {
+    direction: Option<Vector3<f32>>,
+}
+
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Weapon {
     kind: WeaponKind,
-    model: Handle<Node>,
     shot_point: Handle<Node>,
     muzzle_flash: Handle<Node>,
     shot_light: Handle<Node>,
-    last_shot_time: f64,
     shot_position: Vector3<f32>,
-    owner: Handle<Actor>,
     muzzle_flash_timer: f32,
+    flash_light: Handle<Node>,
+    flash_light_enabled: bool,
+    pub enabled: bool,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    laser_sight: LaserSight,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    owner: Handle<Actor>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    last_shot_time: f64,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
     #[visit(skip)]
     pub definition: &'static WeaponDefinition,
-    flash_light: Handle<Node>,
-    laser_sight: LaserSight,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    #[visit(skip)]
+    shot_request: Option<ShotRequest>,
+
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    #[visit(skip)]
+    self_handle: Handle<Node>,
+}
+
+impl Default for Weapon {
+    fn default() -> Self {
+        Self {
+            kind: WeaponKind::M4,
+            shot_point: Handle::NONE,
+            last_shot_time: 0.0,
+            shot_position: Vector3::default(),
+            owner: Handle::NONE,
+            muzzle_flash_timer: 0.0,
+            definition: Self::definition(WeaponKind::M4),
+            muzzle_flash: Default::default(),
+            shot_light: Default::default(),
+            flash_light: Default::default(),
+            flash_light_enabled: false,
+            enabled: true,
+            laser_sight: Default::default(),
+            shot_request: None,
+            self_handle: Default::default(),
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -105,11 +153,11 @@ pub fn ray_hit(
     begin: Vector3<f32>,
     end: Vector3<f32>,
     shooter: Shooter,
-    weapons: &WeaponContainer,
     actors: &ActorContainer,
-    physics: &mut PhysicsWorld,
+    graph: &mut Graph,
     ignored_collider: Handle<Node>,
 ) -> Option<Hit> {
+    let physics = &mut graph.physics;
     let ray = Ray::from_two_points(begin, end);
 
     // TODO: Avoid allocation.
@@ -142,7 +190,7 @@ pub fn ray_hit(
                     let who = match shooter {
                         Shooter::None | Shooter::Turret(_) => Default::default(),
                         Shooter::Actor(actor) => actor,
-                        Shooter::Weapon(weapon) => weapons[weapon].owner(),
+                        Shooter::Weapon(weapon) => weapon_ref(weapon, graph).owner(),
                     };
 
                     // Ignore intersections with owners.
@@ -183,142 +231,9 @@ pub fn ray_hit(
     }
 }
 
-impl Default for Weapon {
-    fn default() -> Self {
-        Self {
-            kind: WeaponKind::M4,
-            model: Handle::NONE,
-            shot_point: Handle::NONE,
-            last_shot_time: 0.0,
-            shot_position: Vector3::default(),
-            owner: Handle::NONE,
-            muzzle_flash_timer: 0.0,
-            definition: Self::definition(WeaponKind::M4),
-            muzzle_flash: Default::default(),
-            shot_light: Default::default(),
-            flash_light: Default::default(),
-            laser_sight: Default::default(),
-        }
-    }
-}
-
 impl Weapon {
     pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
         definition::DEFINITIONS.map.get(&kind).unwrap()
-    }
-
-    pub async fn new(
-        kind: WeaponKind,
-        resource_manager: ResourceManager,
-        scene: &mut Scene,
-    ) -> Weapon {
-        let definition = Self::definition(kind);
-
-        let model = resource_manager
-            .request_model(&definition.model)
-            .await
-            .unwrap()
-            .instantiate_geometry(scene);
-
-        let shot_point = scene.graph.find_by_name(model, "Weapon:ShotPoint");
-
-        if shot_point.is_none() {
-            Log::writeln(
-                MessageKind::Warning,
-                format!("Shot point not found for {:?} weapon!", kind),
-            );
-        }
-
-        let muzzle_flash = scene.graph.find_by_name(model, "MuzzleFlash");
-
-        let shot_light = if muzzle_flash.is_none() {
-            Log::writeln(
-                MessageKind::Warning,
-                format!("Muzzle flash not found for {:?} weapon!", kind),
-            );
-            Default::default()
-        } else {
-            let light = PointLightBuilder::new(
-                BaseLightBuilder::new(BaseBuilder::new().with_visibility(false))
-                    .with_scatter_enabled(false)
-                    .with_color(Color::opaque(255, 255, 255)),
-            )
-            .with_radius(2.0)
-            .build(&mut scene.graph);
-
-            scene.graph.link_nodes(light, muzzle_flash);
-
-            // Explicitly define render path to be able to render transparent muzzle flash.
-            scene.graph[muzzle_flash]
-                .as_mesh_mut()
-                .set_render_path(RenderPath::Forward);
-
-            light
-        };
-
-        let flash_light_point = scene.graph.find_by_name(model, "FlashLightPoint");
-
-        let flash_light = if flash_light_point.is_some() {
-            let flash_light = SpotLightBuilder::new(
-                BaseLightBuilder::new(BaseBuilder::new())
-                    .with_scatter_enabled(true)
-                    .with_scatter_factor(Vector3::new(0.1, 0.1, 0.1)),
-            )
-            .with_distance(10.0)
-            .with_cookie_texture(resource_manager.request_texture("data/particles/light_01.png"))
-            .with_hotspot_cone_angle(30.0f32.to_radians())
-            .build(&mut scene.graph);
-
-            scene.graph.link_nodes(flash_light, flash_light_point);
-
-            flash_light
-        } else {
-            Handle::NONE
-        };
-
-        Weapon {
-            kind,
-            model,
-            shot_point,
-            definition,
-            muzzle_flash,
-            shot_light,
-            flash_light,
-            laser_sight: LaserSight::new(scene, resource_manager),
-            ..Default::default()
-        }
-    }
-
-    pub fn set_visibility(&self, visibility: bool, graph: &mut Graph) {
-        graph[self.model].set_visibility(visibility);
-        if !visibility {
-            self.laser_sight.set_visible(visibility, graph);
-        }
-    }
-
-    pub fn model(&self) -> Handle<Node> {
-        self.model
-    }
-
-    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
-        let node = &mut scene.graph[self.model];
-        self.shot_position = node.global_position();
-
-        self.muzzle_flash_timer -= dt;
-        if self.muzzle_flash_timer <= 0.0 && self.muzzle_flash.is_some() {
-            scene.graph[self.muzzle_flash].set_visibility(false);
-            scene.graph[self.shot_light].set_visibility(false);
-        }
-
-        let mut ignored_collider = Default::default();
-        if actors.contains(self.owner) {
-            ignored_collider = actors.get(self.owner).capsule_collider;
-        }
-
-        let dir = self.shot_direction(&scene.graph);
-        let pos = self.shot_position(&scene.graph);
-        self.laser_sight
-            .update(scene, pos, dir, ignored_collider, dt)
     }
 
     pub fn shot_position(&self, graph: &Graph) -> Vector3<f32> {
@@ -326,12 +241,12 @@ impl Weapon {
             graph[self.shot_point].global_position()
         } else {
             // Fallback
-            graph[self.model].global_position()
+            graph[self.self_handle].global_position()
         }
     }
 
     pub fn shot_direction(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.model].look_vector().normalize()
+        graph[self.self_handle].look_vector().normalize()
     }
 
     pub fn kind(&self) -> WeaponKind {
@@ -339,7 +254,7 @@ impl Weapon {
     }
 
     pub fn world_basis(&self, graph: &Graph) -> Matrix3<f32> {
-        graph[self.model].global_transform().basis()
+        graph[self.self_handle].global_transform().basis()
     }
 
     pub fn owner(&self) -> Handle<Actor> {
@@ -350,12 +265,8 @@ impl Weapon {
         self.owner = owner;
     }
 
-    pub fn switch_flash_light(&self, graph: &mut Graph) {
-        if self.flash_light.is_some() {
-            let flash_light = &mut graph[self.flash_light];
-            let enabled = flash_light.visibility();
-            flash_light.set_visibility(!enabled);
-        }
+    pub fn switch_flash_light(&mut self) {
+        self.flash_light_enabled = !self.flash_light_enabled;
     }
 
     pub fn laser_sight(&self) -> &LaserSight {
@@ -370,9 +281,17 @@ impl Weapon {
         time.elapsed - self.last_shot_time >= self.definition.shoot_interval
     }
 
-    pub fn shoot(
+    pub fn set_sight_reaction(&mut self, reaction: SightReaction) {
+        self.laser_sight.set_reaction(reaction);
+    }
+
+    pub fn request_shot(&mut self, direction: Option<Vector3<f32>>) {
+        self.shot_request = Some(ShotRequest { direction });
+    }
+
+    fn shoot(
         &mut self,
-        self_handle: Handle<Weapon>,
+        self_handle: Handle<Node>,
         scene: &mut Scene,
         time: GameTime,
         resource_manager: ResourceManager,
@@ -447,70 +366,91 @@ impl Weapon {
             }
         }
     }
+}
 
-    pub fn clean_up(&mut self, scene: &mut Scene) {
-        scene.graph.remove_node(self.model);
-        self.laser_sight.clean_up(scene);
+impl_component_provider!(Weapon);
+
+impl TypeUuidProvider for Weapon {
+    fn type_uuid() -> Uuid {
+        uuid!("bca0083b-b062-4d95-b241-db05bca65da7")
     }
+}
 
-    pub fn resolve(&mut self) {
+impl ScriptTrait for Weapon {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::definition(self.kind);
-    }
-}
+        self.self_handle = ctx.handle;
+        self.laser_sight = LaserSight::new(ctx.scene, ctx.resource_manager.clone());
 
-#[derive(Default, Visit)]
-pub struct WeaponContainer {
-    pool: Pool<Weapon>,
-}
-
-impl WeaponContainer {
-    pub fn new() -> Self {
-        Self { pool: Pool::new() }
+        dbg!(ctx.handle);
     }
 
-    pub fn add(&mut self, weapon: Weapon) -> Handle<Weapon> {
-        self.pool.spawn(weapon)
-    }
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let level_ref = current_level_ref(ctx.plugins).unwrap();
 
-    pub fn try_get(&self, weapon: Handle<Weapon>) -> Option<&Weapon> {
-        self.pool.try_borrow(weapon)
-    }
+        ctx.scene.graph[ctx.handle].set_visibility(self.enabled);
 
-    pub fn contains(&self, weapon: Handle<Weapon>) -> bool {
-        self.pool.is_valid_handle(weapon)
-    }
+        let node = &mut ctx.scene.graph[ctx.handle];
+        self.shot_position = node.global_position();
 
-    pub fn free(&mut self, weapon: Handle<Weapon>) {
-        self.pool.free(weapon);
-    }
+        self.muzzle_flash_timer -= ctx.dt;
+        if self.muzzle_flash_timer <= 0.0 && self.muzzle_flash.is_some() {
+            ctx.scene.graph[self.muzzle_flash].set_visibility(false);
+            ctx.scene.graph[self.shot_light].set_visibility(false);
+        }
 
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Weapon> {
-        self.pool.iter_mut()
-    }
+        let mut ignored_collider = Default::default();
+        if level_ref.actors.contains(self.owner) {
+            ignored_collider = level_ref.actors.get(self.owner).capsule_collider;
+        }
 
-    pub fn update(&mut self, scene: &mut Scene, actors: &ActorContainer, dt: f32) {
-        for weapon in self.pool.iter_mut() {
-            weapon.update(scene, actors, dt)
+        let dir = self.shot_direction(&ctx.scene.graph);
+        let pos = self.shot_position(&ctx.scene.graph);
+        self.laser_sight
+            .update(ctx.scene, pos, dir, ignored_collider, ctx.dt);
+
+        if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
+            flash_light.set_visibility(self.flash_light_enabled);
+        }
+
+        if let Some(request) = self.shot_request.take() {
+            let game = game_ref(ctx.plugins);
+            self.shoot(
+                ctx.handle,
+                ctx.scene,
+                game.time,
+                ctx.resource_manager.clone(),
+                request.direction,
+                &game.message_sender,
+            );
         }
     }
 
-    pub fn resolve(&mut self) {
-        for weapon in self.pool.iter_mut() {
-            weapon.resolve();
-        }
+    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping
+            .map(&mut self.shot_point)
+            .map(&mut self.muzzle_flash)
+            .map(&mut self.shot_light)
+            .map(&mut self.flash_light);
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }
 
-impl Index<Handle<Weapon>> for WeaponContainer {
-    type Output = Weapon;
-
-    fn index(&self, index: Handle<Weapon>) -> &Self::Output {
-        &self.pool[index]
-    }
+pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {
+    graph[handle]
+        .script_mut()
+        .unwrap()
+        .cast_mut::<Weapon>()
+        .unwrap()
 }
 
-impl IndexMut<Handle<Weapon>> for WeaponContainer {
-    fn index_mut(&mut self, index: Handle<Weapon>) -> &mut Self::Output {
-        &mut self.pool[index]
-    }
+pub fn try_weapon_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Weapon> {
+    graph[handle].script().and_then(|s| s.cast::<Weapon>())
+}
+
+pub fn weapon_ref(handle: Handle<Node>, graph: &Graph) -> &Weapon {
+    try_weapon_ref(handle, graph).unwrap()
 }
