@@ -58,7 +58,7 @@ impl SoundBase {
             .texture_to_material
             .iter()
             .filter_map(|(path, material_type)| match path.canonicalize() {
-                Ok(canonicalized) => Some((canonicalized, material_type.clone())),
+                Ok(canonicalized) => Some((canonicalized, *material_type)),
                 Err(e) => {
                     Log::writeln(
                         MessageKind::Error,
@@ -106,31 +106,28 @@ impl SoundMap {
                                 let data = surface.data();
                                 let data = data.lock();
 
-                                if let Some(diffuse_texture) = surface
+                                if let Some(PropertyValue::Sampler {
+                                    value: Some(diffuse_texture),
+                                    ..
+                                }) = surface
                                     .material()
                                     .lock()
                                     .property_ref(&ImmutableString::new("diffuseTexture"))
                                 {
-                                    if let PropertyValue::Sampler {
-                                        value: Some(diffuse_texture),
-                                        ..
-                                    } = diffuse_texture
-                                    {
-                                        let state = diffuse_texture.state();
-                                        match state.path().canonicalize() {
-                                            Ok(path) => {
-                                                if let Some(&material) =
-                                                    sound_base.texture_to_material.get(&*path)
-                                                {
-                                                    ranges.push(TriangleRange {
-                                                        range: triangle_offset
-                                                            ..(triangle_offset
-                                                                + data.geometry_buffer.len()
-                                                                    as u32),
-                                                        material,
-                                                    });
-                                                } else {
-                                                    Log::writeln(
+                                    let state = diffuse_texture.state();
+                                    match state.path().canonicalize() {
+                                        Ok(path) => {
+                                            if let Some(&material) =
+                                                sound_base.texture_to_material.get(&*path)
+                                            {
+                                                ranges.push(TriangleRange {
+                                                    range: triangle_offset
+                                                        ..(triangle_offset
+                                                            + data.geometry_buffer.len() as u32),
+                                                    material,
+                                                });
+                                            } else {
+                                                Log::writeln(
                                                         MessageKind::Warning,
                                                         format!(
                                                             "[Sound Manager]: A texture {} does not have \
@@ -140,19 +137,18 @@ impl SoundMap {
                                                             path.display()
                                                         ),
                                                     );
-                                                }
                                             }
-                                            Err(e) => {
-                                                Log::writeln(
-                                                    MessageKind::Error,
-                                                    format!(
-                                                        "[Sound Manager]: Failed to \
+                                        }
+                                        Err(e) => {
+                                            Log::writeln(
+                                                MessageKind::Error,
+                                                format!(
+                                                    "[Sound Manager]: Failed to \
                                             canonicalize path {}! Reason: {}",
-                                                        state.path().display(),
-                                                        e
-                                                    ),
-                                                );
-                                            }
+                                                    state.path().display(),
+                                                    e
+                                                ),
+                                            );
                                         }
                                     }
                                 }
@@ -278,30 +274,26 @@ impl SoundManager {
                 rolloff_factor,
                 radius,
             } => {
-                let material = self
-                    .sound_map
-                    .ranges_of(collider)
-                    .map(|ranges| {
-                        match feature {
-                            FeatureId::Face(idx) => {
-                                let mut material = None;
-                                for range in ranges {
-                                    if range.range.contains(&idx) {
-                                        material = Some(range.material);
-                                        break;
-                                    }
+                let material = self.sound_map.ranges_of(collider).and_then(|ranges| {
+                    match feature {
+                        FeatureId::Face(idx) => {
+                            let mut material = None;
+                            for range in ranges {
+                                if range.range.contains(&idx) {
+                                    material = Some(range.material);
+                                    break;
                                 }
-                                material
                             }
-                            _ => {
-                                // Some object have convex shape colliders, they're not provide any
-                                // useful info about the point of impact, so we have to use first
-                                // available material.
-                                ranges.first().map(|first_range| first_range.material)
-                            }
+                            material
                         }
-                    })
-                    .flatten();
+                        _ => {
+                            // Some object have convex shape colliders, they're not provide any
+                            // useful info about the point of impact, so we have to use first
+                            // available material.
+                            ranges.first().map(|first_range| first_range.material)
+                        }
+                    }
+                });
 
                 if let Some(material) = material {
                     if let Some(map) = self.sound_base.material_to_sound.get(&material) {
@@ -339,11 +331,7 @@ impl SoundManager {
                         );
                     }
                 } else {
-                    Log::writeln(
-                        MessageKind::Warning,
-                        "Unable to play environment sound: unable to fetch material type!"
-                            .to_owned(),
-                    );
+                    Log::warn("Unable to play environment sound: unable to fetch material type!");
                 }
             }
             _ => {}

@@ -6,7 +6,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Eq)]
 pub struct ShootTarget;
 
 impl<'a> Behavior<'a> for ShootTarget {
@@ -52,7 +52,7 @@ impl<'a> Behavior<'a> for ShootTarget {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Eq)]
 pub struct CanShootTarget;
 
 impl<'a> Behavior<'a> for CanShootTarget {

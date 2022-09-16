@@ -72,7 +72,7 @@ impl ScriptTrait for Decal {
 }
 
 impl Decal {
-    pub fn new(
+    pub fn add_to_graph(
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
@@ -140,7 +140,7 @@ impl Decal {
     ) -> Handle<Node> {
         let default_scale = Vector3::new(0.05, 0.05, 0.05);
 
-        Self::new(
+        Self::add_to_graph(
             graph,
             position,
             face_towards,

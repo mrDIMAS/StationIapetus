@@ -125,12 +125,15 @@ impl BotBehavior {
         let mut tree = BehaviorTree::new();
 
         let entry = CompositeNode::new_selector(vec![
-            CompositeNode::new_sequence(vec![IsDead::new(&mut tree), StayDead::new(&mut tree)])
-                .add_to(&mut tree),
+            CompositeNode::new_sequence(vec![
+                IsDead::new_action(&mut tree),
+                StayDead::new_action(&mut tree),
+            ])
+            .add_to(&mut tree),
             CompositeNode::new_sequence(vec![
                 LeafNode::new(Action::FindTarget(FindTarget::default())).add_to(&mut tree),
                 CompositeNode::new_sequence(vec![
-                    LeafNode::new(AimOnTarget::new(spine)).add_to(&mut tree),
+                    LeafNode::new(AimOnTarget::new_action(spine)).add_to(&mut tree),
                     CompositeNode::new(
                         CompositeNodeKind::Selector,
                         vec![

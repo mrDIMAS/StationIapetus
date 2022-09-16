@@ -383,8 +383,7 @@ impl Turret {
         let self_collider = scene.graph[scene.graph[self.model].parent()]
             .children()
             .iter()
-            .filter(|h| scene.graph[**h].is_collider())
-            .next()
+            .find(|h| scene.graph[**h].is_collider())
             .cloned();
 
         if !actors.contains(self.target) || !actors.get(self.target).is_dead() {

@@ -45,7 +45,7 @@ use fyrox::{
         Scene,
     },
     utils::{
-        log::{Log, MessageKind},
+        log::Log,
         navmesh::{NavmeshAgent, NavmeshAgentBuilder},
     },
 };
@@ -247,10 +247,7 @@ impl Bot {
 
         let spine = scene.graph.find_by_name(model, &definition.spine);
         if spine.is_none() {
-            Log::writeln(
-                MessageKind::Warning,
-                "Spine bone not found, bot won't aim vertically!".to_owned(),
-            );
+            Log::warn("Spine bone not found, bot won't aim vertically!");
         }
 
         let pivot;
@@ -314,7 +311,7 @@ impl Bot {
         let hips = scene.graph.find_by_name(model, &definition.hips);
 
         let lower_body_machine =
-            LowerBodyMachine::new(resource_manager.clone(), &definition, model, scene).await;
+            LowerBodyMachine::new(resource_manager.clone(), definition, model, scene).await;
         let upper_body_machine =
             UpperBodyMachine::new(resource_manager.clone(), definition, model, scene, hips).await;
 
@@ -489,8 +486,6 @@ impl Bot {
         let is_aiming = behavior_context.is_aiming_weapon;
         let attack_animation_index = behavior_context.attack_animation_index;
         let is_screaming = behavior_context.is_screaming;
-
-        drop(behavior_context);
 
         self.restoration_time -= time.delta;
         self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;

@@ -63,10 +63,7 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
-    utils::{
-        log::{Log, MessageKind},
-        navmesh::Navmesh,
-    },
+    utils::{log::Log, navmesh::Navmesh},
 };
 use std::{
     path::{Path, PathBuf},
@@ -103,17 +100,9 @@ pub struct Level {
     pub call_buttons: CallButtonContainer,
 }
 
-#[derive(Visit)]
+#[derive(Visit, Default)]
 pub struct DeathZone {
     bounds: AxisAlignedBoundingBox,
-}
-
-impl Default for DeathZone {
-    fn default() -> Self {
-        Self {
-            bounds: Default::default(),
-        }
-    }
 }
 
 pub struct UpdateContext<'a> {
@@ -228,10 +217,8 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
         } else if name.starts_with("PlayerSpawnPoint") {
             player_spawn_position = node.global_position();
             player_spawn_orientation = scene.graph.global_rotation(handle);
-        } else if name.starts_with("DeathZone") {
-            if node.is_mesh() {
-                death_zones.push(handle);
-            }
+        } else if name.starts_with("DeathZone") && node.is_mesh() {
+            death_zones.push(handle);
         }
 
         if node.tag().starts_with("Elevator") {
@@ -256,10 +243,7 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
 
                                 elevator_mut.call_buttons.push(call_button);
                             } else {
-                                Log::writeln(
-                                    MessageKind::Error,
-                                    format!("Call button is missing Floor parameter!"),
-                                )
+                                Log::err("Call button is missing Floor parameter!")
                             }
                         } else if property.name == "FloorSelector" {
                             let call_button = call_buttons.add(CallButton::new(
@@ -541,7 +525,7 @@ impl Level {
                 player_spawn_position,
                 player_spawn_orientation,
                 &mut actors,
-                resource_manager.clone(),
+                resource_manager,
                 scene,
                 display_texture,
                 inventory_texture,
@@ -786,11 +770,7 @@ impl Level {
         let scene = &engine.scenes[self.scene];
 
         let drop_position = character.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
-        let weapons = character
-            .weapons()
-            .iter()
-            .copied()
-            .collect::<Vec<Handle<Node>>>();
+        let weapons = character.weapons().to_vec();
 
         if character
             .inventory_mut()
@@ -1182,22 +1162,21 @@ impl Level {
                     if matches!(
                         scene.graph[intersection.collider].as_collider().shape(),
                         ColliderShape::Trimesh(_)
-                    ) {
-                        if intersection.position.coords.metric_distance(&hit.position) < 2.0 {
-                            Decal::new(
-                                &mut scene.graph,
-                                intersection.position.coords,
-                                dir,
-                                Handle::NONE,
-                                Color::opaque(255, 255, 255),
-                                Vector3::new(0.45, 0.45, 0.2),
-                                engine.resource_manager.request_texture(
-                                    "data/textures/decals/BloodSplatter_BaseColor.png",
-                                ),
-                            );
+                    ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
+                    {
+                        Decal::add_to_graph(
+                            &mut scene.graph,
+                            intersection.position.coords,
+                            dir,
+                            Handle::NONE,
+                            Color::opaque(255, 255, 255),
+                            Vector3::new(0.45, 0.45, 0.2),
+                            engine.resource_manager.request_texture(
+                                "data/textures/decals/BloodSplatter_BaseColor.png",
+                            ),
+                        );
 
-                            break;
-                        }
+                        break;
                     }
                 }
             }
@@ -1322,7 +1301,7 @@ impl Level {
             .handle_message(
                 &mut engine.scenes[self.scene].graph,
                 engine.resource_manager.clone(),
-                &message,
+                message,
             )
             .await;
 
@@ -1431,7 +1410,7 @@ impl Level {
                 damage,
                 shot_effect,
             } => {
-                self.shoot_ray(engine, *weapon, *begin, *end, *damage, shot_effect.clone());
+                self.shoot_ray(engine, *weapon, *begin, *end, *damage, *shot_effect);
             }
             &Message::GrabWeapon { kind, actor } => {
                 if self.actors.contains(actor) {
@@ -1472,7 +1451,7 @@ impl Level {
     }
 
     pub fn set_message_sender(&mut self, sender: MessageSender) {
-        self.sender = Some(sender.clone());
+        self.sender = Some(sender);
     }
 
     pub fn debug_draw(&self, context: &mut PluginContext) {

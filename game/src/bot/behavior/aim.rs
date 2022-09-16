@@ -19,7 +19,7 @@ pub struct AimOnTarget {
 }
 
 impl AimOnTarget {
-    pub fn new(spine: Handle<Node>) -> Action {
+    pub fn new_action(spine: Handle<Node>) -> Action {
         Action::AimOnTarget(Self {
             spine,
             ..Default::default()

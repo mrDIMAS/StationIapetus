@@ -167,5 +167,5 @@ pub fn create_play_animation_state(
 }
 
 pub fn is_probability_event_occurred(probability: f32) -> bool {
-    return rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0);
+    rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
 }

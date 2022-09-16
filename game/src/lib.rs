@@ -224,15 +224,9 @@ impl Game {
                     .set_quality_settings(&config.graphics_settings)
                 {
                     Ok(_) => {
-                        Log::writeln(
-                            MessageKind::Information,
-                            "Graphics settings were applied correctly!".to_string(),
-                        );
+                        Log::warn("Graphics settings were applied correctly!");
                     }
-                    Err(e) => Log::writeln(
-                        MessageKind::Error,
-                        format!("Failed to set graphics settings. Reason: {:?}", e),
-                    ),
+                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {:?}", e)),
                 }
 
                 control_scheme = config.controls;
@@ -308,15 +302,11 @@ impl Game {
                 &sound_config,
             )),
             death_screen: DeathScreen::new(
-                &mut context.user_interface,
+                context.user_interface,
                 font.clone(),
                 message_sender.clone(),
             ),
-            final_screen: FinalScreen::new(
-                &mut context.user_interface,
-                font.clone(),
-                message_sender.clone(),
-            ),
+            final_screen: FinalScreen::new(context.user_interface, font, message_sender.clone()),
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display,
@@ -344,7 +334,7 @@ impl Game {
     fn handle_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
         self.menu.handle_ui_message(
             context,
-            &message,
+            message,
             &mut self.control_scheme,
             &mut self.show_debug_info,
             &self.sound_config,
@@ -356,10 +346,8 @@ impl Game {
         let play_sound = if message.direction() == MessageDirection::FromWidget {
             if let Some(ButtonMessage::Click) = message.data() {
                 true
-            } else if let Some(CheckBoxMessage::Check(_)) = message.data() {
-                true
             } else {
-                false
+                matches!(message.data(), Some(CheckBoxMessage::Check(_)))
             }
         } else {
             false
@@ -394,8 +382,8 @@ impl Game {
             &mut self.journal_display.ui,
         ));
 
-        self.door_ui_container.render(&mut context.renderer);
-        self.call_button_ui_container.render(&mut context.renderer);
+        self.door_ui_container.render(context.renderer);
+        self.call_button_ui_container.render(context.renderer);
     }
 
     fn debug_render(&mut self, context: &mut PluginContext) {
@@ -428,10 +416,7 @@ impl Game {
     }
 
     pub fn load_game(&mut self, context: &mut PluginContext) -> VisitResult {
-        Log::writeln(
-            MessageKind::Information,
-            "Attempting load a save...".to_owned(),
-        );
+        Log::info("Attempting load a save...");
 
         let mut visitor = block_on(Visitor::load_binary(Path::new("save.bin")))?;
 
@@ -439,10 +424,7 @@ impl Game {
         self.destroy_level(context);
 
         // Load engine state first
-        Log::writeln(
-            MessageKind::Information,
-            "Trying to load a save file...".to_owned(),
-        );
+        Log::info("Trying to load a save file...");
 
         let scene = block_on(
             SceneLoader::load("Scene", context.serialization_context.clone(), &mut visitor)?
@@ -454,17 +436,12 @@ impl Game {
         level.scene = context.scenes.add(scene);
         self.level = Some(level);
 
-        Log::writeln(
-            MessageKind::Information,
-            "Game state successfully loaded!".to_owned(),
-        );
+        Log::info("Game state successfully loaded!");
 
         // Hide menu only of we successfully loaded a save.
         self.set_menu_visible(false, context);
-        self.death_screen
-            .set_visible(&context.user_interface, false);
-        self.final_screen
-            .set_visible(&context.user_interface, false);
+        self.death_screen.set_visible(context.user_interface, false);
+        self.final_screen.set_visible(context.user_interface, false);
         self.door_ui_container.clear();
         self.call_button_ui_container.clear();
 
@@ -491,10 +468,7 @@ impl Game {
             self.door_ui_container.clear();
             self.call_button_ui_container.clear();
             level.destroy(context);
-            Log::writeln(
-                MessageKind::Information,
-                "Current level destroyed!".to_owned(),
-            );
+            Log::info("Current level destroyed!");
         }
     }
 
@@ -553,9 +527,9 @@ impl Game {
     }
 
     pub fn is_any_menu_visible(&self, context: &mut PluginContext) -> bool {
-        self.menu.is_visible(&context.user_interface)
-            || self.death_screen.is_visible(&context.user_interface)
-            || self.final_screen.is_visible(&context.user_interface)
+        self.menu.is_visible(context.user_interface)
+            || self.death_screen.is_visible(context.user_interface)
+            || self.final_screen.is_visible(context.user_interface)
     }
 
     pub fn update(&mut self, context: &mut PluginContext, time: GameTime) {
@@ -604,7 +578,7 @@ impl Game {
                     self.menu.sync_to_model(context, true);
                 } else {
                     self.loading_screen.set_progress(
-                        &context.user_interface,
+                        context.user_interface,
                         context.resource_manager.state().loading_progress() as f32 / 100.0,
                     );
                 }
@@ -612,7 +586,7 @@ impl Game {
         }
 
         if let Some(ref mut level) = self.level {
-            let menu_visible = self.menu.is_visible(&context.user_interface);
+            let menu_visible = self.menu.is_visible(context.user_interface);
             if !menu_visible {
                 level.update(context, time, &mut self.call_button_ui_container);
                 let player = level.get_player();
@@ -645,7 +619,7 @@ impl Game {
         }
     }
 
-    fn handle_messages(&mut self, mut context: &mut PluginContext) {
+    fn handle_messages(&mut self, context: &mut PluginContext) {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
@@ -655,20 +629,12 @@ impl Game {
                     self.load_level(Level::TESTBED_PATH, None, context);
                 }
                 Message::SaveGame => match self.save_game(context) {
-                    Ok(_) => {
-                        Log::writeln(MessageKind::Information, "Successfully saved".to_owned())
-                    }
-                    Err(e) => Log::writeln(
-                        MessageKind::Error,
-                        format!("Failed to make a save, reason: {}", e),
-                    ),
+                    Ok(_) => Log::info("Successfully saved"),
+                    Err(e) => Log::err(format!("Failed to make a save, reason: {}", e)),
                 },
                 Message::LoadGame => {
                     if let Err(e) = self.load_game(context) {
-                        Log::writeln(
-                            MessageKind::Error,
-                            format!("Failed to load saved game. Reason: {:?}", e),
-                        );
+                        Log::err(format!("Failed to load saved game. Reason: {:?}", e));
                     }
                 }
                 Message::LoadNextLevel => {
@@ -697,12 +663,12 @@ impl Game {
                 }
                 Message::EndMatch => {
                     self.destroy_level(context);
-                    self.death_screen.set_visible(&context.user_interface, true);
+                    self.death_screen.set_visible(context.user_interface, true);
                     self.menu.sync_to_model(context, false);
                 }
                 Message::EndGame => {
                     self.destroy_level(context);
-                    self.final_screen.set_visible(&context.user_interface, true);
+                    self.final_screen.set_visible(context.user_interface, true);
                     self.menu.sync_to_model(context, false);
                 }
                 Message::SetMusicVolume(volume) => {
@@ -739,7 +705,7 @@ impl Game {
                         self.show_debug_info,
                     ) {
                         Ok(_) => {
-                            Log::writeln(MessageKind::Information, "Settings saved!".to_string());
+                            Log::info("Settings saved!");
                         }
                         Err(e) => Log::writeln(
                             MessageKind::Error,
@@ -749,10 +715,8 @@ impl Game {
                 }
                 Message::ToggleMainMenu => {
                     self.menu.set_visible(context, true);
-                    self.death_screen
-                        .set_visible(&context.user_interface, false);
-                    self.final_screen
-                        .set_visible(&context.user_interface, false);
+                    self.death_screen.set_visible(context.user_interface, false);
+                    self.final_screen.set_visible(context.user_interface, false);
                 }
                 Message::SyncInventory => {
                     if let Some(ref mut level) = self.level {
@@ -790,9 +754,7 @@ impl Game {
             }
 
             if let Some(ref mut level) = self.level {
-                fyrox::core::futures::executor::block_on(
-                    level.handle_message(&mut context, &message),
-                );
+                fyrox::core::futures::executor::block_on(level.handle_message(context, &message));
             }
         }
     }
@@ -887,7 +849,7 @@ impl Game {
         }
 
         self.menu
-            .process_input_event(context, &event, &mut self.control_scheme);
+            .process_input_event(context, event, &mut self.control_scheme);
     }
 }
 
@@ -939,10 +901,10 @@ impl Plugin for Game {
         mut context: PluginContext,
         control_flow: &mut ControlFlow,
     ) {
-        self.process_input_event(&event, &mut context);
+        self.process_input_event(event, &mut context);
 
-        match event {
-            Event::WindowEvent { event, .. } => match event {
+        if let Event::WindowEvent { event, .. } = event {
+            match event {
                 WindowEvent::CloseRequested => {
                     self.destroy_level(&mut context);
                     *control_flow = ControlFlow::Exit
@@ -971,8 +933,7 @@ impl Plugin for Game {
                     ));
                 }
                 _ => (),
-            },
-            _ => (),
+            }
         }
     }
 

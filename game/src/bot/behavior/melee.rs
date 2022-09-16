@@ -105,7 +105,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Eq)]
 pub struct CanMeleeAttack;
 
 impl<'a> Behavior<'a> for CanMeleeAttack {

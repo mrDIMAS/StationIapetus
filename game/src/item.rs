@@ -206,7 +206,7 @@ impl Item {
         DEFINITIONS
             .map
             .get(&kind)
-            .expect(&format!("No definition for {:?} weapon!", kind))
+            .unwrap_or_else(|| panic!("No definition for {:?} weapon!", kind))
     }
 
     pub fn get_kind(&self) -> ItemKind {

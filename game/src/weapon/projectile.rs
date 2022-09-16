@@ -209,8 +209,7 @@ impl Projectile {
                 .children()
                 .iter()
                 .cloned()
-                .filter(|c| scene.graph[*c].is_collider())
-                .next()
+                .find(|c| scene.graph[*c].is_collider())
                 .unwrap_or_default();
             (position, collider)
         } else {

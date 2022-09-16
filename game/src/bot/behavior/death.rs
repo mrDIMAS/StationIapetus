@@ -1,18 +1,17 @@
-use crate::bot::behavior::Action;
-use crate::{bot::behavior::BehaviorContext, message::Message};
-use fyrox::core::pool::Handle;
-use fyrox::utils::behavior::leaf::LeafNode;
-use fyrox::utils::behavior::{BehaviorNode, BehaviorTree};
+use crate::{
+    bot::{behavior::Action, behavior::BehaviorContext},
+    message::Message,
+};
 use fyrox::{
-    core::visitor::prelude::*,
-    utils::behavior::{Behavior, Status},
+    core::{pool::Handle, visitor::prelude::*},
+    utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Eq)]
 pub struct IsDead;
 
 impl IsDead {
-    pub fn new(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
+    pub fn new_action(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
         LeafNode::new(Action::IsDead(Self)).add_to(tree)
     }
 }
@@ -29,11 +28,11 @@ impl<'a> Behavior<'a> for IsDead {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Eq)]
 pub struct StayDead;
 
 impl StayDead {
-    pub fn new(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
+    pub fn new_action(tree: &mut BehaviorTree<Action>) -> Handle<BehaviorNode<Action>> {
         LeafNode::new(Action::StayDead(Self)).add_to(tree)
     }
 }
