@@ -8,7 +8,7 @@
             preview: "data/ui/medpack.png"
         ),
         Medkit: (
-            model: "data/models/medkit/medpack.fbx",
+            model: "data/models/medkit/medpack.rgs",
             name: "Medkit",
             description: "Medium-sized container with medical gel. Restores medium amount of health",
             consumable: true,
@@ -50,7 +50,7 @@
             preview: "data/ui/ak47.png"
         ),
         M4: (
-            model: "data/models/m4/m4_item.FBX",
+            model: "data/models/m4/m4_item.rgs",
             name: "M4",
             description: "Classic USA weapon modernized to shoot energy beams.",
             consumable: false,
