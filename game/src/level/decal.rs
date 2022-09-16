@@ -1,26 +1,74 @@
-use fyrox::core::algebra::Point3;
-use fyrox::resource::texture::Texture;
 use fyrox::{
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
+        inspect::prelude::*,
         math::vector_to_quat,
         pool::Handle,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
-        VecExtensions,
     },
     engine::resource_manager::ResourceManager,
+    impl_component_provider,
+    resource::texture::Texture,
     scene::{
-        base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
+        base::BaseBuilder,
+        decal::DecalBuilder,
+        graph::Graph,
+        node::{Node, TypeUuidProvider},
         transform::TransformBuilder,
     },
+    script::{Script, ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Decal {
-    decal: Handle<Node>,
     lifetime: f32,
     fade_interval: f32,
+}
+
+impl Default for Decal {
+    fn default() -> Self {
+        Self {
+            lifetime: 10.0,
+            fade_interval: 1.0,
+        }
+    }
+}
+
+impl_component_provider!(Decal);
+
+impl TypeUuidProvider for Decal {
+    fn type_uuid() -> Uuid {
+        uuid!("e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")
+    }
+}
+
+impl ScriptTrait for Decal {
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        self.lifetime -= ctx.dt;
+
+        let abs_lifetime = self.lifetime.abs();
+
+        let alpha = if self.lifetime <= 0.0 {
+            1.0 - (abs_lifetime / self.fade_interval).min(1.0)
+        } else {
+            1.0
+        };
+
+        let decal_node = ctx.scene.graph[ctx.handle].as_decal_mut();
+
+        decal_node.set_color(decal_node.color().with_new_alpha((255.0 * alpha) as u8));
+
+        if self.lifetime < 0.0 && abs_lifetime > self.fade_interval {
+            ctx.scene.graph.remove_node(ctx.handle);
+        }
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
 }
 
 impl Decal {
@@ -32,7 +80,7 @@ impl Decal {
         color: Color,
         scale: Vector3<f32>,
         texture: Texture,
-    ) -> Self {
+    ) -> Handle<Node> {
         let (position, face_towards, scale) = if parent.is_some() {
             let parent_scale = graph.global_scale(parent);
 
@@ -61,13 +109,15 @@ impl Decal {
             * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians());
 
         let decal = DecalBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(position)
-                    .with_local_rotation(rotation)
-                    .with_local_scale(scale)
-                    .build(),
-            ),
+            BaseBuilder::new()
+                .with_local_transform(
+                    TransformBuilder::new()
+                        .with_local_position(position)
+                        .with_local_rotation(rotation)
+                        .with_local_scale(scale)
+                        .build(),
+                )
+                .with_script(Script::new(Decal::default())),
         )
         .with_diffuse_texture(texture)
         .with_color(color)
@@ -77,11 +127,7 @@ impl Decal {
             graph.link_nodes(decal, parent);
         }
 
-        Self {
-            decal,
-            lifetime: 10.0,
-            fade_interval: 1.0,
-        }
+        decal
     }
 
     pub fn new_bullet_hole(
@@ -91,7 +137,7 @@ impl Decal {
         face_towards: Vector3<f32>,
         parent: Handle<Node>,
         color: Color,
-    ) -> Self {
+    ) -> Handle<Node> {
         let default_scale = Vector3::new(0.05, 0.05, 0.05);
 
         Self::new(
@@ -103,42 +149,5 @@ impl Decal {
             default_scale,
             resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
         )
-    }
-}
-
-#[derive(Default, Visit)]
-pub struct DecalContainer {
-    decals: Vec<Decal>,
-}
-
-impl DecalContainer {
-    pub fn add(&mut self, decal: Decal) {
-        self.decals.push(decal);
-    }
-
-    pub fn update(&mut self, graph: &mut Graph, dt: f32) {
-        self.decals.retain_mut_ext(|decal| {
-            decal.lifetime -= dt;
-
-            let abs_lifetime = decal.lifetime.abs();
-
-            let alpha = if decal.lifetime <= 0.0 {
-                1.0 - (abs_lifetime / decal.fade_interval).min(1.0)
-            } else {
-                1.0
-            };
-
-            let decal_node = graph[decal.decal].as_decal_mut();
-
-            decal_node.set_color(decal_node.color().with_new_alpha((255.0 * alpha) as u8));
-
-            if decal.lifetime < 0.0 && abs_lifetime > decal.fade_interval {
-                graph.remove_node(decal.decal);
-
-                false
-            } else {
-                true
-            }
-        });
     }
 }

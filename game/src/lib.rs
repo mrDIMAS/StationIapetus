@@ -24,6 +24,7 @@ pub mod utils;
 pub mod weapon;
 
 use crate::item::Item;
+use crate::level::decal::Decal;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -900,7 +901,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Door>("Door")
             .add::<Turret>("Turret")
             .add::<Weapon>("Weapon")
-            .add::<Item>("Item");
+            .add::<Item>("Item")
+            .add::<Decal>("Decal");
     }
 
     fn create_instance(

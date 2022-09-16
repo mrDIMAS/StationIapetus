@@ -12,7 +12,7 @@ use crate::{
     },
     item::{item_mut, Item, ItemContainer, ItemKind},
     level::{
-        decal::{Decal, DecalContainer},
+        decal::Decal,
         trail::{ShotTrail, ShotTrailContainer},
         trigger::{Trigger, TriggerContainer, TriggerKind},
     },
@@ -99,7 +99,6 @@ pub struct Level {
     pub doors_container: DoorContainer,
     lights: LightContainer,
     triggers: TriggerContainer,
-    decals: DecalContainer,
     pub elevators: ElevatorContainer,
     pub call_buttons: CallButtonContainer,
 }
@@ -556,7 +555,6 @@ impl Level {
             death_zones,
             spawn_points,
             triggers,
-            decals: Default::default(),
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: scene_handle,
             sender: Some(sender),
@@ -652,7 +650,6 @@ impl Level {
             death_zones,
             spawn_points,
             triggers,
-            decals: Default::default(),
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -1064,7 +1061,6 @@ impl Level {
         self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
-        self.decals.update(&mut scene.graph, time.delta);
         self.lights.update(scene, time.delta);
         self.triggers
             .update(scene, &self.actors, self.sender.as_ref().unwrap());
@@ -1167,7 +1163,7 @@ impl Level {
                 }
             }
 
-            self.decals.add(Decal::new_bullet_hole(
+            Decal::new_bullet_hole(
                 engine.resource_manager.clone(),
                 &mut scene.graph,
                 hit.position,
@@ -1178,7 +1174,7 @@ impl Level {
                 } else {
                     Color::opaque(20, 20, 20)
                 },
-            ));
+            );
 
             // Add blood splatter on a surface behind an actor that was shot.
             if hit.actor.is_some() && !self.actors.get(hit.actor).is_dead() {
@@ -1188,7 +1184,7 @@ impl Level {
                         ColliderShape::Trimesh(_)
                     ) {
                         if intersection.position.coords.metric_distance(&hit.position) < 2.0 {
-                            self.decals.add(Decal::new(
+                            Decal::new(
                                 &mut scene.graph,
                                 intersection.position.coords,
                                 dir,
@@ -1198,7 +1194,7 @@ impl Level {
                                 engine.resource_manager.request_texture(
                                     "data/textures/decals/BloodSplatter_BaseColor.png",
                                 ),
-                            ));
+                            );
 
                             break;
                         }
