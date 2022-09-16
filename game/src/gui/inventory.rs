@@ -48,6 +48,7 @@ pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
     item: ItemKind,
+    #[allow(dead_code)]
     count: Handle<UiNode>,
 }
 

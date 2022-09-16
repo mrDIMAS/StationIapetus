@@ -3,6 +3,7 @@ use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
     door::{DoorDirection, DoorState},
+    item::ItemKind,
     level::turret::{Barrel, Hostility, ShootMode},
     weapon::definition::WeaponKind,
     GameConstructor,
@@ -24,6 +25,7 @@ fn main() {
     editors.register_inheritable_enum::<Hostility, _>();
     editors.register_inheritable_enum::<ShootMode, _>();
     editors.register_inheritable_enum::<WeaponKind, _>();
+    editors.register_inheritable_enum::<ItemKind, _>();
     editors.register_inheritable_inspectable::<Barrel>();
     editors.register_inheritable_vec_collection::<Barrel>();
 

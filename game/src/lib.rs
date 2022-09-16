@@ -23,6 +23,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::item::Item;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -898,7 +899,8 @@ impl PluginConstructor for GameConstructor {
             .script_constructors
             .add::<Door>("Door")
             .add::<Turret>("Turret")
-            .add::<Weapon>("Weapon");
+            .add::<Weapon>("Weapon")
+            .add::<Item>("Item");
     }
 
     fn create_instance(

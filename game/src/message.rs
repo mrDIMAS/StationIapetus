@@ -9,7 +9,7 @@ use crate::{
     character::HitBox,
     effects::EffectKind,
     elevator::{call_button::CallButton, Elevator},
-    item::{Item, ItemKind},
+    item::ItemKind,
     sound::SoundKind,
     weapon::{
         definition::{ShotEffect, WeaponKind},
@@ -64,7 +64,7 @@ pub enum Message {
     /// it for short period of time if it constant.
     PickUpItem {
         actor: Handle<Actor>,
-        item: Handle<Item>,
+        item: Handle<Node>,
     },
     SpawnItem {
         kind: ItemKind,

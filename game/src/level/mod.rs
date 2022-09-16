@@ -1,4 +1,3 @@
-use crate::weapon::{weapon_mut, weapon_ref};
 use crate::{
     actor::{Actor, ActorContainer},
     bot::{Bot, BotKind},
@@ -11,7 +10,7 @@ use crate::{
         call_button::{CallButton, CallButtonContainer, CallButtonKind},
         Elevator, ElevatorContainer,
     },
-    item::{Item, ItemContainer, ItemKind},
+    item::{item_mut, Item, ItemContainer, ItemKind},
     level::{
         decal::{Decal, DecalContainer},
         trail::{ShotTrail, ShotTrailContainer},
@@ -29,6 +28,7 @@ use crate::{
         sight::SightReaction,
         Weapon,
     },
+    weapon::{weapon_mut, weapon_ref},
     CallButtonUiContainer, GameTime, MessageSender,
 };
 use fyrox::{
@@ -85,7 +85,7 @@ pub struct Level {
     player: Handle<Actor>,
     projectiles: ProjectileContainer,
     pub actors: ActorContainer,
-    items: ItemContainer,
+    pub items: ItemContainer,
     spawn_points: Vec<SpawnPoint>,
     #[visit(skip)]
     sender: Option<MessageSender>,
@@ -130,7 +130,6 @@ pub struct UpdateContext<'a> {
 
 #[derive(Default)]
 pub struct AnalysisResult {
-    items: ItemContainer,
     death_zones: Vec<DeathZone>,
     spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
@@ -189,10 +188,9 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
     )))
 }
 
-pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> AnalysisResult {
+pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
-    let mut items = Vec::new();
     let mut spawn_points = Vec::new();
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
@@ -202,7 +200,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
     let mut call_buttons = CallButtonContainer::new();
 
     for (handle, node) in scene.graph.pair_iter() {
-        let position = node.global_position();
         let name = node.name();
 
         if name.starts_with("Zombie") {
@@ -286,16 +283,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
                 player_spawn_orientation = scene.graph.global_rotation(handle);
             }
             "FlashingLight" => result.lights.add(Light::new(handle)),
-            "Medkit" => items.push((ItemKind::Medkit, position)),
-            "Medpack" => items.push((ItemKind::Medpack, position)),
-            "Ammo" => items.push((ItemKind::Ammo, position)),
-            "Grenade" => items.push((ItemKind::Grenade, position)),
-            "PlasmaGun" => items.push((ItemKind::PlasmaGun, position)),
-            "Ak47" => items.push((ItemKind::Ak47, position)),
-            "M4" => items.push((ItemKind::M4, position)),
-            "Glock" => items.push((ItemKind::Glock, position)),
-            "RailGun" => items.push((ItemKind::RailGun, position)),
-            "MasterKey" => items.push((ItemKind::MasterKey, position)),
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
             "ZombieWithGun" => spawn_points.push(SpawnPoint {
@@ -309,11 +296,6 @@ pub async fn analyze(scene: &mut Scene, resource_manager: ResourceManager) -> An
         }
     }
 
-    for (kind, position) in items {
-        result
-            .items
-            .add(spawn_item(scene, resource_manager.clone(), kind, position, true).await);
-    }
     for handle in death_zones {
         let node = &mut scene.graph[handle];
         node.set_visibility(false);
@@ -453,13 +435,24 @@ async fn spawn_item(
     kind: ItemKind,
     position: Vector3<f32>,
     adjust_height: bool,
-) -> Item {
+) {
     let position = if adjust_height {
         pick(scene, position, position - Vector3::new(0.0, 1000.0, 0.0))
     } else {
         position
     };
-    Item::new(kind, position, scene, resource_manager).await
+
+    let item = resource_manager
+        .request_model(&Item::get_definition(kind).model)
+        .await
+        .unwrap()
+        .instantiate_geometry(scene);
+
+    let item_ref = &mut scene.graph[item];
+
+    assert!(item_ref.has_script::<Item>());
+
+    item_ref.local_transform_mut().set_position(position);
 }
 
 fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
@@ -518,7 +511,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            items,
             death_zones,
             mut spawn_points,
             player_spawn_position,
@@ -528,7 +520,7 @@ impl Level {
             triggers,
             elevators,
             call_buttons,
-        } = block_on(analyze(scene, resource_manager.clone()));
+        } = block_on(analyze(scene));
         let mut actors = ActorContainer::new();
 
         for pt in spawn_points.iter_mut() {
@@ -559,7 +551,7 @@ impl Level {
                 persistent_data,
             )),
             actors,
-            items,
+            items: Default::default(),
             lights,
             death_zones,
             spawn_points,
@@ -613,7 +605,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            items,
             death_zones,
             mut spawn_points,
             player_spawn_position,
@@ -623,7 +614,7 @@ impl Level {
             triggers,
             elevators,
             call_buttons,
-        } = analyze(&mut scene, resource_manager.clone()).await;
+        } = analyze(&mut scene).await;
         let mut actors = ActorContainer::new();
 
         for pt in spawn_points.iter_mut() {
@@ -656,7 +647,7 @@ impl Level {
             )
             .await,
             actors,
-            items,
+            items: Default::default(),
             lights,
             death_zones,
             spawn_points,
@@ -845,16 +836,16 @@ impl Level {
         &mut self,
         engine: &mut PluginContext<'_>,
         actor: Handle<Actor>,
-        item_handle: Handle<Item>,
+        item_handle: Handle<Node>,
     ) {
         if self.actors.contains(actor) && self.items.contains(item_handle) {
-            let item = self.items.get_mut(item_handle);
-
             let scene = &mut engine.scenes[self.scene];
-            let position = item.position(&scene.graph);
+            let position = scene.graph[item_handle].global_position();
+            let item = item_mut(item_handle, &mut scene.graph);
+
             let kind = item.get_kind();
 
-            self.items.remove(item_handle, &mut scene.graph);
+            scene.graph.remove_node(item_handle);
 
             self.sender.as_ref().unwrap().send(Message::PlaySound {
                 path: PathBuf::from("data/sounds/item_pickup.ogg"),
@@ -1007,16 +998,14 @@ impl Level {
         adjust_height: bool,
     ) {
         let scene = &mut engine.scenes[self.scene];
-        self.items.add(
-            spawn_item(
-                scene,
-                engine.resource_manager.clone(),
-                kind,
-                position,
-                adjust_height,
-            )
-            .await,
-        );
+        spawn_item(
+            scene,
+            engine.resource_manager.clone(),
+            kind,
+            position,
+            adjust_height,
+        )
+        .await;
     }
 
     fn update_death_zones(&mut self, scene: &Scene) {
@@ -1077,7 +1066,6 @@ impl Level {
         self.update_game_ending(scene);
         self.decals.update(&mut scene.graph, time.delta);
         self.lights.update(scene, time.delta);
-        self.items.update(time.delta, &mut scene.graph);
         self.triggers
             .update(scene, &self.actors, self.sender.as_ref().unwrap());
         // Make sure to clear unused animation events, because they might be used
@@ -1484,7 +1472,6 @@ impl Level {
         self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
-        self.items.resolve();
         self.projectiles.resolve();
     }
 

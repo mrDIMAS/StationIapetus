@@ -1,23 +1,40 @@
-use crate::weapon::definition::WeaponKind;
-use fyrox::scene::pivot::PivotBuilder;
+use crate::{current_level_mut, weapon::definition::WeaponKind};
 use fyrox::{
     core::{
-        algebra::Vector3,
         color::Color,
-        pool::{Handle, Pool},
-        visitor::{Visit, VisitResult, Visitor},
+        inspect::prelude::*,
+        pool::Handle,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
+    impl_component_provider,
     lazy_static::lazy_static,
     scene::{
-        base::BaseBuilder, graph::Graph, node::Node, sprite::SpriteBuilder,
-        transform::TransformBuilder, Scene,
+        base::BaseBuilder, graph::map::NodeHandleMap, graph::Graph, node::Node,
+        node::TypeUuidProvider, sprite::SpriteBuilder,
     },
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+    Deserialize,
+    Hash,
+    Visit,
+    Reflect,
+    Inspect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+)]
 pub enum ItemKind {
     Medkit,
     Medpack,
@@ -60,14 +77,22 @@ impl ItemKind {
     }
 }
 
-#[derive(Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Item {
     kind: ItemKind,
-    pivot: Handle<Node>,
     model: Handle<Node>,
-    spark: Handle<Node>,
-    spark_size_change_dir: f32,
     pub stack_size: u32,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    spark: Handle<Node>,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    spark_size_change_dir: f32,
+
+    #[inspect(skip)]
+    #[reflect(hidden)]
     #[visit(skip)]
     pub definition: &'static ItemDefinition,
 }
@@ -76,7 +101,6 @@ impl Default for Item {
     fn default() -> Self {
         Self {
             kind: ItemKind::Medkit,
-            pivot: Default::default(),
             model: Default::default(),
             spark: Default::default(),
             spark_size_change_dir: 1.0,
@@ -86,11 +110,76 @@ impl Default for Item {
     }
 }
 
-#[derive(Deserialize)]
+impl_component_provider!(Item);
+
+impl TypeUuidProvider for Item {
+    fn type_uuid() -> Uuid {
+        uuid!("b915fa9e-6fd0-420d-8879-33cf76adfb5e")
+    }
+}
+
+impl ScriptTrait for Item {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        self.definition = Self::get_definition(self.kind);
+
+        // Create spark from code, since it is the same across all items.
+        self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
+            .with_size(0.04)
+            .with_color(Color::from_rgba(255, 255, 255, 160))
+            .with_texture(
+                ctx.resource_manager
+                    .request_texture("data/particles/star_09.png"),
+            )
+            .build(&mut ctx.scene.graph);
+
+        ctx.scene.graph.link_nodes(self.spark, ctx.handle);
+
+        current_level_mut(ctx.plugins)
+            .unwrap()
+            .items
+            .container
+            .push(ctx.handle);
+    }
+
+    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
+        if let Some(level) = current_level_mut(context.plugins) {
+            if let Some(index) = level
+                .items
+                .container
+                .iter()
+                .position(|i| *i == context.node_handle)
+            {
+                level.items.container.remove(index);
+            }
+        }
+    }
+
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let spark = ctx.scene.graph[self.spark].as_sprite_mut();
+        let new_size = spark.size() + 0.02 * self.spark_size_change_dir * ctx.dt;
+        spark.set_size(new_size);
+        let new_rotation = spark.rotation() + 20.0f32.to_radians() * ctx.dt;
+        spark.set_rotation(new_rotation);
+        if spark.size() >= 0.04 {
+            self.spark_size_change_dir = -1.0;
+        } else if spark.size() < 0.03 {
+            self.spark_size_change_dir = 1.0;
+        }
+    }
+
+    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping.map(&mut self.model);
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+}
+
+#[derive(Deserialize, Debug)]
 pub struct ItemDefinition {
     pub model: String,
     pub description: String,
-    pub scale: f32,
     pub name: String,
     pub consumable: bool,
     pub preview: String,
@@ -120,92 +209,14 @@ impl Item {
             .expect(&format!("No definition for {:?} weapon!", kind))
     }
 
-    pub async fn new(
-        kind: ItemKind,
-        position: Vector3<f32>,
-        scene: &mut Scene,
-        resource_manager: ResourceManager,
-    ) -> Self {
-        let definition = Self::get_definition(kind);
-
-        let spark;
-        let model = resource_manager
-            .request_model(&definition.model)
-            .await
-            .unwrap()
-            .instantiate_geometry(scene);
-
-        let pivot = PivotBuilder::new(
-            BaseBuilder::new()
-                .with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_position(position)
-                        .with_local_scale(Vector3::new(
-                            definition.scale,
-                            definition.scale,
-                            definition.scale,
-                        ))
-                        .build(),
-                )
-                .with_children(&[model, {
-                    spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
-                        .with_size(0.04)
-                        .with_color(Color::from_rgba(255, 255, 255, 160))
-                        .with_texture(
-                            resource_manager.request_texture("data/particles/star_09.png"),
-                        )
-                        .build(&mut scene.graph);
-                    spark
-                }]),
-        )
-        .build(&mut scene.graph);
-
-        Self {
-            pivot,
-            kind,
-            model,
-            spark,
-            ..Default::default()
-        }
-    }
-
-    pub fn get_pivot(&self) -> Handle<Node> {
-        self.pivot
-    }
-
-    pub fn position(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.pivot].global_position()
-    }
-
     pub fn get_kind(&self) -> ItemKind {
         self.kind
-    }
-
-    fn cleanup(&self, graph: &mut Graph) {
-        graph.remove_node(self.pivot)
-    }
-
-    fn update(&mut self, dt: f32, graph: &mut Graph) {
-        let spark = graph[self.spark].as_sprite_mut();
-        let new_size = spark.size() + 0.02 * self.spark_size_change_dir * dt;
-        spark.set_size(new_size);
-        let new_rotation = spark.rotation() + 20.0f32.to_radians() * dt;
-        spark.set_rotation(new_rotation);
-        if spark.size() >= 0.04 {
-            self.spark_size_change_dir = -1.0;
-        } else if spark.size() < 0.03 {
-            self.spark_size_change_dir = 1.0;
-        }
-    }
-
-    pub fn resolve(&mut self) {
-        self.definition = Self::get_definition(self.kind);
     }
 }
 
 #[derive(Visit)]
 pub struct ItemContainer {
-    pool: Pool<Item>,
+    container: Vec<Handle<Node>>,
 }
 
 impl Default for ItemContainer {
@@ -216,47 +227,24 @@ impl Default for ItemContainer {
 
 impl ItemContainer {
     pub fn new() -> Self {
-        Self { pool: Pool::new() }
-    }
-
-    pub fn add(&mut self, item: Item) -> Handle<Item> {
-        self.pool.spawn(item)
-    }
-
-    pub fn get_mut(&mut self, item: Handle<Item>) -> &mut Item {
-        self.pool.borrow_mut(item)
-    }
-
-    pub fn contains(&self, item: Handle<Item>) -> bool {
-        self.pool.is_valid_handle(item)
-    }
-
-    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Item>, &Item)> {
-        self.pool.pair_iter()
-    }
-
-    pub fn iter(&self) -> impl Iterator<Item = &Item> {
-        self.pool.iter()
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Item> {
-        self.pool.iter_mut()
-    }
-
-    pub fn remove(&mut self, item: Handle<Item>, graph: &mut Graph) {
-        self.pool[item].cleanup(graph);
-        self.pool.free(item);
-    }
-
-    pub fn update(&mut self, dt: f32, graph: &mut Graph) {
-        for item in self.pool.iter_mut() {
-            item.update(dt, graph);
+        Self {
+            container: Default::default(),
         }
     }
 
-    pub fn resolve(&mut self) {
-        for item in self.pool.iter_mut() {
-            item.resolve();
-        }
+    pub fn contains(&self, item: Handle<Node>) -> bool {
+        self.container.contains(&item)
     }
+
+    pub fn iter(&self) -> impl Iterator<Item = &Handle<Node>> {
+        self.container.iter()
+    }
+}
+
+pub fn item_ref(handle: Handle<Node>, graph: &Graph) -> &Item {
+    graph[handle].try_get_script::<Item>().unwrap()
+}
+
+pub fn item_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Item {
+    graph[handle].try_get_script_mut::<Item>().unwrap()
 }

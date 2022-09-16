@@ -1,3 +1,4 @@
+use crate::item::item_ref;
 use crate::weapon::{try_weapon_ref, weapon_mut, weapon_ref};
 use crate::{
     actor::Actor,
@@ -558,9 +559,10 @@ impl Player {
         items: &ItemContainer,
         sender: &MessageSender,
     ) {
-        for (item_handle, item) in items.pair_iter() {
+        for &item_handle in items.iter() {
+            let item = item_ref(item_handle, &scene.graph);
             let self_position = scene.graph[self.pivot].global_position();
-            let item_position = scene.graph[item.get_pivot()].global_position();
+            let item_position = scene.graph[item_handle].global_position();
 
             let distance = (item_position - self_position).norm();
             if distance < 0.75 {
