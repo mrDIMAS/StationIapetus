@@ -186,6 +186,8 @@ pub struct PlayerPersistentData {
 pub struct Player {
     character: Character,
     camera_controller: Handle<Node>,
+    #[visit(optional)]
+    model_pivot: Handle<Node>,
     model: Handle<Node>,
     model_yaw: SmoothAngle,
     spine_pitch: SmoothAngle,
@@ -294,6 +296,7 @@ impl Default for Player {
             },
             journal_display: Default::default(),
             journal: Journal::new(),
+            model_pivot: Default::default(),
         }
     }
 }
@@ -303,6 +306,7 @@ impl Clone for Player {
         Self {
             character: self.character.clone(),
             camera_controller: self.camera_controller.clone(),
+            model_pivot: self.model_pivot,
             model: self.model.clone(),
             model_yaw: self.model_yaw.clone(),
             spine_pitch: self.spine_pitch.clone(),
@@ -585,14 +589,17 @@ impl Player {
     }
 
     fn update_velocity(&mut self, scene: &Scene, can_move: bool, dt: f32) {
-        let body = &scene.graph[self.body];
+        // We're using model pivot's angles for movement instead of rigid body, because
+        // camera controller is attached to the body and we'd rotate rigid body, the
+        // camera would rotate too, but we don't want this.
+        let model_pivot = &scene.graph[self.model_pivot];
 
-        let look_vector = body
+        let look_vector = model_pivot
             .look_vector()
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
-        let side_vector = body
+        let side_vector = model_pivot
             .side_vector()
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::x);
@@ -1292,7 +1299,8 @@ impl ScriptTrait for Player {
             if can_move && (is_walking || self.controller.aim) {
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
-                body.local_transform_mut()
+                ctx.scene.graph[self.model_pivot]
+                    .local_transform_mut()
                     .set_rotation(UnitQuaternion::from_axis_angle(
                         &Vector3::y_axis(),
                         self.controller.yaw,
@@ -1438,7 +1446,8 @@ impl ScriptTrait for Player {
             .map(&mut self.journal_display)
             .map(&mut self.item_display)
             .map(&mut self.health_cylinder)
-            .map(&mut self.rig_light);
+            .map(&mut self.rig_light)
+            .map(&mut self.model_pivot);
     }
 
     fn id(&self) -> Uuid {
