@@ -147,7 +147,7 @@ impl ActorContainer {
         for (handle, actor) in self.pool.pair_iter_mut() {
             match actor {
                 Actor::Bot(bot) => bot.update(handle, context, &self.target_descriptors),
-                Actor::Player(player) => player.update(handle, context),
+                _ => (),
             }
         }
     }
@@ -191,8 +191,6 @@ impl ActorContainer {
                     bot.resolve();
                 }
             }
-
-            actor.restore_hit_boxes(scene);
         }
     }
 }

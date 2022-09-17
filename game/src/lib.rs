@@ -25,6 +25,8 @@ pub mod weapon;
 
 use crate::item::Item;
 use crate::level::decal::Decal;
+use crate::player::camera::CameraController;
+use crate::player::Player;
 use crate::{
     actor::Actor,
     config::{Config, SoundConfig},
@@ -263,10 +265,6 @@ impl Game {
         let journal_display = JournalDisplay::new();
 
         let level = if override_scene.is_some() {
-            let display_texture = weapon_display.render_target.clone();
-            let inventory_texture = inventory_interface.render_target.clone();
-            let item_texture = item_display.render_target.clone();
-            let journal_texture = journal_display.render_target.clone();
             let sound_config = sound_config.clone();
 
             Some(Level::from_existing_scene(
@@ -274,10 +272,6 @@ impl Game {
                 override_scene,
                 context.resource_manager.clone(),
                 message_sender.clone(),
-                display_texture,
-                inventory_texture,
-                item_texture,
-                journal_texture,
                 sound_config,
                 None,
             ))
@@ -495,10 +489,6 @@ impl Game {
 
         let resource_manager = context.resource_manager.clone();
         let sender = self.message_sender.clone();
-        let display_texture = self.weapon_display.render_target.clone();
-        let inventory_texture = self.inventory_interface.render_target.clone();
-        let item_texture = self.item_display.render_target.clone();
-        let journal_texture = self.journal_display.render_target.clone();
         let sound_config = self.sound_config.clone();
 
         let map_path = map.as_ref().to_owned();
@@ -508,10 +498,6 @@ impl Game {
                     map_path,
                     resource_manager,
                     sender,
-                    display_texture,
-                    inventory_texture,
-                    item_texture,
-                    journal_texture,
                     sound_config,
                     persistent_data,
                 ));
@@ -591,11 +577,10 @@ impl Game {
                 level.update(context, time, &mut self.call_button_ui_container);
                 let player = level.get_player();
                 if player.is_some() {
-                    if let Actor::Player(player) = level.actors().get(player) {
-                        self.weapon_display
-                            .sync_to_model(player, &context.scenes[level.scene].graph);
-                        self.journal_display.update(time.delta, &player.journal);
-                    }
+                    let graph = &context.scenes[level.scene].graph;
+                    let player_ref = graph[player].try_get_script::<Player>().unwrap();
+                    self.weapon_display.sync_to_model(player_ref, graph);
+                    self.journal_display.update(time.delta, &player_ref.journal);
                 }
             }
             context.scenes[level.scene].enabled = !menu_visible;
@@ -614,7 +599,7 @@ impl Game {
         self.update_statistics(0.0, context);
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
-        if false {
+        if true {
             self.debug_render(context);
         }
     }
@@ -645,15 +630,17 @@ impl Game {
                         };
 
                         if let Some(kind) = kind {
-                            let persistent_data = if let Actor::Player(player) =
-                                level.actors().get(level.get_player())
-                            {
-                                player.persistent_data(&context.scenes[level.scene].graph)
-                            } else {
-                                unreachable!()
-                            };
-
-                            self.load_level(kind, Some(persistent_data), context)
+                            let graph = &context.scenes[level.scene].graph;
+                            self.load_level(
+                                kind,
+                                Some(
+                                    graph[level.player]
+                                        .try_get_script::<Player>()
+                                        .unwrap()
+                                        .persistent_data(graph),
+                                ),
+                                context,
+                            )
                         }
                     }
                 }
@@ -720,17 +707,19 @@ impl Game {
                 }
                 Message::SyncInventory => {
                     if let Some(ref mut level) = self.level {
-                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
-                            self.inventory_interface
-                                .sync_to_model(context.resource_manager.clone(), player);
-                        }
+                        let player_ref = context.scenes[level.scene].graph[level.player]
+                            .try_get_script::<Player>()
+                            .unwrap();
+                        self.inventory_interface
+                            .sync_to_model(context.resource_manager.clone(), player_ref);
                     }
                 }
                 Message::SyncJournal => {
                     if let Some(ref mut level) = self.level {
-                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
-                            self.journal_display.sync_to_model(&player.journal);
-                        }
+                        let player_ref = context.scenes[level.scene].graph[level.player]
+                            .try_get_script::<Player>()
+                            .unwrap();
+                        self.journal_display.sync_to_model(&player_ref.journal);
                     }
                 }
                 &Message::ShowItemDisplay { item, count } => {
@@ -799,34 +788,17 @@ impl Game {
                 context.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
-                    let player =
-                        if let Actor::Player(player) = level.actors_mut().get_mut(player_handle) {
-                            player
-                        } else {
-                            unreachable!()
-                        };
+                    let player_ref = context.scenes[level.scene].graph[player_handle]
+                        .try_get_script_mut::<Player>()
+                        .unwrap();
                     self.inventory_interface.process_os_event(
                         &event,
                         &self.control_scheme,
-                        player_handle,
-                        player,
+                        player_ref,
                     );
                     self.journal_display
                         .process_os_event(&event, &self.control_scheme);
                 }
-            }
-        }
-
-        if !self.is_any_menu_visible(context) {
-            if let Some(ref mut level) = self.level {
-                let scene = &mut context.scenes[level.scene];
-                level.process_input_event(
-                    event,
-                    scene,
-                    self.time.delta,
-                    &self.control_scheme,
-                    &self.message_sender,
-                );
             }
         }
     }
@@ -864,7 +836,9 @@ impl PluginConstructor for GameConstructor {
             .add::<Turret>("Turret")
             .add::<Weapon>("Weapon")
             .add::<Item>("Item")
-            .add::<Decal>("Decal");
+            .add::<Decal>("Decal")
+            .add::<Player>("Player")
+            .add::<CameraController>("Camera Controller");
     }
 
     fn create_instance(

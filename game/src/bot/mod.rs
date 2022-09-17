@@ -5,7 +5,7 @@ use crate::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
-    character::{find_hit_boxes, Character},
+    character::Character,
     door::{door_ref, DoorContainer},
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
@@ -339,12 +339,10 @@ impl Bot {
 
         Self {
             character: Character {
-                pivot,
                 body,
                 capsule_collider,
                 weapon_pivot,
                 health: definition.health,
-                hit_boxes: find_hit_boxes(pivot, scene),
                 inventory: Inventory::from_inner(items),
                 ..Default::default()
             },

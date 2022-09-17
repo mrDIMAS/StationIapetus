@@ -3,14 +3,13 @@ use crate::{
     bot::{Bot, BotKind},
     character::HitBox,
     config::SoundConfig,
-    control_scheme::ControlScheme,
     door::{door_mut, DoorContainer},
     effects::{self, EffectKind},
     elevator::{
         call_button::{CallButton, CallButtonContainer, CallButtonKind},
         Elevator, ElevatorContainer,
     },
-    item::{item_mut, Item, ItemContainer, ItemKind},
+    item::ItemContainer,
     level::{
         decal::Decal,
         trail::{ShotTrail, ShotTrailContainer},
@@ -21,14 +20,13 @@ use crate::{
     player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
     utils::{is_probability_event_occurred, use_hrtf},
+    weapon::weapon_mut,
     weapon::{
         definition::{ShotEffect, WeaponKind},
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit,
         sight::SightReaction,
-        Weapon,
     },
-    weapon::{weapon_mut, weapon_ref},
     CallButtonUiContainer, GameTime, MessageSender,
 };
 use fyrox::{
@@ -44,7 +42,6 @@ use fyrox::{
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
-    event::Event,
     material::{Material, PropertyValue},
     plugin::PluginContext,
     rand,
@@ -79,8 +76,8 @@ pub mod turret;
 pub struct Level {
     pub map_path: String,
     pub scene: Handle<Scene>,
-    player: Handle<Actor>,
-    projectiles: ProjectileContainer,
+    pub player: Handle<Node>,
+    pub projectiles: ProjectileContainer,
     pub actors: ActorContainer,
     pub items: ItemContainer,
     spawn_points: Vec<SpawnPoint>,
@@ -299,79 +296,18 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
 async fn spawn_player(
     spawn_position: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
-    actors: &mut ActorContainer,
     resource_manager: ResourceManager,
     scene: &mut Scene,
-    display_texture: Texture,
-    inventory_texture: Texture,
-    item_texture: Texture,
-    journal_texture: Texture,
     persistent_data: Option<PlayerPersistentData>,
-) -> Handle<Actor> {
-    let player = Player::new(
-        scene,
-        resource_manager.clone(),
-        spawn_position,
-        orientation,
-        display_texture,
-        inventory_texture,
-        item_texture,
-        journal_texture,
-        persistent_data.clone(),
-    )
-    .await;
-    let player = actors.add(Actor::Player(player));
-    actors
-        .get_mut(player)
-        .set_position(&mut scene.graph, spawn_position);
+) -> Handle<Node> {
+    let player = Player::add_to_scene(scene, resource_manager.clone()).await;
 
-    let weapons_to_give = if let Some(data) = persistent_data {
-        data.weapons
-    } else {
-        vec![WeaponKind::Glock]
-    };
-
-    for (i, &weapon) in weapons_to_give.iter().enumerate() {
-        give_new_weapon(
-            weapon,
-            player,
-            resource_manager.clone(),
-            i == weapons_to_give.len() - 1,
-            actors,
-            scene,
-        )
-        .await;
-    }
+    scene.graph[player]
+        .local_transform_mut()
+        .set_position(spawn_position)
+        .set_rotation(orientation);
 
     player
-}
-
-async fn give_new_weapon(
-    kind: WeaponKind,
-    actor: Handle<Actor>,
-    resource_manager: ResourceManager,
-    visible: bool,
-    actors: &mut ActorContainer,
-    scene: &mut Scene,
-) {
-    if actors.contains(actor) {
-        let weapon = resource_manager
-            .request_model(Weapon::definition(kind).model.clone())
-            .await
-            .unwrap()
-            .instantiate_geometry(scene);
-
-        // Root node must have Weapon script.
-        assert!(scene.graph[weapon].has_script::<Weapon>());
-
-        weapon_mut(weapon, &mut scene.graph).set_owner(actor);
-        scene.graph[weapon].set_visibility(visible);
-
-        let actor = actors.get_mut(actor);
-        actor.add_weapon(weapon, &mut scene.graph);
-        scene.graph.link_nodes(weapon, actor.weapon_pivot());
-        actor.inventory_mut().add_item(kind.associated_item(), 1);
-    }
 }
 
 async fn spawn_bot(
@@ -393,10 +329,6 @@ async fn spawn_bot(
     )
     .await;
 
-    if let Some(weapon) = weapon {
-        give_new_weapon(weapon, bot, resource_manager.clone(), true, actors, scene).await
-    }
-
     bot
 }
 
@@ -412,59 +344,6 @@ async fn add_bot(
     actors.add(Actor::Bot(bot))
 }
 
-async fn spawn_item(
-    scene: &mut Scene,
-    resource_manager: ResourceManager,
-    kind: ItemKind,
-    position: Vector3<f32>,
-    adjust_height: bool,
-) {
-    let position = if adjust_height {
-        pick(scene, position, position - Vector3::new(0.0, 1000.0, 0.0))
-    } else {
-        position
-    };
-
-    let item = resource_manager
-        .request_model(&Item::get_definition(kind).model)
-        .await
-        .unwrap()
-        .instantiate_geometry(scene);
-
-    let item_ref = &mut scene.graph[item];
-
-    assert!(item_ref.has_script::<Item>());
-
-    item_ref.local_transform_mut().set_position(position);
-}
-
-fn pick(scene: &mut Scene, from: Vector3<f32>, to: Vector3<f32>) -> Vector3<f32> {
-    let mut intersections = Vec::new();
-    let ray = Ray::from_two_points(from, to);
-    scene.graph.physics.cast_ray(
-        RayCastOptions {
-            ray_origin: Point3::from(ray.origin),
-            ray_direction: ray.dir,
-            max_len: ray.dir.norm(),
-            groups: Default::default(),
-            sort_results: true,
-        },
-        &mut intersections,
-    );
-
-    if let Some(intersection) = intersections.iter().find(|i| {
-        // HACK: Check everything but capsules (helps correctly drop items from actors)
-        !matches!(
-            scene.graph[i.collider].as_collider().shape(),
-            ColliderShape::Capsule(_)
-        )
-    }) {
-        intersection.position.coords
-    } else {
-        from
-    }
-}
-
 impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/loading_bay.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
@@ -475,10 +354,6 @@ impl Level {
         scene_handle: Handle<Scene>,
         resource_manager: ResourceManager,
         sender: MessageSender,
-        display_texture: Texture,
-        inventory_texture: Texture,
-        item_texture: Texture,
-        journal_texture: Texture,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
         persistent_data: Option<PlayerPersistentData>,
     ) -> Self {
@@ -524,13 +399,8 @@ impl Level {
             player: block_on(spawn_player(
                 player_spawn_position,
                 player_spawn_orientation,
-                &mut actors,
                 resource_manager,
                 scene,
-                display_texture,
-                inventory_texture,
-                item_texture,
-                journal_texture,
                 persistent_data,
             )),
             actors,
@@ -558,10 +428,6 @@ impl Level {
         map: String,
         resource_manager: ResourceManager,
         sender: MessageSender,
-        display_texture: Texture,
-        inventory_texture: Texture,
-        item_texture: Texture,
-        journal_texture: Texture,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
         persistent_data: Option<PlayerPersistentData>,
     ) -> (Self, Scene) {
@@ -618,13 +484,8 @@ impl Level {
             player: spawn_player(
                 player_spawn_position,
                 player_spawn_orientation,
-                &mut actors,
                 resource_manager.clone(),
                 &mut scene,
-                display_texture,
-                inventory_texture,
-                item_texture,
-                journal_texture,
                 persistent_data,
             )
             .await,
@@ -655,40 +516,8 @@ impl Level {
         context.scenes.remove(self.scene);
     }
 
-    async fn give_new_weapon(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        actor: Handle<Actor>,
-        kind: WeaponKind,
-    ) {
-        give_new_weapon(
-            kind,
-            actor,
-            engine.resource_manager.clone(),
-            true,
-            &mut self.actors,
-            &mut engine.scenes[self.scene],
-        )
-        .await;
-    }
-
-    pub fn get_player(&self) -> Handle<Actor> {
+    pub fn get_player(&self) -> Handle<Node> {
         self.player
-    }
-
-    pub fn process_input_event(
-        &mut self,
-        event: &Event<()>,
-        scene: &mut Scene,
-        dt: f32,
-        control_scheme: &ControlScheme,
-        sender: &MessageSender,
-    ) {
-        if self.player.is_some() {
-            if let Actor::Player(player) = self.actors.get_mut(self.player) {
-                player.process_input_event(event, dt, scene, control_scheme, sender);
-            }
-        }
     }
 
     pub fn actors(&self) -> &ActorContainer {
@@ -697,36 +526,6 @@ impl Level {
 
     pub fn actors_mut(&mut self) -> &mut ActorContainer {
         &mut self.actors
-    }
-
-    fn remove_weapon(&mut self, engine: &mut PluginContext, weapon: Handle<Node>) {
-        let scene = &mut engine.scenes[self.scene];
-
-        assert!(scene.graph[weapon].has_script::<Weapon>());
-
-        for projectile in self.projectiles.iter_mut() {
-            if let Shooter::Weapon(ref mut owner) = projectile.owner {
-                // Reset owner because handle to weapon will be invalid after weapon freed.
-                if *owner == weapon {
-                    *owner = Handle::NONE;
-                }
-            }
-        }
-
-        for actor in self.actors.iter_mut() {
-            if actor.current_weapon() == weapon {
-                if let Some(&first_weapon) = actor.weapons.first() {
-                    actor.current_weapon = 0;
-                    weapon_mut(first_weapon, &mut scene.graph).enabled = true;
-                }
-            }
-
-            if let Some(i) = actor.weapons.iter().position(|&w| w == weapon) {
-                actor.weapons.remove(i);
-            }
-        }
-
-        scene.graph.remove_node(weapon);
     }
 
     async fn add_bot(
@@ -752,123 +551,6 @@ impl Level {
             let scene = &mut engine.scenes[self.scene];
             self.actors.get_mut(actor).clean_up(scene);
             self.actors.free(actor);
-
-            if self.player == actor {
-                self.player = Handle::NONE;
-            }
-        }
-    }
-
-    async fn drop_items(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        actor: Handle<Actor>,
-        item: ItemKind,
-        count: u32,
-    ) {
-        let character = self.actors.get_mut(actor);
-        let scene = &engine.scenes[self.scene];
-
-        let drop_position = character.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
-        let weapons = character.weapons().to_vec();
-
-        if character
-            .inventory_mut()
-            .try_extract_exact_items(item, count)
-            == count
-        {
-            // Make sure to remove weapons associated with items.
-            if let Some(weapon_kind) = item.associated_weapon() {
-                for weapon in weapons {
-                    if weapon_ref(weapon, &engine.scenes[self.scene].graph).kind() == weapon_kind {
-                        self.remove_weapon(engine, weapon);
-                    }
-                }
-            }
-
-            self.spawn_item(engine, item, drop_position, true).await;
-        }
-    }
-
-    async fn use_item(&mut self, actor: Handle<Actor>, kind: ItemKind) {
-        if self.actors.contains(actor) {
-            let character = self.actors.get_mut(actor);
-            match kind {
-                ItemKind::Medkit => character.heal(40.0),
-                ItemKind::Medpack => character.heal(20.0),
-                // Non-consumable items.
-                ItemKind::Ak47
-                | ItemKind::PlasmaGun
-                | ItemKind::M4
-                | ItemKind::Glock
-                | ItemKind::Ammo
-                | ItemKind::RailGun
-                | ItemKind::Grenade
-                | ItemKind::MasterKey => (),
-            }
-        }
-    }
-
-    async fn pickup_item(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        actor: Handle<Actor>,
-        item_handle: Handle<Node>,
-    ) {
-        if self.actors.contains(actor) && self.items.contains(item_handle) {
-            let scene = &mut engine.scenes[self.scene];
-            let position = scene.graph[item_handle].global_position();
-            let item = item_mut(item_handle, &mut scene.graph);
-
-            let kind = item.get_kind();
-
-            scene.graph.remove_node(item_handle);
-
-            self.sender.as_ref().unwrap().send(Message::PlaySound {
-                path: PathBuf::from("data/sounds/item_pickup.ogg"),
-                position,
-                gain: 1.0,
-                rolloff_factor: 3.0,
-                radius: 2.0,
-            });
-
-            let character = self.actors.get_mut(actor);
-
-            match kind {
-                ItemKind::Medkit => character.inventory_mut().add_item(ItemKind::Medkit, 1),
-                ItemKind::Medpack => character.inventory_mut().add_item(ItemKind::Medpack, 1),
-                ItemKind::Ak47
-                | ItemKind::PlasmaGun
-                | ItemKind::M4
-                | ItemKind::Glock
-                | ItemKind::RailGun => {
-                    let weapon_kind = kind.associated_weapon().unwrap();
-
-                    let mut found = false;
-                    for weapon_handle in character.weapons() {
-                        let weapon = weapon_ref(*weapon_handle, &scene.graph);
-                        if weapon.kind() == weapon_kind {
-                            found = true;
-                            break;
-                        }
-                    }
-                    if found {
-                        character.inventory_mut().add_item(ItemKind::Ammo, 24);
-                    } else {
-                        // Finally if actor does not have such weapon, give new one to him.
-                        self.give_new_weapon(engine, actor, weapon_kind).await;
-                    }
-                }
-                ItemKind::Ammo => {
-                    character.inventory_mut().add_item(ItemKind::Ammo, 24);
-                }
-                ItemKind::Grenade => {
-                    character.inventory_mut().add_item(ItemKind::Grenade, 1);
-                }
-                ItemKind::MasterKey => {
-                    character.inventory_mut().add_item(ItemKind::MasterKey, 1);
-                }
-            }
         }
     }
 
@@ -967,24 +649,6 @@ impl Level {
         }
     }
 
-    async fn spawn_item(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        kind: ItemKind,
-        position: Vector3<f32>,
-        adjust_height: bool,
-    ) {
-        let scene = &mut engine.scenes[self.scene];
-        spawn_item(
-            scene,
-            engine.resource_manager.clone(),
-            kind,
-            position,
-            adjust_height,
-        )
-        .await;
-    }
-
     fn update_death_zones(&mut self, scene: &Scene) {
         for (handle, actor) in self.actors.pair_iter_mut() {
             for death_zone in self.death_zones.iter() {
@@ -1005,10 +669,9 @@ impl Level {
     }
 
     fn update_game_ending(&self, scene: &Scene) {
-        if let Actor::Player(player) = self.actors.get(self.player) {
-            if player.is_completely_dead(scene) {
-                self.sender.as_ref().unwrap().send(Message::EndMatch);
-            }
+        let player_ref = scene.graph[self.player].try_get_script::<Player>().unwrap();
+        if player_ref.is_completely_dead(scene) {
+            self.sender.as_ref().unwrap().send(Message::EndMatch);
         }
     }
 
@@ -1316,9 +979,6 @@ impl Level {
             &Message::TryOpenDoor { door, actor } => {
                 self.try_open_door(engine, door, actor);
             }
-            &Message::GiveNewWeapon { actor, kind } => {
-                self.give_new_weapon(engine, actor, kind).await;
-            }
             Message::AddBot {
                 kind,
                 position,
@@ -1327,12 +987,6 @@ impl Level {
                 self.add_bot(engine, *kind, *position, *rotation).await;
             }
             &Message::RemoveActor { actor } => self.remove_actor(engine, actor).await,
-            &Message::UseItem { actor, kind } => {
-                self.use_item(actor, kind).await;
-            }
-            &Message::PickUpItem { actor, item } => {
-                self.pickup_item(engine, actor, item).await;
-            }
             &Message::CreateProjectile {
                 kind,
                 position,
@@ -1398,11 +1052,6 @@ impl Level {
                     orientation,
                 );
             }
-            &Message::SpawnItem {
-                kind,
-                position,
-                adjust_height,
-            } => self.spawn_item(engine, kind, position, adjust_height).await,
             Message::ShootRay {
                 shooter: weapon,
                 begin,
@@ -1411,15 +1060,6 @@ impl Level {
                 shot_effect,
             } => {
                 self.shoot_ray(engine, *weapon, *begin, *end, *damage, *shot_effect);
-            }
-            &Message::GrabWeapon { kind, actor } => {
-                if self.actors.contains(actor) {
-                    let actor = self.actors.get_mut(actor);
-                    actor.select_weapon(kind, &mut engine.scenes[self.scene].graph);
-                }
-            }
-            &Message::DropItems { actor, item, count } => {
-                self.drop_items(engine, actor, item, count).await;
             }
             _ => (),
         }

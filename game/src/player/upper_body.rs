@@ -147,7 +147,7 @@ impl WalkStateDefinition {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Debug)]
 pub struct UpperBodyMachine {
     pub machine: Machine,
     pub aim_state: Handle<State>,

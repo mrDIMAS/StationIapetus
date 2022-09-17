@@ -2,15 +2,15 @@
 
 use crate::{
     actor::{Actor, ActorContainer},
-    character::HitBox,
-    current_level_ref, game_ref,
+    character::{Character, HitBox},
+    current_level_mut, game_ref,
     message::Message,
     weapon::{
         definition::{WeaponDefinition, WeaponKind, WeaponProjectile},
         projectile::Shooter,
         sight::{LaserSight, SightReaction},
     },
-    CollisionGroups, GameTime, MessageSender,
+    CollisionGroups, MessageSender,
 };
 use fyrox::{
     core::{
@@ -37,7 +37,7 @@ use fyrox::{
         node::{Node, TypeUuidProvider},
         Scene,
     },
-    script::{ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::{self, log::Log},
 };
 use std::{
@@ -72,11 +72,12 @@ pub struct Weapon {
 
     #[reflect(hidden)]
     #[inspect(skip)]
-    owner: Handle<Actor>,
+    owner: Handle<Node>,
 
     #[reflect(hidden)]
     #[inspect(skip)]
-    last_shot_time: f64,
+    #[visit(optional)]
+    last_shot_time: f32,
 
     #[reflect(hidden)]
     #[inspect(skip)]
@@ -190,7 +191,7 @@ pub fn ray_hit(
                     let who = match shooter {
                         Shooter::None | Shooter::Turret(_) => Default::default(),
                         Shooter::Actor(actor) => actor,
-                        Shooter::Weapon(weapon) => weapon_ref(weapon, graph).owner(),
+                        Shooter::Weapon(weapon) => Default::default(), //weapon_ref(weapon, graph).owner(), TODO
                     };
 
                     // Ignore intersections with owners.
@@ -257,11 +258,11 @@ impl Weapon {
         graph[self.self_handle].global_transform().basis()
     }
 
-    pub fn owner(&self) -> Handle<Actor> {
+    pub fn owner(&self) -> Handle<Node> {
         self.owner
     }
 
-    pub fn set_owner(&mut self, owner: Handle<Actor>) {
+    pub fn set_owner(&mut self, owner: Handle<Node>) {
         self.owner = owner;
     }
 
@@ -277,8 +278,8 @@ impl Weapon {
         &mut self.laser_sight
     }
 
-    pub fn can_shoot(&self, time: GameTime) -> bool {
-        time.elapsed - self.last_shot_time >= self.definition.shoot_interval
+    pub fn can_shoot(&self, elapsed_time: f32) -> bool {
+        elapsed_time - self.last_shot_time >= self.definition.shoot_interval
     }
 
     pub fn set_sight_reaction(&mut self, reaction: SightReaction) {
@@ -293,12 +294,12 @@ impl Weapon {
         &mut self,
         self_handle: Handle<Node>,
         scene: &mut Scene,
-        time: GameTime,
+        elapsed_time: f32,
         resource_manager: ResourceManager,
         direction: Option<Vector3<f32>>,
         sender: &MessageSender,
     ) {
-        self.last_shot_time = time.elapsed;
+        self.last_shot_time = elapsed_time;
 
         let position = self.shot_position(&scene.graph);
 
@@ -385,9 +386,33 @@ impl ScriptTrait for Weapon {
         dbg!(ctx.handle);
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let level_ref = current_level_ref(ctx.plugins).unwrap();
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        if let Some(level) = current_level_mut(ctx.plugins) {
+            for projectile in level.projectiles.iter_mut() {
+                if let Shooter::Weapon(ref mut owner) = projectile.owner {
+                    // Reset owner because handle to weapon will be invalid after weapon freed.
+                    if *owner == ctx.node_handle {
+                        *owner = Handle::NONE;
+                    }
+                }
+            }
 
+            for actor in level.actors.iter_mut() {
+                if actor.current_weapon() == ctx.node_handle {
+                    if let Some(&first_weapon) = actor.weapons.first() {
+                        actor.current_weapon = 0;
+                        weapon_mut(first_weapon, &mut ctx.scene.graph).enabled = true;
+                    }
+                }
+
+                if let Some(i) = actor.weapons.iter().position(|&w| w == ctx.node_handle) {
+                    actor.weapons.remove(i);
+                }
+            }
+        }
+    }
+
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
         ctx.scene.graph[ctx.handle].set_visibility(self.enabled);
 
         let node = &mut ctx.scene.graph[ctx.handle];
@@ -400,8 +425,14 @@ impl ScriptTrait for Weapon {
         }
 
         let mut ignored_collider = Default::default();
-        if level_ref.actors.contains(self.owner) {
-            ignored_collider = level_ref.actors.get(self.owner).capsule_collider;
+
+        if let Some(node) = ctx.scene.graph.try_get(self.owner) {
+            if let Some(character) = node
+                .script()
+                .and_then(|s| s.query_component_ref::<Character>())
+            {
+                ignored_collider = character.capsule_collider;
+            }
         }
 
         let dir = self.shot_direction(&ctx.scene.graph);
@@ -418,7 +449,7 @@ impl ScriptTrait for Weapon {
             self.shoot(
                 ctx.handle,
                 ctx.scene,
-                game.time,
+                ctx.elapsed_time,
                 ctx.resource_manager.clone(),
                 request.direction,
                 &game.message_sender,

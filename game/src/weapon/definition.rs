@@ -76,7 +76,7 @@ pub struct WeaponDefinition {
     pub model: String,
     pub shot_sounds: Vec<String>,
     pub projectile: WeaponProjectile,
-    pub shoot_interval: f64,
+    pub shoot_interval: f32,
     pub yaw_correction: f32,
     pub pitch_correction: f32,
     pub ammo_indicator_offset: (f32, f32, f32),

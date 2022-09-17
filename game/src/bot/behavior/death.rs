@@ -1,7 +1,4 @@
-use crate::{
-    bot::{behavior::Action, behavior::BehaviorContext},
-    message::Message,
-};
+use crate::bot::{behavior::Action, behavior::BehaviorContext};
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
@@ -61,13 +58,15 @@ impl<'a> Behavior<'a> for StayDead {
         }
 
         if context.character.body.is_some() {
+            // TODO
+            /*
             for item in context.character.inventory.items() {
                 context.sender.send(Message::DropItems {
                     actor: context.bot_handle,
                     item: item.kind,
                     count: item.amount,
                 })
-            }
+            }*/
 
             // TODO
             context.scene.remove_node(context.character.body);

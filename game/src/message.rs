@@ -12,7 +12,7 @@ use crate::{
     item::ItemKind,
     sound::SoundKind,
     weapon::{
-        definition::{ShotEffect, WeaponKind},
+        definition::ShotEffect,
         projectile::{Damage, ProjectileKind, Shooter},
     },
 };
@@ -39,10 +39,6 @@ pub enum Message {
         door: Handle<Node>,
         actor: Handle<Actor>,
     },
-    GiveNewWeapon {
-        actor: Handle<Actor>,
-        kind: WeaponKind,
-    },
     AddBot {
         kind: BotKind,
         position: Vector3<f32>,
@@ -53,23 +49,6 @@ pub enum Message {
     },
     SpawnBot {
         spawn_point_id: usize,
-    },
-    /// Gives item of specified kind to a given actor. Basically it means that actor will take
-    /// item and consume it immediately (heal itself, add ammo, etc.)
-    UseItem {
-        actor: Handle<Actor>,
-        kind: ItemKind,
-    },
-    /// Gives specified actor to a given actor. Removes item from level if temporary or deactivates
-    /// it for short period of time if it constant.
-    PickUpItem {
-        actor: Handle<Actor>,
-        item: Handle<Node>,
-    },
-    SpawnItem {
-        kind: ItemKind,
-        position: Vector3<f32>,
-        adjust_height: bool,
     },
     CreateProjectile {
         kind: ProjectileKind,
@@ -105,11 +84,6 @@ pub enum Message {
         gain: f32,
         rolloff_factor: f32,
         radius: f32,
-    },
-    /// Forces actor to use a weapon of given kind.
-    GrabWeapon {
-        kind: WeaponKind,
-        actor: Handle<Actor>,
     },
     DamageActor {
         /// Which actor should be damaged.
@@ -151,11 +125,6 @@ pub enum Message {
     SyncInventory,
     SyncJournal,
     ShowItemDisplay {
-        item: ItemKind,
-        count: u32,
-    },
-    DropItems {
-        actor: Handle<Actor>,
         item: ItemKind,
         count: u32,
     },
