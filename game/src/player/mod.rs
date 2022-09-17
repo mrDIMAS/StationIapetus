@@ -11,7 +11,7 @@ use crate::{
     game_ref,
     gui::journal::Journal,
     inventory::Inventory,
-    item::{item_ref, ItemContainer, ItemKind},
+    item::{ItemContainer, ItemKind},
     message::Message,
     player::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
@@ -22,7 +22,7 @@ use crate::{
         projectile::{ProjectileKind, Shooter},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
-    CameraController, MessageSender,
+    CameraController, Item, MessageSender,
 };
 use fyrox::{
     animation::{
@@ -382,31 +382,33 @@ impl Player {
 
     fn check_items(&mut self, scene: &mut Scene, items: &ItemContainer, sender: &MessageSender) {
         for &item_handle in items.iter() {
-            let item = item_ref(item_handle, &scene.graph);
-            let self_position = scene.graph[self.body].global_position();
-            let item_position = scene.graph[item_handle].global_position();
+            if let Some(item_node) = scene.graph.try_get(item_handle) {
+                let item = item_node.try_get_script::<Item>().unwrap();
+                let self_position = scene.graph[self.body].global_position();
+                let item_position = item_node.global_position();
 
-            let distance = (item_position - self_position).norm();
-            if distance < 0.75 {
-                sender.send(Message::ShowItemDisplay {
-                    item: item.get_kind(),
-                    count: item.stack_size,
-                });
+                let distance = (item_position - self_position).norm();
+                if distance < 0.75 {
+                    sender.send(Message::ShowItemDisplay {
+                        item: item.get_kind(),
+                        count: item.stack_size,
+                    });
 
-                if self.controller.action {
-                    self.push_command(CharacterCommand::PickupItem(item_handle));
-                    sender.send(Message::SyncInventory);
+                    if self.controller.action {
+                        self.push_command(CharacterCommand::PickupItem(item_handle));
+                        sender.send(Message::SyncInventory);
 
-                    self.controller.action = false;
+                        self.controller.action = false;
+                    }
+
+                    let display = &mut scene.graph[self.item_display];
+                    display
+                        .local_transform_mut()
+                        .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
+                    display.set_visibility(true);
+
+                    break;
                 }
-
-                let display = &mut scene.graph[self.item_display];
-                display
-                    .local_transform_mut()
-                    .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
-                display.set_visibility(true);
-
-                break;
             }
         }
     }
