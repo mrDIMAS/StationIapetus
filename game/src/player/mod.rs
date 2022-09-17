@@ -1002,6 +1002,9 @@ impl ScriptTrait for Player {
             game.journal_display.render_target.clone(),
         );
 
+        // Add default weapon.
+        self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
+
         current_level_mut(context.plugins).unwrap().player = context.handle;
     }
 
