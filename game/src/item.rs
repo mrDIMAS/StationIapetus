@@ -17,8 +17,7 @@ use fyrox::{
     impl_component_provider,
     lazy_static::lazy_static,
     scene::{
-        base::BaseBuilder, graph::map::NodeHandleMap, graph::Graph, node::Node,
-        node::TypeUuidProvider, sprite::SpriteBuilder,
+        base::BaseBuilder, graph::Graph, node::Node, node::TypeUuidProvider, sprite::SpriteBuilder,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
@@ -171,10 +170,6 @@ impl ScriptTrait for Item {
         } else if spark.size() < 0.03 {
             self.spark_size_change_dir = 1.0;
         }
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping.map(&mut self.model);
     }
 
     fn id(&self) -> Uuid {

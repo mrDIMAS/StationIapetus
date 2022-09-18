@@ -49,7 +49,7 @@ use fyrox::{
     resource::{model::Model, texture::Texture},
     scene::{
         base::BaseBuilder,
-        graph::{map::NodeHandleMap, Graph},
+        graph::Graph,
         light::BaseLight,
         node::{Node, TypeUuidProvider},
         sprite::SpriteBuilder,
@@ -1445,23 +1445,6 @@ impl ScriptTrait for Player {
             body.set_ang_vel(Default::default());
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         }
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        self.character.remap_handles(old_new_mapping);
-        old_new_mapping
-            .map(&mut self.model)
-            .map(&mut self.spine)
-            .map(&mut self.hips)
-            .map(&mut self.weapon_origin)
-            .map(&mut self.weapon_display)
-            .map(&mut self.inventory_display)
-            .map(&mut self.journal_display)
-            .map(&mut self.item_display)
-            .map(&mut self.health_cylinder)
-            .map(&mut self.rig_light)
-            .map(&mut self.model_pivot)
-            .map(&mut self.model_sub_pivot);
     }
 
     fn id(&self) -> Uuid {

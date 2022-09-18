@@ -20,7 +20,7 @@ use fyrox::{
     material::{Material, PropertyValue},
     resource::texture::Texture,
     scene::{
-        graph::{map::NodeHandleMap, Graph},
+        graph::Graph,
         light::BaseLight,
         mesh::Mesh,
         node::{Node, NodeHandle, TypeUuidProvider},
@@ -329,11 +329,6 @@ impl ScriptTrait for Door {
                 }
             }
         }
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping.try_map_slice(&mut self.lights);
-        old_new_mapping.try_map_slice(&mut self.screens);
     }
 
     fn id(&self) -> Uuid {

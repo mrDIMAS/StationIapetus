@@ -30,7 +30,6 @@ use fyrox::{
     scene::{
         collider::{BitMask, InteractionGroups},
         graph::{
-            map::NodeHandleMap,
             physics::{FeatureId, Intersection, RayCastOptions},
             Graph,
         },
@@ -455,14 +454,6 @@ impl ScriptTrait for Weapon {
                 &game.message_sender,
             );
         }
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.shot_point)
-            .map(&mut self.muzzle_flash)
-            .map(&mut self.shot_light)
-            .map(&mut self.flash_light);
     }
 
     fn id(&self) -> Uuid {

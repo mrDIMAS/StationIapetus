@@ -25,7 +25,7 @@ use fyrox::{
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
-        graph::{map::NodeHandleMap, physics::RayCastOptions},
+        graph::physics::RayCastOptions,
         light::BaseLight,
         node::{Node, TypeUuidProvider},
         Scene,
@@ -277,18 +277,6 @@ impl ScriptTrait for Turret {
             ));
     }
 
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.barrel_stand)
-            .map(&mut self.body)
-            .map(&mut self.model)
-            .map(&mut self.projector);
-
-        for barrel in self.barrels.iter_mut() {
-            barrel.remap_handles(old_new_mapping);
-        }
-    }
-
     fn id(&self) -> Uuid {
         Self::type_uuid()
     }
@@ -349,12 +337,6 @@ impl Barrel {
         scene.graph[self.handle]
             .local_transform_mut()
             .set_position(self.initial_position + self.offset);
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.handle)
-            .map(&mut self.shoot_point);
     }
 }
 

@@ -12,10 +12,7 @@ use fyrox::{
     },
     impl_component_provider, rand,
     scene::{
-        graph::{
-            map::NodeHandleMap,
-            physics::{Intersection, RayCastOptions},
-        },
+        graph::physics::{Intersection, RayCastOptions},
         node::{Node, TypeUuidProvider},
         Scene,
     },
@@ -162,14 +159,6 @@ impl ScriptTrait for CameraController {
         context.scene.graph[self.camera_hinge]
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
-    }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.ignorable_collider)
-            .map(&mut self.camera)
-            .map(&mut self.player)
-            .map(&mut self.camera_hinge);
     }
 
     fn id(&self) -> Uuid {
