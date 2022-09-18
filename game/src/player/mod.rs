@@ -305,9 +305,9 @@ impl Clone for Player {
     fn clone(&self) -> Self {
         Self {
             character: self.character.clone(),
-            camera_controller: self.camera_controller.clone(),
+            camera_controller: self.camera_controller,
             model_pivot: self.model_pivot,
-            model: self.model.clone(),
+            model: self.model,
             model_yaw: self.model_yaw.clone(),
             spine_pitch: self.spine_pitch.clone(),
             spine: self.spine,

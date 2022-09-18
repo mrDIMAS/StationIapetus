@@ -319,7 +319,7 @@ async fn spawn_bot(
 ) -> Handle<Actor> {
     spawn_point.spawned = true;
 
-    let bot = add_bot(
+    add_bot(
         spawn_point.bot_kind,
         spawn_point.position,
         spawn_point.rotation,
@@ -327,9 +327,7 @@ async fn spawn_bot(
         resource_manager.clone(),
         scene,
     )
-    .await;
-
-    bot
+    .await
 }
 
 async fn add_bot(

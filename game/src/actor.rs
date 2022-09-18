@@ -145,9 +145,8 @@ impl ActorContainer {
         }
 
         for (handle, actor) in self.pool.pair_iter_mut() {
-            match actor {
-                Actor::Bot(bot) => bot.update(handle, context, &self.target_descriptors),
-                _ => (),
+            if let Actor::Bot(bot) = actor {
+                bot.update(handle, context, &self.target_descriptors)
             }
         }
     }
