@@ -279,6 +279,8 @@ impl Game {
             None
         };
 
+        let has_level = level.is_some();
+
         let mut game = Game {
             show_debug_info,
             loading_screen: LoadingScreen::new(
@@ -321,6 +323,7 @@ impl Game {
         };
 
         game.create_debug_ui(&mut context);
+        game.menu.set_visible(&mut context, !has_level);
 
         game
     }
