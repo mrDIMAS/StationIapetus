@@ -186,8 +186,9 @@ pub struct PlayerPersistentData {
 pub struct Player {
     character: Character,
     camera_controller: Handle<Node>,
-    #[visit(optional)]
     model_pivot: Handle<Node>,
+    #[visit(optional)]
+    model_sub_pivot: Handle<Node>,
     model: Handle<Node>,
     model_yaw: SmoothAngle,
     spine_pitch: SmoothAngle,
@@ -297,6 +298,7 @@ impl Default for Player {
             journal_display: Default::default(),
             journal: Journal::new(),
             model_pivot: Default::default(),
+            model_sub_pivot: Default::default(),
         }
     }
 }
@@ -307,6 +309,7 @@ impl Clone for Player {
             character: self.character.clone(),
             camera_controller: self.camera_controller,
             model_pivot: self.model_pivot,
+            model_sub_pivot: self.model_sub_pivot,
             model: self.model,
             model_yaw: self.model_yaw.clone(),
             spine_pitch: self.spine_pitch.clone(),
@@ -1323,7 +1326,7 @@ impl ScriptTrait for Player {
 
                 let mut additional_hips_rotation = Default::default();
                 if self.controller.aim {
-                    ctx.scene.graph[self.model]
+                    ctx.scene.graph[self.model_sub_pivot]
                         .local_transform_mut()
                         .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0));
 
@@ -1343,7 +1346,7 @@ impl ScriptTrait for Player {
                     additional_hips_rotation =
                         UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle);
                 } else {
-                    ctx.scene.graph[self.model]
+                    ctx.scene.graph[self.model_sub_pivot]
                         .local_transform_mut()
                         .set_rotation(UnitQuaternion::from_axis_angle(
                             &Vector3::y_axis(),
@@ -1457,7 +1460,8 @@ impl ScriptTrait for Player {
             .map(&mut self.item_display)
             .map(&mut self.health_cylinder)
             .map(&mut self.rig_light)
-            .map(&mut self.model_pivot);
+            .map(&mut self.model_pivot)
+            .map(&mut self.model_sub_pivot);
     }
 
     fn id(&self) -> Uuid {
