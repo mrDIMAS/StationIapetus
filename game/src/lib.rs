@@ -722,10 +722,6 @@ impl Game {
                         self.journal_display.sync_to_model(&player_ref.journal);
                     }
                 }
-                &Message::ShowItemDisplay { item, count } => {
-                    self.item_display
-                        .sync_to_model(context.resource_manager.clone(), item, count);
-                }
                 Message::Play2DSound { path, gain } => {
                     if let Ok(buffer) = fyrox::core::futures::executor::block_on(
                         context.resource_manager.request_sound_buffer(path),

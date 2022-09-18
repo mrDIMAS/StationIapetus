@@ -9,7 +9,6 @@ use crate::{
     character::HitBox,
     effects::EffectKind,
     elevator::{call_button::CallButton, Elevator},
-    item::ItemKind,
     sound::SoundKind,
     weapon::{
         definition::ShotEffect,
@@ -124,10 +123,6 @@ pub enum Message {
     EndGame,
     SyncInventory,
     SyncJournal,
-    ShowItemDisplay {
-        item: ItemKind,
-        count: u32,
-    },
     SaveConfig,
     // Sound-related messages.
     SetMusicVolume(f32),

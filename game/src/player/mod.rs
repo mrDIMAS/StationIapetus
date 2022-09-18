@@ -8,10 +8,10 @@ use crate::{
         call_button::{CallButtonContainer, CallButtonKind},
         ElevatorContainer,
     },
-    game_ref,
+    game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
-    item::{ItemContainer, ItemKind},
+    item::ItemKind,
     message::Message,
     player::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
@@ -22,7 +22,7 @@ use crate::{
         projectile::{ProjectileKind, Shooter},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
-    CameraController, Item, MessageSender,
+    CameraController, Game, Item, MessageSender,
 };
 use fyrox::{
     animation::{
@@ -380,7 +380,14 @@ impl Player {
         self.health <= 0.0
     }
 
-    fn check_items(&mut self, scene: &mut Scene, items: &ItemContainer, sender: &MessageSender) {
+    fn check_items(
+        &mut self,
+        game: &mut Game,
+        scene: &mut Scene,
+        resource_manager: &ResourceManager,
+    ) {
+        let sender = &game.message_sender;
+        let items = &game.level.as_ref().unwrap().items;
         for &item_handle in items.iter() {
             if let Some(item_node) = scene.graph.try_get(item_handle) {
                 let item = item_node.try_get_script::<Item>().unwrap();
@@ -389,10 +396,11 @@ impl Player {
 
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
-                    sender.send(Message::ShowItemDisplay {
-                        item: item.get_kind(),
-                        count: item.stack_size,
-                    });
+                    game.item_display.sync_to_model(
+                        resource_manager.clone(),
+                        item.get_kind(),
+                        item.stack_size,
+                    );
 
                     if self.controller.action {
                         self.push_command(CharacterCommand::PickupItem(item_handle));
@@ -1401,7 +1409,6 @@ impl ScriptTrait for Player {
 
             ctx.scene.graph[self.item_display].set_visibility(false);
 
-            self.check_items(ctx.scene, &level.items, sender);
             self.check_doors(
                 Default::default(),
                 ctx.scene,
@@ -1410,6 +1417,7 @@ impl ScriptTrait for Player {
             );
             self.check_elevators(ctx.scene, &level.elevators, &level.call_buttons, sender);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time);
+            self.check_items(game_mut(ctx.plugins), ctx.scene, ctx.resource_manager);
 
             let spine_transform = ctx.scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
