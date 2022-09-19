@@ -15,7 +15,7 @@ use fyrox::{
     scene::{node::Node, Scene},
 };
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Clone, Debug)]
 pub struct LowerBodyMachine {
     pub machine: Machine,
     pub walk_animation: Handle<Animation>,

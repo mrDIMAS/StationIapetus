@@ -1,9 +1,9 @@
-use crate::weapon::{weapon_mut, weapon_ref};
+use crate::character::{try_get_character_mut, CharacterCommand};
 use crate::{
-    actor::{Actor, ActorContainer},
     effects::EffectKind,
     message::Message,
     weapon::{ray_hit, sight::SightReaction, Hit},
+    weapon::{weapon_mut, weapon_ref},
     GameTime, MessageSender,
 };
 use fyrox::{
@@ -29,7 +29,7 @@ pub enum ProjectileKind {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit)]
 pub enum Shooter {
     None,
-    Actor(Handle<Actor>),
+    Actor(Handle<Node>),
     Weapon(Handle<Node>),
     Turret(Handle<Node>),
 }
@@ -197,7 +197,7 @@ impl Projectile {
     pub fn update(
         &mut self,
         scene: &mut Scene,
-        actors: &ActorContainer,
+        actors: &[Handle<Node>],
         time: GameTime,
         sender: &MessageSender,
     ) {
@@ -323,13 +323,16 @@ impl Projectile {
                     who: hit.who,
                     critical_shot_probability,
                 }),
-                Damage::Point(amount) => sender.send(Message::DamageActor {
-                    actor: hit.actor,
-                    who: hit.who,
-                    hitbox: hit.hit_box,
-                    amount,
-                    critical_shot_probability,
-                }),
+                Damage::Point(amount) => {
+                    if let Some(character) = try_get_character_mut(hit.actor, &mut scene.graph) {
+                        character.push_command(CharacterCommand::Damage {
+                            who: hit.who,
+                            hitbox: hit.hit_box,
+                            amount,
+                            critical_shot_probability,
+                        });
+                    }
+                }
             }
         }
 
@@ -374,7 +377,7 @@ impl ProjectileContainer {
     pub fn update(
         &mut self,
         scene: &mut Scene,
-        actors: &ActorContainer,
+        actors: &[Handle<Node>],
         time: GameTime,
         sender: &MessageSender,
     ) {

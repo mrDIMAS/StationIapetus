@@ -81,4 +81,8 @@ impl Inventory {
     fn entry_mut(&mut self, item: ItemKind) -> Option<&mut ItemEntry> {
         self.items.iter_mut().find(|i| i.kind == item)
     }
+
+    pub fn has_key(&self) -> bool {
+        self.item_count(ItemKind::MasterKey) > 0
+    }
 }

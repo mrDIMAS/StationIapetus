@@ -1,9 +1,7 @@
 use crate::{
-    actor::TargetKind,
-    bot::{behavior::BehaviorContext, BotHostility, Target},
+    bot::{behavior::BehaviorContext, Bot, BotHostility, Target},
+    character::try_get_character_ref,
 };
-use fyrox::scene::collider::{ColliderShape, InteractionGroups};
-use fyrox::scene::graph::physics::RayCastOptions;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
@@ -11,11 +9,15 @@ use fyrox::{
         pool::Handle,
         visitor::prelude::*,
     },
-    scene::{graph::Graph, node::Node},
+    scene::{
+        collider::{ColliderShape, InteractionGroups},
+        graph::{physics::RayCastOptions, Graph},
+        node::Node,
+    },
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Clone)]
 pub struct FindTarget {
     frustum: Frustum,
 }
@@ -43,13 +45,16 @@ impl<'a> Behavior<'a> for FindTarget {
 
         // Check if existing target is valid.
         if let Some(target) = context.target {
-            for target_desc in context.targets {
-                if target_desc.handle != context.bot_handle
-                    && target_desc.handle == target.handle
-                    && target_desc.health > 0.0
-                {
-                    target.position = target_desc.position;
-                    return Status::Success;
+            for &actor_handle in context.actors {
+                if actor_handle != context.bot_handle && actor_handle == target.handle {
+                    if let Some(character) =
+                        try_get_character_ref(actor_handle, &context.scene.graph)
+                    {
+                        if character.health > 0.0 {
+                            target.position = character.position(&context.scene.graph);
+                            return Status::Success;
+                        }
+                    }
                 }
             }
         }
@@ -58,30 +63,36 @@ impl<'a> Behavior<'a> for FindTarget {
 
         let bot_handle = context.bot_handle;
         let mut query_buffer = Vec::default();
-        'target_loop: for desc in context
-            .targets
+        'target_loop: for &actor_handle in context
+            .actors
             .iter()
-            .filter(|desc| desc.handle != bot_handle)
+            .filter(|actor_handle| **actor_handle != bot_handle)
         {
+            let character_node = &context.scene.graph[actor_handle];
+
             match context.definition.hostility {
                 BotHostility::OtherSpecies => {
-                    if let TargetKind::Bot(kind) = desc.kind {
-                        if kind == context.kind {
+                    if let Some(bot) = character_node.try_get_script::<Bot>() {
+                        if bot.kind == context.kind {
                             continue 'target_loop;
                         }
                     }
                 }
                 BotHostility::Player => {
-                    if let TargetKind::Bot(_) = desc.kind {
+                    if character_node.has_script::<Bot>() {
                         continue 'target_loop;
                     }
                 }
                 BotHostility::Everyone => {}
             }
 
-            let distance = position.metric_distance(&desc.position);
-            if distance != 0.0 && distance < 1.6 || self.frustum.is_contains_point(desc.position) {
-                let ray = Ray::from_two_points(desc.position, position);
+            let distance = position.metric_distance(&character_node.global_position());
+            if distance != 0.0 && distance < 1.6
+                || self
+                    .frustum
+                    .is_contains_point(character_node.global_position())
+            {
+                let ray = Ray::from_two_points(character_node.global_position(), position);
                 context.scene.graph.physics.cast_ray(
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
@@ -109,8 +120,8 @@ impl<'a> Behavior<'a> for FindTarget {
 
                 if distance < closest_distance {
                     *context.target = Some(Target {
-                        position: desc.position,
-                        handle: desc.handle,
+                        position: character_node.global_position(),
+                        handle: actor_handle,
                     });
                     closest_distance = distance;
                 }

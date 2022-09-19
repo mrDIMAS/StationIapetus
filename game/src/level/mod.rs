@@ -1,9 +1,10 @@
+use crate::bot::BotCommand;
 use crate::{
-    actor::{Actor, ActorContainer},
-    bot::{Bot, BotKind},
-    character::HitBox,
+    bot::Bot,
+    bot::{try_get_bot_mut, BotKind},
+    character::{character_ref, try_get_character_mut, try_get_character_ref, CharacterCommand},
     config::SoundConfig,
-    door::{door_mut, DoorContainer},
+    door::DoorContainer,
     effects::{self, EffectKind},
     elevator::{
         call_button::{CallButton, CallButtonContainer, CallButtonKind},
@@ -19,13 +20,13 @@ use crate::{
     message::Message,
     player::{Player, PlayerPersistentData},
     sound::{SoundKind, SoundManager},
-    utils::{is_probability_event_occurred, use_hrtf},
-    weapon::weapon_mut,
+    utils::use_hrtf,
     weapon::{
-        definition::{ShotEffect, WeaponKind},
+        definition::ShotEffect,
         projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
         ray_hit,
         sight::SightReaction,
+        weapon_mut,
     },
     CallButtonUiContainer, GameTime, MessageSender,
 };
@@ -37,15 +38,12 @@ use fyrox::{
         math::{aabb::AxisAlignedBoundingBox, ray::Ray, vector_to_quat, PositionProvider},
         parking_lot::Mutex,
         pool::Handle,
-        rand::seq::SliceRandom,
         sstorage::ImmutableString,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
     material::{Material, PropertyValue},
     plugin::PluginContext,
-    rand,
-    resource::texture::Texture,
     scene::{
         self, base,
         base::BaseBuilder,
@@ -62,10 +60,7 @@ use fyrox::{
     },
     utils::{log::Log, navmesh::Navmesh},
 };
-use std::{
-    path::{Path, PathBuf},
-    sync::Arc,
-};
+use std::{path::Path, sync::Arc};
 
 pub mod decal;
 pub mod trail;
@@ -78,9 +73,8 @@ pub struct Level {
     pub scene: Handle<Scene>,
     pub player: Handle<Node>,
     pub projectiles: ProjectileContainer,
-    pub actors: ActorContainer,
+    pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
-    spawn_points: Vec<SpawnPoint>,
     #[visit(skip)]
     sender: Option<MessageSender>,
     pub navmesh: Handle<Navmesh>,
@@ -116,10 +110,8 @@ pub struct UpdateContext<'a> {
 #[derive(Default)]
 pub struct AnalysisResult {
     death_zones: Vec<DeathZone>,
-    spawn_points: Vec<SpawnPoint>,
     player_spawn_position: Vector3<f32>,
     player_spawn_orientation: UnitQuaternion<f32>,
-    doors: DoorContainer,
     lights: LightContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
@@ -176,7 +168,6 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
 pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
-    let mut spawn_points = Vec::new();
     let mut death_zones = Vec::new();
     let mut player_spawn_position = Default::default();
     let mut player_spawn_orientation = Default::default();
@@ -187,31 +178,7 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     for (handle, node) in scene.graph.pair_iter() {
         let name = node.name();
 
-        if name.starts_with("Zombie") {
-            spawn_points.push(SpawnPoint {
-                position: node.global_position(),
-                rotation: **node.local_transform().rotation(),
-                bot_kind: BotKind::Zombie,
-                spawned: false,
-                with_gun: false,
-            })
-        } else if name.starts_with("Mutant") {
-            spawn_points.push(SpawnPoint {
-                position: node.global_position(),
-                rotation: **node.local_transform().rotation(),
-                bot_kind: BotKind::Mutant,
-                with_gun: false,
-                spawned: false,
-            })
-        } else if name.starts_with("Parasite") {
-            spawn_points.push(SpawnPoint {
-                position: node.global_position(),
-                rotation: **node.local_transform().rotation(),
-                bot_kind: BotKind::Parasite,
-                spawned: false,
-                with_gun: false,
-            })
-        } else if name.starts_with("PlayerSpawnPoint") {
+        if name.starts_with("PlayerSpawnPoint") {
             player_spawn_position = node.global_position();
             player_spawn_orientation = scene.graph.global_rotation(handle);
         } else if name.starts_with("DeathZone") && node.is_mesh() {
@@ -265,13 +232,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
             "FlashingLight" => result.lights.add(Light::new(handle)),
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
-            "ZombieWithGun" => spawn_points.push(SpawnPoint {
-                position: node.global_position(),
-                rotation: **node.local_transform().rotation(),
-                bot_kind: BotKind::Zombie,
-                spawned: false,
-                with_gun: true,
-            }),
             _ => (),
         }
     }
@@ -283,7 +243,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
             bounds: node.as_mesh().world_bounding_box(),
         });
     }
-    result.spawn_points = spawn_points;
     result.player_spawn_position = player_spawn_position;
     result.player_spawn_orientation = player_spawn_orientation;
     result.triggers = triggers;
@@ -308,38 +267,6 @@ async fn spawn_player(
         .set_rotation(orientation);
 
     player
-}
-
-async fn spawn_bot(
-    spawn_point: &mut SpawnPoint,
-    actors: &mut ActorContainer,
-    resource_manager: ResourceManager,
-    scene: &mut Scene,
-    weapon: Option<WeaponKind>,
-) -> Handle<Actor> {
-    spawn_point.spawned = true;
-
-    add_bot(
-        spawn_point.bot_kind,
-        spawn_point.position,
-        spawn_point.rotation,
-        actors,
-        resource_manager.clone(),
-        scene,
-    )
-    .await
-}
-
-async fn add_bot(
-    kind: BotKind,
-    position: Vector3<f32>,
-    rotation: UnitQuaternion<f32>,
-    actors: &mut ActorContainer,
-    resource_manager: ResourceManager,
-    scene: &mut Scene,
-) -> Handle<Actor> {
-    let bot = Bot::new(kind, resource_manager.clone(), scene, position, rotation).await;
-    actors.add(Actor::Bot(bot))
 }
 
 impl Level {
@@ -368,30 +295,13 @@ impl Level {
 
         let AnalysisResult {
             death_zones,
-            mut spawn_points,
             player_spawn_position,
             player_spawn_orientation,
-            doors,
             lights,
             triggers,
             elevators,
             call_buttons,
         } = block_on(analyze(scene));
-        let mut actors = ActorContainer::new();
-
-        for pt in spawn_points.iter_mut() {
-            block_on(spawn_bot(
-                pt,
-                &mut actors,
-                resource_manager.clone(),
-                scene,
-                if pt.with_gun {
-                    Some(WeaponKind::Ak47)
-                } else {
-                    None
-                },
-            ));
-        }
 
         Self {
             player: block_on(spawn_player(
@@ -401,11 +311,10 @@ impl Level {
                 scene,
                 persistent_data,
             )),
-            actors,
+            actors: Default::default(),
             items: Default::default(),
             lights,
             death_zones,
-            spawn_points,
             triggers,
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: scene_handle,
@@ -415,7 +324,7 @@ impl Level {
             sound_manager: SoundManager::new(scene),
             beam: Some(make_beam()),
             trails: Default::default(),
-            doors_container: doors,
+            doors_container: Default::default(),
             elevators,
             call_buttons,
             map_path: Default::default(),
@@ -452,31 +361,13 @@ impl Level {
 
         let AnalysisResult {
             death_zones,
-            mut spawn_points,
             player_spawn_position,
             player_spawn_orientation,
-            doors,
             lights,
             triggers,
             elevators,
             call_buttons,
         } = analyze(&mut scene).await;
-        let mut actors = ActorContainer::new();
-
-        for pt in spawn_points.iter_mut() {
-            spawn_bot(
-                pt,
-                &mut actors,
-                resource_manager.clone(),
-                &mut scene,
-                if pt.with_gun {
-                    Some(WeaponKind::Ak47)
-                } else {
-                    None
-                },
-            )
-            .await;
-        }
 
         let level = Self {
             player: spawn_player(
@@ -487,11 +378,10 @@ impl Level {
                 persistent_data,
             )
             .await,
-            actors,
+            actors: Default::default(),
             items: Default::default(),
             lights,
             death_zones,
-            spawn_points,
             triggers,
             navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
@@ -501,7 +391,7 @@ impl Level {
             sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
             trails: Default::default(),
-            doors_container: doors,
+            doors_container: Default::default(),
             elevators,
             call_buttons,
             map_path: map,
@@ -516,40 +406,6 @@ impl Level {
 
     pub fn get_player(&self) -> Handle<Node> {
         self.player
-    }
-
-    pub fn actors(&self) -> &ActorContainer {
-        &self.actors
-    }
-
-    pub fn actors_mut(&mut self) -> &mut ActorContainer {
-        &mut self.actors
-    }
-
-    async fn add_bot(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        kind: BotKind,
-        position: Vector3<f32>,
-        rotation: UnitQuaternion<f32>,
-    ) -> Handle<Actor> {
-        add_bot(
-            kind,
-            position,
-            rotation,
-            &mut self.actors,
-            engine.resource_manager.clone(),
-            &mut engine.scenes[self.scene],
-        )
-        .await
-    }
-
-    async fn remove_actor(&mut self, engine: &mut PluginContext<'_>, actor: Handle<Actor>) {
-        if self.actors.contains(actor) {
-            let scene = &mut engine.scenes[self.scene];
-            self.actors.get_mut(actor).clean_up(scene);
-            self.actors.free(actor);
-        }
     }
 
     async fn create_projectile(
@@ -575,92 +431,19 @@ impl Level {
         self.projectiles.add(projectile);
     }
 
-    fn damage_actor(
-        &mut self,
-        engine: &mut PluginContext,
-        actor_handle: Handle<Actor>,
-        who: Handle<Actor>,
-        mut amount: f32,
-        hitbox: Option<HitBox>,
-        critical_shot_probability: f32,
-    ) {
-        if self.actors.contains(actor_handle)
-            && (who.is_none() || who.is_some() && self.actors.contains(who))
-        {
-            let scene = &mut engine.scenes[self.scene];
-
-            let who_position = if who.is_some() {
-                Some(self.actors.get(who).position(&scene.graph))
-            } else {
-                None
-            };
-            let actor = self.actors.get_mut(actor_handle);
-
-            if !actor.is_dead() {
-                if let Actor::Bot(bot) = actor {
-                    if let Some(who_position) = who_position {
-                        bot.set_target(actor_handle, who_position);
+    fn update_death_zones(&mut self, scene: &mut Scene) {
+        for &handle in self.actors.iter() {
+            let character_position = scene.graph[handle].global_position();
+            if let Some(character) = try_get_character_mut(handle, &mut scene.graph) {
+                for death_zone in self.death_zones.iter() {
+                    if death_zone.bounds.is_contains_point(character_position) {
+                        character.push_command(CharacterCommand::Damage {
+                            who: Default::default(),
+                            hitbox: None,
+                            amount: 99999.0,
+                            critical_shot_probability: 0.0,
+                        });
                     }
-                }
-
-                if let Some(hitbox) = hitbox {
-                    // Handle critical head shots.
-                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
-                    if hitbox.is_head
-                        && is_probability_event_occurred(critical_head_shot_probability)
-                    {
-                        amount *= 1000.0;
-
-                        if let Actor::Bot(bot) = actor {
-                            bot.blow_up_head(&mut scene.graph);
-                        }
-                    }
-                }
-
-                actor.damage(amount);
-
-                // Prevent spamming with grunt sounds.
-                if actor.last_health - actor.health > 20.0 {
-                    actor.last_health = actor.health;
-                    match actor {
-                        Actor::Bot(bot) => {
-                            bot.restoration_time = 0.8;
-
-                            if let Some(grunt_sound) =
-                                bot.definition.pain_sounds.choose(&mut rand::thread_rng())
-                            {
-                                self.sender.as_ref().unwrap().send(Message::PlaySound {
-                                    path: PathBuf::from(grunt_sound.clone()),
-                                    position: actor.position(&scene.graph),
-                                    gain: 0.8,
-                                    rolloff_factor: 1.0,
-                                    radius: 0.6,
-                                });
-                            }
-                        }
-                        Actor::Player(_) => {
-                            // TODO: Add player sounds.
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    fn update_death_zones(&mut self, scene: &Scene) {
-        for (handle, actor) in self.actors.pair_iter_mut() {
-            for death_zone in self.death_zones.iter() {
-                if death_zone
-                    .bounds
-                    .is_contains_point(actor.position(&scene.graph))
-                {
-                    self.sender.as_ref().unwrap().send(Message::DamageActor {
-                        actor: handle,
-                        who: Default::default(),
-                        hitbox: None,
-                        amount: 99999.0,
-                        critical_shot_probability: 0.0,
-                    });
                 }
             }
         }
@@ -688,18 +471,7 @@ impl Level {
         self.elevators.update(time.delta, scene);
         self.call_buttons
             .update(&self.elevators, call_button_ui_container);
-        let mut ctx = UpdateContext {
-            time,
-            scene,
-            items: &self.items,
-            doors: &self.doors_container,
-            navmesh: self.navmesh,
-            elevators: &self.elevators,
-            call_buttons: &self.call_buttons,
-            sender: self.sender.as_ref().unwrap(),
-        };
 
-        self.actors.update(&mut ctx);
         self.trails.update(time.delta, scene);
         self.update_game_ending(scene);
         self.lights.update(scene, time.delta);
@@ -768,15 +540,16 @@ impl Level {
                 _ => 0.0,
             };
 
-            sender.send(Message::DamageActor {
-                actor: hit.actor,
-                who: hit.who,
-                hitbox: hit.hit_box,
-                amount: damage
-                    .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
-                    .amount(),
-                critical_shot_probability,
-            });
+            if let Some(character) = try_get_character_mut(hit.actor, &mut scene.graph) {
+                character.push_command(CharacterCommand::Damage {
+                    who: hit.who,
+                    hitbox: hit.hit_box,
+                    amount: damage
+                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
+                        .amount(),
+                    critical_shot_probability,
+                });
+            }
 
             let dir = hit.position - begin;
 
@@ -795,13 +568,16 @@ impl Level {
                 Default::default()
             };
 
-            if hit.actor.is_some() {
-                if let Actor::Bot(actor) = self.actors.get_mut(hit.actor) {
-                    let body = scene.graph[hit.collider].parent();
-                    actor
-                        .impact_handler
-                        .handle_impact(scene, body, hit.position, dir);
-                }
+            if try_get_bot_mut(hit.actor, &mut scene.graph).is_some() {
+                let body = scene.graph[hit.collider].parent();
+                try_get_bot_mut(hit.actor, &mut scene.graph)
+                    .unwrap()
+                    .commands_queue
+                    .push_back(BotCommand::HandleImpact {
+                        handle: body,
+                        impact_point: hit.position,
+                        direction: dir,
+                    });
             }
 
             Decal::new_bullet_hole(
@@ -818,7 +594,7 @@ impl Level {
             );
 
             // Add blood splatter on a surface behind an actor that was shot.
-            if hit.actor.is_some() && !self.actors.get(hit.actor).is_dead() {
+            if !try_get_character_ref(hit.actor, &scene.graph).map_or(true, |a| a.is_dead()) {
                 for intersection in hit.query_buffer.iter() {
                     if matches!(
                         scene.graph[intersection.collider].as_collider().shape(),
@@ -917,36 +693,27 @@ impl Level {
         amount: f32,
         radius: f32,
         center: Vector3<f32>,
-        who: Handle<Actor>,
+        who: Handle<Node>,
         critical_shot_probability: f32,
     ) {
         let scene = &mut engine.scenes[self.scene];
         // Just find out actors which must be damaged and re-cast damage message for each.
-        for (actor_handle, actor) in self.actors.pair_iter() {
+        for &actor_handle in self.actors.iter() {
+            let character = character_ref(actor_handle, &scene.graph);
             // TODO: Add occlusion test. This will hit actors through walls.
-            let position = actor.position(&scene.graph);
+            let position = character.position(&scene.graph);
             if position.metric_distance(&center) <= radius {
-                self.sender.as_ref().unwrap().send(Message::DamageActor {
-                    actor: actor_handle,
-                    who,
-                    hitbox: None,
-                    /// TODO: Maybe collect all hitboxes?
-                    amount,
-                    critical_shot_probability,
-                });
+                if let Some(character) = try_get_character_mut(actor_handle, &mut scene.graph) {
+                    character.push_command(CharacterCommand::Damage {
+                        who,
+                        hitbox: None,
+                        /// TODO: Maybe collect all hitboxes?
+                        amount,
+                        critical_shot_probability,
+                    });
+                }
             }
         }
-    }
-
-    fn try_open_door(
-        &mut self,
-        engine: &mut PluginContext,
-        door: Handle<Node>,
-        actor: Handle<Actor>,
-    ) {
-        let graph = &mut engine.scenes[self.scene].graph;
-        let inventory = self.actors.try_get(actor).map(|a| &a.inventory);
-        door_mut(door, graph).try_open(inventory);
     }
 
     fn call_elevator(&mut self, elevator: Handle<Elevator>, floor: u32) {
@@ -974,17 +741,6 @@ impl Level {
             &Message::CallElevator { elevator, floor } => {
                 self.call_elevator(elevator, floor);
             }
-            &Message::TryOpenDoor { door, actor } => {
-                self.try_open_door(engine, door, actor);
-            }
-            Message::AddBot {
-                kind,
-                position,
-                rotation,
-            } => {
-                self.add_bot(engine, *kind, *position, *rotation).await;
-            }
-            &Message::RemoveActor { actor } => self.remove_actor(engine, actor).await,
             &Message::CreateProjectile {
                 kind,
                 position,
@@ -994,18 +750,6 @@ impl Level {
             } => {
                 self.create_projectile(engine, kind, position, direction, initial_velocity, owner)
                     .await
-            }
-            &Message::SpawnBot { spawn_point_id } => {
-                if let Some(spawn_point) = self.spawn_points.get_mut(spawn_point_id) {
-                    spawn_bot(
-                        spawn_point,
-                        &mut self.actors,
-                        engine.resource_manager.clone(),
-                        &mut engine.scenes[self.scene],
-                        None,
-                    )
-                    .await;
-                }
             }
             &Message::ApplySplashDamage {
                 amount,
@@ -1021,22 +765,6 @@ impl Level {
                 who,
                 critical_shot_probability,
             ),
-            &Message::DamageActor {
-                actor,
-                who,
-                amount,
-                hitbox,
-                critical_shot_probability,
-            } => {
-                self.damage_actor(
-                    engine,
-                    actor,
-                    who,
-                    amount,
-                    hitbox,
-                    critical_shot_probability,
-                );
-            }
             &Message::CreateEffect {
                 kind,
                 position,
@@ -1063,25 +791,8 @@ impl Level {
         }
     }
 
-    pub fn resolve(
-        &mut self,
-        engine: &mut PluginContext,
-        sender: MessageSender,
-        display_texture: Texture,
-        inventory_texture: Texture,
-        item_texture: Texture,
-        journal_texture: Texture,
-    ) {
+    pub fn resolve(&mut self, engine: &mut PluginContext, sender: MessageSender) {
         self.set_message_sender(sender);
-
-        self.actors.resolve(
-            &mut engine.scenes[self.scene],
-            display_texture,
-            inventory_texture,
-            item_texture,
-            journal_texture,
-        );
-
         self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
@@ -1115,7 +826,7 @@ impl Level {
             }
 
             for actor in self.actors.iter() {
-                if let Actor::Bot(bot) = actor {
+                if let Some(bot) = scene.graph[*actor].try_get_script::<Bot>() {
                     bot.debug_draw(drawing_context);
                 }
             }

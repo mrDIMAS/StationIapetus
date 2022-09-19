@@ -4,9 +4,6 @@
 //! strict ownership rules of Rust.
 
 use crate::{
-    actor::Actor,
-    bot::BotKind,
-    character::HitBox,
     effects::EffectKind,
     elevator::{call_button::CallButton, Elevator},
     sound::SoundKind,
@@ -33,21 +30,6 @@ pub enum Message {
     CallElevator {
         elevator: Handle<Elevator>,
         floor: u32,
-    },
-    TryOpenDoor {
-        door: Handle<Node>,
-        actor: Handle<Actor>,
-    },
-    AddBot {
-        kind: BotKind,
-        position: Vector3<f32>,
-        rotation: UnitQuaternion<f32>,
-    },
-    RemoveActor {
-        actor: Handle<Actor>,
-    },
-    SpawnBot {
-        spawn_point_id: usize,
     },
     CreateProjectile {
         kind: ProjectileKind,
@@ -84,19 +66,6 @@ pub enum Message {
         rolloff_factor: f32,
         radius: f32,
     },
-    DamageActor {
-        /// Which actor should be damaged.
-        actor: Handle<Actor>,
-        /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
-        /// or not from any actor.
-        who: Handle<Actor>,
-        /// A body part which was hit.
-        hitbox: Option<HitBox>,
-        /// Numeric value of damage.
-        amount: f32,
-        /// Only takes effect iff damage was applied to a head hit box!
-        critical_shot_probability: f32,
-    },
     CreateEffect {
         kind: EffectKind,
         position: Vector3<f32>,
@@ -107,7 +76,7 @@ pub enum Message {
         radius: f32,
         center: Vector3<f32>,
         /// Damage initiator
-        who: Handle<Actor>,
+        who: Handle<Node>,
         critical_shot_probability: f32,
     },
     /// Save game state to a file. TODO: Add filename field.

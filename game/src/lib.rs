@@ -23,12 +23,8 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::item::Item;
-use crate::level::decal::Decal;
-use crate::player::camera::CameraController;
-use crate::player::Player;
+use crate::bot::Bot;
 use crate::{
-    actor::Actor,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::{ui::DoorUiContainer, Door},
@@ -37,10 +33,14 @@ use crate::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
+    item::Item,
+    level::decal::Decal,
     level::{turret::Turret, Level},
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
+    player::camera::CameraController,
+    player::Player,
     player::PlayerPersistentData,
     utils::use_hrtf,
     weapon::Weapon,
@@ -444,14 +444,7 @@ impl Game {
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
-            level.resolve(
-                context,
-                self.message_sender.clone(),
-                self.weapon_display.render_target.clone(),
-                self.inventory_interface.render_target.clone(),
-                self.item_display.render_target.clone(),
-                self.journal_display.render_target.clone(),
-            );
+            level.resolve(context, self.message_sender.clone());
         }
 
         self.time.elapsed = self.time.clock.elapsed().as_secs_f64();
@@ -837,7 +830,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Item>("Item")
             .add::<Decal>("Decal")
             .add::<Player>("Player")
-            .add::<CameraController>("Camera Controller");
+            .add::<CameraController>("Camera Controller")
+            .add::<Bot>("Bot");
     }
 
     fn create_instance(

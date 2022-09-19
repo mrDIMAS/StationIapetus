@@ -1,8 +1,8 @@
 //! Weapon related stuff.
 
+use crate::character::character_ref;
 use crate::{
-    actor::{Actor, ActorContainer},
-    character::{Character, HitBox},
+    character::{character_mut, Character, HitBox},
     current_level_mut, game_ref,
     message::Message,
     weapon::{
@@ -118,8 +118,8 @@ impl Default for Weapon {
 
 #[derive(Clone)]
 pub struct Hit {
-    pub actor: Handle<Actor>, // Can be None if level geometry was hit.
-    pub who: Handle<Actor>,
+    pub actor: Handle<Node>, // Can be None if level geometry was hit.
+    pub who: Handle<Node>,
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
     pub collider: Handle<Node>,
@@ -153,7 +153,7 @@ pub fn ray_hit(
     begin: Vector3<f32>,
     end: Vector3<f32>,
     shooter: Shooter,
-    actors: &ActorContainer,
+    actors: &[Handle<Node>],
     graph: &mut Graph,
     ignored_collider: Handle<Node>,
 ) -> Option<Hit> {
@@ -182,8 +182,9 @@ pub fn ray_hit(
         let mut is_hitbox_hit = false;
 
         // Check if there was an intersection with an actor.
-        'actor_loop: for (actor_handle, actor) in actors.pair_iter() {
-            for hit_box in actor.hit_boxes.iter() {
+        'actor_loop: for &actor_handle in actors.iter() {
+            let character = character_ref(actor_handle, graph);
+            for hit_box in character.hit_boxes.iter() {
                 if hit_box.collider == hit.collider {
                     is_hitbox_hit = true;
 
@@ -396,16 +397,18 @@ impl ScriptTrait for Weapon {
                 }
             }
 
-            for actor in level.actors.iter_mut() {
-                if actor.current_weapon() == ctx.node_handle {
-                    if let Some(&first_weapon) = actor.weapons.first() {
-                        actor.current_weapon = 0;
-                        weapon_mut(first_weapon, &mut ctx.scene.graph).enabled = true;
-                    }
+            for actor in level.actors.iter() {
+                let character = character_mut(*actor, &mut ctx.scene.graph);
+
+                if let Some(i) = character.weapons.iter().position(|&w| w == ctx.node_handle) {
+                    character.weapons.remove(i);
                 }
 
-                if let Some(i) = actor.weapons.iter().position(|&w| w == ctx.node_handle) {
-                    actor.weapons.remove(i);
+                if character.current_weapon() == ctx.node_handle {
+                    if let Some(&first_weapon) = character.weapons.first() {
+                        character.current_weapon = 0;
+                        weapon_mut(first_weapon, &mut ctx.scene.graph).enabled = true;
+                    }
                 }
             }
         }

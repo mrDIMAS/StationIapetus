@@ -1,7 +1,4 @@
-use crate::{
-    current_level_mut, game_mut, inventory::Inventory, item::ItemKind, message::Message, Actor,
-    MessageSender,
-};
+use crate::{character::character_ref, current_level_mut, game_mut, message::Message};
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -200,7 +197,7 @@ impl ScriptTrait for Door {
 
         let someone_nearby = game.level.as_ref().map_or(false, |level| {
             level.actors.iter().any(|a| {
-                let actor_position = a.position(&ctx.scene.graph);
+                let actor_position = character_ref(*a, &ctx.scene.graph).position(&ctx.scene.graph);
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {
                     closest_actor = Some(a);
@@ -392,10 +389,7 @@ impl Door {
         }
     }
 
-    pub fn try_open(&mut self, inventory: Option<&Inventory>) {
-        let has_key = inventory
-            .map(|i| i.item_count(ItemKind::MasterKey) > 0)
-            .unwrap_or(false);
+    pub fn try_open(&mut self, has_key: bool) {
         self.open_request = Some(OpenRequest { has_key });
     }
 }
@@ -423,25 +417,6 @@ impl DoorContainer {
     pub fn new() -> Self {
         Self {
             doors: Default::default(),
-        }
-    }
-
-    pub fn check_actor(
-        &self,
-        actor_position: Vector3<f32>,
-        actor_handle: Handle<Actor>,
-        graph: &Graph,
-        sender: &MessageSender,
-    ) {
-        for &door_handle in &self.doors {
-            let door = door_ref(door_handle, graph);
-            let close_enough = actor_position.metric_distance(&door.initial_position()) < 1.25;
-            if close_enough {
-                sender.send(Message::TryOpenDoor {
-                    door: door_handle,
-                    actor: actor_handle,
-                });
-            }
         }
     }
 }

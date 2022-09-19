@@ -2,6 +2,7 @@
 use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
+    bot::BotKind,
     character::{Character, HitBox},
     door::{DoorDirection, DoorState},
     item::ItemKind,
@@ -28,6 +29,7 @@ fn main() {
     editors.register_inheritable_enum::<ShootMode, _>();
     editors.register_inheritable_enum::<WeaponKind, _>();
     editors.register_inheritable_enum::<ItemKind, _>();
+    editors.register_inheritable_enum::<BotKind, _>();
     editors.register_inheritable_inspectable::<Barrel>();
     editors.register_inheritable_inspectable::<Character>();
     editors.register_inheritable_inspectable::<CameraController>();

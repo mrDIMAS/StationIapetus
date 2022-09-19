@@ -1,6 +1,4 @@
-use crate::bot::behavior::threat::{NeedsThreatenTarget, ThreatenTarget};
 use crate::{
-    actor::{Actor, TargetDescriptor},
     bot::{
         behavior::{
             aim::AimOnTarget,
@@ -9,6 +7,7 @@ use crate::{
             melee::{CanMeleeAttack, DoMeleeAttack},
             movement::MoveToTarget,
             shoot::{CanShootTarget, ShootTarget},
+            threat::{NeedsThreatenTarget, ThreatenTarget},
         },
         lower_body::LowerBodyMachine,
         upper_body::UpperBodyMachine,
@@ -16,11 +15,10 @@ use crate::{
     },
     character::Character,
     utils::BodyImpactHandler,
-    GameTime, MessageSender,
+    MessageSender,
 };
-use fyrox::core::math::SmoothAngle;
 use fyrox::{
-    core::{pool::Handle, visitor::prelude::*},
+    core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     scene::{node::Node, Scene},
     utils::{
         behavior::{
@@ -28,7 +26,7 @@ use fyrox::{
             leaf::LeafNode,
             Behavior, BehaviorTree, Status,
         },
-        navmesh::{Navmesh, NavmeshAgent},
+        navmesh::NavmeshAgent,
     },
 };
 
@@ -40,7 +38,7 @@ pub mod movement;
 pub mod shoot;
 pub mod threat;
 
-#[derive(Debug, PartialEq, Visit)]
+#[derive(Debug, PartialEq, Visit, Clone)]
 pub enum Action {
     Unknown,
     IsDead(IsDead),
@@ -85,11 +83,11 @@ impl<'a> Behavior<'a> for Action {
 
 pub struct BehaviorContext<'a> {
     pub scene: &'a mut Scene,
-    pub bot_handle: Handle<Actor>,
-    pub targets: &'a [TargetDescriptor],
+    pub actors: &'a [Handle<Node>],
+    pub bot_handle: Handle<Node>,
     pub sender: &'a MessageSender,
-    pub time: GameTime,
-    pub navmesh: Handle<Navmesh>,
+    pub dt: f32,
+    pub elapsed_time: f32,
     pub upper_body_machine: &'a UpperBodyMachine,
     pub lower_body_machine: &'a LowerBodyMachine,
     pub target: &'a mut Option<Target>,
@@ -115,7 +113,7 @@ pub struct BehaviorContext<'a> {
     pub is_screaming: bool,
 }
 
-#[derive(Default, Visit)]
+#[derive(Default, Debug, Visit, Clone)]
 pub struct BotBehavior {
     pub tree: BehaviorTree<Action>,
 }

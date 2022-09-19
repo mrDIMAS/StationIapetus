@@ -8,7 +8,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct ShootTarget;
 
 impl<'a> Behavior<'a> for ShootTarget {
@@ -25,7 +25,7 @@ impl<'a> Behavior<'a> for ShootTarget {
             context.is_aiming_weapon = true;
 
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
-            if weapon.can_shoot(context.time.elapsed as f32) {
+            if weapon.can_shoot(context.elapsed_time as f32) {
                 let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
 
                 if context
@@ -54,7 +54,7 @@ impl<'a> Behavior<'a> for ShootTarget {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct CanShootTarget;
 
 impl<'a> Behavior<'a> for CanShootTarget {

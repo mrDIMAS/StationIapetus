@@ -1,3 +1,4 @@
+use crate::character::{try_get_character_mut, CharacterCommand};
 use crate::{
     bot::{behavior::BehaviorContext, upper_body::UpperBodyMachine, BotDefinition},
     message::Message,
@@ -8,7 +9,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Clone)]
 pub struct DoMeleeAttack {
     attack_timeout: f32,
     attack_animation_index: u32,
@@ -55,7 +56,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
         if self.attack_timeout < 0.0 && attack_animation_ended {
             self.attack_timeout = 0.3;
         }
-        self.attack_timeout -= context.time.delta;
+        self.attack_timeout -= context.dt;
 
         context.attack_animation_index = self.attack_animation_index as usize;
 
@@ -70,17 +71,20 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                 if event.signal_id == UpperBodyMachine::HIT_SIGNAL
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
-                    context.sender.send(Message::DamageActor {
-                        actor: target.handle,
-                        who: Default::default(),
-                        hitbox: None,
-                        /// TODO: Find hit box maybe?
-                        amount: context.definition.attack_animations
-                            [self.attack_animation_index as usize]
-                            .damage
-                            .amount(),
-                        critical_shot_probability: 0.0,
-                    });
+                    if let Some(character) =
+                        try_get_character_mut(target.handle, &mut context.scene.graph)
+                    {
+                        character.push_command(CharacterCommand::Damage {
+                            who: Default::default(),
+                            hitbox: None,
+                            /// TODO: Find hit box maybe?
+                            amount: context.definition.attack_animations
+                                [self.attack_animation_index as usize]
+                                .damage
+                                .amount(),
+                            critical_shot_probability: 0.0,
+                        });
+                    }
 
                     if let Some(attack_sound) = context
                         .definition
@@ -105,7 +109,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct CanMeleeAttack;
 
 impl<'a> Behavior<'a> for CanMeleeAttack {

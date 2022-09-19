@@ -1,5 +1,5 @@
+use crate::door::door_mut;
 use crate::{
-    actor::Actor,
     character::{Character, CharacterCommand},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
@@ -424,20 +424,18 @@ impl Player {
         }
     }
 
-    fn check_doors(
-        &mut self,
-        self_handle: Handle<Actor>,
-        scene: &Scene,
-        door_container: &DoorContainer,
-        sender: &MessageSender,
-    ) {
+    fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
+        let self_position = self.position(&scene.graph);
+
         if self.controller.action {
-            door_container.check_actor(
-                self.position(&scene.graph),
-                self_handle,
-                &scene.graph,
-                sender,
-            );
+            for &door_handle in &door_container.doors {
+                let door = door_mut(door_handle, &mut scene.graph);
+                let close_enough = self_position.metric_distance(&door.initial_position()) < 1.25;
+                if close_enough {
+                    let has_key = self.inventory.has_key();
+                    door.try_open(has_key);
+                }
+            }
         }
     }
 
@@ -569,7 +567,7 @@ impl Player {
 
     fn handle_toss_grenade_signal(
         &mut self,
-        self_handle: Handle<Actor>,
+        self_handle: Handle<Node>,
         scene: &mut Scene,
         sender: &MessageSender,
     ) {
@@ -1246,12 +1244,17 @@ impl ScriptTrait for Player {
         let level = current_level_ref(ctx.plugins).unwrap();
         let sender = &game.message_sender;
 
-        self.process_commands(
-            ctx.scene,
-            ctx.handle,
-            ctx.resource_manager,
-            &game.message_sender,
-        );
+        while self
+            .poll_command(
+                ctx.scene,
+                ctx.handle,
+                ctx.resource_manager,
+                &game.message_sender,
+            )
+            .is_some()
+        {
+            // TODO: Handle commands here
+        }
 
         self.update_health_cylinder(ctx.scene);
 
@@ -1412,12 +1415,7 @@ impl ScriptTrait for Player {
 
             ctx.scene.graph[self.item_display].set_visibility(false);
 
-            self.check_doors(
-                Default::default(),
-                ctx.scene,
-                &level.doors_container,
-                sender,
-            );
+            self.check_doors(ctx.scene, &level.doors_container);
             self.check_elevators(ctx.scene, &level.elevators, &level.call_buttons, sender);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time);
             self.check_items(game_mut(ctx.plugins), ctx.scene, ctx.resource_manager);

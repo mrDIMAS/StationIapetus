@@ -1,4 +1,5 @@
-use crate::{actor::ActorContainer, message::Message, MessageSender};
+use crate::character::character_ref;
+use crate::{message::Message, MessageSender};
 use fyrox::{
     core::{
         pool::{Handle, Pool},
@@ -41,12 +42,12 @@ impl TriggerContainer {
         let _ = self.pool.spawn(trigger);
     }
 
-    pub fn update(&mut self, scene: &Scene, actors: &ActorContainer, sender: &MessageSender) {
+    pub fn update(&mut self, scene: &Scene, actors: &Vec<Handle<Node>>, sender: &MessageSender) {
         for trigger in self.pool.iter() {
             let position = scene.graph[trigger.node].global_position();
 
             for actor in actors.iter() {
-                let actor_position = actor.position(&scene.graph);
+                let actor_position = character_ref(*actor, &scene.graph).position(&scene.graph);
 
                 if actor_position.metric_distance(&position) < 1.0 {
                     match trigger.kind {

@@ -4,7 +4,7 @@ use fyrox::{
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct IsDead;
 
 impl IsDead {
@@ -25,7 +25,7 @@ impl<'a> Behavior<'a> for IsDead {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct StayDead;
 
 impl StayDead {

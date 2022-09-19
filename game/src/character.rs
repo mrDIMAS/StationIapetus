@@ -1,18 +1,23 @@
-use crate::item::{item_mut, ItemKind};
 use crate::{
     block_on,
     inventory::Inventory,
+    item::{item_mut, ItemKind},
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
     Item, Message, MessageSender, Weapon,
 };
-use fyrox::engine::resource_manager::ResourceManager;
-use fyrox::scene::graph::map::NodeHandleMap;
 use fyrox::{
     core::{
         algebra::Vector3, inspect::prelude::*, pool::Handle, reflect::Reflect, visitor::prelude::*,
     },
-    scene::{collider::Collider, graph::Graph, node::Node, Scene},
+    engine::resource_manager::ResourceManager,
+    scene::{
+        collider::Collider,
+        graph::{map::NodeHandleMap, Graph},
+        node::Node,
+        Scene,
+    },
 };
+use std::collections::VecDeque;
 use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
@@ -20,7 +25,21 @@ pub enum CharacterCommand {
     SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),
     PickupItem(Handle<Node>),
-    DropItems { item: ItemKind, count: u32 },
+    DropItems {
+        item: ItemKind,
+        count: u32,
+    },
+    Damage {
+        /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
+        /// or not from any actor.
+        who: Handle<Node>,
+        /// A body part which was hit.
+        hitbox: Option<HitBox>,
+        /// Numeric value of damage.
+        amount: f32,
+        /// Only takes effect iff damage was applied to a head hit box!
+        critical_shot_probability: f32,
+    },
 }
 
 #[derive(Visit, Reflect, Inspect, Debug, Clone)]
@@ -38,7 +57,7 @@ pub struct Character {
     #[visit(skip)]
     #[inspect(skip)]
     #[reflect(hidden)]
-    pub commands: Vec<CharacterCommand>,
+    pub commands: VecDeque<CharacterCommand>,
 }
 
 impl Default for Character {
@@ -53,7 +72,7 @@ impl Default for Character {
             weapon_pivot: Handle::NONE,
             hit_boxes: Default::default(),
             inventory: Default::default(),
-            commands: vec![],
+            commands: Default::default(),
         }
     }
 }
@@ -141,17 +160,17 @@ impl Character {
     }
 
     pub fn push_command(&mut self, command: CharacterCommand) {
-        self.commands.push(command);
+        self.commands.push_back(command);
     }
 
-    pub fn process_commands(
+    pub fn poll_command(
         &mut self,
         scene: &mut Scene,
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
         sender: &MessageSender,
-    ) {
-        while let Some(command) = self.commands.pop() {
+    ) -> Option<CharacterCommand> {
+        if let Some(command) = self.commands.pop_front() {
             match command {
                 CharacterCommand::SelectWeapon(kind) => self.select_weapon(kind, &mut scene.graph),
                 CharacterCommand::AddWeapon(kind) => {
@@ -208,7 +227,8 @@ impl Character {
                                 self.inventory.add_item(ItemKind::Ammo, 24);
                             } else {
                                 // Finally if actor does not have such weapon, give new one to him.
-                                self.commands.push(CharacterCommand::AddWeapon(weapon_kind));
+                                self.commands
+                                    .push_back(CharacterCommand::AddWeapon(weapon_kind));
                             }
                         }
                         ItemKind::Ammo => {
@@ -245,7 +265,14 @@ impl Character {
                         );
                     }
                 }
+                CharacterCommand::Damage { amount, .. } => {
+                    self.damage(amount);
+                }
             }
+
+            Some(command)
+        } else {
+            None
         }
     }
 
@@ -361,4 +388,26 @@ impl HitBox {
     pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
         old_new_mapping.map(&mut self.collider);
     }
+}
+
+pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Character> {
+    graph.try_get(handle).and_then(|c| {
+        c.script()
+            .and_then(|s| s.query_component_ref::<Character>())
+    })
+}
+
+pub fn character_ref(handle: Handle<Node>, graph: &Graph) -> &Character {
+    try_get_character_ref(handle, graph).unwrap()
+}
+
+pub fn try_get_character_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Character> {
+    graph.try_get_mut(handle).and_then(|c| {
+        c.script_mut()
+            .and_then(|s| s.query_component_mut::<Character>())
+    })
+}
+
+pub fn character_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Character {
+    try_get_character_mut(handle, graph).unwrap()
 }
