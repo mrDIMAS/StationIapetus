@@ -23,9 +23,8 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::bot::Bot;
-use crate::level::spawn::SpawnPoint;
 use crate::{
+    bot::Bot,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::{ui::DoorUiContainer, Door},
@@ -35,8 +34,7 @@ use crate::{
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     item::Item,
-    level::decal::Decal,
-    level::{turret::Turret, Level},
+    level::{decal::Decal, spawn::SpawnPoint, turret::Turret, Level},
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
@@ -86,10 +84,8 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc,
     },
-    time::{self, Duration, Instant},
+    time::Duration,
 };
-
-const FIXED_FPS: f32 = 60.0;
 
 pub struct Game {
     menu: Menu,
@@ -98,7 +94,6 @@ pub struct Game {
     debug_string: String,
     running: bool,
     control_scheme: ControlScheme,
-    time: GameTime,
     message_receiver: Receiver<Message>,
     message_sender: MessageSender,
     load_context: Option<Arc<Mutex<LoadContext>>>,
@@ -134,13 +129,6 @@ pub fn current_level_ref(plugins: &[Box<dyn Plugin>]) -> Option<&Level> {
 
 pub fn current_level_mut(plugins: &mut [Box<dyn Plugin>]) -> Option<&mut Level> {
     game_mut(plugins).level.as_mut()
-}
-
-#[derive(Copy, Clone)]
-pub struct GameTime {
-    clock: time::Instant,
-    elapsed: f64,
-    delta: f32,
 }
 
 #[repr(u16)]
@@ -243,14 +231,6 @@ impl Game {
             }
         }
 
-        let fixed_timestep = 1.0 / FIXED_FPS;
-
-        let time = GameTime {
-            clock: Instant::now(),
-            elapsed: 0.0,
-            delta: fixed_timestep,
-        };
-
         let (tx, rx) = mpsc::channel();
 
         context
@@ -308,7 +288,6 @@ impl Game {
             smaller_font,
             level,
             debug_string: String::new(),
-            time,
             load_context: None,
             inventory_interface,
             message_receiver: rx,
@@ -444,7 +423,6 @@ impl Game {
             level.resolve(context, self.message_sender.clone());
         }
 
-        self.time.elapsed = self.time.clock.elapsed().as_secs_f64();
         self.menu.sync_to_model(context, true);
 
         Ok(())
@@ -501,23 +479,23 @@ impl Game {
             || self.final_screen.is_visible(context.user_interface)
     }
 
-    pub fn update(&mut self, context: &mut PluginContext, time: GameTime) {
+    pub fn update(&mut self, ctx: &mut PluginContext) {
         let last_time = std::time::Instant::now();
 
-        let window = context.window;
+        let window = ctx.window;
 
-        self.render_offscreen(context);
+        self.render_offscreen(ctx);
 
-        window.set_cursor_visible(self.is_any_menu_visible(context));
-        let _ = window.set_cursor_grab(if !self.is_any_menu_visible(context) {
+        window.set_cursor_visible(self.is_any_menu_visible(ctx));
+        let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
             CursorGrabMode::Confined
         } else {
             CursorGrabMode::None
         });
 
-        if let Some(ctx) = self.load_context.clone() {
-            if let Some(mut ctx) = ctx.try_lock() {
-                if let Some((mut level, mut scene)) = ctx.level.take() {
+        if let Some(load_context) = self.load_context.clone() {
+            if let Some(mut load_context) = load_context.try_lock() {
+                if let Some((mut level, mut scene)) = load_context.level.take() {
                     for (call_button_handle, call_button_ref) in level.call_buttons.pair_iter() {
                         let texture = self.call_button_ui_container.create_ui(
                             self.smaller_font.clone(),
@@ -527,63 +505,61 @@ impl Game {
 
                         call_button_ref.apply_screen_texture(
                             &mut scene.graph,
-                            context.resource_manager.clone(),
+                            ctx.resource_manager.clone(),
                             texture,
                         );
                     }
 
-                    level.scene = context.scenes.add(scene);
+                    level.scene = ctx.scenes.add(scene);
 
                     self.level = Some(level);
                     self.load_context = None;
-                    self.set_menu_visible(false, context);
-                    context
-                        .user_interface
-                        .send_message(WidgetMessage::visibility(
-                            self.loading_screen.root,
-                            MessageDirection::ToWidget,
-                            false,
-                        ));
-                    self.menu.sync_to_model(context, true);
+                    self.set_menu_visible(false, ctx);
+                    ctx.user_interface.send_message(WidgetMessage::visibility(
+                        self.loading_screen.root,
+                        MessageDirection::ToWidget,
+                        false,
+                    ));
+                    self.menu.sync_to_model(ctx, true);
                 } else {
                     self.loading_screen.set_progress(
-                        context.user_interface,
-                        context.resource_manager.state().loading_progress() as f32 / 100.0,
+                        ctx.user_interface,
+                        ctx.resource_manager.state().loading_progress() as f32 / 100.0,
                     );
                 }
             }
         }
 
         if let Some(ref mut level) = self.level {
-            let menu_visible = self.menu.is_visible(context.user_interface);
+            let menu_visible = self.menu.is_visible(ctx.user_interface);
             if !menu_visible {
-                level.update(context, time, &mut self.call_button_ui_container);
+                level.update(ctx, &mut self.call_button_ui_container);
                 let player = level.get_player();
                 if player.is_some() {
-                    let graph = &context.scenes[level.scene].graph;
+                    let graph = &ctx.scenes[level.scene].graph;
                     let player_ref = graph[player].try_get_script::<Player>().unwrap();
                     self.weapon_display.sync_to_model(player_ref, graph);
-                    self.journal_display.update(time.delta, &player_ref.journal);
+                    self.journal_display.update(ctx.dt, &player_ref.journal);
                 }
             }
-            context.scenes[level.scene].enabled = !menu_visible;
+            ctx.scenes[level.scene].enabled = !menu_visible;
         }
 
-        self.menu.scene.update(context, time.delta);
-        self.weapon_display.update(time.delta);
-        self.inventory_interface.update(time.delta);
-        self.item_display.update(time.delta);
-        self.door_ui_container.update(time.delta);
-        self.call_button_ui_container.update(time.delta);
+        self.menu.scene.update(ctx, ctx.dt);
+        self.weapon_display.update(ctx.dt);
+        self.inventory_interface.update(ctx.dt);
+        self.item_display.update(ctx.dt);
+        self.door_ui_container.update(ctx.dt);
+        self.call_button_ui_container.update(ctx.dt);
 
-        self.handle_messages(context);
+        self.handle_messages(ctx);
 
         self.update_duration = std::time::Instant::now() - last_time;
-        self.update_statistics(0.0, context);
+        self.update_statistics(0.0, ctx);
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
         if true {
-            self.debug_render(context);
+            self.debug_render(ctx);
         }
     }
 
@@ -827,14 +803,8 @@ impl Plugin for Game {
     }
 
     fn update(&mut self, context: &mut PluginContext, control_flow: &mut ControlFlow) {
-        let fixed_timestep = 1.0 / FIXED_FPS;
-        let mut dt = self.time.clock.elapsed().as_secs_f64() - self.time.elapsed;
-        while dt >= fixed_timestep as f64 {
-            dt -= fixed_timestep as f64;
-            self.time.elapsed += fixed_timestep as f64;
+        self.update(context);
 
-            self.update(context, self.time);
-        }
         if !self.running {
             *control_flow = ControlFlow::Exit;
         }

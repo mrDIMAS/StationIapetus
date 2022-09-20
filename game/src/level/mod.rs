@@ -26,7 +26,7 @@ use crate::{
         sight::SightReaction,
         weapon_mut,
     },
-    CallButtonUiContainer, GameTime, MessageSender,
+    CallButtonUiContainer, MessageSender,
 };
 use fyrox::{
     core::{
@@ -93,17 +93,6 @@ pub struct Level {
 #[derive(Visit, Default)]
 pub struct DeathZone {
     bounds: AxisAlignedBoundingBox,
-}
-
-pub struct UpdateContext<'a> {
-    pub time: GameTime,
-    pub scene: &'a mut Scene,
-    pub items: &'a ItemContainer,
-    pub doors: &'a DoorContainer,
-    pub navmesh: Handle<Navmesh>,
-    pub sender: &'a MessageSender,
-    pub elevators: &'a ElevatorContainer,
-    pub call_buttons: &'a CallButtonContainer,
 }
 
 #[derive(Default)]
@@ -412,29 +401,24 @@ impl Level {
 
     pub fn update(
         &mut self,
-        engine: &mut PluginContext,
-        time: GameTime,
+        ctx: &mut PluginContext,
         call_button_ui_container: &mut CallButtonUiContainer,
     ) {
-        self.time += time.delta;
-        let scene = &mut engine.scenes[self.scene];
+        self.time += ctx.dt;
+        let scene = &mut ctx.scenes[self.scene];
 
         self.update_death_zones(scene);
         self.projectiles
-            .update(scene, &self.actors, time, self.sender.as_ref().unwrap());
-        self.elevators.update(time.delta, scene);
+            .update(scene, ctx.dt, &self.actors, self.sender.as_ref().unwrap());
+        self.elevators.update(ctx.dt, scene);
         self.call_buttons
             .update(&self.elevators, call_button_ui_container);
 
-        self.trails.update(time.delta, scene);
+        self.trails.update(ctx.dt, scene);
         self.update_game_ending(scene);
-        self.lights.update(scene, time.delta);
+        self.lights.update(scene, ctx.dt);
         self.triggers
             .update(scene, &self.actors, self.sender.as_ref().unwrap());
-        // Make sure to clear unused animation events, because they might be used
-        // in next frames which might cause unwanted side effects (like multiple
-        // queued attack events can result in huge damage at single frame).
-        scene.animations.clear_animation_events();
     }
 
     fn shoot_ray(

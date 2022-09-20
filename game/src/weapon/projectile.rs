@@ -1,10 +1,9 @@
-use crate::character::{try_get_character_mut, CharacterCommand};
 use crate::{
+    character::{try_get_character_mut, CharacterCommand},
     effects::EffectKind,
     message::Message,
-    weapon::{ray_hit, sight::SightReaction, Hit},
-    weapon::{weapon_mut, weapon_ref},
-    GameTime, MessageSender,
+    weapon::{ray_hit, sight::SightReaction, weapon_mut, weapon_ref, Hit},
+    MessageSender,
 };
 use fyrox::{
     core::{
@@ -197,8 +196,8 @@ impl Projectile {
     pub fn update(
         &mut self,
         scene: &mut Scene,
+        dt: f32,
         actors: &[Handle<Node>],
-        time: GameTime,
         sender: &MessageSender,
     ) {
         // Fetch current position of projectile.
@@ -276,7 +275,7 @@ impl Projectile {
         // stabilizes its movement over time.
         self.initial_velocity.follow(&Vector3::default(), 0.15);
 
-        self.lifetime -= time.delta;
+        self.lifetime -= dt;
 
         if self.lifetime <= 0.0 {
             sender.send(Message::CreateEffect {
@@ -377,12 +376,12 @@ impl ProjectileContainer {
     pub fn update(
         &mut self,
         scene: &mut Scene,
+        dt: f32,
         actors: &[Handle<Node>],
-        time: GameTime,
         sender: &MessageSender,
     ) {
         for projectile in self.pool.iter_mut() {
-            projectile.update(scene, actors, time, sender);
+            projectile.update(scene, dt, actors, sender);
             if projectile.is_dead() {
                 projectile.clean_up(scene);
             }
