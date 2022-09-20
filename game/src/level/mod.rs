@@ -399,9 +399,14 @@ impl Level {
     }
 
     fn update_game_ending(&self, scene: &Scene) {
-        let player_ref = scene.graph[self.player].try_get_script::<Player>().unwrap();
-        if player_ref.is_completely_dead(scene) {
-            self.sender.as_ref().unwrap().send(Message::EndMatch);
+        if let Some(player_ref) = scene
+            .graph
+            .try_get(self.player)
+            .and_then(|p| p.try_get_script::<Player>())
+        {
+            if player_ref.is_completely_dead(scene) {
+                self.sender.as_ref().unwrap().send(Message::EndMatch);
+            }
         }
     }
 
