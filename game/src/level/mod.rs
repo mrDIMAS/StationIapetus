@@ -1,7 +1,5 @@
-use crate::bot::BotCommand;
 use crate::{
-    bot::Bot,
-    bot::{try_get_bot_mut, BotKind},
+    bot::{try_get_bot_mut, Bot, BotCommand},
     character::{character_ref, try_get_character_mut, try_get_character_ref, CharacterCommand},
     config::SoundConfig,
     door::DoorContainer,
@@ -18,7 +16,7 @@ use crate::{
     },
     light::{Light, LightContainer},
     message::Message,
-    player::{Player, PlayerPersistentData},
+    player::Player,
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
     weapon::{
@@ -63,6 +61,7 @@ use fyrox::{
 use std::{path::Path, sync::Arc};
 
 pub mod decal;
+pub mod spawn;
 pub mod trail;
 pub mod trigger;
 pub mod turret;
@@ -110,8 +109,6 @@ pub struct UpdateContext<'a> {
 #[derive(Default)]
 pub struct AnalysisResult {
     death_zones: Vec<DeathZone>,
-    player_spawn_position: Vector3<f32>,
-    player_spawn_orientation: UnitQuaternion<f32>,
     lights: LightContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
@@ -169,8 +166,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
     let mut death_zones = Vec::new();
-    let mut player_spawn_position = Default::default();
-    let mut player_spawn_orientation = Default::default();
     let mut triggers = TriggerContainer::default();
     let mut elevators = ElevatorContainer::new();
     let mut call_buttons = CallButtonContainer::new();
@@ -178,10 +173,7 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     for (handle, node) in scene.graph.pair_iter() {
         let name = node.name();
 
-        if name.starts_with("PlayerSpawnPoint") {
-            player_spawn_position = node.global_position();
-            player_spawn_orientation = scene.graph.global_rotation(handle);
-        } else if name.starts_with("DeathZone") && node.is_mesh() {
+        if name.starts_with("DeathZone") && node.is_mesh() {
             death_zones.push(handle);
         }
 
@@ -225,10 +217,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
         }
 
         match node.tag() {
-            "PlayerSpawnPoint" => {
-                player_spawn_position = node.global_position();
-                player_spawn_orientation = scene.graph.global_rotation(handle);
-            }
             "FlashingLight" => result.lights.add(Light::new(handle)),
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
@@ -243,30 +231,11 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
             bounds: node.as_mesh().world_bounding_box(),
         });
     }
-    result.player_spawn_position = player_spawn_position;
-    result.player_spawn_orientation = player_spawn_orientation;
     result.triggers = triggers;
     result.elevators = elevators;
     result.call_buttons = call_buttons;
 
     result
-}
-
-async fn spawn_player(
-    spawn_position: Vector3<f32>,
-    orientation: UnitQuaternion<f32>,
-    resource_manager: ResourceManager,
-    scene: &mut Scene,
-    persistent_data: Option<PlayerPersistentData>,
-) -> Handle<Node> {
-    let player = Player::add_to_scene(scene, resource_manager.clone()).await;
-
-    scene.graph[player]
-        .local_transform_mut()
-        .set_position(spawn_position)
-        .set_rotation(orientation);
-
-    player
 }
 
 impl Level {
@@ -277,10 +246,8 @@ impl Level {
     pub fn from_existing_scene(
         scene: &mut Scene,
         scene_handle: Handle<Scene>,
-        resource_manager: ResourceManager,
         sender: MessageSender,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
-        persistent_data: Option<PlayerPersistentData>,
     ) -> Self {
         if sound_config.use_hrtf {
             use_hrtf(&mut scene.graph.sound_context)
@@ -295,8 +262,6 @@ impl Level {
 
         let AnalysisResult {
             death_zones,
-            player_spawn_position,
-            player_spawn_orientation,
             lights,
             triggers,
             elevators,
@@ -304,13 +269,7 @@ impl Level {
         } = block_on(analyze(scene));
 
         Self {
-            player: block_on(spawn_player(
-                player_spawn_position,
-                player_spawn_orientation,
-                resource_manager,
-                scene,
-                persistent_data,
-            )),
+            player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
             lights,
@@ -336,7 +295,6 @@ impl Level {
         resource_manager: ResourceManager,
         sender: MessageSender,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
-        persistent_data: Option<PlayerPersistentData>,
     ) -> (Self, Scene) {
         let mut scene = Scene::new();
 
@@ -361,8 +319,6 @@ impl Level {
 
         let AnalysisResult {
             death_zones,
-            player_spawn_position,
-            player_spawn_orientation,
             lights,
             triggers,
             elevators,
@@ -370,14 +326,7 @@ impl Level {
         } = analyze(&mut scene).await;
 
         let level = Self {
-            player: spawn_player(
-                player_spawn_position,
-                player_spawn_orientation,
-                resource_manager.clone(),
-                &mut scene,
-                persistent_data,
-            )
-            .await,
+            player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
             lights,
@@ -834,27 +783,6 @@ impl Level {
 
         for death_zone in self.death_zones.iter() {
             drawing_context.draw_aabb(&death_zone.bounds, Color::opaque(0, 0, 200));
-        }
-    }
-}
-
-#[derive(Visit)]
-pub struct SpawnPoint {
-    position: Vector3<f32>,
-    rotation: UnitQuaternion<f32>,
-    bot_kind: BotKind,
-    spawned: bool,
-    with_gun: bool,
-}
-
-impl Default for SpawnPoint {
-    fn default() -> Self {
-        Self {
-            position: Default::default(),
-            rotation: Default::default(),
-            bot_kind: BotKind::Zombie,
-            spawned: false,
-            with_gun: false,
         }
     }
 }

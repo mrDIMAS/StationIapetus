@@ -6,7 +6,10 @@ use station_iapetus::{
     character::{Character, HitBox},
     door::{DoorDirection, DoorState},
     item::ItemKind,
-    level::turret::{Barrel, Hostility, ShootMode},
+    level::{
+        spawn::DefaultWeapon,
+        turret::{Barrel, Hostility, ShootMode},
+    },
     player::camera::CameraController,
     weapon::definition::WeaponKind,
     GameConstructor,
@@ -36,6 +39,7 @@ fn main() {
     editors.register_inheritable_inspectable::<HitBox>();
     editors.register_inheritable_vec_collection::<Barrel>();
     editors.register_inheritable_vec_collection::<HitBox>();
+    editors.register_inheritable_vec_collection::<DefaultWeapon>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)

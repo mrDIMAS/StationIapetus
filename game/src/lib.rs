@@ -24,6 +24,7 @@ pub mod utils;
 pub mod weapon;
 
 use crate::bot::Bot;
+use crate::level::spawn::SpawnPoint;
 use crate::{
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
@@ -39,9 +40,7 @@ use crate::{
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
-    player::camera::CameraController,
-    player::Player,
-    player::PlayerPersistentData,
+    player::{camera::CameraController, Player},
     utils::use_hrtf,
     weapon::Weapon,
 };
@@ -270,10 +269,8 @@ impl Game {
             Some(Level::from_existing_scene(
                 &mut context.scenes[override_scene],
                 override_scene,
-                context.resource_manager.clone(),
                 message_sender.clone(),
                 sound_config,
-                None,
             ))
         } else {
             None
@@ -462,12 +459,7 @@ impl Game {
         }
     }
 
-    pub fn load_level<S: AsRef<str>>(
-        &mut self,
-        map: S,
-        persistent_data: Option<PlayerPersistentData>,
-        context: &mut PluginContext,
-    ) {
+    pub fn load_level<S: AsRef<str>>(&mut self, map: S, context: &mut PluginContext) {
         self.destroy_level(context);
 
         let ctx = Arc::new(Mutex::new(LoadContext { level: None }));
@@ -490,13 +482,8 @@ impl Game {
         let map_path = map.as_ref().to_owned();
         std::thread::spawn(move || {
             let level = {
-                let (arrival, scene) = block_on(Level::new(
-                    map_path,
-                    resource_manager,
-                    sender,
-                    sound_config,
-                    persistent_data,
-                ));
+                let (arrival, scene) =
+                    block_on(Level::new(map_path, resource_manager, sender, sound_config));
                 (arrival, scene)
             };
 
@@ -604,10 +591,10 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::ARRIVAL_PATH, None, context);
+                    self.load_level(Level::ARRIVAL_PATH, context);
                 }
                 Message::LoadTestbed => {
-                    self.load_level(Level::TESTBED_PATH, None, context);
+                    self.load_level(Level::TESTBED_PATH, context);
                 }
                 Message::SaveGame => match self.save_game(context) {
                     Ok(_) => Log::info("Successfully saved"),
@@ -626,17 +613,7 @@ impl Game {
                         };
 
                         if let Some(kind) = kind {
-                            let graph = &context.scenes[level.scene].graph;
-                            self.load_level(
-                                kind,
-                                Some(
-                                    graph[level.player]
-                                        .try_get_script::<Player>()
-                                        .unwrap()
-                                        .persistent_data(graph),
-                                ),
-                                context,
-                            )
+                            self.load_level(kind, context)
                         }
                     }
                 }
@@ -831,7 +808,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Decal>("Decal")
             .add::<Player>("Player")
             .add::<CameraController>("Camera Controller")
-            .add::<Bot>("Bot");
+            .add::<Bot>("Bot")
+            .add::<SpawnPoint>("Spawn Point");
     }
 
     fn create_instance(
