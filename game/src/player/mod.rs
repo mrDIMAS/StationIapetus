@@ -1023,12 +1023,20 @@ impl ScriptTrait for Player {
         // Add default weapon.
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
 
-        current_level_mut(context.plugins).unwrap().player = context.handle;
+        let level = current_level_mut(context.plugins).unwrap();
+
+        level.actors.push(context.handle);
+        // Also register player in special variable to speed up access.
+        level.player = context.handle;
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
         if let Some(level) = current_level_mut(context.plugins) {
             level.player = Handle::NONE;
+
+            if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
+                level.actors.remove(position);
+            }
         }
     }
 
