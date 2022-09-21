@@ -143,8 +143,7 @@ impl Menu {
                             .on_row(0)
                             .with_margin(Thickness::uniform(4.0)),
                     )
-                    .with_text("Load Testbed")
-                    .with_font(font.clone())
+                    .with_text_and_font("Load Testbed", font.clone())
                     .build(ctx);
                     btn_load_test_bed
                 })
@@ -165,8 +164,7 @@ impl Menu {
                                                 .on_row(0)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
-                                        .with_text("New Game")
-                                        .with_font(font.clone())
+                                        .with_text_and_font("New Game", font.clone())
                                         .build(ctx);
                                         btn_new_game
                                     })
@@ -178,8 +176,7 @@ impl Menu {
                                                 .with_enabled(false)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
-                                        .with_text("Save Game")
-                                        .with_font(font.clone())
+                                        .with_text_and_font("Save Game", font.clone())
                                         .build(ctx);
                                         btn_save_game
                                     })
@@ -190,8 +187,7 @@ impl Menu {
                                                 .on_row(2)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
-                                        .with_text("Load Game")
-                                        .with_font(font.clone())
+                                        .with_text_and_font("Load Game", font.clone())
                                         .build(ctx);
                                         btn_load_game
                                     })
@@ -202,8 +198,7 @@ impl Menu {
                                                 .on_row(3)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
-                                        .with_text("Settings")
-                                        .with_font(font.clone())
+                                        .with_text_and_font("Settings", font.clone())
                                         .build(ctx);
                                         btn_settings
                                     })
@@ -214,8 +209,7 @@ impl Menu {
                                                 .on_row(4)
                                                 .with_margin(Thickness::uniform(4.0)),
                                         )
-                                        .with_text("Quit")
-                                        .with_font(font)
+                                        .with_text_and_font("Quit", font.clone())
                                         .build(ctx);
                                         btn_quit_game
                                     }),
