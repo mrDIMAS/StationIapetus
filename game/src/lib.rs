@@ -23,10 +23,8 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::item::Item;
-use crate::level::decal::Decal;
 use crate::{
-    actor::Actor,
+    bot::Bot,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::{ui::DoorUiContainer, Door},
@@ -35,11 +33,12 @@ use crate::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
-    level::{turret::Turret, Level},
+    item::Item,
+    level::{decal::Decal, spawn::SpawnPoint, turret::Turret, Level},
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
-    player::PlayerPersistentData,
+    player::{camera::CameraController, Player},
     utils::use_hrtf,
     weapon::Weapon,
 };
@@ -85,10 +84,8 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc,
     },
-    time::{self, Duration, Instant},
+    time::Duration,
 };
-
-const FIXED_FPS: f32 = 60.0;
 
 pub struct Game {
     menu: Menu,
@@ -97,7 +94,6 @@ pub struct Game {
     debug_string: String,
     running: bool,
     control_scheme: ControlScheme,
-    time: GameTime,
     message_receiver: Receiver<Message>,
     message_sender: MessageSender,
     load_context: Option<Arc<Mutex<LoadContext>>>,
@@ -133,13 +129,6 @@ pub fn current_level_ref(plugins: &[Box<dyn Plugin>]) -> Option<&Level> {
 
 pub fn current_level_mut(plugins: &mut [Box<dyn Plugin>]) -> Option<&mut Level> {
     game_mut(plugins).level.as_mut()
-}
-
-#[derive(Copy, Clone)]
-pub struct GameTime {
-    clock: time::Instant,
-    elapsed: f64,
-    delta: f32,
 }
 
 #[repr(u16)]
@@ -242,14 +231,6 @@ impl Game {
             }
         }
 
-        let fixed_timestep = 1.0 / FIXED_FPS;
-
-        let time = GameTime {
-            clock: Instant::now(),
-            elapsed: 0.0,
-            delta: fixed_timestep,
-        };
-
         let (tx, rx) = mpsc::channel();
 
         context
@@ -263,27 +244,19 @@ impl Game {
         let journal_display = JournalDisplay::new();
 
         let level = if override_scene.is_some() {
-            let display_texture = weapon_display.render_target.clone();
-            let inventory_texture = inventory_interface.render_target.clone();
-            let item_texture = item_display.render_target.clone();
-            let journal_texture = journal_display.render_target.clone();
             let sound_config = sound_config.clone();
 
             Some(Level::from_existing_scene(
                 &mut context.scenes[override_scene],
                 override_scene,
-                context.resource_manager.clone(),
                 message_sender.clone(),
-                display_texture,
-                inventory_texture,
-                item_texture,
-                journal_texture,
                 sound_config,
-                None,
             ))
         } else {
             None
         };
+
+        let has_level = level.is_some();
 
         let mut game = Game {
             show_debug_info,
@@ -315,7 +288,6 @@ impl Game {
             smaller_font,
             level,
             debug_string: String::new(),
-            time,
             load_context: None,
             inventory_interface,
             message_receiver: rx,
@@ -327,6 +299,7 @@ impl Game {
         };
 
         game.create_debug_ui(&mut context);
+        game.menu.set_visible(&mut context, !has_level);
 
         game
     }
@@ -447,17 +420,9 @@ impl Game {
 
         // Set control scheme for player.
         if let Some(level) = &mut self.level {
-            level.resolve(
-                context,
-                self.message_sender.clone(),
-                self.weapon_display.render_target.clone(),
-                self.inventory_interface.render_target.clone(),
-                self.item_display.render_target.clone(),
-                self.journal_display.render_target.clone(),
-            );
+            level.resolve(context, self.message_sender.clone());
         }
 
-        self.time.elapsed = self.time.clock.elapsed().as_secs_f64();
         self.menu.sync_to_model(context, true);
 
         Ok(())
@@ -472,12 +437,7 @@ impl Game {
         }
     }
 
-    pub fn load_level<S: AsRef<str>>(
-        &mut self,
-        map: S,
-        persistent_data: Option<PlayerPersistentData>,
-        context: &mut PluginContext,
-    ) {
+    pub fn load_level<S: AsRef<str>>(&mut self, map: S, context: &mut PluginContext) {
         self.destroy_level(context);
 
         let ctx = Arc::new(Mutex::new(LoadContext { level: None }));
@@ -495,26 +455,13 @@ impl Game {
 
         let resource_manager = context.resource_manager.clone();
         let sender = self.message_sender.clone();
-        let display_texture = self.weapon_display.render_target.clone();
-        let inventory_texture = self.inventory_interface.render_target.clone();
-        let item_texture = self.item_display.render_target.clone();
-        let journal_texture = self.journal_display.render_target.clone();
         let sound_config = self.sound_config.clone();
 
         let map_path = map.as_ref().to_owned();
         std::thread::spawn(move || {
             let level = {
-                let (arrival, scene) = block_on(Level::new(
-                    map_path,
-                    resource_manager,
-                    sender,
-                    display_texture,
-                    inventory_texture,
-                    item_texture,
-                    journal_texture,
-                    sound_config,
-                    persistent_data,
-                ));
+                let (arrival, scene) =
+                    block_on(Level::new(map_path, resource_manager, sender, sound_config));
                 (arrival, scene)
             };
 
@@ -532,23 +479,23 @@ impl Game {
             || self.final_screen.is_visible(context.user_interface)
     }
 
-    pub fn update(&mut self, context: &mut PluginContext, time: GameTime) {
+    pub fn update(&mut self, ctx: &mut PluginContext) {
         let last_time = std::time::Instant::now();
 
-        let window = context.window;
+        let window = ctx.window;
 
-        self.render_offscreen(context);
+        self.render_offscreen(ctx);
 
-        window.set_cursor_visible(self.is_any_menu_visible(context));
-        let _ = window.set_cursor_grab(if !self.is_any_menu_visible(context) {
+        window.set_cursor_visible(self.is_any_menu_visible(ctx));
+        let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
             CursorGrabMode::Confined
         } else {
             CursorGrabMode::None
         });
 
-        if let Some(ctx) = self.load_context.clone() {
-            if let Some(mut ctx) = ctx.try_lock() {
-                if let Some((mut level, mut scene)) = ctx.level.take() {
+        if let Some(load_context) = self.load_context.clone() {
+            if let Some(mut load_context) = load_context.try_lock() {
+                if let Some((mut level, mut scene)) = load_context.level.take() {
                     for (call_button_handle, call_button_ref) in level.call_buttons.pair_iter() {
                         let texture = self.call_button_ui_container.create_ui(
                             self.smaller_font.clone(),
@@ -558,64 +505,61 @@ impl Game {
 
                         call_button_ref.apply_screen_texture(
                             &mut scene.graph,
-                            context.resource_manager.clone(),
+                            ctx.resource_manager.clone(),
                             texture,
                         );
                     }
 
-                    level.scene = context.scenes.add(scene);
+                    level.scene = ctx.scenes.add(scene);
 
                     self.level = Some(level);
                     self.load_context = None;
-                    self.set_menu_visible(false, context);
-                    context
-                        .user_interface
-                        .send_message(WidgetMessage::visibility(
-                            self.loading_screen.root,
-                            MessageDirection::ToWidget,
-                            false,
-                        ));
-                    self.menu.sync_to_model(context, true);
+                    self.set_menu_visible(false, ctx);
+                    ctx.user_interface.send_message(WidgetMessage::visibility(
+                        self.loading_screen.root,
+                        MessageDirection::ToWidget,
+                        false,
+                    ));
+                    self.menu.sync_to_model(ctx, true);
                 } else {
                     self.loading_screen.set_progress(
-                        context.user_interface,
-                        context.resource_manager.state().loading_progress() as f32 / 100.0,
+                        ctx.user_interface,
+                        ctx.resource_manager.state().loading_progress() as f32 / 100.0,
                     );
                 }
             }
         }
 
         if let Some(ref mut level) = self.level {
-            let menu_visible = self.menu.is_visible(context.user_interface);
+            let menu_visible = self.menu.is_visible(ctx.user_interface);
             if !menu_visible {
-                level.update(context, time, &mut self.call_button_ui_container);
+                level.update(ctx, &mut self.call_button_ui_container);
                 let player = level.get_player();
                 if player.is_some() {
-                    if let Actor::Player(player) = level.actors().get(player) {
-                        self.weapon_display
-                            .sync_to_model(player, &context.scenes[level.scene].graph);
-                        self.journal_display.update(time.delta, &player.journal);
-                    }
+                    let graph = &ctx.scenes[level.scene].graph;
+                    let player_ref = graph[player].try_get_script::<Player>().unwrap();
+                    self.weapon_display.sync_to_model(player_ref, graph);
+                    self.journal_display.update(ctx.dt, &player_ref.journal);
                 }
             }
-            context.scenes[level.scene].enabled = !menu_visible;
+            ctx.scenes[level.scene].enabled = !menu_visible;
         }
 
-        self.menu.scene.update(context, time.delta);
-        self.weapon_display.update(time.delta);
-        self.inventory_interface.update(time.delta);
-        self.item_display.update(time.delta);
-        self.door_ui_container.update(time.delta);
-        self.call_button_ui_container.update(time.delta);
+        self.menu.scene.update(ctx, ctx.dt);
+        self.weapon_display.update(ctx.dt);
+        self.inventory_interface.update(ctx.dt);
+        self.item_display.update(ctx.dt);
+        self.door_ui_container.update(ctx.dt);
+        self.call_button_ui_container.update(ctx.dt);
 
-        self.handle_messages(context);
+        self.handle_messages(ctx);
 
         self.update_duration = std::time::Instant::now() - last_time;
-        self.update_statistics(0.0, context);
+        self.update_statistics(0.0, ctx);
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
-        if false {
-            self.debug_render(context);
+        if true {
+            self.debug_render(ctx);
         }
     }
 
@@ -623,10 +567,10 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::ARRIVAL_PATH, None, context);
+                    self.load_level(Level::ARRIVAL_PATH, context);
                 }
                 Message::LoadTestbed => {
-                    self.load_level(Level::TESTBED_PATH, None, context);
+                    self.load_level(Level::TESTBED_PATH, context);
                 }
                 Message::SaveGame => match self.save_game(context) {
                     Ok(_) => Log::info("Successfully saved"),
@@ -645,15 +589,7 @@ impl Game {
                         };
 
                         if let Some(kind) = kind {
-                            let persistent_data = if let Actor::Player(player) =
-                                level.actors().get(level.get_player())
-                            {
-                                player.persistent_data(&context.scenes[level.scene].graph)
-                            } else {
-                                unreachable!()
-                            };
-
-                            self.load_level(kind, Some(persistent_data), context)
+                            self.load_level(kind, context)
                         }
                     }
                 }
@@ -720,22 +656,20 @@ impl Game {
                 }
                 Message::SyncInventory => {
                     if let Some(ref mut level) = self.level {
-                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
-                            self.inventory_interface
-                                .sync_to_model(context.resource_manager.clone(), player);
-                        }
+                        let player_ref = context.scenes[level.scene].graph[level.player]
+                            .try_get_script::<Player>()
+                            .unwrap();
+                        self.inventory_interface
+                            .sync_to_model(context.resource_manager.clone(), player_ref);
                     }
                 }
                 Message::SyncJournal => {
                     if let Some(ref mut level) = self.level {
-                        if let Actor::Player(player) = level.actors().get(level.get_player()) {
-                            self.journal_display.sync_to_model(&player.journal);
-                        }
+                        let player_ref = context.scenes[level.scene].graph[level.player]
+                            .try_get_script::<Player>()
+                            .unwrap();
+                        self.journal_display.sync_to_model(&player_ref.journal);
                     }
-                }
-                &Message::ShowItemDisplay { item, count } => {
-                    self.item_display
-                        .sync_to_model(context.resource_manager.clone(), item, count);
                 }
                 Message::Play2DSound { path, gain } => {
                     if let Ok(buffer) = fyrox::core::futures::executor::block_on(
@@ -799,34 +733,17 @@ impl Game {
                 context.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
-                    let player =
-                        if let Actor::Player(player) = level.actors_mut().get_mut(player_handle) {
-                            player
-                        } else {
-                            unreachable!()
-                        };
+                    let player_ref = context.scenes[level.scene].graph[player_handle]
+                        .try_get_script_mut::<Player>()
+                        .unwrap();
                     self.inventory_interface.process_os_event(
                         &event,
                         &self.control_scheme,
-                        player_handle,
-                        player,
+                        player_ref,
                     );
                     self.journal_display
                         .process_os_event(&event, &self.control_scheme);
                 }
-            }
-        }
-
-        if !self.is_any_menu_visible(context) {
-            if let Some(ref mut level) = self.level {
-                let scene = &mut context.scenes[level.scene];
-                level.process_input_event(
-                    event,
-                    scene,
-                    self.time.delta,
-                    &self.control_scheme,
-                    &self.message_sender,
-                );
             }
         }
     }
@@ -864,7 +781,11 @@ impl PluginConstructor for GameConstructor {
             .add::<Turret>("Turret")
             .add::<Weapon>("Weapon")
             .add::<Item>("Item")
-            .add::<Decal>("Decal");
+            .add::<Decal>("Decal")
+            .add::<Player>("Player")
+            .add::<CameraController>("Camera Controller")
+            .add::<Bot>("Bot")
+            .add::<SpawnPoint>("Spawn Point");
     }
 
     fn create_instance(
@@ -882,14 +803,8 @@ impl Plugin for Game {
     }
 
     fn update(&mut self, context: &mut PluginContext, control_flow: &mut ControlFlow) {
-        let fixed_timestep = 1.0 / FIXED_FPS;
-        let mut dt = self.time.clock.elapsed().as_secs_f64() - self.time.elapsed;
-        while dt >= fixed_timestep as f64 {
-            dt -= fixed_timestep as f64;
-            self.time.elapsed += fixed_timestep as f64;
+        self.update(context);
 
-            self.update(context, self.time);
-        }
         if !self.running {
             *control_flow = ControlFlow::Exit;
         }

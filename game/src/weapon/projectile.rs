@@ -1,10 +1,9 @@
-use crate::weapon::{weapon_mut, weapon_ref};
 use crate::{
-    actor::{Actor, ActorContainer},
+    character::{try_get_character_mut, CharacterCommand},
     effects::EffectKind,
     message::Message,
-    weapon::{ray_hit, sight::SightReaction, Hit},
-    GameTime, MessageSender,
+    weapon::{ray_hit, sight::SightReaction, weapon_mut, weapon_ref, Hit},
+    MessageSender,
 };
 use fyrox::{
     core::{
@@ -29,7 +28,7 @@ pub enum ProjectileKind {
 #[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit)]
 pub enum Shooter {
     None,
-    Actor(Handle<Actor>),
+    Actor(Handle<Node>),
     Weapon(Handle<Node>),
     Turret(Handle<Node>),
 }
@@ -197,8 +196,8 @@ impl Projectile {
     pub fn update(
         &mut self,
         scene: &mut Scene,
-        actors: &ActorContainer,
-        time: GameTime,
+        dt: f32,
+        actors: &[Handle<Node>],
         sender: &MessageSender,
     ) {
         // Fetch current position of projectile.
@@ -276,7 +275,7 @@ impl Projectile {
         // stabilizes its movement over time.
         self.initial_velocity.follow(&Vector3::default(), 0.15);
 
-        self.lifetime -= time.delta;
+        self.lifetime -= dt;
 
         if self.lifetime <= 0.0 {
             sender.send(Message::CreateEffect {
@@ -323,13 +322,16 @@ impl Projectile {
                     who: hit.who,
                     critical_shot_probability,
                 }),
-                Damage::Point(amount) => sender.send(Message::DamageActor {
-                    actor: hit.actor,
-                    who: hit.who,
-                    hitbox: hit.hit_box,
-                    amount,
-                    critical_shot_probability,
-                }),
+                Damage::Point(amount) => {
+                    if let Some(character) = try_get_character_mut(hit.actor, &mut scene.graph) {
+                        character.push_command(CharacterCommand::Damage {
+                            who: hit.who,
+                            hitbox: hit.hit_box,
+                            amount,
+                            critical_shot_probability,
+                        });
+                    }
+                }
             }
         }
 
@@ -374,12 +376,12 @@ impl ProjectileContainer {
     pub fn update(
         &mut self,
         scene: &mut Scene,
-        actors: &ActorContainer,
-        time: GameTime,
+        dt: f32,
+        actors: &[Handle<Node>],
         sender: &MessageSender,
     ) {
         for projectile in self.pool.iter_mut() {
-            projectile.update(scene, actors, time, sender);
+            projectile.update(scene, dt, actors, sender);
             if projectile.is_dead() {
                 projectile.clean_up(scene);
             }

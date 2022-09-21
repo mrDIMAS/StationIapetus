@@ -60,7 +60,7 @@ fn make_walk_state(
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Debug)]
 pub struct LowerBodyMachine {
     pub machine: Machine,
     pub jump_animation: Handle<Animation>,

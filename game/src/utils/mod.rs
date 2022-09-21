@@ -27,12 +27,13 @@ use std::collections::HashMap;
 
 pub mod model_map;
 
+#[derive(Clone, Debug)]
 struct ImpactEntry {
     k: f32,
     source: UnitQuaternion<f32>,
 }
 
-#[derive(Default)]
+#[derive(Default, Debug, Clone)]
 pub struct BodyImpactHandler {
     additional_rotations: HashMap<Handle<Node>, ImpactEntry>,
 }

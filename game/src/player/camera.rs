@@ -1,23 +1,28 @@
-use crate::utils::create_camera;
-use crate::GameTime;
-use fyrox::scene::graph::physics::{Intersection, RayCastOptions};
-use fyrox::scene::pivot::PivotBuilder;
+use crate::Player;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
+        inspect::prelude::*,
         math::{ray::Ray, Vector3Ext},
         pool::Handle,
         rand::Rng,
-        visitor::{Visit, VisitResult, Visitor},
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
-    rand,
-    scene::{base::BaseBuilder, graph::Graph, node::Node, transform::TransformBuilder, Scene},
+    impl_component_provider, rand,
+    scene::{
+        graph::physics::{Intersection, RayCastOptions},
+        node::{Node, TypeUuidProvider},
+        Scene,
+    },
+    script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Reflect, Inspect, Debug, Clone)]
 pub struct CameraController {
-    camera_pivot: Handle<Node>,
+    player: Handle<Node>,
+    ignorable_collider: Handle<Node>,
     camera_hinge: Handle<Node>,
     camera: Handle<Node>,
     camera_offset: Vector3<f32>,
@@ -26,109 +31,18 @@ pub struct CameraController {
     target_shake_offset: Vector3<f32>,
     shake_timer: f32,
     #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
     query_buffer: Vec<Intersection>,
 }
 
 impl CameraController {
-    pub async fn new(resource_manager: ResourceManager, graph: &mut Graph) -> Self {
-        let camera_offset = -0.8;
-
-        let camera;
-        let camera_hinge;
-        let camera_pivot = PivotBuilder::new(BaseBuilder::new().with_children(&[{
-            camera_hinge = PivotBuilder::new(
-                BaseBuilder::new()
-                    .with_local_transform(
-                        TransformBuilder::new()
-                            .with_local_position(Vector3::new(-0.22, 0.25, 0.0))
-                            .build(),
-                    )
-                    .with_children(&[{
-                        camera = create_camera(
-                            resource_manager.clone(),
-                            Vector3::new(0.0, 0.0, camera_offset),
-                            graph,
-                            20.0,
-                        )
-                        .await;
-                        camera
-                    }]),
-            )
-            .build(graph);
-            camera_hinge
-        }]))
-        .build(graph);
-
-        Self {
-            camera_pivot,
-            camera_hinge,
-            camera,
-            camera_offset: Vector3::new(0.0, 0.0, camera_offset),
-            target_camera_offset: Vector3::new(0.0, 0.0, camera_offset),
-            shake_offset: Default::default(),
-            target_shake_offset: Default::default(),
-            shake_timer: 0.0,
-            query_buffer: Default::default(),
-        }
-    }
-
     pub fn camera(&self) -> Handle<Node> {
         self.camera
     }
 
     pub fn request_shake_camera(&mut self) {
         self.shake_timer = 0.24;
-    }
-
-    pub fn update(
-        &mut self,
-        position: Vector3<f32>,
-        pitch: f32,
-        yaw: UnitQuaternion<f32>,
-        is_walking: bool,
-        is_running: bool,
-        is_aiming: bool,
-        owner_collider: Handle<Node>,
-        scene: &mut Scene,
-        time: GameTime,
-    ) {
-        if is_walking {
-            let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
-
-            self.target_camera_offset.x = 0.015 * (time.elapsed as f32 * kx).cos();
-            self.target_camera_offset.y = 0.015 * (time.elapsed as f32 * ky).sin();
-        } else {
-            self.target_camera_offset.x = 0.0;
-            self.target_camera_offset.y = 0.0;
-        }
-
-        self.target_camera_offset.z = if is_aiming { 0.2 } else { 0.8 };
-
-        self.update_shake(time.delta);
-        self.check_occlusion(owner_collider, scene);
-
-        self.target_camera_offset += self.shake_offset;
-
-        self.camera_offset.follow(&self.target_camera_offset, 0.2);
-
-        scene.graph[self.camera_pivot]
-            .local_transform_mut()
-            .set_rotation(yaw)
-            .set_position(position);
-
-        scene.graph[self.camera]
-            .local_transform_mut()
-            .set_position(Vector3::new(
-                self.camera_offset.x,
-                self.camera_offset.y,
-                -self.camera_offset.z,
-            ));
-
-        // Rotate camera hinge - this will make camera move up and down while look at character
-        // (well not exactly on character - on characters head)
-        scene.graph[self.camera_hinge]
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
     }
 
     fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) {
@@ -180,5 +94,74 @@ impl CameraController {
             self.target_shake_offset = Vector3::new(0.0, 0.0, 0.0);
         }
         self.shake_offset.follow(&self.target_shake_offset, 0.5);
+    }
+}
+
+impl_component_provider!(CameraController);
+
+impl TypeUuidProvider for CameraController {
+    fn type_uuid() -> Uuid {
+        uuid!("a4681191-0b6f-4398-891d-c5b44019fb31")
+    }
+}
+
+impl ScriptTrait for CameraController {
+    fn on_update(&mut self, context: &mut ScriptContext) {
+        let (is_walking, is_running, is_aiming, yaw, pitch) = context
+            .scene
+            .graph
+            .try_get(self.player)
+            .and_then(|p| p.try_get_script::<Player>())
+            .map(|p| {
+                (
+                    p.is_walking(),
+                    p.is_running(context.scene),
+                    p.is_aiming(),
+                    p.controller.yaw,
+                    p.controller.pitch,
+                )
+            })
+            .unwrap_or_default();
+
+        if is_walking {
+            let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
+
+            self.target_camera_offset.x = 0.015 * (context.elapsed_time * kx).cos();
+            self.target_camera_offset.y = 0.015 * (context.elapsed_time * ky).sin();
+        } else {
+            self.target_camera_offset.x = 0.0;
+            self.target_camera_offset.y = 0.0;
+        }
+
+        self.target_camera_offset.z = if is_aiming { 0.2 } else { 0.8 };
+
+        self.update_shake(context.dt);
+        self.check_occlusion(self.ignorable_collider, context.scene);
+
+        self.target_camera_offset += self.shake_offset;
+
+        self.camera_offset.follow(&self.target_camera_offset, 0.2);
+
+        context.scene.graph[context.handle]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw));
+
+        context.scene.graph[self.camera]
+            .local_transform_mut()
+            .set_position(Vector3::new(
+                self.camera_offset.x,
+                self.camera_offset.y,
+                -self.camera_offset.z,
+            ));
+
+        // Rotate camera hinge - this will make camera move up and down while look at character
+        // (well not exactly on character - on characters head)
+        context.scene.graph[self.camera_hinge]
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }

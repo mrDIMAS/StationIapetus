@@ -1,5 +1,5 @@
+use crate::character::CharacterCommand;
 use crate::{
-    actor::Actor,
     control_scheme::{ControlButton, ControlScheme},
     item::{Item, ItemKind},
     message::Message,
@@ -418,7 +418,6 @@ impl InventoryInterface {
         &mut self,
         os_event: &OsEvent,
         control_scheme: &ControlScheme,
-        player_handle: Handle<Actor>,
         player: &mut Player,
     ) {
         self.ui.process_os_event(os_event);
@@ -460,19 +459,15 @@ impl InventoryInterface {
                                             .try_extract_exact_items(item.item, 1)
                                             == 1
                                         {
-                                            self.sender.send(Message::UseItem {
-                                                actor: player_handle,
-                                                kind: item.item,
-                                            });
+                                            player.use_item(item.item);
                                             self.sender.send(Message::SyncInventory);
                                         }
                                     } else if let Some(associated_weapon) =
                                         item.item.associated_weapon()
                                     {
-                                        self.sender.send(Message::GrabWeapon {
-                                            kind: associated_weapon,
-                                            actor: player_handle,
-                                        });
+                                        player.push_command(CharacterCommand::SelectWeapon(
+                                            associated_weapon,
+                                        ));
                                     }
                                 } else {
                                     unreachable!()
@@ -486,8 +481,7 @@ impl InventoryInterface {
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
                                 {
-                                    self.sender.send(Message::DropItems {
-                                        actor: player_handle,
+                                    player.push_command(CharacterCommand::DropItems {
                                         item: item.item,
                                         count: 1,
                                     });

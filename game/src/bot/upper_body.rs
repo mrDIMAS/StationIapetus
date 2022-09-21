@@ -1,8 +1,6 @@
 use crate::{
     bot::{clean_machine, BotDefinition},
-    utils::create_play_animation_state,
-    utils::model_map::ModelMap,
-    GameTime,
+    utils::{create_play_animation_state, model_map::ModelMap},
 };
 use fyrox::{
     animation::{
@@ -20,7 +18,7 @@ use fyrox::{
     scene::{node::Node, Scene},
 };
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Clone, Debug)]
 pub struct UpperBodyMachine {
     pub machine: Machine,
     pub attack_animations: Vec<Handle<Animation>>,
@@ -386,7 +384,7 @@ impl UpperBodyMachine {
         clean_machine(&self.machine, scene)
     }
 
-    pub fn apply(&mut self, scene: &mut Scene, time: GameTime, input: UpperBodyMachineInput) {
+    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: UpperBodyMachineInput) {
         let attack_animation_ended = scene.animations
             [self.attack_animations[input.attack_animation_index as usize]]
             .has_ended();
@@ -418,7 +416,7 @@ impl UpperBodyMachine {
             .set_parameter(Self::ATTACK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.dead))
-            .evaluate_pose(&scene.animations, time.delta)
+            .evaluate_pose(&scene.animations, dt)
             .apply(&mut scene.graph);
     }
 

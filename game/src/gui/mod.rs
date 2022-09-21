@@ -127,8 +127,7 @@ impl DeathScreen {
                                                 WidgetBuilder::new()
                                                     .with_margin(Thickness::uniform(2.0)),
                                             )
-                                            .with_text("Load Game")
-                                            .with_font(font.clone())
+                                            .with_text_and_font("Load Game", font.clone())
                                             .build(&mut ui.build_ctx());
                                             load_game
                                         })
@@ -137,8 +136,7 @@ impl DeathScreen {
                                                 WidgetBuilder::new()
                                                     .with_margin(Thickness::uniform(2.0)),
                                             )
-                                            .with_text("Exit To Menu")
-                                            .with_font(font.clone())
+                                            .with_text_and_font("Exit To Menu", font.clone())
                                             .build(&mut ui.build_ctx());
                                             exit_to_menu
                                         })
@@ -147,8 +145,7 @@ impl DeathScreen {
                                                 WidgetBuilder::new()
                                                     .with_margin(Thickness::uniform(2.0)),
                                             )
-                                            .with_text("Exit Game")
-                                            .with_font(font)
+                                            .with_text_and_font("Exit Game", font.clone())
                                             .build(&mut ui.build_ctx());
                                             exit_game
                                         }),
@@ -245,8 +242,7 @@ impl FinalScreen {
                                                     .with_width(300.0)
                                                     .with_margin(Thickness::uniform(2.0)),
                                             )
-                                            .with_text("Exit To Menu")
-                                            .with_font(font.clone())
+                                            .with_text_and_font("Exit To Menu", font.clone())
                                             .build(&mut ui.build_ctx());
                                             exit_to_menu
                                         })
@@ -256,8 +252,7 @@ impl FinalScreen {
                                                     .with_margin(Thickness::uniform(2.0))
                                                     .with_width(300.0),
                                             )
-                                            .with_text("Exit Game")
-                                            .with_font(font)
+                                            .with_text_and_font("Exit Game", font.clone())
                                             .build(&mut ui.build_ctx());
                                             exit_game
                                         }),

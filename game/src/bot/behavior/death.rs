@@ -1,13 +1,10 @@
-use crate::{
-    bot::{behavior::Action, behavior::BehaviorContext},
-    message::Message,
-};
+use crate::bot::{behavior::Action, behavior::BehaviorContext};
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct IsDead;
 
 impl IsDead {
@@ -28,7 +25,7 @@ impl<'a> Behavior<'a> for IsDead {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct StayDead;
 
 impl StayDead {
@@ -58,20 +55,6 @@ impl<'a> Behavior<'a> for StayDead {
                 .animations
                 .get_mut(animation)
                 .set_enabled(false);
-        }
-
-        if context.character.body.is_some() {
-            for item in context.character.inventory.items() {
-                context.sender.send(Message::DropItems {
-                    actor: context.bot_handle,
-                    item: item.kind,
-                    count: item.amount,
-                })
-            }
-
-            // TODO
-            context.scene.remove_node(context.character.body);
-            context.character.body = Default::default();
         }
 
         Status::Success

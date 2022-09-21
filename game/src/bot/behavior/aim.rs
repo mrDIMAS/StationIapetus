@@ -1,5 +1,4 @@
-use crate::bot::behavior::Action;
-use crate::{bot::behavior::BehaviorContext, GameTime};
+use crate::bot::{behavior::Action, behavior::BehaviorContext};
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -11,7 +10,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Debug, PartialEq, Visit)]
+#[derive(Debug, PartialEq, Visit, Clone)]
 pub struct AimOnTarget {
     yaw: SmoothAngle,
     pitch: SmoothAngle,
@@ -50,7 +49,7 @@ impl AimOnTarget {
         &mut self,
         look_dir: Vector3<f32>,
         graph: &mut Graph,
-        time: GameTime,
+        dt: f32,
         angle_hack: f32,
     ) -> bool {
         let angle = self.pitch.angle();
@@ -59,7 +58,7 @@ impl AimOnTarget {
             .set_target(
                 look_dir.dot(&Vector3::y()).acos() - std::f32::consts::PI / 2.0 + angle_hack,
             )
-            .update(time.delta);
+            .update(dt);
 
         if self.spine.is_some() {
             graph[self.spine]
@@ -75,7 +74,7 @@ impl AimOnTarget {
         look_dir: Vector3<f32>,
         scene: &mut Scene,
         model: Handle<Node>,
-        time: GameTime,
+        dt: f32,
         body: Handle<Node>,
     ) -> bool {
         if self.yaw.angle.is_nan() {
@@ -85,9 +84,7 @@ impl AimOnTarget {
 
         let angle = self.yaw.angle();
 
-        self.yaw
-            .set_target(look_dir.x.atan2(look_dir.z))
-            .update(time.delta);
+        self.yaw.set_target(look_dir.x.atan2(look_dir.z)).update(dt);
 
         if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
@@ -109,13 +106,13 @@ impl<'a> Behavior<'a> for AimOnTarget {
             look_dir,
             context.scene,
             context.model,
-            context.time,
+            context.dt,
             context.character.body,
         );
         let aimed_vertically = self.aim_vertically(
             look_dir,
             &mut context.scene.graph,
-            context.time,
+            context.dt,
             context.definition.v_aim_angle_hack.to_radians(),
         );
 

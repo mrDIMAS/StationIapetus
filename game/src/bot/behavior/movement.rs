@@ -10,7 +10,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit)]
+#[derive(Default, Debug, PartialEq, Visit, Clone)]
 pub struct MoveToTarget {
     pub min_distance: f32,
 }
@@ -55,12 +55,12 @@ impl<'a> Behavior<'a> for MoveToTarget {
         *context.target_move_speed = context.definition.walk_speed * context.movement_speed_factor;
 
         context.agent.set_speed(context.move_speed);
-        let navmesh = &mut context.scene.navmeshes[context.navmesh];
+        let navmesh = context.scene.navmeshes.iter_mut().next().unwrap();
         context.agent.set_position(position);
 
         if let Some(target) = context.target.as_ref() {
             context.agent.set_target(target.position);
-            let _ = context.agent.update(context.time.delta, navmesh);
+            let _ = context.agent.update(context.dt, navmesh);
         }
 
         let has_reached_destination =
@@ -68,7 +68,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
         if has_reached_destination {
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         } else {
-            let mut vel = (context.agent.position() - position).scale(1.0 / context.time.delta);
+            let mut vel = (context.agent.position() - position).scale(1.0 / context.dt);
             vel.y = body.lin_vel().y;
             body.set_lin_vel(vel);
         }

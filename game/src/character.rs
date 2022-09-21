@@ -1,14 +1,49 @@
-use crate::weapon::{weapon_mut, weapon_ref};
-use crate::{inventory::Inventory, weapon::definition::WeaponKind};
-use fyrox::scene::collider::Collider;
-use fyrox::{
-    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
-    scene::{graph::Graph, node::Node, Scene},
+use crate::{
+    block_on,
+    inventory::Inventory,
+    item::{item_mut, ItemKind},
+    weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
+    Item, Message, MessageSender, Weapon,
 };
+use fyrox::{
+    core::{
+        algebra::Vector3, inspect::prelude::*, pool::Handle, reflect::Reflect, visitor::prelude::*,
+    },
+    engine::resource_manager::ResourceManager,
+    scene::{
+        collider::Collider,
+        graph::{map::NodeHandleMap, Graph},
+        node::Node,
+        Scene,
+    },
+};
+use std::collections::VecDeque;
+use std::path::PathBuf;
 
-#[derive(Visit)]
+#[derive(Debug, Clone)]
+pub enum CharacterCommand {
+    SelectWeapon(WeaponKind),
+    AddWeapon(WeaponKind),
+    PickupItem(Handle<Node>),
+    DropItems {
+        item: ItemKind,
+        count: u32,
+    },
+    Damage {
+        /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
+        /// or not from any actor.
+        who: Handle<Node>,
+        /// A body part which was hit.
+        hitbox: Option<HitBox>,
+        /// Numeric value of damage.
+        amount: f32,
+        /// Only takes effect iff damage was applied to a head hit box!
+        critical_shot_probability: f32,
+    },
+}
+
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Character {
-    pub pivot: Handle<Node>,
     pub capsule_collider: Handle<Node>,
     pub body: Handle<Node>,
     pub health: f32,
@@ -19,12 +54,15 @@ pub struct Character {
     #[visit(skip)]
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
+    #[visit(skip)]
+    #[inspect(skip)]
+    #[reflect(hidden)]
+    pub commands: VecDeque<CharacterCommand>,
 }
 
 impl Default for Character {
     fn default() -> Self {
         Self {
-            pivot: Handle::NONE,
             capsule_collider: Default::default(),
             body: Default::default(),
             health: 100.0,
@@ -34,45 +72,9 @@ impl Default for Character {
             weapon_pivot: Handle::NONE,
             hit_boxes: Default::default(),
             inventory: Default::default(),
+            commands: Default::default(),
         }
     }
-}
-
-pub fn find_hit_boxes(from: Handle<Node>, scene: &Scene) -> Vec<HitBox> {
-    let mut hit_boxes = Vec::new();
-
-    for descendant in scene.graph.traverse_handle_iter(from) {
-        let node = &scene.graph[descendant];
-        match node.tag() {
-            "HitBoxArm" => hit_boxes.push(HitBox {
-                collider: descendant,
-                damage_factor: 0.25,
-                movement_speed_factor: 1.0,
-                is_head: false,
-            }),
-            "HitBoxLeg" => hit_boxes.push(HitBox {
-                collider: descendant,
-                damage_factor: 0.35,
-                movement_speed_factor: 0.5,
-                is_head: false,
-            }),
-            "HitBoxBody" => hit_boxes.push(HitBox {
-                collider: descendant,
-                damage_factor: 0.60,
-                movement_speed_factor: 0.75,
-                is_head: false,
-            }),
-            "HitBoxHead" => hit_boxes.push(HitBox {
-                collider: descendant,
-                damage_factor: 1.0,
-                movement_speed_factor: 0.1,
-                is_head: true,
-            }),
-            _ => (),
-        }
-    }
-
-    hit_boxes
 }
 
 impl Character {
@@ -103,7 +105,7 @@ impl Character {
     }
 
     pub fn position(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.pivot].global_position()
+        graph[self.body].global_position()
     }
 
     pub fn damage(&mut self, amount: f32) {
@@ -139,6 +141,139 @@ impl Character {
         self.weapons.push(weapon);
 
         self.request_current_weapon_enabled(true, graph);
+    }
+
+    pub fn use_item(&mut self, kind: ItemKind) {
+        match kind {
+            ItemKind::Medkit => self.heal(40.0),
+            ItemKind::Medpack => self.heal(20.0),
+            // Non-consumable items.
+            ItemKind::Ak47
+            | ItemKind::PlasmaGun
+            | ItemKind::M4
+            | ItemKind::Glock
+            | ItemKind::Ammo
+            | ItemKind::RailGun
+            | ItemKind::Grenade
+            | ItemKind::MasterKey => (),
+        }
+    }
+
+    pub fn push_command(&mut self, command: CharacterCommand) {
+        self.commands.push_back(command);
+    }
+
+    pub fn poll_command(
+        &mut self,
+        scene: &mut Scene,
+        self_handle: Handle<Node>,
+        resource_manager: &ResourceManager,
+        sender: &MessageSender,
+    ) -> Option<CharacterCommand> {
+        if let Some(command) = self.commands.pop_front() {
+            match command {
+                CharacterCommand::SelectWeapon(kind) => self.select_weapon(kind, &mut scene.graph),
+                CharacterCommand::AddWeapon(kind) => {
+                    let weapon = block_on(
+                        resource_manager.request_model(Weapon::definition(kind).model.clone()),
+                    )
+                    .unwrap()
+                    .instantiate_geometry(scene);
+
+                    // Root node must have Weapon script.
+                    assert!(scene.graph[weapon].has_script::<Weapon>());
+
+                    weapon_mut(weapon, &mut scene.graph).set_owner(self_handle);
+
+                    self.add_weapon(weapon, &mut scene.graph);
+                    scene.graph.link_nodes(weapon, self.weapon_pivot());
+                    self.inventory_mut().add_item(kind.associated_item(), 1);
+                }
+                CharacterCommand::PickupItem(item_handle) => {
+                    let position = scene.graph[item_handle].global_position();
+                    let item = item_mut(item_handle, &mut scene.graph);
+
+                    let kind = item.get_kind();
+
+                    scene.graph.remove_node(item_handle);
+
+                    sender.send(Message::PlaySound {
+                        path: PathBuf::from("data/sounds/item_pickup.ogg"),
+                        position,
+                        gain: 1.0,
+                        rolloff_factor: 3.0,
+                        radius: 2.0,
+                    });
+
+                    match kind {
+                        ItemKind::Medkit => self.inventory.add_item(ItemKind::Medkit, 1),
+                        ItemKind::Medpack => self.inventory.add_item(ItemKind::Medpack, 1),
+                        ItemKind::Ak47
+                        | ItemKind::PlasmaGun
+                        | ItemKind::M4
+                        | ItemKind::Glock
+                        | ItemKind::RailGun => {
+                            let weapon_kind = kind.associated_weapon().unwrap();
+
+                            let mut found = false;
+                            for weapon_handle in self.weapons.iter() {
+                                let weapon = weapon_ref(*weapon_handle, &scene.graph);
+                                if weapon.kind() == weapon_kind {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if found {
+                                self.inventory.add_item(ItemKind::Ammo, 24);
+                            } else {
+                                // Finally if actor does not have such weapon, give new one to him.
+                                self.commands
+                                    .push_back(CharacterCommand::AddWeapon(weapon_kind));
+                            }
+                        }
+                        ItemKind::Ammo => {
+                            self.inventory.add_item(ItemKind::Ammo, 24);
+                        }
+                        ItemKind::Grenade => {
+                            self.inventory.add_item(ItemKind::Grenade, 1);
+                        }
+                        ItemKind::MasterKey => {
+                            self.inventory.add_item(ItemKind::MasterKey, 1);
+                        }
+                    }
+                }
+                CharacterCommand::DropItems { item, count } => {
+                    let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
+                    let weapons = self.weapons().to_vec();
+
+                    if self.inventory.try_extract_exact_items(item, count) == count {
+                        // Make sure to remove weapons associated with items.
+                        if let Some(weapon_kind) = item.associated_weapon() {
+                            for weapon in weapons {
+                                if weapon_ref(weapon, &scene.graph).kind() == weapon_kind {
+                                    scene.graph.remove_node(weapon);
+                                }
+                            }
+                        }
+
+                        Item::add_to_scene(
+                            scene,
+                            resource_manager.clone(),
+                            item,
+                            drop_position,
+                            true,
+                        );
+                    }
+                }
+                CharacterCommand::Damage { amount, .. } => {
+                    self.damage(amount);
+                }
+            }
+
+            Some(command)
+        } else {
+            None
+        }
     }
 
     pub fn select_weapon(&mut self, weapon: WeaponKind, graph: &mut Graph) {
@@ -214,13 +349,7 @@ impl Character {
     pub fn clean_up(&mut self, scene: &mut Scene) {
         if scene.graph.is_valid_handle(self.body) {
             scene.remove_node(self.body);
-        } else {
-            scene.remove_node(self.pivot);
         }
-    }
-
-    pub fn restore_hit_boxes(&mut self, scene: &Scene) {
-        self.hit_boxes = find_hit_boxes(self.pivot, scene);
     }
 
     pub fn inventory(&self) -> &Inventory {
@@ -230,12 +359,55 @@ impl Character {
     pub fn inventory_mut(&mut self) -> &mut Inventory {
         &mut self.inventory
     }
+
+    pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping
+            .map(&mut self.body)
+            .map(&mut self.weapon_pivot)
+            .map(&mut self.capsule_collider);
+
+        for weapon_handle in self.weapons.iter_mut() {
+            old_new_mapping.map(weapon_handle);
+        }
+
+        for hitbox in self.hit_boxes.iter_mut() {
+            hitbox.remap_handles(old_new_mapping);
+        }
+    }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Debug)]
+#[derive(Default, Clone, Copy, PartialEq, Debug, Reflect, Inspect)]
 pub struct HitBox {
     pub collider: Handle<Node>,
     pub damage_factor: f32,
     pub movement_speed_factor: f32,
     pub is_head: bool,
+}
+
+impl HitBox {
+    pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
+        old_new_mapping.map(&mut self.collider);
+    }
+}
+
+pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Character> {
+    graph.try_get(handle).and_then(|c| {
+        c.script()
+            .and_then(|s| s.query_component_ref::<Character>())
+    })
+}
+
+pub fn character_ref(handle: Handle<Node>, graph: &Graph) -> &Character {
+    try_get_character_ref(handle, graph).unwrap()
+}
+
+pub fn try_get_character_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Character> {
+    graph.try_get_mut(handle).and_then(|c| {
+        c.script_mut()
+            .and_then(|s| s.query_component_mut::<Character>())
+    })
+}
+
+pub fn character_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Character {
+    try_get_character_mut(handle, graph).unwrap()
 }

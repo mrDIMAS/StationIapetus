@@ -7,7 +7,7 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct ThreatenTarget {
     in_progress: bool,
 }
@@ -53,7 +53,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
     }
 }
 
-#[derive(Default, Debug, PartialEq, Visit, Eq)]
+#[derive(Default, Debug, PartialEq, Visit, Eq, Clone)]
 pub struct NeedsThreatenTarget;
 
 impl<'a> Behavior<'a> for NeedsThreatenTarget {

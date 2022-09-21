@@ -1,10 +1,10 @@
+use crate::character::{character_ref, try_get_character_ref};
 use crate::{
-    actor::{Actor, ActorContainer},
     current_level_ref,
     message::Message,
     weapon::definition::ShotEffect,
     weapon::projectile::{Damage, Shooter},
-    MessageSender,
+    MessageSender, Player,
 };
 use fyrox::{
     core::{
@@ -25,7 +25,7 @@ use fyrox::{
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
-        graph::{map::NodeHandleMap, physics::RayCastOptions},
+        graph::physics::RayCastOptions,
         light::BaseLight,
         node::{Node, TypeUuidProvider},
         Scene,
@@ -121,7 +121,7 @@ pub struct Turret {
     #[reflect(hidden)]
     #[inspect(skip)]
     #[visit(skip)]
-    target: Handle<Actor>,
+    target: Handle<Node>,
 
     #[reflect(hidden)]
     #[inspect(skip)]
@@ -180,8 +180,8 @@ impl ScriptTrait for Turret {
             self.target_check_timer = 0.15;
         }
 
-        if level_ref.actors.contains(self.target) {
-            let target_position = level_ref.actors.get(self.target).position(&ctx.scene.graph);
+        if let Some(target) = try_get_character_ref(self.target, &ctx.scene.graph) {
+            let target_position = target.position(&ctx.scene.graph);
 
             let position = ctx.scene.graph[self.model].global_position();
 
@@ -277,18 +277,6 @@ impl ScriptTrait for Turret {
             ));
     }
 
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.barrel_stand)
-            .map(&mut self.body)
-            .map(&mut self.model)
-            .map(&mut self.projector);
-
-        for barrel in self.barrels.iter_mut() {
-            barrel.remap_handles(old_new_mapping);
-        }
-    }
-
     fn id(&self) -> Uuid {
         Self::type_uuid()
     }
@@ -350,12 +338,6 @@ impl Barrel {
             .local_transform_mut()
             .set_position(self.initial_position + self.offset);
     }
-
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.handle)
-            .map(&mut self.shoot_point);
-    }
 }
 
 impl Turret {
@@ -377,7 +359,7 @@ impl Turret {
         self.frustum = Frustum::from(projection_matrix * view_matrix).unwrap();
     }
 
-    fn select_target(&mut self, scene: &Scene, actors: &ActorContainer) {
+    fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {
         let self_position = scene.graph[self.model].global_position();
 
         let self_collider = scene.graph[scene.graph[self.model].parent()]
@@ -386,15 +368,19 @@ impl Turret {
             .find(|h| scene.graph[**h].is_collider())
             .cloned();
 
-        if !actors.contains(self.target) || !actors.get(self.target).is_dead() {
+        if !scene.graph.is_valid_handle(self.target)
+            || !character_ref(self.target, &scene.graph).is_dead()
+        {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
-            'target_loop: for (handle, actor) in actors.pair_iter() {
+            'target_loop: for &handle in actors.iter() {
+                let actor = character_ref(handle, &scene.graph);
+
                 if actor.is_dead() {
                     continue 'target_loop;
                 }
 
-                let is_player = matches!(actor, Actor::Player(_));
+                let is_player = scene.graph[handle].has_script::<Player>();
                 if self.hostility == Hostility::Player && !is_player
                     || self.hostility == Hostility::Monsters && is_player
                 {
@@ -444,7 +430,7 @@ impl Turret {
                 }
             }
             self.target = closest;
-        } else if actors.get(self.target).is_dead() {
+        } else if character_ref(self.target, &scene.graph).is_dead() {
             self.target = Default::default();
         }
     }

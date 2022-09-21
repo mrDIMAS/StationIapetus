@@ -1,4 +1,10 @@
-use crate::{current_level_mut, weapon::definition::WeaponKind};
+use crate::{block_on, current_level_mut, weapon::definition::WeaponKind};
+use fyrox::core::algebra::{Point3, Vector3};
+use fyrox::core::math::ray::Ray;
+use fyrox::engine::resource_manager::ResourceManager;
+use fyrox::scene::collider::ColliderShape;
+use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::scene::Scene;
 use fyrox::{
     core::{
         color::Color,
@@ -11,8 +17,7 @@ use fyrox::{
     impl_component_provider,
     lazy_static::lazy_static,
     scene::{
-        base::BaseBuilder, graph::map::NodeHandleMap, graph::Graph, node::Node,
-        node::TypeUuidProvider, sprite::SpriteBuilder,
+        base::BaseBuilder, graph::Graph, node::Node, node::TypeUuidProvider, sprite::SpriteBuilder,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
@@ -167,10 +172,6 @@ impl ScriptTrait for Item {
         }
     }
 
-    fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping.map(&mut self.model);
-    }
-
     fn id(&self) -> Uuid {
         Self::type_uuid()
     }
@@ -207,6 +208,53 @@ impl Item {
             .map
             .get(&kind)
             .unwrap_or_else(|| panic!("No definition for {:?} weapon!", kind))
+    }
+
+    pub fn add_to_scene(
+        scene: &mut Scene,
+        resource_manager: ResourceManager,
+        kind: ItemKind,
+        position: Vector3<f32>,
+        adjust_height: bool,
+    ) {
+        let position = if adjust_height {
+            let mut intersections = Vec::new();
+            let ray = Ray::from_two_points(position, position - Vector3::new(0.0, 1000.0, 0.0));
+            scene.graph.physics.cast_ray(
+                RayCastOptions {
+                    ray_origin: Point3::from(ray.origin),
+                    ray_direction: ray.dir,
+                    max_len: ray.dir.norm(),
+                    groups: Default::default(),
+                    sort_results: true,
+                },
+                &mut intersections,
+            );
+
+            if let Some(intersection) = intersections.iter().find(|i| {
+                // HACK: Check everything but capsules (helps correctly drop items from actors)
+                !matches!(
+                    scene.graph[i.collider].as_collider().shape(),
+                    ColliderShape::Capsule(_)
+                )
+            }) {
+                intersection.position.coords
+            } else {
+                position
+            }
+        } else {
+            position
+        };
+
+        let item = block_on(resource_manager.request_model(&Self::get_definition(kind).model))
+            .unwrap()
+            .instantiate_geometry(scene);
+
+        let item_ref = &mut scene.graph[item];
+
+        assert!(item_ref.has_script::<Item>());
+
+        item_ref.local_transform_mut().set_position(position);
     }
 
     pub fn get_kind(&self) -> ItemKind {

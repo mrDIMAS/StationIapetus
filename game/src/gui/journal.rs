@@ -25,7 +25,7 @@ use fyrox::{
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
 
-#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Visit)]
+#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Visit, Debug)]
 #[repr(u32)]
 pub enum JournalEntryKind {
     CurrentSituation,
@@ -66,7 +66,7 @@ impl JournalEntryKind {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Debug)]
 pub struct Journal {
     messages: Vec<JournalEntryKind>,
 }

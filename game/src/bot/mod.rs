@@ -1,18 +1,19 @@
+use crate::door::door_mut;
 use crate::{
-    actor::{Actor, TargetDescriptor},
     bot::{
         behavior::{BehaviorContext, BotBehavior},
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
-    character::{find_hit_boxes, Character},
+    character::{try_get_character_ref, Character, CharacterCommand},
+    current_level_mut, current_level_ref,
     door::{door_ref, DoorContainer},
+    game_ref,
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
-    level::UpdateContext,
-    utils::BodyImpactHandler,
+    utils::{is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
-    CollisionGroups, Message, MessageSender,
+    Message, MessageSender,
 };
 use fyrox::{
     animation::machine::{Machine, PoseNode},
@@ -20,47 +21,63 @@ use fyrox::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
+        futures::executor::block_on,
+        inspect::prelude::*,
         math::SmoothAngle,
         pool::Handle,
         rand::{seq::IteratorRandom, Rng},
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
+    impl_component_provider,
     lazy_static::lazy_static,
     rand,
+    rand::prelude::SliceRandom,
     scene::{
         self,
-        base::BaseBuilder,
-        collider::{BitMask, ColliderBuilder, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
         graph::{
-            physics::CoefficientCombineRule,
             physics::{Intersection, RayCastOptions},
             Graph,
         },
-        node::Node,
-        pivot::PivotBuilder,
-        rigidbody::{RigidBody, RigidBodyBuilder, RigidBodyType},
-        transform::TransformBuilder,
+        node::{Node, TypeUuidProvider},
+        rigidbody::RigidBody,
         Scene,
     },
-    utils::{
-        log::Log,
-        navmesh::{NavmeshAgent, NavmeshAgentBuilder},
-    },
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
+    utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
 use serde::Deserialize;
+use std::collections::VecDeque;
 use std::{
     collections::HashMap,
     fs::File,
     ops::{Deref, DerefMut},
+    path::PathBuf,
 };
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 mod behavior;
 mod lower_body;
 mod upper_body;
 
-#[derive(Deserialize, Copy, Clone, PartialEq, Eq, Hash, Debug, Visit)]
+#[derive(
+    Deserialize,
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Hash,
+    Debug,
+    Visit,
+    Reflect,
+    Inspect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+)]
 #[repr(i32)]
 pub enum BotKind {
     Mutant = 0,
@@ -78,7 +95,7 @@ impl BotKind {
     }
 }
 
-#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash)]
+#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Debug)]
 #[repr(u32)]
 pub enum BotHostility {
     Everyone = 0,
@@ -89,25 +106,48 @@ pub enum BotHostility {
 #[derive(Debug, Visit, Default, Clone)]
 pub struct Target {
     position: Vector3<f32>,
-    handle: Handle<Actor>,
+    handle: Handle<Node>,
 }
 
-#[derive(Visit)]
+#[derive(Debug, Clone)]
+pub enum BotCommand {
+    HandleImpact {
+        handle: Handle<Node>,
+        impact_point: Vector3<f32>,
+        direction: Vector3<f32>,
+    },
+}
+
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Bot {
+    #[reflect(hidden)]
+    #[inspect(skip)]
     target: Option<Target>,
     pub kind: BotKind,
     model: Handle<Node>,
     character: Character,
     #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
     pub definition: &'static BotDefinition,
+    #[reflect(hidden)]
+    #[inspect(skip)]
     lower_body_machine: LowerBodyMachine,
+    #[reflect(hidden)]
+    #[inspect(skip)]
     upper_body_machine: UpperBodyMachine,
     pub restoration_time: f32,
     hips: Handle<Node>,
+    #[reflect(hidden)]
+    #[inspect(skip)]
     agent: NavmeshAgent,
     head_exploded: bool,
     #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
     pub impact_handler: BodyImpactHandler,
+    #[reflect(hidden)]
+    #[inspect(skip)]
     behavior: BotBehavior,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
@@ -115,7 +155,13 @@ pub struct Bot {
     move_speed: f32,
     target_move_speed: f32,
     threaten_timeout: f32,
+    #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
+    pub commands_queue: VecDeque<BotCommand>,
 }
+
+impl_component_provider!(Bot, character: Character);
 
 impl Deref for Bot {
     type Target = Character;
@@ -153,11 +199,12 @@ impl Default for Bot {
             move_speed: 0.0,
             target_move_speed: 0.0,
             threaten_timeout: 0.0,
+            commands_queue: Default::default(),
         }
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct AttackAnimationDefinition {
     path: String,
     stick_timestamp: f32,
@@ -166,7 +213,7 @@ pub struct AttackAnimationDefinition {
     speed: f32,
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct BotDefinition {
     pub scale: f32,
     pub health: f32,
@@ -218,159 +265,30 @@ impl Bot {
         DEFINITIONS.map.get(&kind).unwrap()
     }
 
-    pub async fn new(
-        kind: BotKind,
-        resource_manager: ResourceManager,
+    pub fn add_to_scene(
         scene: &mut Scene,
+        kind: BotKind,
+        resource_manager: &ResourceManager,
         position: Vector3<f32>,
         rotation: UnitQuaternion<f32>,
-    ) -> Self {
-        let definition = Self::get_definition(kind);
+    ) -> Handle<Node> {
+        let bot =
+            block_on(resource_manager.request_model(Self::get_definition(kind).model.clone()))
+                .unwrap()
+                .instantiate_geometry(scene);
 
-        let body_height = 0.55;
-        let body_radius = 0.16;
+        let node = &mut scene.graph[bot];
 
-        let model = resource_manager
-            .request_model(&definition.model)
-            .await
-            .unwrap()
-            .instantiate_geometry(scene);
+        assert!(node.has_script::<Bot>());
 
-        scene.graph[model]
-            .local_transform_mut()
-            .set_position(Vector3::new(0.0, -body_height * 0.5 - body_radius, 0.0))
-            .set_scale(Vector3::new(
-                definition.scale,
-                definition.scale,
-                definition.scale,
-            ));
+        node.local_transform_mut()
+            .set_position(position)
+            .set_rotation(rotation);
 
-        let spine = scene.graph.find_by_name(model, &definition.spine);
-        if spine.is_none() {
-            Log::warn("Spine bone not found, bot won't aim vertically!");
-        }
-
-        let pivot;
-        let capsule_collider;
-        let body = RigidBodyBuilder::new(
-            BaseBuilder::new()
-                .with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_position(position)
-                        .with_local_rotation(rotation)
-                        .build(),
-                )
-                .with_children(&[
-                    {
-                        capsule_collider = ColliderBuilder::new(BaseBuilder::new())
-                            .with_shape(ColliderShape::capsule_y(body_height * 0.5, body_radius))
-                            .with_friction(0.1)
-                            .with_friction_combine_rule(CoefficientCombineRule::Min)
-                            .with_collision_groups(InteractionGroups::new(
-                                BitMask(CollisionGroups::ActorCapsule as u32),
-                                BitMask(0xFFFF),
-                            ))
-                            .build(&mut scene.graph);
-                        capsule_collider
-                    },
-                    {
-                        pivot = PivotBuilder::new(BaseBuilder::new().with_children(&[model]))
-                            .build(&mut scene.graph);
-                        pivot
-                    },
-                ]),
-        )
-        .with_can_sleep(false)
-        .with_body_type(RigidBodyType::Dynamic)
-        .with_mass(10.0)
-        .with_locked_rotations(true)
-        .build(&mut scene.graph);
-
-        let hand = scene
-            .graph
-            .find_by_name(model, &definition.weapon_hand_name);
-        let wpn_scale = definition.weapon_scale * (1.0 / definition.scale);
-        let weapon_pivot = PivotBuilder::new(
-            BaseBuilder::new().with_local_transform(
-                TransformBuilder::new()
-                    .with_local_scale(Vector3::new(wpn_scale, wpn_scale, wpn_scale))
-                    .with_local_rotation(
-                        UnitQuaternion::from_axis_angle(&Vector3::x_axis(), -90.0f32.to_radians())
-                            * UnitQuaternion::from_axis_angle(
-                                &Vector3::z_axis(),
-                                -90.0f32.to_radians(),
-                            ),
-                    )
-                    .build(),
-            ),
-        )
-        .build(&mut scene.graph);
-
-        scene.graph.link_nodes(weapon_pivot, hand);
-
-        let hips = scene.graph.find_by_name(model, &definition.hips);
-
-        let lower_body_machine =
-            LowerBodyMachine::new(resource_manager.clone(), definition, model, scene).await;
-        let upper_body_machine =
-            UpperBodyMachine::new(resource_manager.clone(), definition, model, scene, hips).await;
-
-        let possible_item = [
-            (ItemKind::Ammo, 10),
-            (ItemKind::Medkit, 1),
-            (ItemKind::Medpack, 1),
-        ];
-        let mut items =
-            if let Some((item, count)) = possible_item.iter().choose(&mut rand::thread_rng()) {
-                vec![ItemEntry {
-                    kind: *item,
-                    amount: *count,
-                }]
-            } else {
-                Default::default()
-            };
-
-        if definition.can_use_weapons {
-            items.push(ItemEntry {
-                kind: ItemKind::Ammo,
-                amount: rand::thread_rng().gen_range(32..96),
-            });
-        }
-
-        Self {
-            character: Character {
-                pivot,
-                body,
-                capsule_collider,
-                weapon_pivot,
-                health: definition.health,
-                hit_boxes: find_hit_boxes(pivot, scene),
-                inventory: Inventory::from_inner(items),
-                ..Default::default()
-            },
-            hips,
-            definition,
-            model,
-            kind,
-            lower_body_machine,
-            upper_body_machine,
-            spine,
-            agent: NavmeshAgentBuilder::new()
-                .with_position(position)
-                .with_speed(definition.walk_speed)
-                .build(),
-            behavior: BotBehavior::new(spine, definition),
-            ..Default::default()
-        }
+        bot
     }
 
-    fn check_doors(
-        &mut self,
-        self_handle: Handle<Actor>,
-        scene: &Scene,
-        door_container: &DoorContainer,
-        sender: &MessageSender,
-    ) {
+    fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
         if let Some(target) = self.target.as_ref() {
             let mut query_storage = ArrayVec::<Intersection, 64>::new();
 
@@ -397,14 +315,12 @@ impl Bot {
                         continue;
                     }
 
-                    for &child in scene.graph[door_handle].children() {
+                    for child in scene.graph[door_handle].children().to_vec() {
                         if let Some(rigid_body) = scene.graph[child].cast::<RigidBody>() {
-                            for &collider in rigid_body.children() {
+                            for collider in rigid_body.children().to_vec() {
                                 if collider == intersection.collider {
-                                    sender.send(Message::TryOpenDoor {
-                                        door: door_handle,
-                                        actor: self_handle,
-                                    });
+                                    let has_key = self.inventory.has_key();
+                                    door_mut(door_handle, &mut scene.graph).try_open(has_key);
                                 }
                             }
                         }
@@ -435,112 +351,8 @@ impl Bot {
         // context.draw_frustum(&self.frustum, Color::from_rgba(0, 200, 0, 255)); TODO
     }
 
-    pub fn set_target(&mut self, handle: Handle<Actor>, position: Vector3<f32>) {
+    pub fn set_target(&mut self, handle: Handle<Node>, position: Vector3<f32>) {
         self.target = Some(Target { position, handle });
-    }
-
-    pub fn update(
-        &mut self,
-        self_handle: Handle<Actor>,
-        context: &mut UpdateContext,
-        targets: &[TargetDescriptor],
-    ) {
-        let mut behavior_context = BehaviorContext {
-            scene: context.scene,
-            bot_handle: self_handle,
-            targets,
-            sender: context.sender,
-            time: context.time,
-            navmesh: context.navmesh,
-            upper_body_machine: &self.upper_body_machine,
-            lower_body_machine: &self.lower_body_machine,
-            target: &mut self.target,
-            definition: self.definition,
-            character: &mut self.character,
-            kind: self.kind,
-            agent: &mut self.agent,
-            impact_handler: &self.impact_handler,
-            model: self.model,
-            restoration_time: self.restoration_time,
-            v_recoil: &mut self.v_recoil,
-            h_recoil: &mut self.h_recoil,
-            target_move_speed: &mut self.target_move_speed,
-            move_speed: self.move_speed,
-            threaten_timeout: &mut self.threaten_timeout,
-
-            // Output
-            attack_animation_index: 0,
-            movement_speed_factor: 1.0,
-            is_moving: false,
-            is_attacking: false,
-            is_aiming_weapon: false,
-            is_screaming: false,
-        };
-
-        self.behavior.tree.tick(&mut behavior_context);
-
-        let time = behavior_context.time;
-        let movement_speed_factor = behavior_context.movement_speed_factor;
-        let is_attacking = behavior_context.is_attacking;
-        let is_moving = behavior_context.is_moving;
-        let is_aiming = behavior_context.is_aiming_weapon;
-        let attack_animation_index = behavior_context.attack_animation_index;
-        let is_screaming = behavior_context.is_screaming;
-
-        self.restoration_time -= time.delta;
-        self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;
-        self.threaten_timeout -= time.delta;
-
-        self.check_doors(self_handle, context.scene, context.doors, context.sender);
-
-        self.lower_body_machine.apply(
-            context.scene,
-            time.delta,
-            LowerBodyMachineInput {
-                walk: is_moving,
-                scream: is_screaming,
-                dead: self.is_dead(),
-                movement_speed_factor,
-            },
-        );
-
-        self.upper_body_machine.apply(
-            context.scene,
-            time,
-            UpperBodyMachineInput {
-                attack: is_attacking,
-                walk: is_moving,
-                scream: is_screaming,
-                dead: self.is_dead(),
-                aim: is_aiming,
-                attack_animation_index: attack_animation_index as u32,
-            },
-        );
-        self.impact_handler
-            .update_and_apply(time.delta, context.scene);
-
-        self.v_recoil.update(time.delta);
-        self.h_recoil.update(time.delta);
-
-        let spine_transform = context.scene.graph[self.spine].local_transform_mut();
-        let rotation = **spine_transform.rotation();
-        spine_transform.set_rotation(
-            rotation
-                * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
-                * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
-        );
-
-        if self.head_exploded {
-            let head = context
-                .scene
-                .graph
-                .find_by_name(self.model, &self.definition.head_name);
-            if head.is_some() {
-                context.scene.graph[head]
-                    .local_transform_mut()
-                    .set_scale(Vector3::new(0.0, 0.0, 0.0));
-            }
-        }
     }
 
     pub fn blow_up_head(&mut self, _graph: &mut Graph) {
@@ -555,7 +367,7 @@ impl Bot {
         self.character.clean_up(scene);
     }
 
-    pub fn on_actor_removed(&mut self, handle: Handle<Actor>) {
+    pub fn on_actor_removed(&mut self, handle: Handle<Node>) {
         if let Some(target) = self.target.as_ref() {
             if target.handle == handle {
                 self.target = None;
@@ -566,6 +378,73 @@ impl Bot {
     pub fn resolve(&mut self) {
         self.definition = Self::get_definition(self.kind);
     }
+
+    fn poll_commands(
+        &mut self,
+        scene: &mut Scene,
+        self_handle: Handle<Node>,
+        resource_manager: &ResourceManager,
+        sender: &MessageSender,
+    ) {
+        while let Some(command) =
+            self.character
+                .poll_command(scene, self_handle, resource_manager, sender)
+        {
+            if let CharacterCommand::Damage {
+                who,
+                amount,
+                hitbox,
+                critical_shot_probability,
+            } = command
+            {
+                if let Some(character) = try_get_character_ref(who, &scene.graph) {
+                    self.set_target(who, character.position(&scene.graph));
+                }
+
+                if let Some(hitbox) = hitbox {
+                    // Handle critical head shots.
+                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
+                    if hitbox.is_head
+                        && is_probability_event_occurred(critical_head_shot_probability)
+                    {
+                        self.damage(amount * 1000.0);
+
+                        self.blow_up_head(&mut scene.graph);
+                    }
+                }
+
+                // Prevent spamming with grunt sounds.
+                if self.last_health - self.health > 20.0 && !self.is_dead() {
+                    self.last_health = self.health;
+                    self.restoration_time = 0.8;
+
+                    if let Some(grunt_sound) =
+                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
+                    {
+                        sender.send(Message::PlaySound {
+                            path: PathBuf::from(grunt_sound.clone()),
+                            position: self.position(&scene.graph),
+                            gain: 0.8,
+                            rolloff_factor: 1.0,
+                            radius: 0.6,
+                        });
+                    }
+                }
+            }
+        }
+
+        while let Some(bot_command) = self.commands_queue.pop_front() {
+            match bot_command {
+                BotCommand::HandleImpact {
+                    handle,
+                    impact_point,
+                    direction,
+                } => self
+                    .impact_handler
+                    .handle_impact(scene, handle, impact_point, direction),
+            }
+        }
+    }
 }
 
 fn clean_machine(machine: &Machine, scene: &mut Scene) {
@@ -574,4 +453,198 @@ fn clean_machine(machine: &Machine, scene: &mut Scene) {
             scene.animations.remove(node.animation);
         }
     }
+}
+
+impl TypeUuidProvider for Bot {
+    fn type_uuid() -> Uuid {
+        uuid!("15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")
+    }
+}
+
+impl ScriptTrait for Bot {
+    fn on_init(&mut self, context: &mut ScriptContext) {
+        self.definition = Self::get_definition(self.kind);
+
+        self.lower_body_machine = block_on(LowerBodyMachine::new(
+            context.resource_manager.clone(),
+            self.definition,
+            self.model,
+            context.scene,
+        ));
+        self.upper_body_machine = block_on(UpperBodyMachine::new(
+            context.resource_manager.clone(),
+            self.definition,
+            self.model,
+            context.scene,
+            self.hips,
+        ));
+
+        let possible_item = [
+            (ItemKind::Ammo, 10),
+            (ItemKind::Medkit, 1),
+            (ItemKind::Medpack, 1),
+        ];
+        let mut items =
+            if let Some((item, count)) = possible_item.iter().choose(&mut rand::thread_rng()) {
+                vec![ItemEntry {
+                    kind: *item,
+                    amount: *count,
+                }]
+            } else {
+                Default::default()
+            };
+
+        if self.definition.can_use_weapons {
+            items.push(ItemEntry {
+                kind: ItemKind::Ammo,
+                amount: rand::thread_rng().gen_range(32..96),
+            });
+        }
+
+        self.inventory = Inventory::from_inner(items);
+
+        self.agent = NavmeshAgentBuilder::new()
+            .with_position(context.scene.graph[context.handle].global_position())
+            .with_speed(self.definition.walk_speed)
+            .build();
+        self.behavior = BotBehavior::new(self.spine, self.definition);
+
+        current_level_mut(context.plugins)
+            .unwrap()
+            .actors
+            .push(context.handle);
+    }
+
+    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
+        if let Some(level) = current_level_mut(context.plugins) {
+            if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
+                level.actors.remove(position);
+            }
+        }
+    }
+
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let game = game_ref(ctx.plugins);
+        let level = current_level_ref(ctx.plugins).unwrap();
+
+        self.poll_commands(
+            ctx.scene,
+            ctx.handle,
+            ctx.resource_manager,
+            &game.message_sender,
+        );
+
+        let movement_speed_factor;
+        let is_attacking;
+        let is_moving;
+        let is_aiming;
+        let attack_animation_index;
+        let is_screaming;
+        {
+            let mut behavior_ctx = BehaviorContext {
+                scene: ctx.scene,
+                actors: &level.actors,
+                bot_handle: ctx.handle,
+                sender: &game.message_sender,
+                dt: ctx.dt,
+                elapsed_time: ctx.elapsed_time,
+                upper_body_machine: &self.upper_body_machine,
+                lower_body_machine: &self.lower_body_machine,
+                target: &mut self.target,
+                definition: self.definition,
+                character: &mut self.character,
+                kind: self.kind,
+                agent: &mut self.agent,
+                impact_handler: &self.impact_handler,
+                model: self.model,
+                restoration_time: self.restoration_time,
+                v_recoil: &mut self.v_recoil,
+                h_recoil: &mut self.h_recoil,
+                target_move_speed: &mut self.target_move_speed,
+                move_speed: self.move_speed,
+                threaten_timeout: &mut self.threaten_timeout,
+
+                // Output
+                attack_animation_index: 0,
+                movement_speed_factor: 1.0,
+                is_moving: false,
+                is_attacking: false,
+                is_aiming_weapon: false,
+                is_screaming: false,
+            };
+
+            self.behavior.tree.tick(&mut behavior_ctx);
+
+            movement_speed_factor = behavior_ctx.movement_speed_factor;
+            is_attacking = behavior_ctx.is_attacking;
+            is_moving = behavior_ctx.is_moving;
+            is_aiming = behavior_ctx.is_aiming_weapon;
+            attack_animation_index = behavior_ctx.attack_animation_index;
+            is_screaming = behavior_ctx.is_screaming;
+        }
+
+        self.restoration_time -= ctx.dt;
+        self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;
+        self.threaten_timeout -= ctx.dt;
+
+        self.check_doors(ctx.scene, &level.doors_container);
+
+        self.lower_body_machine.apply(
+            ctx.scene,
+            ctx.dt,
+            LowerBodyMachineInput {
+                walk: is_moving,
+                scream: is_screaming,
+                dead: self.is_dead(),
+                movement_speed_factor,
+            },
+        );
+
+        self.upper_body_machine.apply(
+            ctx.scene,
+            ctx.dt,
+            UpperBodyMachineInput {
+                attack: is_attacking,
+                walk: is_moving,
+                scream: is_screaming,
+                dead: self.is_dead(),
+                aim: is_aiming,
+                attack_animation_index: attack_animation_index as u32,
+            },
+        );
+        self.impact_handler.update_and_apply(ctx.dt, ctx.scene);
+
+        self.v_recoil.update(ctx.dt);
+        self.h_recoil.update(ctx.dt);
+
+        let spine_transform = ctx.scene.graph[self.spine].local_transform_mut();
+        let rotation = **spine_transform.rotation();
+        spine_transform.set_rotation(
+            rotation
+                * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
+                * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
+        );
+
+        if self.head_exploded {
+            let head = ctx
+                .scene
+                .graph
+                .find_by_name(self.model, &self.definition.head_name);
+            if head.is_some() {
+                ctx.scene.graph[head]
+                    .local_transform_mut()
+                    .set_scale(Vector3::new(0.0, 0.0, 0.0));
+            }
+        }
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
+    }
+}
+
+pub fn try_get_bot_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Bot> {
+    graph
+        .try_get_mut(handle)
+        .and_then(|b| b.try_get_script_mut::<Bot>())
 }
