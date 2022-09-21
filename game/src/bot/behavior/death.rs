@@ -57,22 +57,6 @@ impl<'a> Behavior<'a> for StayDead {
                 .set_enabled(false);
         }
 
-        if context.character.body.is_some() {
-            // TODO
-            /*
-            for item in context.character.inventory.items() {
-                context.sender.send(Message::DropItems {
-                    actor: context.bot_handle,
-                    item: item.kind,
-                    count: item.amount,
-                })
-            }*/
-
-            // TODO
-            context.scene.remove_node(context.character.body);
-            context.character.body = Default::default();
-        }
-
         Status::Success
     }
 }
