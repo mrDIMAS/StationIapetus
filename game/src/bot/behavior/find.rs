@@ -1,6 +1,6 @@
 use crate::{
     bot::{behavior::BehaviorContext, Bot, BotHostility, Target},
-    character::try_get_character_ref,
+    character::{try_get_character_ref, Character},
 };
 use fyrox::{
     core::{
@@ -38,20 +38,18 @@ impl FindTarget {
 impl<'a> Behavior<'a> for FindTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
-        let position = context.character.position(&context.scene.graph);
+    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+        let position = ctx.character.position(&ctx.scene.graph);
 
-        self.update_frustum(position, &context.scene.graph, context.model);
+        self.update_frustum(position, &ctx.scene.graph, ctx.model);
 
         // Check if existing target is valid.
-        if let Some(target) = context.target {
-            for &actor_handle in context.actors {
-                if actor_handle != context.bot_handle && actor_handle == target.handle {
-                    if let Some(character) =
-                        try_get_character_ref(actor_handle, &context.scene.graph)
-                    {
+        if let Some(target) = ctx.target {
+            for &actor_handle in ctx.actors {
+                if actor_handle != ctx.bot_handle && actor_handle == target.handle {
+                    if let Some(character) = try_get_character_ref(actor_handle, &ctx.scene.graph) {
                         if character.health > 0.0 {
-                            target.position = character.position(&context.scene.graph);
+                            target.position = character.position(&ctx.scene.graph);
                             return Status::Success;
                         }
                     }
@@ -59,21 +57,32 @@ impl<'a> Behavior<'a> for FindTarget {
             }
         }
 
+        // Reset target and try to find new one.
+        *ctx.target = None;
         let mut closest_distance = f32::MAX;
-
-        let bot_handle = context.bot_handle;
         let mut query_buffer = Vec::default();
-        'target_loop: for &actor_handle in context
+        'target_loop: for &actor_handle in ctx
             .actors
             .iter()
-            .filter(|actor_handle| **actor_handle != bot_handle)
+            .filter(|actor_handle| **actor_handle != ctx.bot_handle)
         {
-            let character_node = &context.scene.graph[actor_handle];
+            let character_node = &ctx.scene.graph[actor_handle];
 
-            match context.definition.hostility {
+            let character = character_node
+                .script()
+                .and_then(|s| s.query_component_ref::<Character>())
+                .unwrap();
+
+            // Ignore dead targets.
+            if character.is_dead() {
+                continue 'target_loop;
+            }
+
+            // Check hostility.
+            match ctx.definition.hostility {
                 BotHostility::OtherSpecies => {
                     if let Some(bot) = character_node.try_get_script::<Bot>() {
-                        if bot.kind == context.kind {
+                        if bot.kind == ctx.kind {
                             continue 'target_loop;
                         }
                     }
@@ -86,6 +95,9 @@ impl<'a> Behavior<'a> for FindTarget {
                 BotHostility::Everyone => {}
             }
 
+            // Check each target for two criteria:
+            // 1) Is close enough to bot ("can hear")
+            // 2) Is visible to bot ("can see")
             let distance = position.metric_distance(&character_node.global_position());
             if distance != 0.0 && distance < 1.6
                 || self
@@ -93,7 +105,7 @@ impl<'a> Behavior<'a> for FindTarget {
                     .is_contains_point(character_node.global_position())
             {
                 let ray = Ray::from_two_points(character_node.global_position(), position);
-                context.scene.graph.physics.cast_ray(
+                ctx.scene.graph.physics.cast_ray(
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
                         ray_direction: ray.dir,
@@ -105,11 +117,11 @@ impl<'a> Behavior<'a> for FindTarget {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    let collider = context.scene.graph[hit.collider].as_collider();
+                    let collider = ctx.scene.graph[hit.collider].as_collider();
 
                     if let ColliderShape::Capsule(_) = collider.shape() {
                         // Prevent setting self as target.
-                        if context.character.capsule_collider == hit.collider {
+                        if ctx.character.capsule_collider == hit.collider {
                             continue 'hit_loop;
                         }
                     } else {
@@ -119,7 +131,7 @@ impl<'a> Behavior<'a> for FindTarget {
                 }
 
                 if distance < closest_distance {
-                    *context.target = Some(Target {
+                    *ctx.target = Some(Target {
                         position: character_node.global_position(),
                         handle: actor_handle,
                     });
@@ -128,7 +140,7 @@ impl<'a> Behavior<'a> for FindTarget {
             }
         }
 
-        if context.target.is_some() {
+        if ctx.target.is_some() {
             Status::Success
         } else {
             // Keep looking.
