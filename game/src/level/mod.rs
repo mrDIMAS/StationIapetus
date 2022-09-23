@@ -56,7 +56,7 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
-    utils::{log::Log, navmesh::Navmesh},
+    utils::log::Log,
 };
 use std::{path::Path, sync::Arc};
 
@@ -76,7 +76,6 @@ pub struct Level {
     pub items: ItemContainer,
     #[visit(skip)]
     sender: Option<MessageSender>,
-    pub navmesh: Handle<Navmesh>,
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
@@ -264,7 +263,6 @@ impl Level {
             lights,
             death_zones,
             triggers,
-            navmesh: scene.navmeshes.handle_from_index(0),
             scene: scene_handle,
             sender: Some(sender),
             time: 0.0,
@@ -321,7 +319,6 @@ impl Level {
             lights,
             death_zones,
             triggers,
-            navmesh: scene.navmeshes.handle_from_index(0),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
             time: 0.0,
@@ -750,9 +747,7 @@ impl Level {
 
         scene.graph.physics.draw(drawing_context);
 
-        if self.navmesh.is_some() {
-            let navmesh = &scene.navmeshes[self.navmesh];
-
+        for navmesh in scene.navmeshes.iter() {
             for pt in navmesh.vertices() {
                 for neighbour in pt.neighbours() {
                     drawing_context.add_line(scene::debug::Line {
