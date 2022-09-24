@@ -733,16 +733,21 @@ impl Game {
                 context.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
-                    let player_ref = context.scenes[level.scene].graph[player_handle]
-                        .try_get_script_mut::<Player>()
-                        .unwrap();
-                    self.inventory_interface.process_os_event(
-                        &event,
-                        &self.control_scheme,
-                        player_ref,
-                    );
-                    self.journal_display
-                        .process_os_event(&event, &self.control_scheme);
+                    if let Some(player_ref) =
+                        context.scenes.try_get_mut(level.scene).and_then(|s| {
+                            s.graph
+                                .try_get_mut(player_handle)
+                                .and_then(|p| p.try_get_script_mut::<Player>())
+                        })
+                    {
+                        self.inventory_interface.process_os_event(
+                            &event,
+                            &self.control_scheme,
+                            player_ref,
+                        );
+                        self.journal_display
+                            .process_os_event(&event, &self.control_scheme);
+                    }
                 }
             }
         }
