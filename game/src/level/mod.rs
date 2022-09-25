@@ -74,19 +74,20 @@ pub struct Level {
     pub projectiles: ProjectileContainer,
     pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
-    #[visit(skip)]
-    sender: Option<MessageSender>,
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
-    #[visit(skip)]
-    beam: Option<Arc<Mutex<SurfaceData>>>,
     trails: ShotTrailContainer,
     pub doors_container: DoorContainer,
     lights: LightContainer,
     triggers: TriggerContainer,
     pub elevators: ElevatorContainer,
     pub call_buttons: CallButtonContainer,
+
+    #[visit(skip)]
+    sender: Option<MessageSender>,
+    #[visit(skip)]
+    beam: Option<Arc<Mutex<SurfaceData>>>,
 }
 
 #[derive(Visit, Default)]

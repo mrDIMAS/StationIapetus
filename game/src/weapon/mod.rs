@@ -379,11 +379,12 @@ impl TypeUuidProvider for Weapon {
 
 impl ScriptTrait for Weapon {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
+        self.laser_sight = LaserSight::new(ctx.scene, ctx.resource_manager.clone());
+    }
+
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::definition(self.kind);
         self.self_handle = ctx.handle;
-        self.laser_sight = LaserSight::new(ctx.scene, ctx.resource_manager.clone());
-
-        dbg!(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {

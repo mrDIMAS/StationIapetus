@@ -1011,15 +1011,6 @@ impl ScriptTrait for Player {
             .with_size(0.1)
             .build(&mut context.scene.graph);
 
-        let game = game_ref(context.plugins);
-        self.resolve(
-            context.scene,
-            game.weapon_display.render_target.clone(),
-            game.inventory_interface.render_target.clone(),
-            game.item_display.render_target.clone(),
-            game.journal_display.render_target.clone(),
-        );
-
         // Add default weapon.
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
 
@@ -1028,6 +1019,17 @@ impl ScriptTrait for Player {
         level.actors.push(context.handle);
         // Also register player in special variable to speed up access.
         level.player = context.handle;
+    }
+
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        let game = game_ref(ctx.plugins);
+        self.resolve(
+            ctx.scene,
+            game.weapon_display.render_target.clone(),
+            game.inventory_interface.render_target.clone(),
+            game.item_display.render_target.clone(),
+            game.journal_display.render_target.clone(),
+        );
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
