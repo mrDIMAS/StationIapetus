@@ -125,7 +125,6 @@ pub struct Door {
 
     #[inspect(skip)]
     #[reflect(hidden)]
-    #[visit(skip)]
     initial_position: Vector3<f32>,
 
     #[inspect(skip)]
@@ -149,8 +148,17 @@ impl TypeUuidProvider for Door {
 
 impl ScriptTrait for Door {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.self_handle = ctx.handle;
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
+
+        current_level_mut(ctx.plugins)
+            .expect("Level must exist!")
+            .doors_container
+            .doors
+            .push(ctx.handle);
+    }
+
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.self_handle = ctx.handle;
 
         let game = game_mut(ctx.plugins);
         let texture = game.door_ui_container.create_ui(
@@ -159,12 +167,6 @@ impl ScriptTrait for Door {
             ctx.handle,
         );
         self.apply_screen_texture(&mut ctx.scene.graph, ctx.resource_manager.clone(), texture);
-
-        current_level_mut(ctx.plugins)
-            .expect("Level must exist!")
-            .doors_container
-            .doors
-            .push(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
