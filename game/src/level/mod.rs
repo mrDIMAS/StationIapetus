@@ -14,7 +14,6 @@ use crate::{
         trail::ShotTrail,
         trigger::{Trigger, TriggerContainer, TriggerKind},
     },
-    light::{Light, LightContainer},
     message::Message,
     player::Player,
     sound::{SoundKind, SoundManager},
@@ -79,7 +78,6 @@ pub struct Level {
     time: f32,
     sound_manager: SoundManager,
     pub doors_container: DoorContainer,
-    lights: LightContainer,
     triggers: TriggerContainer,
     pub elevators: ElevatorContainer,
     pub call_buttons: CallButtonContainer,
@@ -92,7 +90,6 @@ pub struct Level {
 
 #[derive(Default)]
 pub struct AnalysisResult {
-    lights: LightContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
     call_buttons: CallButtonContainer,
@@ -193,7 +190,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
         }
 
         match node.tag() {
-            "FlashingLight" => result.lights.add(Light::new(handle)),
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
             _ => (),
@@ -230,7 +226,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            lights,
             triggers,
             elevators,
             call_buttons,
@@ -240,7 +235,6 @@ impl Level {
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
-            lights,
             triggers,
             scene: scene_handle,
             sender: Some(sender),
@@ -283,7 +277,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            lights,
             triggers,
             elevators,
             call_buttons,
@@ -293,7 +286,7 @@ impl Level {
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
-            lights,
+
             triggers,
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -368,7 +361,6 @@ impl Level {
             .update(&self.elevators, call_button_ui_container);
 
         self.update_game_ending(scene);
-        self.lights.update(scene, ctx.dt);
         self.triggers
             .update(scene, &self.actors, self.sender.as_ref().unwrap());
     }

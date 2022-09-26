@@ -23,7 +23,6 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::level::death_zone::DeathZone;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -35,7 +34,8 @@ use crate::{
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     item::Item,
-    level::{decal::Decal, spawn::SpawnPoint, turret::Turret, Level},
+    level::{death_zone::DeathZone, decal::Decal, spawn::SpawnPoint, turret::Turret, Level},
+    light::AnimatedLight,
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
@@ -792,7 +792,8 @@ impl PluginConstructor for GameConstructor {
             .add::<CameraController>("Camera Controller")
             .add::<Bot>("Bot")
             .add::<SpawnPoint>("Spawn Point")
-            .add::<DeathZone>("Death Zone");
+            .add::<DeathZone>("Death Zone")
+            .add::<AnimatedLight>("Animated Light");
     }
 
     fn create_instance(
