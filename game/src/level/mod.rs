@@ -33,7 +33,7 @@ use fyrox::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
         futures::executor::block_on,
-        math::{aabb::AxisAlignedBoundingBox, ray::Ray, vector_to_quat, PositionProvider},
+        math::{ray::Ray, vector_to_quat, PositionProvider},
         parking_lot::Mutex,
         pool::Handle,
         sstorage::ImmutableString,
@@ -61,6 +61,7 @@ use fyrox::{
 };
 use std::{path::Path, sync::Arc};
 
+pub mod death_zone;
 pub mod decal;
 pub mod spawn;
 pub mod trail;
@@ -75,7 +76,6 @@ pub struct Level {
     pub projectiles: ProjectileContainer,
     pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
-    death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
     pub doors_container: DoorContainer,
@@ -90,14 +90,8 @@ pub struct Level {
     beam: Option<Arc<Mutex<SurfaceData>>>,
 }
 
-#[derive(Visit, Default)]
-pub struct DeathZone {
-    bounds: AxisAlignedBoundingBox,
-}
-
 #[derive(Default)]
 pub struct AnalysisResult {
-    death_zones: Vec<DeathZone>,
     lights: LightContainer,
     triggers: TriggerContainer,
     elevators: ElevatorContainer,
@@ -154,18 +148,11 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
 pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
-    let mut death_zones = Vec::new();
     let mut triggers = TriggerContainer::default();
     let mut elevators = ElevatorContainer::new();
     let mut call_buttons = CallButtonContainer::new();
 
     for (handle, node) in scene.graph.pair_iter() {
-        let name = node.name();
-
-        if name.starts_with("DeathZone") && node.is_mesh() {
-            death_zones.push(handle);
-        }
-
         if node.tag().starts_with("Elevator") {
             let elevator = elevators.add(Elevator::new(handle));
             let elevator_mut = &mut elevators[elevator];
@@ -213,13 +200,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
         }
     }
 
-    for handle in death_zones {
-        let node = &mut scene.graph[handle];
-        node.set_visibility(false);
-        result.death_zones.push(DeathZone {
-            bounds: node.as_mesh().world_bounding_box(),
-        });
-    }
     result.triggers = triggers;
     result.elevators = elevators;
     result.call_buttons = call_buttons;
@@ -250,7 +230,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            death_zones,
             lights,
             triggers,
             elevators,
@@ -262,7 +241,6 @@ impl Level {
             actors: Default::default(),
             items: Default::default(),
             lights,
-            death_zones,
             triggers,
             scene: scene_handle,
             sender: Some(sender),
@@ -305,7 +283,6 @@ impl Level {
         scene.graph.update(Default::default(), 0.0);
 
         let AnalysisResult {
-            death_zones,
             lights,
             triggers,
             elevators,
@@ -317,7 +294,6 @@ impl Level {
             actors: Default::default(),
             items: Default::default(),
             lights,
-            death_zones,
             triggers,
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
@@ -365,24 +341,6 @@ impl Level {
         self.projectiles.add(projectile);
     }
 
-    fn update_death_zones(&mut self, scene: &mut Scene) {
-        for &handle in self.actors.iter() {
-            let character_position = scene.graph[handle].global_position();
-            if let Some(character) = try_get_character_mut(handle, &mut scene.graph) {
-                for death_zone in self.death_zones.iter() {
-                    if death_zone.bounds.is_contains_point(character_position) {
-                        character.push_command(CharacterCommand::Damage {
-                            who: Default::default(),
-                            hitbox: None,
-                            amount: 99999.0,
-                            critical_shot_probability: 0.0,
-                        });
-                    }
-                }
-            }
-        }
-    }
-
     fn update_game_ending(&self, scene: &Scene) {
         if let Some(player_ref) = scene
             .graph
@@ -403,7 +361,6 @@ impl Level {
         self.time += ctx.dt;
         let scene = &mut ctx.scenes[self.scene];
 
-        self.update_death_zones(scene);
         self.projectiles
             .update(scene, ctx.dt, &self.actors, self.sender.as_ref().unwrap());
         self.elevators.update(ctx.dt, scene);
@@ -755,10 +712,6 @@ impl Level {
                     bot.debug_draw(drawing_context);
                 }
             }
-        }
-
-        for death_zone in self.death_zones.iter() {
-            drawing_context.draw_aabb(&death_zone.bounds, Color::opaque(0, 0, 200));
         }
     }
 }

@@ -23,6 +23,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::level::death_zone::DeathZone;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -790,7 +791,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Player>("Player")
             .add::<CameraController>("Camera Controller")
             .add::<Bot>("Bot")
-            .add::<SpawnPoint>("Spawn Point");
+            .add::<SpawnPoint>("Spawn Point")
+            .add::<DeathZone>("Death Zone");
     }
 
     fn create_instance(
