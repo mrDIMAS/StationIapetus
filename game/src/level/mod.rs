@@ -11,7 +11,7 @@ use crate::{
     item::ItemContainer,
     level::{
         decal::Decal,
-        trail::{ShotTrail, ShotTrailContainer},
+        trail::ShotTrail,
         trigger::{Trigger, TriggerContainer, TriggerKind},
     },
     light::{Light, LightContainer},
@@ -56,6 +56,7 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
+    script::Script,
     utils::log::Log,
 };
 use std::{path::Path, sync::Arc};
@@ -77,7 +78,6 @@ pub struct Level {
     death_zones: Vec<DeathZone>,
     time: f32,
     sound_manager: SoundManager,
-    trails: ShotTrailContainer,
     pub doors_container: DoorContainer,
     lights: LightContainer,
     triggers: TriggerContainer,
@@ -270,7 +270,6 @@ impl Level {
             projectiles: ProjectileContainer::new(),
             sound_manager: SoundManager::new(scene),
             beam: Some(make_beam()),
-            trails: Default::default(),
             doors_container: Default::default(),
             elevators,
             call_buttons,
@@ -326,7 +325,6 @@ impl Level {
             projectiles: ProjectileContainer::new(),
             sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
-            trails: Default::default(),
             doors_container: Default::default(),
             elevators,
             call_buttons,
@@ -412,7 +410,6 @@ impl Level {
         self.call_buttons
             .update(&self.elevators, call_button_ui_container);
 
-        self.trails.update(ctx.dt, scene);
         self.update_game_ending(scene);
         self.lights.update(scene, ctx.dt);
         self.triggers
@@ -561,22 +558,20 @@ impl Level {
 
         match shot_effect {
             ShotEffect::Smoke => {
-                self.trails.add(ShotTrail::new(
-                    crate::effects::create(
-                        EffectKind::Smoke,
-                        &mut scene.graph,
-                        engine.resource_manager.clone(),
-                        begin,
-                        Default::default(),
-                    ),
-                    5.0,
-                ));
+                let effect = effects::create(
+                    EffectKind::Smoke,
+                    &mut scene.graph,
+                    engine.resource_manager.clone(),
+                    begin,
+                    Default::default(),
+                );
+                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
             }
             ShotEffect::Beam => {
                 let trail_radius = 0.0014;
-
-                let trail = MeshBuilder::new(
+                MeshBuilder::new(
                     BaseBuilder::new()
+                        .with_script(Script::new(ShotTrail::new(0.2)))
                         .with_cast_shadows(false)
                         .with_local_transform(
                             TransformBuilder::new()
@@ -605,20 +600,16 @@ impl Level {
                     .build()])
                 .with_render_path(RenderPath::Forward)
                 .build(&mut scene.graph);
-
-                self.trails.add(ShotTrail::new(trail, 0.2));
             }
             ShotEffect::Rail => {
-                self.trails.add(ShotTrail::new(
-                    crate::effects::create_rail(
-                        &mut scene.graph,
-                        engine.resource_manager.clone(),
-                        begin,
-                        hit_point,
-                        Color::opaque(255, 0, 0),
-                    ),
-                    5.0,
-                ));
+                let effect = effects::create_rail(
+                    &mut scene.graph,
+                    engine.resource_manager.clone(),
+                    begin,
+                    hit_point,
+                    Color::opaque(255, 0, 0),
+                );
+                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
             }
         }
     }
