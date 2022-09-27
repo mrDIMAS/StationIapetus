@@ -1,27 +1,30 @@
-use crate::{
-    elevator::{Elevator, ElevatorContainer},
-    CallButtonUiContainer,
-};
-use fyrox::scene::mesh::Mesh;
+use crate::{elevator::Elevator, game_mut};
 use fyrox::{
     core::{
+        inspect::prelude::*,
         parking_lot::Mutex,
-        pool::{Handle, Pool},
+        pool::Handle,
+        reflect::Reflect,
         sstorage::ImmutableString,
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
+    impl_component_provider,
     material::{Material, PropertyValue},
     resource::texture::Texture,
-    scene::{graph::Graph, node::Node},
+    scene::{
+        graph::Graph,
+        mesh::Mesh,
+        node::{Node, TypeUuidProvider},
+    },
+    script::{ScriptContext, ScriptTrait},
     utils::log::Log,
 };
-use std::{
-    ops::{Index, IndexMut},
-    sync::Arc,
-};
+use std::sync::Arc;
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Debug, Visit)]
+#[derive(Debug, Visit, Inspect, Reflect, Clone, AsRefStr, EnumString, EnumVariantNames)]
 pub enum CallButtonKind {
     FloorSelector,
     EndPoint,
@@ -33,37 +36,23 @@ impl Default for CallButtonKind {
     }
 }
 
-#[derive(Default, Debug, Visit)]
+#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
 pub struct CallButton {
-    pub node: Handle<Node>,
     pub floor: u32,
     pub kind: CallButtonKind,
-    pub elevator: Handle<Elevator>,
+    pub elevator: Handle<Node>,
 }
 
 impl CallButton {
-    pub fn new(
-        elevator: Handle<Elevator>,
-        node: Handle<Node>,
-        floor: u32,
-        kind: CallButtonKind,
-    ) -> Self {
-        Self {
-            elevator,
-            node,
-            floor,
-            kind,
-        }
-    }
-
     pub fn apply_screen_texture(
         &self,
+        self_handle: Handle<Node>,
         graph: &mut Graph,
         resource_manager: ResourceManager,
         texture: Texture,
     ) {
         let screens = graph
-            .traverse_handle_iter(self.node)
+            .traverse_handle_iter(self_handle)
             .filter(|h| graph[*h].name().starts_with("Screen"))
             .collect::<Vec<_>>();
 
@@ -95,37 +84,44 @@ impl CallButton {
     }
 }
 
-#[derive(Default, Debug, Visit)]
-pub struct CallButtonContainer {
-    pool: Pool<CallButton>,
+impl_component_provider!(CallButton);
+
+impl TypeUuidProvider for CallButton {
+    fn type_uuid() -> Uuid {
+        uuid!("215c9f84-a775-4d17-88a0-0e174c06dc4a")
+    }
 }
 
-impl CallButtonContainer {
-    pub fn new() -> Self {
-        Self {
-            pool: Default::default(),
-        }
+impl ScriptTrait for CallButton {
+    fn on_start(&mut self, context: &mut ScriptContext) {
+        let game = game_mut(context.plugins);
+
+        let texture = game.call_button_ui_container.create_ui(
+            game.smaller_font.clone(),
+            context.handle,
+            self.floor,
+        );
+
+        self.apply_screen_texture(
+            context.handle,
+            &mut context.scene.graph,
+            context.resource_manager.clone(),
+            texture,
+        );
     }
 
-    pub fn add(&mut self, call_button: CallButton) -> Handle<CallButton> {
-        self.pool.spawn(call_button)
-    }
+    fn on_update(&mut self, context: &mut ScriptContext) {
+        let game = game_mut(context.plugins);
 
-    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<CallButton>, &CallButton)> {
-        self.pool.pair_iter()
-    }
-
-    pub fn update(
-        &mut self,
-        elevator_container: &ElevatorContainer,
-        call_button_ui_container: &mut CallButtonUiContainer,
-    ) {
-        for (call_button_handle, call_button_ref) in self.pool.pair_iter() {
-            let elevator = &elevator_container[call_button_ref.elevator];
-
-            if let Some(ui) = call_button_ui_container.get_ui_mut(call_button_handle) {
+        if let Some(elevator) = context
+            .scene
+            .graph
+            .try_get(self.elevator)
+            .and_then(|n| n.try_get_script::<Elevator>())
+        {
+            if let Some(ui) = game.call_button_ui_container.get_ui_mut(context.handle) {
                 ui.set_text(
-                    if call_button_ref.floor == elevator.current_floor {
+                    if self.floor == elevator.current_floor {
                         "Ready"
                     } else if elevator.k.abs() > f32::EPSILON {
                         "Called"
@@ -135,22 +131,12 @@ impl CallButtonContainer {
                     .to_string(),
                 );
 
-                ui.set_floor_text(format!("Floor {}", call_button_ref.floor));
+                ui.set_floor_text(format!("Floor {}", self.floor));
             }
         }
     }
-}
 
-impl Index<Handle<CallButton>> for CallButtonContainer {
-    type Output = CallButton;
-
-    fn index(&self, index: Handle<CallButton>) -> &Self::Output {
-        &self.pool[index]
-    }
-}
-
-impl IndexMut<Handle<CallButton>> for CallButtonContainer {
-    fn index_mut(&mut self, index: Handle<CallButton>) -> &mut Self::Output {
-        &mut self.pool[index]
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }

@@ -5,7 +5,6 @@
 
 use crate::{
     effects::EffectKind,
-    elevator::{call_button::CallButton, Elevator},
     sound::SoundKind,
     weapon::{
         definition::ShotEffect,
@@ -23,14 +22,6 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
-    SetCallButtonFloor {
-        call_button: Handle<CallButton>,
-        floor: u32,
-    },
-    CallElevator {
-        elevator: Handle<Elevator>,
-        floor: u32,
-    },
     CreateProjectile {
         kind: ProjectileKind,
         position: Vector3<f32>,

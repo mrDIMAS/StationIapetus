@@ -23,6 +23,8 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::elevator::call_button::CallButton;
+use crate::elevator::Elevator;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -496,21 +498,7 @@ impl Game {
 
         if let Some(load_context) = self.load_context.clone() {
             if let Some(mut load_context) = load_context.try_lock() {
-                if let Some((mut level, mut scene)) = load_context.level.take() {
-                    for (call_button_handle, call_button_ref) in level.call_buttons.pair_iter() {
-                        let texture = self.call_button_ui_container.create_ui(
-                            self.smaller_font.clone(),
-                            call_button_handle,
-                            call_button_ref,
-                        );
-
-                        call_button_ref.apply_screen_texture(
-                            &mut scene.graph,
-                            ctx.resource_manager.clone(),
-                            texture,
-                        );
-                    }
-
+                if let Some((mut level, scene)) = load_context.level.take() {
                     level.scene = ctx.scenes.add(scene);
 
                     self.level = Some(level);
@@ -534,7 +522,7 @@ impl Game {
         if let Some(ref mut level) = self.level {
             let menu_visible = self.menu.is_visible(ctx.user_interface);
             if !menu_visible {
-                level.update(ctx, &mut self.call_button_ui_container);
+                level.update(ctx);
                 let player = level.get_player();
                 if player.is_some() {
                     let graph = &ctx.scenes[level.scene].graph;
@@ -793,7 +781,9 @@ impl PluginConstructor for GameConstructor {
             .add::<Bot>("Bot")
             .add::<SpawnPoint>("Spawn Point")
             .add::<DeathZone>("Death Zone")
-            .add::<AnimatedLight>("Animated Light");
+            .add::<AnimatedLight>("Animated Light")
+            .add::<Elevator>("Elevator")
+            .add::<CallButton>("Call Button");
     }
 
     fn create_instance(

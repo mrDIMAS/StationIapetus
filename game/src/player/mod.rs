@@ -1,13 +1,11 @@
 use crate::door::door_mut;
+use crate::elevator::call_button::CallButton;
 use crate::{
     character::{Character, CharacterCommand},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
     door::DoorContainer,
-    elevator::{
-        call_button::{CallButtonContainer, CallButtonKind},
-        ElevatorContainer,
-    },
+    elevator::call_button::CallButtonKind,
     game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
@@ -22,7 +20,7 @@ use crate::{
         projectile::{ProjectileKind, Shooter},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
-    CameraController, Game, Item, MessageSender,
+    CameraController, Elevator, Game, Item, MessageSender,
 };
 use fyrox::{
     animation::{
@@ -439,71 +437,69 @@ impl Player {
         }
     }
 
-    fn check_elevators(
-        &self,
-        scene: &Scene,
-        elevator_container: &ElevatorContainer,
-        call_button_container: &CallButtonContainer,
-        sender: &MessageSender,
-    ) {
-        let graph = &scene.graph;
+    fn check_elevators(&self, scene: &mut Scene, elevators: &[Handle<Node>]) {
+        let graph = &mut scene.graph;
         let self_position = graph[self.body].global_position();
 
-        for (handle, elevator) in elevator_container.pair_iter() {
+        for &elevator_handle in elevators.iter() {
+            let mut graph_multiborrow = graph.begin_multi_borrow::<32>();
+
+            let elevator_node = graph_multiborrow.try_get(elevator_handle).unwrap();
+            let elevator_position = elevator_node.global_position();
+
+            let elevator_script = elevator_node.try_get_script_mut::<Elevator>().unwrap();
+
             // Handle floors.
-            let elevator_position = graph[elevator.node].global_position();
+            let mut requested_floor = None;
             if (elevator_position - self_position).norm() < 0.75 && self.controller.action {
-                let last_index = elevator.points.len().saturating_sub(1) as u32;
-                if elevator.current_floor == last_index {
-                    sender.send(Message::CallElevator {
-                        elevator: handle,
-                        floor: 0,
-                    });
-                } else if elevator.current_floor == 0 {
-                    sender.send(Message::CallElevator {
-                        elevator: handle,
-                        floor: last_index,
-                    });
+                let last_index = elevator_script.point_handles.len().saturating_sub(1) as u32;
+                if elevator_script.current_floor == last_index {
+                    requested_floor = Some(0);
+                } else if elevator_script.current_floor == 0 {
+                    requested_floor = Some(last_index);
                 }
             }
 
             // Handle call buttons
-            for &call_button_handle in elevator.call_buttons.iter() {
-                let call_button = &call_button_container[call_button_handle];
+            for &call_button_handle in elevator_script.call_buttons.iter() {
+                if let Some(call_button_node) = graph_multiborrow.try_get(*call_button_handle) {
+                    let button_position = call_button_node.global_position();
 
-                let button_position = graph[call_button.node].global_position();
+                    let call_button_script =
+                        call_button_node.try_get_script_mut::<CallButton>().unwrap();
 
-                let distance = (button_position - self_position).norm();
-                if distance < 0.75 {
-                    if let CallButtonKind::FloorSelector = call_button.kind {
-                        let new_floor = if self.controller.cursor_down {
-                            Some(call_button.floor.saturating_sub(1))
-                        } else if self.controller.cursor_up {
-                            Some(
-                                call_button
-                                    .floor
-                                    .saturating_add(1)
-                                    .min((elevator.points.len() as u32).saturating_sub(1)),
-                            )
-                        } else {
-                            None
-                        };
+                    let distance = (button_position - self_position).norm();
+                    if distance < 0.75 {
+                        if let CallButtonKind::FloorSelector = call_button_script.kind {
+                            let new_floor = if self.controller.cursor_down {
+                                Some(call_button_script.floor.saturating_sub(1))
+                            } else if self.controller.cursor_up {
+                                Some(call_button_script.floor.saturating_add(1).min(
+                                    (elevator_script.point_handles.len() as u32).saturating_sub(1),
+                                ))
+                            } else {
+                                None
+                            };
 
-                        if let Some(new_floor) = new_floor {
-                            sender.send(Message::SetCallButtonFloor {
-                                call_button: call_button_handle,
-                                floor: new_floor,
-                            });
+                            if let Some(new_floor) = new_floor {
+                                call_button_script.floor = new_floor;
+                            }
+                        }
+
+                        if self.controller.action {
+                            requested_floor = Some(call_button_script.floor);
                         }
                     }
-
-                    if self.controller.action {
-                        sender.send(Message::CallElevator {
-                            elevator: handle,
-                            floor: call_button.floor,
-                        });
-                    }
+                } else {
+                    Log::warn(format!(
+                        "Unable to get call button {:?}!",
+                        call_button_handle
+                    ));
                 }
+            }
+
+            if let Some(requested_floor) = requested_floor {
+                elevator_script.call_to(requested_floor);
             }
         }
     }
@@ -1426,7 +1422,7 @@ impl ScriptTrait for Player {
             ctx.scene.graph[self.item_display].set_visibility(false);
 
             self.check_doors(ctx.scene, &level.doors_container);
-            self.check_elevators(ctx.scene, &level.elevators, &level.call_buttons, sender);
+            self.check_elevators(ctx.scene, &level.elevators);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time);
             self.check_items(game_mut(ctx.plugins), ctx.scene, ctx.resource_manager);
 

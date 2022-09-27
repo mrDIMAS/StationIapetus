@@ -4,10 +4,6 @@ use crate::{
     config::SoundConfig,
     door::DoorContainer,
     effects::{self, EffectKind},
-    elevator::{
-        call_button::{CallButton, CallButtonContainer, CallButtonKind},
-        Elevator, ElevatorContainer,
-    },
     item::ItemContainer,
     level::{
         decal::Decal,
@@ -25,7 +21,7 @@ use crate::{
         sight::SightReaction,
         weapon_mut,
     },
-    CallButtonUiContainer, MessageSender,
+    MessageSender,
 };
 use fyrox::{
     core::{
@@ -42,7 +38,7 @@ use fyrox::{
     material::{Material, PropertyValue},
     plugin::PluginContext,
     scene::{
-        self, base,
+        self,
         base::BaseBuilder,
         collider::ColliderShape,
         graph::physics::RayCastOptions,
@@ -79,8 +75,7 @@ pub struct Level {
     sound_manager: SoundManager,
     pub doors_container: DoorContainer,
     triggers: TriggerContainer,
-    pub elevators: ElevatorContainer,
-    pub call_buttons: CallButtonContainer,
+    pub elevators: Vec<Handle<Node>>,
 
     #[visit(skip)]
     sender: Option<MessageSender>,
@@ -91,8 +86,6 @@ pub struct Level {
 #[derive(Default)]
 pub struct AnalysisResult {
     triggers: TriggerContainer,
-    elevators: ElevatorContainer,
-    call_buttons: CallButtonContainer,
 }
 
 pub fn footstep_ray_check(
@@ -146,49 +139,8 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     let mut result = AnalysisResult::default();
 
     let mut triggers = TriggerContainer::default();
-    let mut elevators = ElevatorContainer::new();
-    let mut call_buttons = CallButtonContainer::new();
 
     for (handle, node) in scene.graph.pair_iter() {
-        if node.tag().starts_with("Elevator") {
-            let elevator = elevators.add(Elevator::new(handle));
-            let elevator_mut = &mut elevators[elevator];
-
-            for property in node.properties.iter() {
-                if let base::PropertyValue::NodeHandle(node_handle) = property.value {
-                    if let Some(node_ref) = scene.graph.try_get(node_handle) {
-                        if property.name == "PathPoint" {
-                            elevator_mut.points.push(node_ref.global_position());
-                        } else if property.name == "CallButton" {
-                            if let Some(base::PropertyValue::U32(floor)) =
-                                node_ref.find_first_property_ref("Floor").map(|p| &p.value)
-                            {
-                                let call_button = call_buttons.add(CallButton::new(
-                                    elevator,
-                                    node_handle,
-                                    *floor,
-                                    CallButtonKind::EndPoint,
-                                ));
-
-                                elevator_mut.call_buttons.push(call_button);
-                            } else {
-                                Log::err("Call button is missing Floor parameter!")
-                            }
-                        } else if property.name == "FloorSelector" {
-                            let call_button = call_buttons.add(CallButton::new(
-                                elevator,
-                                node_handle,
-                                0,
-                                CallButtonKind::FloorSelector,
-                            ));
-
-                            elevator_mut.call_buttons.push(call_button);
-                        }
-                    }
-                }
-            }
-        }
-
         match node.tag() {
             "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
             "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
@@ -197,8 +149,6 @@ pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
     }
 
     result.triggers = triggers;
-    result.elevators = elevators;
-    result.call_buttons = call_buttons;
 
     result
 }
@@ -225,11 +175,7 @@ impl Level {
 
         scene.graph.update(Default::default(), 0.0);
 
-        let AnalysisResult {
-            triggers,
-            elevators,
-            call_buttons,
-        } = block_on(analyze(scene));
+        let AnalysisResult { triggers } = block_on(analyze(scene));
 
         Self {
             player: Default::default(),
@@ -243,9 +189,8 @@ impl Level {
             sound_manager: SoundManager::new(scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
-            elevators,
-            call_buttons,
             map_path: Default::default(),
+            elevators: Default::default(),
         }
     }
 
@@ -276,11 +221,7 @@ impl Level {
 
         scene.graph.update(Default::default(), 0.0);
 
-        let AnalysisResult {
-            triggers,
-            elevators,
-            call_buttons,
-        } = analyze(&mut scene).await;
+        let AnalysisResult { triggers } = analyze(&mut scene).await;
 
         let level = Self {
             player: Default::default(),
@@ -295,9 +236,8 @@ impl Level {
             sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
-            elevators,
-            call_buttons,
             map_path: map,
+            elevators: Default::default(),
         };
 
         (level, scene)
@@ -346,19 +286,12 @@ impl Level {
         }
     }
 
-    pub fn update(
-        &mut self,
-        ctx: &mut PluginContext,
-        call_button_ui_container: &mut CallButtonUiContainer,
-    ) {
+    pub fn update(&mut self, ctx: &mut PluginContext) {
         self.time += ctx.dt;
         let scene = &mut ctx.scenes[self.scene];
 
         self.projectiles
             .update(scene, ctx.dt, &self.actors, self.sender.as_ref().unwrap());
-        self.elevators.update(ctx.dt, scene);
-        self.call_buttons
-            .update(&self.elevators, call_button_ui_container);
 
         self.update_game_ending(scene);
         self.triggers
@@ -592,14 +525,6 @@ impl Level {
         }
     }
 
-    fn call_elevator(&mut self, elevator: Handle<Elevator>, floor: u32) {
-        self.elevators[elevator].call_to(floor);
-    }
-
-    fn set_call_button_floor(&mut self, call_button: Handle<CallButton>, floor: u32) {
-        self.call_buttons[call_button].floor = floor;
-    }
-
     pub async fn handle_message(&mut self, engine: &mut PluginContext<'_>, message: &Message) {
         self.sound_manager
             .handle_message(
@@ -610,13 +535,6 @@ impl Level {
             .await;
 
         match message {
-            &Message::SetCallButtonFloor { call_button, floor } => {
-                self.set_call_button_floor(call_button, floor)
-            }
-
-            &Message::CallElevator { elevator, floor } => {
-                self.call_elevator(elevator, floor);
-            }
             &Message::CreateProjectile {
                 kind,
                 position,

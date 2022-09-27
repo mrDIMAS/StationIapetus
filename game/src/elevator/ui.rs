@@ -1,5 +1,4 @@
 use crate::{
-    elevator::CallButton,
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
@@ -14,6 +13,7 @@ use fyrox::{
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
+    scene::node::Node,
 };
 
 pub struct CallButtonUi {
@@ -122,18 +122,15 @@ impl CallButtonUi {
     }
 }
 
-pub type CallButtonUiContainer = UiContainer<CallButton, CallButtonUi>;
+pub type CallButtonUiContainer = UiContainer<Node, CallButtonUi>;
 
 impl CallButtonUiContainer {
     pub fn create_ui(
         &mut self,
         font: SharedFont,
-        call_button_handle: Handle<CallButton>,
-        call_button: &CallButton,
+        call_button_handle: Handle<Node>,
+        floor: u32,
     ) -> Texture {
-        self.add(
-            call_button_handle,
-            CallButtonUi::new(font, call_button.floor),
-        )
+        self.add(call_button_handle, CallButtonUi::new(font, floor))
     }
 }

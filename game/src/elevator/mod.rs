@@ -1,43 +1,64 @@
-use crate::elevator::call_button::CallButton;
-use fyrox::scene::rigidbody::RigidBody;
+use crate::current_level_mut;
+use fyrox::scene::node::NodeHandle;
 use fyrox::{
     core::{
-        algebra::Vector3,
-        pool::{Handle, Pool},
+        inspect::prelude::*,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
-    scene::{node::Node, Scene},
+    impl_component_provider,
+    scene::{node::Node, node::TypeUuidProvider, rigidbody::RigidBody},
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
-use std::ops::{Index, IndexMut};
 
 pub mod call_button;
 pub mod ui;
 
-#[derive(Default, Debug, Visit)]
+#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
 pub struct Elevator {
     pub current_floor: u32,
     pub dest_floor: u32,
     k: f32,
-    pub node: Handle<Node>,
-    pub points: Vec<Vector3<f32>>,
-    pub call_buttons: Vec<Handle<CallButton>>,
+    pub point_handles: Vec<NodeHandle>,
+    pub call_buttons: Vec<NodeHandle>,
 }
 
 impl Elevator {
-    pub fn new(node: Handle<Node>) -> Self {
-        Self {
-            node,
-            points: Default::default(),
-            current_floor: 0,
-            dest_floor: 0,
-            k: 0.0,
-            call_buttons: Default::default(),
+    pub fn call_to(&mut self, floor: u32) {
+        if floor < self.point_handles.len() as u32 {
+            self.dest_floor = floor;
+        }
+    }
+}
+
+impl_component_provider!(Elevator);
+
+impl TypeUuidProvider for Elevator {
+    fn type_uuid() -> Uuid {
+        uuid!("67904c1b-0d12-427c-a92e-e66cb0ec6dae")
+    }
+}
+
+impl ScriptTrait for Elevator {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        current_level_mut(ctx.plugins)
+            .unwrap()
+            .elevators
+            .push(ctx.handle);
+    }
+
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        if let Some(level) = current_level_mut(ctx.plugins) {
+            if let Some(elevator) = level.elevators.iter().position(|h| *h == ctx.node_handle) {
+                level.elevators.remove(elevator);
+            }
         }
     }
 
-    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
+    fn on_update(&mut self, context: &mut ScriptContext) {
         if self.current_floor != self.dest_floor {
-            self.k += 0.5 * dt;
+            self.k += 0.5 * context.dt;
 
             if self.k >= 1.0 {
                 self.current_floor = self.dest_floor;
@@ -45,62 +66,22 @@ impl Elevator {
             }
         }
 
-        let body_handle = scene.graph[self.node].parent();
-        if let Some(rigid_body_ref) = scene.graph[body_handle].cast_mut::<RigidBody>() {
-            if let (Some(current), Some(dest)) = (
-                self.points.get(self.current_floor as usize),
-                self.points.get(self.dest_floor as usize),
-            ) {
-                let position = current.lerp(dest, self.k);
+        let body_handle = context.scene.graph[context.handle].parent();
+
+        if let (Some(current), Some(dest)) = (
+            self.point_handles.get(self.current_floor as usize),
+            self.point_handles.get(self.dest_floor as usize),
+        ) {
+            let current_pos = context.scene.graph[**current].global_position();
+            let dest_pos = context.scene.graph[**dest].global_position();
+            if let Some(rigid_body_ref) = context.scene.graph[body_handle].cast_mut::<RigidBody>() {
+                let position = current_pos.lerp(&dest_pos, self.k);
                 rigid_body_ref.local_transform_mut().set_position(position);
             }
         }
     }
 
-    pub fn call_to(&mut self, floor: u32) {
-        if floor < self.points.len() as u32 {
-            self.dest_floor = floor;
-        }
-    }
-}
-
-#[derive(Default, Debug, Visit)]
-pub struct ElevatorContainer {
-    pool: Pool<Elevator>,
-}
-
-impl ElevatorContainer {
-    pub fn new() -> Self {
-        Self {
-            pool: Default::default(),
-        }
-    }
-
-    pub fn add(&mut self, elevator: Elevator) -> Handle<Elevator> {
-        self.pool.spawn(elevator)
-    }
-
-    pub fn pair_iter(&self) -> impl Iterator<Item = (Handle<Elevator>, &Elevator)> {
-        self.pool.pair_iter()
-    }
-
-    pub fn update(&mut self, dt: f32, scene: &mut Scene) {
-        for elevator in self.pool.iter_mut() {
-            elevator.update(dt, scene);
-        }
-    }
-}
-
-impl Index<Handle<Elevator>> for ElevatorContainer {
-    type Output = Elevator;
-
-    fn index(&self, index: Handle<Elevator>) -> &Self::Output {
-        &self.pool[index]
-    }
-}
-
-impl IndexMut<Handle<Elevator>> for ElevatorContainer {
-    fn index_mut(&mut self, index: Handle<Elevator>) -> &mut Self::Output {
-        &mut self.pool[index]
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }
