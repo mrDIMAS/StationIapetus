@@ -1,5 +1,4 @@
 use crate::current_level_mut;
-use fyrox::scene::node::NodeHandle;
 use fyrox::{
     core::{
         inspect::prelude::*,
@@ -8,7 +7,10 @@ use fyrox::{
         visitor::prelude::*,
     },
     impl_component_provider,
-    scene::{node::Node, node::TypeUuidProvider, rigidbody::RigidBody},
+    scene::{
+        node::{NodeHandle, TypeUuidProvider},
+        rigidbody::RigidBody,
+    },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
@@ -66,15 +68,15 @@ impl ScriptTrait for Elevator {
             }
         }
 
-        let body_handle = context.scene.graph[context.handle].parent();
-
         if let (Some(current), Some(dest)) = (
             self.point_handles.get(self.current_floor as usize),
             self.point_handles.get(self.dest_floor as usize),
         ) {
             let current_pos = context.scene.graph[**current].global_position();
             let dest_pos = context.scene.graph[**dest].global_position();
-            if let Some(rigid_body_ref) = context.scene.graph[body_handle].cast_mut::<RigidBody>() {
+            if let Some(rigid_body_ref) =
+                context.scene.graph[context.handle].cast_mut::<RigidBody>()
+            {
                 let position = current_pos.lerp(&dest_pos, self.k);
                 rigid_body_ref.local_transform_mut().set_position(position);
             }
