@@ -522,7 +522,6 @@ impl Game {
         if let Some(ref mut level) = self.level {
             let menu_visible = self.menu.is_visible(ctx.user_interface);
             if !menu_visible {
-                level.update(ctx);
                 let player = level.get_player();
                 if player.is_some() {
                     let graph = &ctx.scenes[level.scene].graph;

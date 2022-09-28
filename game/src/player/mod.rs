@@ -1448,6 +1448,10 @@ impl ScriptTrait for Player {
             let body = ctx.scene.graph[self.body].as_rigid_body_mut();
             body.set_ang_vel(Default::default());
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
+
+            if self.is_completely_dead(ctx.scene) {
+                game.message_sender.send(Message::EndMatch);
+            }
         }
     }
 

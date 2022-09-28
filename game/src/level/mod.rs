@@ -7,7 +7,6 @@ use crate::{
     item::ItemContainer,
     level::{decal::Decal, trail::ShotTrail},
     message::Message,
-    player::Player,
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
     weapon::{
@@ -65,7 +64,6 @@ pub struct Level {
     pub player: Handle<Node>,
     pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
-    time: f32,
     sound_manager: SoundManager,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
@@ -151,7 +149,6 @@ impl Level {
             items: Default::default(),
             scene: scene_handle,
             sender: Some(sender),
-            time: 0.0,
             sound_manager: SoundManager::new(scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
@@ -193,7 +190,6 @@ impl Level {
             items: Default::default(),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
-            time: 0.0,
             sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
@@ -210,25 +206,6 @@ impl Level {
 
     pub fn get_player(&self) -> Handle<Node> {
         self.player
-    }
-
-    fn update_game_ending(&self, scene: &Scene) {
-        if let Some(player_ref) = scene
-            .graph
-            .try_get(self.player)
-            .and_then(|p| p.try_get_script::<Player>())
-        {
-            if player_ref.is_completely_dead(scene) {
-                self.sender.as_ref().unwrap().send(Message::EndMatch);
-            }
-        }
-    }
-
-    pub fn update(&mut self, ctx: &mut PluginContext) {
-        self.time += ctx.dt;
-        let scene = &mut ctx.scenes[self.scene];
-
-        self.update_game_ending(scene);
     }
 
     fn shoot_ray(
