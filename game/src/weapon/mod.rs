@@ -190,7 +190,7 @@ pub fn ray_hit(
                     let who = match shooter {
                         Shooter::None | Shooter::Turret(_) => Default::default(),
                         Shooter::Actor(actor) => actor,
-                        Shooter::Weapon(weapon) => Default::default(), //weapon_ref(weapon, graph).owner(), TODO
+                        Shooter::Weapon(weapon) => weapon_ref(weapon, graph).owner(),
                     };
 
                     // Ignore intersections with owners.

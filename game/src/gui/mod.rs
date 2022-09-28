@@ -145,7 +145,7 @@ impl DeathScreen {
                                                 WidgetBuilder::new()
                                                     .with_margin(Thickness::uniform(2.0)),
                                             )
-                                            .with_text_and_font("Exit Game", font.clone())
+                                            .with_text_and_font("Exit Game", font)
                                             .build(&mut ui.build_ctx());
                                             exit_game
                                         }),
@@ -252,7 +252,7 @@ impl FinalScreen {
                                                     .with_margin(Thickness::uniform(2.0))
                                                     .with_width(300.0),
                                             )
-                                            .with_text_and_font("Exit Game", font.clone())
+                                            .with_text_and_font("Exit Game", font)
                                             .build(&mut ui.build_ctx());
                                             exit_game
                                         }),

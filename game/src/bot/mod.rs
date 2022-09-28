@@ -288,6 +288,7 @@ impl Bot {
         bot
     }
 
+    #[allow(clippy::unnecessary_to_owned)] // false positive
     fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
         if let Some(target) = self.target.as_ref() {
             let mut query_storage = ArrayVec::<Intersection, 64>::new();
