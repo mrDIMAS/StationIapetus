@@ -1,11 +1,9 @@
-use crate::door::door_mut;
-use crate::elevator::call_button::CallButton;
 use crate::{
     character::{Character, CharacterCommand},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
-    door::DoorContainer,
-    elevator::call_button::CallButtonKind,
+    door::{door_mut, DoorContainer},
+    elevator::call_button::{CallButton, CallButtonKind},
     game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
@@ -17,7 +15,7 @@ use crate::{
     },
     weapon::{
         definition::WeaponKind,
-        projectile::{ProjectileKind, Shooter},
+        projectile::{Projectile, ProjectileKind, Shooter},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
     CameraController, Elevator, Game, Item, MessageSender,
@@ -565,7 +563,7 @@ impl Player {
         &mut self,
         self_handle: Handle<Node>,
         scene: &mut Scene,
-        sender: &MessageSender,
+        resource_manager: &ResourceManager,
     ) {
         while let Some(event) = scene
             .animations
@@ -583,13 +581,15 @@ impl Player {
                     .unwrap_or_default();
 
                 if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
-                    sender.send(Message::CreateProjectile {
-                        kind: ProjectileKind::Grenade,
-                        position,
+                    Projectile::add_to_scene(
+                        ProjectileKind::Grenade,
+                        resource_manager,
+                        scene,
                         direction,
-                        initial_velocity: direction.scale(15.0),
-                        shooter: Shooter::Actor(self_handle),
-                    });
+                        position,
+                        Shooter::Actor(self_handle),
+                        direction.scale(15.0),
+                    );
                 }
             }
         }
@@ -1292,7 +1292,7 @@ impl ScriptTrait for Player {
             let new_y_vel = self.handle_jump_signal(ctx.scene, ctx.dt);
             self.handle_weapon_grab_signal(ctx.scene);
             self.handle_put_back_weapon_end_signal(ctx.scene);
-            self.handle_toss_grenade_signal(Default::default(), ctx.scene, sender);
+            self.handle_toss_grenade_signal(Default::default(), ctx.scene, ctx.resource_manager);
 
             let body = ctx.scene.graph[self.body].as_rigid_body_mut();
             body.set_ang_vel(Default::default());

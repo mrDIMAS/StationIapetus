@@ -1,18 +1,18 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
-use station_iapetus::elevator::call_button::CallButtonKind;
 use station_iapetus::{
     bot::BotKind,
     character::{Character, HitBox},
     door::{DoorDirection, DoorState},
+    elevator::call_button::CallButtonKind,
     item::ItemKind,
     level::{
         spawn::DefaultWeapon,
         turret::{Barrel, Hostility, ShootMode},
     },
     player::camera::CameraController,
-    weapon::definition::WeaponKind,
+    weapon::{definition::WeaponKind, projectile::ProjectileKind},
     GameConstructor,
 };
 
@@ -35,6 +35,7 @@ fn main() {
     editors.register_inheritable_enum::<ItemKind, _>();
     editors.register_inheritable_enum::<BotKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
+    editors.register_inheritable_enum::<ProjectileKind, _>();
     editors.register_inheritable_inspectable::<Barrel>();
     editors.register_inheritable_inspectable::<Character>();
     editors.register_inheritable_inspectable::<CameraController>();

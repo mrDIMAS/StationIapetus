@@ -8,7 +8,7 @@ use crate::{
     sound::SoundKind,
     weapon::{
         definition::ShotEffect,
-        projectile::{Damage, ProjectileKind, Shooter},
+        projectile::{Damage, Shooter},
     },
 };
 use fyrox::{
@@ -22,13 +22,6 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
-    CreateProjectile {
-        kind: ProjectileKind,
-        position: Vector3<f32>,
-        direction: Vector3<f32>,
-        initial_velocity: Vector3<f32>,
-        shooter: Shooter,
-    },
     ShootRay {
         shooter: Shooter,
         begin: Vector3<f32>,

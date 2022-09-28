@@ -1,31 +1,62 @@
 use crate::{
     character::{try_get_character_mut, CharacterCommand},
+    current_level_ref,
     effects::EffectKind,
+    game_ref,
     message::Message,
     weapon::{ray_hit, sight::SightReaction, weapon_mut, weapon_ref, Hit},
-    MessageSender,
 };
 use fyrox::{
     core::{
         algebra::Vector3,
+        futures::executor::block_on,
+        inspect::prelude::*,
         math::{vector_to_quat, Vector3Ext},
-        pool::{Handle, Pool},
-        visitor::{Visit, VisitResult, Visitor},
+        pool::Handle,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
+    impl_component_provider,
     lazy_static::lazy_static,
-    scene::{graph::Graph, node::Node, rigidbody::RigidBody, sprite::Sprite, Scene},
+    scene::{
+        node::{Node, TypeUuidProvider},
+        rigidbody::RigidBody,
+        sprite::Sprite,
+        Scene,
+    },
+    script::{ScriptContext, ScriptTrait},
 };
 use serde::Deserialize;
-use std::{collections::HashMap, collections::HashSet, fs::File, path::PathBuf};
+use std::{
+    collections::{HashMap, HashSet},
+    fs::File,
+    path::PathBuf,
+};
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash, Visit)]
+#[derive(
+    Copy,
+    Clone,
+    PartialEq,
+    Eq,
+    Debug,
+    Deserialize,
+    Hash,
+    Visit,
+    Reflect,
+    Inspect,
+    AsRefStr,
+    EnumString,
+    EnumVariantNames,
+)]
 pub enum ProjectileKind {
     Plasma,
     Grenade,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit)]
+#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit, Reflect, Inspect)]
 pub enum Shooter {
     None,
     Actor(Handle<Node>),
@@ -71,15 +102,9 @@ impl Damage {
     }
 }
 
-#[derive(Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Clone)]
 pub struct Projectile {
     kind: ProjectileKind,
-    model: Handle<Node>,
-    /// Handle of rigid body assigned to projectile. Some projectiles, like grenades,
-    /// rockets, plasma balls could have rigid body to detect collisions with
-    /// environment. Some projectiles do not have rigid body - they're ray-based -
-    /// interaction with environment handled with ray cast.
-    body: Handle<Node>,
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
@@ -88,19 +113,31 @@ pub struct Projectile {
     /// Position of projectile on the previous frame, it is used to simulate
     /// continuous intersection detection from fast moving projectiles.
     last_position: Vector3<f32>,
+
     #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
     definition: &'static ProjectileDefinition,
+
     #[visit(skip)]
+    #[reflect(hidden)]
+    #[inspect(skip)]
     hits: HashSet<Hit>,
+}
+
+impl_component_provider!(Projectile);
+
+impl TypeUuidProvider for Projectile {
+    fn type_uuid() -> Uuid {
+        uuid!("6b60c75e-83cf-406b-8106-e87d5ab98132")
+    }
 }
 
 impl Default for Projectile {
     fn default() -> Self {
         Self {
             kind: ProjectileKind::Plasma,
-            model: Default::default(),
             dir: Default::default(),
-            body: Default::default(),
             lifetime: 0.0,
             rotation_angle: 0.0,
             owner: Default::default(),
@@ -112,7 +149,7 @@ impl Default for Projectile {
     }
 }
 
-#[derive(Deserialize)]
+#[derive(Deserialize, Debug)]
 pub struct ProjectileDefinition {
     damage: Damage,
     speed: f32,
@@ -145,44 +182,34 @@ impl Projectile {
         DEFINITIONS.map.get(&kind).unwrap()
     }
 
-    #[allow(clippy::too_many_arguments)]
-    pub async fn new(
+    pub fn add_to_scene(
         kind: ProjectileKind,
-        resource_manager: ResourceManager,
+        resource_manager: &ResourceManager,
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
         owner: Shooter,
         initial_velocity: Vector3<f32>,
-    ) -> Self {
+    ) -> Handle<Node> {
         let definition = Self::get_definition(kind);
 
-        let resource = resource_manager
-            .request_model(definition.model.clone())
-            .await
-            .unwrap();
-        let model = resource.instantiate_geometry(scene);
-        let body = scene.graph.find_by_name(model, "Projectile");
-        let body_ref = &mut scene.graph[body];
-        body_ref.local_transform_mut().set_position(position);
-        if let Some(body) = body_ref.cast_mut::<RigidBody>() {
-            body.set_lin_vel(initial_velocity);
+        let instance_handle = block_on(resource_manager.request_model(definition.model.clone()))
+            .unwrap()
+            .instantiate_geometry(scene);
+
+        let instance_ref = &mut scene.graph[instance_handle];
+
+        instance_ref.local_transform_mut().set_position(position);
+
+        if let Some(projectile) = instance_ref.try_get_script_mut::<Projectile>() {
+            projectile.initial_velocity = initial_velocity;
+            projectile.dir = dir
+                .try_normalize(std::f32::EPSILON)
+                .unwrap_or_else(Vector3::y);
+            projectile.owner = owner;
         }
 
-        Self {
-            lifetime: definition.lifetime,
-            body,
-            initial_velocity,
-            dir: dir
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(Vector3::y),
-            kind,
-            model,
-            last_position: position,
-            owner,
-            definition,
-            ..Default::default()
-        }
+        instance_handle
     }
 
     pub fn is_dead(&self) -> bool {
@@ -192,35 +219,54 @@ impl Projectile {
     pub fn kill(&mut self) {
         self.lifetime = 0.0;
     }
+}
 
-    pub fn update(
-        &mut self,
-        scene: &mut Scene,
-        dt: f32,
-        actors: &[Handle<Node>],
-        sender: &MessageSender,
-    ) {
+impl ScriptTrait for Projectile {
+    fn on_init(&mut self, context: &mut ScriptContext) {
+        let definition = Self::get_definition(self.kind);
+
+        self.lifetime = definition.lifetime;
+
+        let node = &mut context.scene.graph[context.handle];
+
+        self.last_position = node.global_position();
+
+        if let Some(rigid_body) = node.cast_mut::<RigidBody>() {
+            rigid_body.set_lin_vel(self.initial_velocity);
+        }
+    }
+
+    fn on_start(&mut self, _context: &mut ScriptContext) {
+        self.definition = Self::get_definition(self.kind);
+    }
+
+    fn on_update(&mut self, context: &mut ScriptContext) {
+        let game = game_ref(context.plugins);
+
         // Fetch current position of projectile.
-        let (position, collider) = if self.body.is_some() {
-            let body_ref = &scene.graph[self.body];
-            let position = body_ref.global_position();
-            let collider = body_ref
-                .children()
-                .iter()
-                .cloned()
-                .find(|c| scene.graph[*c].is_collider())
-                .unwrap_or_default();
-            (position, collider)
-        } else {
-            (scene.graph[self.model].global_position(), Handle::NONE)
-        };
+        let (position, collider) =
+            if let Some(body) = context.scene.graph[context.handle].cast::<RigidBody>() {
+                let position = body.global_position();
+                let collider = body
+                    .children()
+                    .iter()
+                    .cloned()
+                    .find(|c| context.scene.graph[*c].is_collider())
+                    .unwrap_or_default();
+                (position, collider)
+            } else {
+                (
+                    context.scene.graph[context.handle].global_position(),
+                    Handle::NONE,
+                )
+            };
 
         let ray_hit = ray_hit(
             self.last_position,
             position,
             self.owner,
-            actors,
-            &mut scene.graph,
+            &current_level_ref(context.plugins).unwrap().actors,
+            &mut context.scene.graph,
             collider,
         );
 
@@ -243,7 +289,7 @@ impl Projectile {
             )
         } else {
             (
-                self.get_position(&scene.graph),
+                context.scene.graph[context.handle].global_position(),
                 Vector3::y(),
                 EffectKind::BulletImpact,
             )
@@ -252,21 +298,13 @@ impl Projectile {
         // Movement of kinematic projectiles are controlled explicitly.
         if self.definition.is_kinematic {
             let total_velocity = self.dir.scale(self.definition.speed);
-
-            // Special case for projectiles with rigid body.
-            if self.body.is_some() {
-                scene.graph[self.body]
-                    .local_transform_mut()
-                    .offset(total_velocity);
-            } else {
-                // We have just model - move it.
-                scene.graph[self.model]
-                    .local_transform_mut()
-                    .offset(total_velocity);
-            }
+            context.scene.graph[context.handle]
+                .local_transform_mut()
+                .offset(total_velocity);
         }
 
-        if let Some(sprite) = scene.graph[self.model].cast_mut::<Sprite>() {
+        // TODO: Replace with animation.
+        if let Some(sprite) = context.scene.graph[context.handle].cast_mut::<Sprite>() {
             sprite.set_rotation(self.rotation_angle);
             self.rotation_angle += 1.5;
         }
@@ -275,16 +313,16 @@ impl Projectile {
         // stabilizes its movement over time.
         self.initial_velocity.follow(&Vector3::default(), 0.15);
 
-        self.lifetime -= dt;
+        self.lifetime -= context.dt;
 
         if self.lifetime <= 0.0 {
-            sender.send(Message::CreateEffect {
+            game.message_sender.send(Message::CreateEffect {
                 kind: effect_kind,
                 position: effect_position,
                 orientation: vector_to_quat(effect_normal),
             });
 
-            sender.send(Message::PlaySound {
+            game.message_sender.send(Message::PlaySound {
                 path: PathBuf::from(self.definition.impact_sound.clone()),
                 position: effect_position,
                 gain: 1.0,
@@ -302,11 +340,11 @@ impl Projectile {
             let critical_shot_probability = match self.owner {
                 Shooter::Weapon(weapon) => {
                     if hit.actor.is_some() {
-                        weapon_mut(weapon, &mut scene.graph)
+                        weapon_mut(weapon, &mut context.scene.graph)
                             .set_sight_reaction(SightReaction::HitDetected);
                     }
 
-                    weapon_ref(weapon, &scene.graph)
+                    weapon_ref(weapon, &context.scene.graph)
                         .definition
                         .base_critical_shot_probability
                 }
@@ -315,15 +353,19 @@ impl Projectile {
             };
 
             match damage {
-                Damage::Splash { radius, amount } => sender.send(Message::ApplySplashDamage {
-                    amount,
-                    radius,
-                    center: position,
-                    who: hit.who,
-                    critical_shot_probability,
-                }),
+                Damage::Splash { radius, amount } => {
+                    game.message_sender.send(Message::ApplySplashDamage {
+                        amount,
+                        radius,
+                        center: position,
+                        who: hit.who,
+                        critical_shot_probability,
+                    })
+                }
                 Damage::Point(amount) => {
-                    if let Some(character) = try_get_character_mut(hit.actor, &mut scene.graph) {
+                    if let Some(character) =
+                        try_get_character_mut(hit.actor, &mut context.scene.graph)
+                    {
                         character.push_command(CharacterCommand::Damage {
                             who: hit.who,
                             hitbox: hit.hit_box,
@@ -336,63 +378,13 @@ impl Projectile {
         }
 
         self.last_position = position;
-    }
 
-    pub fn get_position(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.model].global_position()
-    }
-
-    fn clean_up(&mut self, scene: &mut Scene) {
-        if scene.graph.is_valid_handle(self.body) {
-            scene.graph.remove_node(self.body);
-        } else {
-            scene.graph.remove_node(self.model);
+        if self.is_dead() {
+            context.scene.graph.remove_node(context.handle);
         }
     }
 
-    pub fn resolve(&mut self) {
-        self.definition = Self::get_definition(self.kind);
-    }
-}
-
-#[derive(Default, Visit)]
-pub struct ProjectileContainer {
-    pool: Pool<Projectile>,
-}
-
-impl ProjectileContainer {
-    pub fn new() -> Self {
-        Self { pool: Pool::new() }
-    }
-
-    pub fn add(&mut self, projectile: Projectile) -> Handle<Projectile> {
-        self.pool.spawn(projectile)
-    }
-
-    pub fn iter_mut(&mut self) -> impl Iterator<Item = &mut Projectile> {
-        self.pool.iter_mut()
-    }
-
-    pub fn update(
-        &mut self,
-        scene: &mut Scene,
-        dt: f32,
-        actors: &[Handle<Node>],
-        sender: &MessageSender,
-    ) {
-        for projectile in self.pool.iter_mut() {
-            projectile.update(scene, dt, actors, sender);
-            if projectile.is_dead() {
-                projectile.clean_up(scene);
-            }
-        }
-
-        self.pool.retain(|proj| !proj.is_dead());
-    }
-
-    pub fn resolve(&mut self) {
-        for projectile in self.pool.iter_mut() {
-            projectile.resolve();
-        }
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }

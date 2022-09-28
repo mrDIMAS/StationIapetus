@@ -1,13 +1,12 @@
 //! Weapon related stuff.
 
-use crate::character::character_ref;
 use crate::{
-    character::{character_mut, Character, HitBox},
+    character::{character_mut, character_ref, Character, HitBox},
     current_level_mut, game_ref,
     message::Message,
     weapon::{
         definition::{WeaponDefinition, WeaponKind, WeaponProjectile},
-        projectile::Shooter,
+        projectile::{Projectile, Shooter},
         sight::{LaserSight, SightReaction},
     },
     CollisionGroups, MessageSender,
@@ -116,7 +115,7 @@ impl Default for Weapon {
     }
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct Hit {
     pub actor: Handle<Node>, // Can be None if level geometry was hit.
     pub who: Handle<Node>,
@@ -349,13 +348,17 @@ impl Weapon {
             .unwrap_or_else(Vector3::z);
 
         match self.definition.projectile {
-            WeaponProjectile::Projectile(projectile) => sender.send(Message::CreateProjectile {
-                kind: projectile,
-                position,
-                direction,
-                shooter: Shooter::Weapon(self_handle),
-                initial_velocity: Default::default(),
-            }),
+            WeaponProjectile::Projectile(projectile) => {
+                Projectile::add_to_scene(
+                    projectile,
+                    &resource_manager,
+                    scene,
+                    direction,
+                    position,
+                    Shooter::Weapon(self_handle),
+                    Default::default(),
+                );
+            }
             WeaponProjectile::Ray { damage } => {
                 sender.send(Message::ShootRay {
                     shooter: Shooter::Weapon(self_handle),
@@ -389,15 +392,6 @@ impl ScriptTrait for Weapon {
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
         if let Some(level) = current_level_mut(ctx.plugins) {
-            for projectile in level.projectiles.iter_mut() {
-                if let Shooter::Weapon(ref mut owner) = projectile.owner {
-                    // Reset owner because handle to weapon will be invalid after weapon freed.
-                    if *owner == ctx.node_handle {
-                        *owner = Handle::NONE;
-                    }
-                }
-            }
-
             for actor in level.actors.iter() {
                 let character = character_mut(*actor, &mut ctx.scene.graph);
 

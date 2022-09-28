@@ -16,7 +16,7 @@ use crate::{
     utils::use_hrtf,
     weapon::{
         definition::ShotEffect,
-        projectile::{Damage, Projectile, ProjectileContainer, ProjectileKind, Shooter},
+        projectile::{Damage, Shooter},
         ray_hit,
         sight::SightReaction,
         weapon_mut,
@@ -68,7 +68,6 @@ pub struct Level {
     pub map_path: String,
     pub scene: Handle<Scene>,
     pub player: Handle<Node>,
-    pub projectiles: ProjectileContainer,
     pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
     time: f32,
@@ -185,7 +184,6 @@ impl Level {
             scene: scene_handle,
             sender: Some(sender),
             time: 0.0,
-            projectiles: ProjectileContainer::new(),
             sound_manager: SoundManager::new(scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
@@ -232,7 +230,6 @@ impl Level {
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
             time: 0.0,
-            projectiles: ProjectileContainer::new(),
             sound_manager: SoundManager::new(&mut scene),
             beam: Some(make_beam()),
             doors_container: Default::default(),
@@ -251,29 +248,6 @@ impl Level {
         self.player
     }
 
-    async fn create_projectile(
-        &mut self,
-        engine: &mut PluginContext<'_>,
-        kind: ProjectileKind,
-        position: Vector3<f32>,
-        direction: Vector3<f32>,
-        initial_velocity: Vector3<f32>,
-        owner: Shooter,
-    ) {
-        let scene = &mut engine.scenes[self.scene];
-        let projectile = Projectile::new(
-            kind,
-            engine.resource_manager.clone(),
-            scene,
-            direction,
-            position,
-            owner,
-            initial_velocity,
-        )
-        .await;
-        self.projectiles.add(projectile);
-    }
-
     fn update_game_ending(&self, scene: &Scene) {
         if let Some(player_ref) = scene
             .graph
@@ -289,9 +263,6 @@ impl Level {
     pub fn update(&mut self, ctx: &mut PluginContext) {
         self.time += ctx.dt;
         let scene = &mut ctx.scenes[self.scene];
-
-        self.projectiles
-            .update(scene, ctx.dt, &self.actors, self.sender.as_ref().unwrap());
 
         self.update_game_ending(scene);
         self.triggers
@@ -535,16 +506,6 @@ impl Level {
             .await;
 
         match message {
-            &Message::CreateProjectile {
-                kind,
-                position,
-                direction,
-                initial_velocity,
-                shooter: owner,
-            } => {
-                self.create_projectile(engine, kind, position, direction, initial_velocity, owner)
-                    .await
-            }
             &Message::ApplySplashDamage {
                 amount,
                 radius,
@@ -590,7 +551,6 @@ impl Level {
         self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
-        self.projectiles.resolve();
     }
 
     pub fn set_message_sender(&mut self, sender: MessageSender) {
