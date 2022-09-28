@@ -1,6 +1,5 @@
 #![allow(clippy::too_many_arguments)]
 
-pub mod actor;
 pub mod bot;
 pub mod character;
 pub mod config;
