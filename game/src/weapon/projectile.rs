@@ -1,6 +1,6 @@
 use crate::{
     character::{try_get_character_mut, CharacterCommand},
-    current_level_ref,
+    current_level_ref, effects,
     effects::EffectKind,
     game_ref,
     message::Message,
@@ -316,11 +316,13 @@ impl ScriptTrait for Projectile {
         self.lifetime -= context.dt;
 
         if self.lifetime <= 0.0 {
-            game.message_sender.send(Message::CreateEffect {
-                kind: effect_kind,
-                position: effect_position,
-                orientation: vector_to_quat(effect_normal),
-            });
+            effects::create(
+                effect_kind,
+                &mut context.scene.graph,
+                context.resource_manager.clone(),
+                effect_position,
+                vector_to_quat(effect_normal),
+            );
 
             game.message_sender.send(Message::PlaySound {
                 path: PathBuf::from(self.definition.impact_sound.clone()),

@@ -230,17 +230,19 @@ impl Level {
         ) {
             let sender = self.sender.as_ref().unwrap();
 
-            // Just send new messages, instead of doing everything manually here.
-            sender.send(Message::CreateEffect {
-                kind: if hit.actor.is_some() {
+            effects::create(
+                if hit.actor.is_some() {
                     EffectKind::BloodSpray
                 } else {
                     EffectKind::BulletImpact
                 },
-                position: hit.position,
-                orientation: vector_to_quat(hit.normal),
-            });
+                &mut scene.graph,
+                engine.resource_manager.clone(),
+                hit.position,
+                vector_to_quat(hit.normal),
+            );
 
+            // Just send new messages, instead of doing everything manually here.
             sender.send(Message::PlayEnvironmentSound {
                 collider: hit.collider,
                 feature: hit.feature,
@@ -459,19 +461,6 @@ impl Level {
                 who,
                 critical_shot_probability,
             ),
-            &Message::CreateEffect {
-                kind,
-                position,
-                orientation,
-            } => {
-                effects::create(
-                    kind,
-                    &mut engine.scenes[self.scene].graph,
-                    engine.resource_manager.clone(),
-                    position,
-                    orientation,
-                );
-            }
             Message::ShootRay {
                 shooter: weapon,
                 begin,

@@ -4,7 +4,6 @@
 //! strict ownership rules of Rust.
 
 use crate::{
-    effects::EffectKind,
     sound::SoundKind,
     weapon::{
         definition::ShotEffect,
@@ -12,10 +11,7 @@ use crate::{
     },
 };
 use fyrox::{
-    core::{
-        algebra::{UnitQuaternion, Vector3},
-        pool::Handle,
-    },
+    core::{algebra::Vector3, pool::Handle},
     scene::{graph::physics::FeatureId, node::Node},
 };
 use std::path::PathBuf;
@@ -49,11 +45,6 @@ pub enum Message {
         gain: f32,
         rolloff_factor: f32,
         radius: f32,
-    },
-    CreateEffect {
-        kind: EffectKind,
-        position: Vector3<f32>,
-        orientation: UnitQuaternion<f32>,
     },
     ApplySplashDamage {
         amount: f32,
