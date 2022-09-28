@@ -5,11 +5,7 @@ use crate::{
     door::DoorContainer,
     effects::{self, EffectKind},
     item::ItemContainer,
-    level::{
-        decal::Decal,
-        trail::ShotTrail,
-        trigger::{Trigger, TriggerContainer, TriggerKind},
-    },
+    level::{decal::Decal, trail::ShotTrail},
     message::Message,
     player::Player,
     sound::{SoundKind, SoundManager},
@@ -27,7 +23,6 @@ use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
-        futures::executor::block_on,
         math::{ray::Ray, vector_to_quat, PositionProvider},
         parking_lot::Mutex,
         pool::Handle,
@@ -73,18 +68,12 @@ pub struct Level {
     time: f32,
     sound_manager: SoundManager,
     pub doors_container: DoorContainer,
-    triggers: TriggerContainer,
     pub elevators: Vec<Handle<Node>>,
 
     #[visit(skip)]
     sender: Option<MessageSender>,
     #[visit(skip)]
     beam: Option<Arc<Mutex<SurfaceData>>>,
-}
-
-#[derive(Default)]
-pub struct AnalysisResult {
-    triggers: TriggerContainer,
 }
 
 pub fn footstep_ray_check(
@@ -134,24 +123,6 @@ fn make_beam() -> Arc<Mutex<SurfaceData>> {
     )))
 }
 
-pub async fn analyze(scene: &mut Scene) -> AnalysisResult {
-    let mut result = AnalysisResult::default();
-
-    let mut triggers = TriggerContainer::default();
-
-    for (handle, node) in scene.graph.pair_iter() {
-        match node.tag() {
-            "NextLevelTrigger" => triggers.add(Trigger::new(handle, TriggerKind::NextLevel)),
-            "EndGameTrigger" => triggers.add(Trigger::new(handle, TriggerKind::EndGame)),
-            _ => (),
-        }
-    }
-
-    result.triggers = triggers;
-
-    result
-}
-
 impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/loading_bay.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
@@ -174,13 +145,10 @@ impl Level {
 
         scene.graph.update(Default::default(), 0.0);
 
-        let AnalysisResult { triggers } = block_on(analyze(scene));
-
         Self {
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
-            triggers,
             scene: scene_handle,
             sender: Some(sender),
             time: 0.0,
@@ -219,14 +187,10 @@ impl Level {
 
         scene.graph.update(Default::default(), 0.0);
 
-        let AnalysisResult { triggers } = analyze(&mut scene).await;
-
         let level = Self {
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
-
-            triggers,
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
             time: 0.0,
@@ -265,8 +229,6 @@ impl Level {
         let scene = &mut ctx.scenes[self.scene];
 
         self.update_game_ending(scene);
-        self.triggers
-            .update(scene, &self.actors, self.sender.as_ref().unwrap());
     }
 
     fn shoot_ray(

@@ -9,6 +9,7 @@ use station_iapetus::{
     item::ItemKind,
     level::{
         spawn::DefaultWeapon,
+        trigger::TriggerKind,
         turret::{Barrel, Hostility, ShootMode},
     },
     player::camera::CameraController,
@@ -36,6 +37,7 @@ fn main() {
     editors.register_inheritable_enum::<BotKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<ProjectileKind, _>();
+    editors.register_inheritable_enum::<TriggerKind, _>();
     editors.register_inheritable_inspectable::<Barrel>();
     editors.register_inheritable_inspectable::<Character>();
     editors.register_inheritable_inspectable::<CameraController>();

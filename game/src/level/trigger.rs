@@ -1,14 +1,18 @@
-use crate::character::character_ref;
-use crate::{message::Message, MessageSender};
+use crate::{character::character_ref, current_level_ref, game_ref, message::Message};
 use fyrox::{
     core::{
-        pool::{Handle, Pool},
-        visitor::{Visit, VisitResult, Visitor},
+        inspect::prelude::*,
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
     },
-    scene::{node::Node, Scene},
+    impl_component_provider,
+    scene::node::TypeUuidProvider,
+    script::{ScriptContext, ScriptTrait},
 };
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Visit)]
+#[derive(Debug, Clone, Visit, Reflect, Inspect, AsRefStr, EnumString, EnumVariantNames)]
 pub enum TriggerKind {
     NextLevel,
     EndGame,
@@ -20,42 +24,41 @@ impl Default for TriggerKind {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Visit, Reflect, Inspect, Debug, Default, Clone)]
 pub struct Trigger {
-    node: Handle<Node>,
     kind: TriggerKind,
 }
 
-impl Trigger {
-    pub fn new(node: Handle<Node>, kind: TriggerKind) -> Self {
-        Self { node, kind }
+impl_component_provider!(Trigger);
+
+impl TypeUuidProvider for Trigger {
+    fn type_uuid() -> Uuid {
+        uuid!("a7e0d266-3f3f-4100-85c5-59811f9bbab3")
     }
 }
 
-#[derive(Default, Visit)]
-pub struct TriggerContainer {
-    pool: Pool<Trigger>,
-}
+impl ScriptTrait for Trigger {
+    fn on_update(&mut self, context: &mut ScriptContext) {
+        let game = game_ref(context.plugins);
 
-impl TriggerContainer {
-    pub fn add(&mut self, trigger: Trigger) {
-        let _ = self.pool.spawn(trigger);
-    }
+        let position = context.scene.graph[context.handle].global_position();
 
-    pub fn update(&mut self, scene: &Scene, actors: &Vec<Handle<Node>>, sender: &MessageSender) {
-        for trigger in self.pool.iter() {
-            let position = scene.graph[trigger.node].global_position();
-
-            for actor in actors.iter() {
-                let actor_position = character_ref(*actor, &scene.graph).position(&scene.graph);
+        if let Some(level) = current_level_ref(context.plugins) {
+            for actor in level.actors.iter() {
+                let actor_position =
+                    character_ref(*actor, &context.scene.graph).position(&context.scene.graph);
 
                 if actor_position.metric_distance(&position) < 1.0 {
-                    match trigger.kind {
-                        TriggerKind::NextLevel => sender.send(Message::LoadNextLevel),
-                        TriggerKind::EndGame => sender.send(Message::EndGame),
+                    match self.kind {
+                        TriggerKind::NextLevel => game.message_sender.send(Message::LoadNextLevel),
+                        TriggerKind::EndGame => game.message_sender.send(Message::EndGame),
                     }
                 }
             }
         }
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }
