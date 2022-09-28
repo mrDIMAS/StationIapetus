@@ -1246,6 +1246,10 @@ impl ScriptTrait for Player {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let game = game_mut(ctx.plugins);
+        game.weapon_display.sync_to_model(self, &ctx.scene.graph);
+        game.journal_display.update(ctx.dt, &self.journal);
+
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
         let sender = &game.message_sender;

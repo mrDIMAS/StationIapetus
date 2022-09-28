@@ -23,14 +23,12 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::elevator::call_button::CallButton;
-use crate::elevator::Elevator;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::{ui::DoorUiContainer, Door},
-    elevator::ui::CallButtonUiContainer,
+    elevator::{call_button::CallButton, ui::CallButtonUiContainer, Elevator},
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
@@ -520,17 +518,7 @@ impl Game {
         }
 
         if let Some(ref mut level) = self.level {
-            let menu_visible = self.menu.is_visible(ctx.user_interface);
-            if !menu_visible {
-                let player = level.get_player();
-                if player.is_some() {
-                    let graph = &ctx.scenes[level.scene].graph;
-                    let player_ref = graph[player].try_get_script::<Player>().unwrap();
-                    self.weapon_display.sync_to_model(player_ref, graph);
-                    self.journal_display.update(ctx.dt, &player_ref.journal);
-                }
-            }
-            ctx.scenes[level.scene].enabled = !menu_visible;
+            ctx.scenes[level.scene].enabled = !self.menu.is_visible(ctx.user_interface);
         }
 
         self.menu.scene.update(ctx, ctx.dt);
@@ -795,10 +783,6 @@ impl PluginConstructor for GameConstructor {
 }
 
 impl Plugin for Game {
-    fn on_deinit(&mut self, _context: PluginContext) {
-        // Do a cleanup here.
-    }
-
     fn update(&mut self, context: &mut PluginContext, control_flow: &mut ControlFlow) {
         self.update(context);
 
