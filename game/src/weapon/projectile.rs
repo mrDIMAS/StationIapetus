@@ -4,7 +4,8 @@ use crate::{
     effects::EffectKind,
     game_ref,
     message::Message,
-    weapon::{ray_hit, sight::SightReaction, weapon_mut, weapon_ref, Hit},
+    weapon::{sight::SightReaction, Hit},
+    Turret, Weapon,
 };
 use fyrox::{
     core::{
@@ -56,20 +57,6 @@ pub enum ProjectileKind {
     Grenade,
 }
 
-#[derive(Copy, Clone, Debug, PartialEq, Eq, Hash, Visit, Reflect, Inspect)]
-pub enum Shooter {
-    None,
-    Actor(Handle<Node>),
-    Weapon(Handle<Node>),
-    Turret(Handle<Node>),
-}
-
-impl Default for Shooter {
-    fn default() -> Self {
-        Self::None
-    }
-}
-
 #[derive(Deserialize, Copy, Clone, Debug, Visit)]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
@@ -108,7 +95,7 @@ pub struct Projectile {
     dir: Vector3<f32>,
     lifetime: f32,
     rotation_angle: f32,
-    pub owner: Shooter,
+    pub owner: Handle<Node>,
     initial_velocity: Vector3<f32>,
     /// Position of projectile on the previous frame, it is used to simulate
     /// continuous intersection detection from fast moving projectiles.
@@ -188,7 +175,7 @@ impl Projectile {
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
-        owner: Shooter,
+        owner: Handle<Node>,
         initial_velocity: Vector3<f32>,
     ) -> Handle<Node> {
         let definition = Self::get_definition(kind);
@@ -261,7 +248,7 @@ impl ScriptTrait for Projectile {
                 )
             };
 
-        let ray_hit = ray_hit(
+        let ray_hit = Weapon::ray_hit(
             self.last_position,
             position,
             self.owner,
@@ -319,7 +306,7 @@ impl ScriptTrait for Projectile {
             effects::create(
                 effect_kind,
                 &mut context.scene.graph,
-                context.resource_manager.clone(),
+                context.resource_manager,
                 effect_position,
                 vector_to_quat(effect_normal),
             );
@@ -339,20 +326,23 @@ impl ScriptTrait for Projectile {
                 .damage
                 .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
 
-            let critical_shot_probability = match self.owner {
-                Shooter::Weapon(weapon) => {
-                    if hit.actor.is_some() {
-                        weapon_mut(weapon, &mut context.scene.graph)
-                            .set_sight_reaction(SightReaction::HitDetected);
-                    }
-
-                    weapon_ref(weapon, &context.scene.graph)
-                        .definition
-                        .base_critical_shot_probability
-                }
-                Shooter::Turret(_) => 0.01,
-                _ => 0.0,
-            };
+            let critical_shot_probability =
+                context
+                    .scene
+                    .graph
+                    .try_get_mut(self.owner)
+                    .map_or(0.0, |owner_node| {
+                        if let Some(weapon) = owner_node.try_get_script_mut::<Weapon>() {
+                            if hit.actor.is_some() {
+                                weapon.set_sight_reaction(SightReaction::HitDetected);
+                            }
+                            weapon.definition.base_critical_shot_probability
+                        } else if owner_node.has_script::<Turret>() {
+                            0.01
+                        } else {
+                            0.0
+                        }
+                    });
 
             match damage {
                 Damage::Splash { radius, amount } => {

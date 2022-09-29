@@ -1,21 +1,31 @@
 //! Weapon related stuff.
 
 use crate::{
-    character::{character_mut, character_ref, Character, HitBox},
-    current_level_mut, game_ref,
+    bot::{try_get_bot_mut, BotCommand},
+    character::{
+        character_mut, character_ref, try_get_character_mut, try_get_character_ref, Character,
+        CharacterCommand, HitBox,
+    },
+    current_level_mut, current_level_ref, effects,
+    effects::EffectKind,
+    game_ref,
+    level::trail::ShotTrail,
     message::Message,
+    sound::SoundKind,
     weapon::{
-        definition::{WeaponDefinition, WeaponKind, WeaponProjectile},
-        projectile::{Projectile, Shooter},
+        definition::{ShotEffect, WeaponDefinition, WeaponKind, WeaponProjectile},
+        projectile::{Damage, Projectile},
         sight::{LaserSight, SightReaction},
     },
-    CollisionGroups, MessageSender,
+    CollisionGroups, Decal, MessageSender,
 };
 use fyrox::{
     core::{
-        algebra::{Matrix3, Point3, Vector3},
+        algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
+        color::Color,
         inspect::prelude::*,
-        math::{ray::Ray, Matrix4Ext},
+        math::{ray::Ray, vector_to_quat, Matrix4Ext},
+        parking_lot::Mutex,
         pool::Handle,
         reflect::Reflect,
         sstorage::ImmutableString,
@@ -24,23 +34,31 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
-    material::{shader::SamplerFallback, PropertyValue},
+    material::{shader::SamplerFallback, Material, PropertyValue},
     rand::seq::SliceRandom,
     scene::{
-        collider::{BitMask, InteractionGroups},
+        base::BaseBuilder,
+        collider::{BitMask, ColliderShape, InteractionGroups},
         graph::{
             physics::{FeatureId, Intersection, RayCastOptions},
             Graph,
         },
+        mesh::{
+            surface::{SurfaceBuilder, SurfaceData},
+            MeshBuilder, RenderPath,
+        },
         node::{Node, TypeUuidProvider},
+        rigidbody::RigidBody,
+        transform::TransformBuilder,
         Scene,
     },
-    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
+    script::{Script, ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::{self, log::Log},
 };
 use std::{
     hash::{Hash, Hasher},
     path::PathBuf,
+    sync::Arc,
 };
 
 pub mod definition;
@@ -147,91 +165,277 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-/// Checks intersection of given ray with actors and environment.
-pub fn ray_hit(
-    begin: Vector3<f32>,
-    end: Vector3<f32>,
-    shooter: Shooter,
-    actors: &[Handle<Node>],
-    graph: &mut Graph,
-    ignored_collider: Handle<Node>,
-) -> Option<Hit> {
-    let physics = &mut graph.physics;
-    let ray = Ray::from_two_points(begin, end);
+impl Weapon {
+    /// Checks intersection of given ray with actors and environment.
+    pub fn ray_hit(
+        begin: Vector3<f32>,
+        end: Vector3<f32>,
+        shooter: Handle<Node>,
+        actors: &[Handle<Node>],
+        graph: &mut Graph,
+        ignored_collider: Handle<Node>,
+    ) -> Option<Hit> {
+        let physics = &mut graph.physics;
+        let ray = Ray::from_two_points(begin, end);
 
-    // TODO: Avoid allocation.
-    let mut query_buffer = Vec::default();
+        // TODO: Avoid allocation.
+        let mut query_buffer = Vec::default();
 
-    physics.cast_ray(
-        RayCastOptions {
-            ray_origin: Point3::from(ray.origin),
-            ray_direction: ray.dir,
-            max_len: ray.dir.norm(),
-            groups: InteractionGroups::new(
-                BitMask(0xFFFF),
-                BitMask(!(CollisionGroups::ActorCapsule as u32)),
-            ),
-            sort_results: true,
-        },
-        &mut query_buffer,
-    );
+        physics.cast_ray(
+            RayCastOptions {
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
+                max_len: ray.dir.norm(),
+                groups: InteractionGroups::new(
+                    BitMask(0xFFFF),
+                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
+                ),
+                sort_results: true,
+            },
+            &mut query_buffer,
+        );
 
-    // List of hits sorted by distance from ray origin.
-    if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
-        let mut is_hitbox_hit = false;
+        // List of hits sorted by distance from ray origin.
+        if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
+            let mut is_hitbox_hit = false;
 
-        // Check if there was an intersection with an actor.
-        'actor_loop: for &actor_handle in actors.iter() {
-            let character = character_ref(actor_handle, graph);
-            for hit_box in character.hit_boxes.iter() {
-                if hit_box.collider == hit.collider {
-                    is_hitbox_hit = true;
+            // Check if there was an intersection with an actor.
+            'actor_loop: for &actor_handle in actors.iter() {
+                let character = character_ref(actor_handle, graph);
+                for hit_box in character.hit_boxes.iter() {
+                    if hit_box.collider == hit.collider {
+                        is_hitbox_hit = true;
 
-                    let who = match shooter {
-                        Shooter::None | Shooter::Turret(_) => Default::default(),
-                        Shooter::Actor(actor) => actor,
-                        Shooter::Weapon(weapon) => weapon_ref(weapon, graph).owner(),
-                    };
+                        let who = shooter;
 
-                    // Ignore intersections with owners.
-                    if who == actor_handle {
-                        continue 'actor_loop;
+                        // Ignore intersections with owners.
+                        if who == actor_handle {
+                            continue 'actor_loop;
+                        }
+
+                        return Some(Hit {
+                            actor: actor_handle,
+                            who,
+                            position: hit.position.coords,
+                            normal: hit.normal,
+                            collider: hit.collider,
+                            feature: hit.feature,
+                            hit_box: Some(*hit_box),
+                            query_buffer,
+                        });
                     }
-
-                    return Some(Hit {
-                        actor: actor_handle,
-                        who,
-                        position: hit.position.coords,
-                        normal: hit.normal,
-                        collider: hit.collider,
-                        feature: hit.feature,
-                        hit_box: Some(*hit_box),
-                        query_buffer,
-                    });
                 }
+            }
+
+            if is_hitbox_hit {
+                None
+            } else {
+                Some(Hit {
+                    actor: Handle::NONE,
+                    who: Handle::NONE,
+                    position: hit.position.coords,
+                    normal: hit.normal,
+                    collider: hit.collider,
+                    feature: hit.feature,
+                    hit_box: None,
+                    query_buffer,
+                })
+            }
+        } else {
+            None
+        }
+    }
+
+    pub fn shoot_ray(
+        graph: &mut Graph,
+        resource_manager: &ResourceManager,
+        actors: &[Handle<Node>],
+        shooter: Handle<Node>,
+        begin: Vector3<f32>,
+        end: Vector3<f32>,
+        damage: Damage,
+        shot_effect: ShotEffect,
+        sender: &MessageSender,
+        critical_shot_probability: f32,
+    ) -> Option<Hit> {
+        // Do immediate intersection test and solve it.
+        let (trail_len, hit_point, hit) = if let Some(hit) =
+            Weapon::ray_hit(begin, end, shooter, actors, graph, Default::default())
+        {
+            effects::create(
+                if hit.actor.is_some() {
+                    EffectKind::BloodSpray
+                } else {
+                    EffectKind::BulletImpact
+                },
+                graph,
+                resource_manager,
+                hit.position,
+                vector_to_quat(hit.normal),
+            );
+
+            // Just send new messages, instead of doing everything manually here.
+            sender.send(Message::PlayEnvironmentSound {
+                collider: hit.collider,
+                feature: hit.feature,
+                position: hit.position,
+                sound_kind: SoundKind::Impact,
+                gain: 1.0,
+                rolloff_factor: 1.0,
+                radius: 0.5,
+            });
+
+            if let Some(character) = try_get_character_mut(hit.actor, graph) {
+                character.push_command(CharacterCommand::Damage {
+                    who: hit.who,
+                    hitbox: hit.hit_box,
+                    amount: damage
+                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
+                        .amount(),
+                    critical_shot_probability,
+                });
+            }
+
+            let dir = hit.position - begin;
+
+            let hit_collider_body = graph[hit.collider].parent();
+            let parent =
+                if let Some(collider_parent) = graph[hit_collider_body].cast_mut::<RigidBody>() {
+                    collider_parent.apply_force_at_point(
+                        dir.try_normalize(std::f32::EPSILON)
+                            .unwrap_or_default()
+                            .scale(30.0),
+                        hit.position,
+                    );
+                    hit_collider_body
+                } else {
+                    Default::default()
+                };
+
+            if try_get_bot_mut(hit.actor, graph).is_some() {
+                let body = graph[hit.collider].parent();
+                try_get_bot_mut(hit.actor, graph)
+                    .unwrap()
+                    .commands_queue
+                    .push_back(BotCommand::HandleImpact {
+                        handle: body,
+                        impact_point: hit.position,
+                        direction: dir,
+                    });
+            }
+
+            Decal::new_bullet_hole(
+                resource_manager,
+                graph,
+                hit.position,
+                hit.normal,
+                parent,
+                if hit.actor.is_some() {
+                    Color::opaque(160, 0, 0)
+                } else {
+                    Color::opaque(20, 20, 20)
+                },
+            );
+
+            // Add blood splatter on a surface behind an actor that was shot.
+            if !try_get_character_ref(hit.actor, graph).map_or(true, |a| a.is_dead()) {
+                for intersection in hit.query_buffer.iter() {
+                    if matches!(
+                        graph[intersection.collider].as_collider().shape(),
+                        ColliderShape::Trimesh(_)
+                    ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
+                    {
+                        Decal::add_to_graph(
+                            graph,
+                            intersection.position.coords,
+                            dir,
+                            Handle::NONE,
+                            Color::opaque(255, 255, 255),
+                            Vector3::new(0.45, 0.45, 0.2),
+                            resource_manager.request_texture(
+                                "data/textures/decals/BloodSplatter_BaseColor.png",
+                            ),
+                        );
+
+                        break;
+                    }
+                }
+            }
+
+            (dir.norm(), hit.position, Some(hit))
+        } else {
+            (30.0, end, None)
+        };
+
+        match shot_effect {
+            ShotEffect::Smoke => {
+                let effect = effects::create(
+                    EffectKind::Smoke,
+                    graph,
+                    resource_manager,
+                    begin,
+                    Default::default(),
+                );
+                graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
+            }
+            ShotEffect::Beam => {
+                let trail_radius = 0.0014;
+                MeshBuilder::new(
+                    BaseBuilder::new()
+                        .with_script(Script::new(ShotTrail::new(0.2)))
+                        .with_cast_shadows(false)
+                        .with_local_transform(
+                            TransformBuilder::new()
+                                .with_local_position(begin)
+                                .with_local_scale(Vector3::new(
+                                    trail_radius,
+                                    trail_radius,
+                                    trail_len,
+                                ))
+                                .with_local_rotation(UnitQuaternion::face_towards(
+                                    &(end - begin),
+                                    &Vector3::y(),
+                                ))
+                                .build(),
+                        ),
+                )
+                .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
+                    SurfaceData::make_cylinder(
+                        6,
+                        1.0,
+                        1.0,
+                        false,
+                        &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
+                            .to_homogeneous(),
+                    ),
+                )))
+                .with_material(Arc::new(Mutex::new({
+                    let mut material = Material::standard();
+                    Log::verify(material.set_property(
+                        &ImmutableString::new("diffuseColor"),
+                        PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
+                    ));
+                    material
+                })))
+                .build()])
+                .with_render_path(RenderPath::Forward)
+                .build(graph);
+            }
+            ShotEffect::Rail => {
+                let effect = effects::create_rail(
+                    graph,
+                    resource_manager,
+                    begin,
+                    hit_point,
+                    Color::opaque(255, 0, 0),
+                );
+                graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
             }
         }
 
-        if is_hitbox_hit {
-            None
-        } else {
-            Some(Hit {
-                actor: Handle::NONE,
-                who: Handle::NONE,
-                position: hit.position.coords,
-                normal: hit.normal,
-                collider: hit.collider,
-                feature: hit.feature,
-                hit_box: None,
-                query_buffer,
-            })
-        }
-    } else {
-        None
+        hit
     }
-}
 
-impl Weapon {
     pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
         definition::DEFINITIONS.map.get(&kind).unwrap()
     }
@@ -294,9 +498,10 @@ impl Weapon {
         self_handle: Handle<Node>,
         scene: &mut Scene,
         elapsed_time: f32,
-        resource_manager: ResourceManager,
+        resource_manager: &ResourceManager,
         direction: Option<Vector3<f32>>,
         sender: &MessageSender,
+        actors: &[Handle<Node>],
     ) {
         self.last_shot_time = elapsed_time;
 
@@ -355,18 +560,27 @@ impl Weapon {
                     scene,
                     direction,
                     position,
-                    Shooter::Weapon(self_handle),
+                    self_handle,
                     Default::default(),
                 );
             }
             WeaponProjectile::Ray { damage } => {
-                sender.send(Message::ShootRay {
-                    shooter: Shooter::Weapon(self_handle),
-                    begin: position,
-                    end: position + direction.scale(1000.0),
+                if let Some(hit) = Self::shoot_ray(
+                    &mut scene.graph,
+                    resource_manager,
+                    actors,
+                    self_handle,
+                    position,
+                    position + direction.scale(1000.0),
                     damage,
-                    shot_effect: self.definition.shot_effect,
-                });
+                    self.definition.shot_effect,
+                    sender,
+                    self.definition.base_critical_shot_probability,
+                ) {
+                    if hit.actor.is_some() {
+                        self.set_sight_reaction(SightReaction::HitDetected);
+                    }
+                }
             }
         }
     }
@@ -410,6 +624,8 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let level = current_level_ref(ctx.plugins).unwrap();
+
         ctx.scene.graph[ctx.handle].set_visibility(self.enabled);
 
         let node = &mut ctx.scene.graph[ctx.handle];
@@ -447,9 +663,10 @@ impl ScriptTrait for Weapon {
                 ctx.handle,
                 ctx.scene,
                 ctx.elapsed_time,
-                ctx.resource_manager.clone(),
+                ctx.resource_manager,
                 request.direction,
                 &game.message_sender,
+                &level.actors,
             );
         }
     }

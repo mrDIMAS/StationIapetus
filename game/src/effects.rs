@@ -39,7 +39,7 @@ pub enum EffectKind {
 pub fn create(
     kind: EffectKind,
     graph: &mut Graph,
-    resource_manager: ResourceManager,
+    resource_manager: &ResourceManager,
     pos: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
@@ -52,7 +52,7 @@ pub fn create(
 
 fn create_bullet_impact(
     graph: &mut Graph,
-    resource_manager: ResourceManager,
+    resource_manager: &ResourceManager,
     pos: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
@@ -109,7 +109,7 @@ fn create_bullet_impact(
 
 fn create_blood_spray(
     graph: &mut Graph,
-    resource_manager: ResourceManager,
+    resource_manager: &ResourceManager,
     pos: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
@@ -149,7 +149,7 @@ fn create_blood_spray(
 
 fn create_smoke(
     graph: &mut Graph,
-    resource_manager: ResourceManager,
+    resource_manager: &ResourceManager,
     pos: Vector3<f32>,
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
@@ -192,7 +192,7 @@ fn create_smoke(
 
 pub fn create_rail(
     graph: &mut Graph,
-    resource_manager: ResourceManager,
+    resource_manager: &ResourceManager,
     begin: Vector3<f32>,
     end: Vector3<f32>,
     color: Color,

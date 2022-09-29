@@ -3,13 +3,7 @@
 //! required entity. This is very effective decoupling mechanism that works perfectly with
 //! strict ownership rules of Rust.
 
-use crate::{
-    sound::SoundKind,
-    weapon::{
-        definition::ShotEffect,
-        projectile::{Damage, Shooter},
-    },
-};
+use crate::sound::SoundKind;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle},
     scene::{graph::physics::FeatureId, node::Node},
@@ -18,13 +12,6 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
-    ShootRay {
-        shooter: Shooter,
-        begin: Vector3<f32>,
-        end: Vector3<f32>,
-        damage: Damage,
-        shot_effect: ShotEffect,
-    },
     PlaySound {
         path: PathBuf,
         position: Vector3<f32>,

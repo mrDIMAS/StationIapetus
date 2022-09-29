@@ -15,7 +15,7 @@ use crate::{
     },
     weapon::{
         definition::WeaponKind,
-        projectile::{Projectile, ProjectileKind, Shooter},
+        projectile::{Projectile, ProjectileKind},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
     CameraController, Elevator, Game, Item, MessageSender,
@@ -587,7 +587,7 @@ impl Player {
                         scene,
                         direction,
                         position,
-                        Shooter::Actor(self_handle),
+                        self_handle,
                         direction.scale(15.0),
                     );
                 }

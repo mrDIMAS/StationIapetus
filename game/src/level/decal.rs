@@ -131,7 +131,7 @@ impl Decal {
     }
 
     pub fn new_bullet_hole(
-        resource_manager: ResourceManager,
+        resource_manager: &ResourceManager,
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,

@@ -1,54 +1,26 @@
 use crate::{
-    bot::{try_get_bot_mut, Bot, BotCommand},
-    character::{character_ref, try_get_character_mut, try_get_character_ref, CharacterCommand},
+    bot::Bot,
+    character::{character_ref, try_get_character_mut, CharacterCommand},
     config::SoundConfig,
     door::DoorContainer,
-    effects::{self, EffectKind},
     item::ItemContainer,
-    level::{decal::Decal, trail::ShotTrail},
     message::Message,
     sound::{SoundKind, SoundManager},
     utils::use_hrtf,
-    weapon::{
-        definition::ShotEffect,
-        projectile::{Damage, Shooter},
-        ray_hit,
-        sight::SightReaction,
-        weapon_mut,
-    },
     MessageSender,
 };
 use fyrox::{
     core::{
-        algebra::{Point3, UnitQuaternion, Vector3},
-        color::Color,
-        math::{ray::Ray, vector_to_quat, PositionProvider},
-        parking_lot::Mutex,
+        algebra::{Point3, Vector3},
+        math::{ray::Ray, PositionProvider},
         pool::Handle,
-        sstorage::ImmutableString,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
-    material::{Material, PropertyValue},
     plugin::PluginContext,
-    scene::{
-        self,
-        base::BaseBuilder,
-        collider::ColliderShape,
-        graph::physics::RayCastOptions,
-        mesh::{
-            surface::{SurfaceBuilder, SurfaceData},
-            MeshBuilder, RenderPath,
-        },
-        node::Node,
-        rigidbody::RigidBody,
-        transform::TransformBuilder,
-        Scene,
-    },
-    script::Script,
-    utils::log::Log,
+    scene::{self, graph::physics::RayCastOptions, node::Node, Scene},
 };
-use std::{path::Path, sync::Arc};
+use std::path::Path;
 
 pub mod death_zone;
 pub mod decal;
@@ -70,8 +42,6 @@ pub struct Level {
 
     #[visit(skip)]
     sender: Option<MessageSender>,
-    #[visit(skip)]
-    beam: Option<Arc<Mutex<SurfaceData>>>,
 }
 
 pub fn footstep_ray_check(
@@ -111,16 +81,6 @@ pub fn footstep_ray_check(
     }
 }
 
-fn make_beam() -> Arc<Mutex<SurfaceData>> {
-    Arc::new(Mutex::new(SurfaceData::make_cylinder(
-        6,
-        1.0,
-        1.0,
-        false,
-        &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians()).to_homogeneous(),
-    )))
-}
-
 impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/loading_bay.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
@@ -150,7 +110,6 @@ impl Level {
             scene: scene_handle,
             sender: Some(sender),
             sound_manager: SoundManager::new(scene),
-            beam: Some(make_beam()),
             doors_container: Default::default(),
             map_path: Default::default(),
             elevators: Default::default(),
@@ -191,7 +150,6 @@ impl Level {
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
             sound_manager: SoundManager::new(&mut scene),
-            beam: Some(make_beam()),
             doors_container: Default::default(),
             map_path: map,
             elevators: Default::default(),
@@ -206,206 +164,6 @@ impl Level {
 
     pub fn get_player(&self) -> Handle<Node> {
         self.player
-    }
-
-    fn shoot_ray(
-        &mut self,
-        engine: &mut PluginContext,
-        shooter: Shooter,
-        begin: Vector3<f32>,
-        end: Vector3<f32>,
-        damage: Damage,
-        shot_effect: ShotEffect,
-    ) {
-        let scene = &mut engine.scenes[self.scene];
-
-        // Do immediate intersection test and solve it.
-        let (trail_len, hit_point) = if let Some(hit) = ray_hit(
-            begin,
-            end,
-            shooter,
-            &self.actors,
-            &mut scene.graph,
-            Default::default(),
-        ) {
-            let sender = self.sender.as_ref().unwrap();
-
-            effects::create(
-                if hit.actor.is_some() {
-                    EffectKind::BloodSpray
-                } else {
-                    EffectKind::BulletImpact
-                },
-                &mut scene.graph,
-                engine.resource_manager.clone(),
-                hit.position,
-                vector_to_quat(hit.normal),
-            );
-
-            // Just send new messages, instead of doing everything manually here.
-            sender.send(Message::PlayEnvironmentSound {
-                collider: hit.collider,
-                feature: hit.feature,
-                position: hit.position,
-                sound_kind: SoundKind::Impact,
-                gain: 1.0,
-                rolloff_factor: 1.0,
-                radius: 0.5,
-            });
-
-            let critical_shot_probability = match shooter {
-                Shooter::Weapon(weapon) => {
-                    let weapon = weapon_mut(weapon, &mut scene.graph);
-
-                    if hit.actor.is_some() {
-                        weapon.set_sight_reaction(SightReaction::HitDetected);
-                    }
-
-                    weapon.definition.base_critical_shot_probability
-                }
-                Shooter::Turret(_) => 0.01,
-                _ => 0.0,
-            };
-
-            if let Some(character) = try_get_character_mut(hit.actor, &mut scene.graph) {
-                character.push_command(CharacterCommand::Damage {
-                    who: hit.who,
-                    hitbox: hit.hit_box,
-                    amount: damage
-                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
-                        .amount(),
-                    critical_shot_probability,
-                });
-            }
-
-            let dir = hit.position - begin;
-
-            let hit_collider_body = scene.graph[hit.collider].parent();
-            let parent = if let Some(collider_parent) =
-                scene.graph[hit_collider_body].cast_mut::<RigidBody>()
-            {
-                collider_parent.apply_force_at_point(
-                    dir.try_normalize(std::f32::EPSILON)
-                        .unwrap_or_default()
-                        .scale(30.0),
-                    hit.position,
-                );
-                hit_collider_body
-            } else {
-                Default::default()
-            };
-
-            if try_get_bot_mut(hit.actor, &mut scene.graph).is_some() {
-                let body = scene.graph[hit.collider].parent();
-                try_get_bot_mut(hit.actor, &mut scene.graph)
-                    .unwrap()
-                    .commands_queue
-                    .push_back(BotCommand::HandleImpact {
-                        handle: body,
-                        impact_point: hit.position,
-                        direction: dir,
-                    });
-            }
-
-            Decal::new_bullet_hole(
-                engine.resource_manager.clone(),
-                &mut scene.graph,
-                hit.position,
-                hit.normal,
-                parent,
-                if hit.actor.is_some() {
-                    Color::opaque(160, 0, 0)
-                } else {
-                    Color::opaque(20, 20, 20)
-                },
-            );
-
-            // Add blood splatter on a surface behind an actor that was shot.
-            if !try_get_character_ref(hit.actor, &scene.graph).map_or(true, |a| a.is_dead()) {
-                for intersection in hit.query_buffer.iter() {
-                    if matches!(
-                        scene.graph[intersection.collider].as_collider().shape(),
-                        ColliderShape::Trimesh(_)
-                    ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
-                    {
-                        Decal::add_to_graph(
-                            &mut scene.graph,
-                            intersection.position.coords,
-                            dir,
-                            Handle::NONE,
-                            Color::opaque(255, 255, 255),
-                            Vector3::new(0.45, 0.45, 0.2),
-                            engine.resource_manager.request_texture(
-                                "data/textures/decals/BloodSplatter_BaseColor.png",
-                            ),
-                        );
-
-                        break;
-                    }
-                }
-            }
-
-            (dir.norm(), hit.position)
-        } else {
-            (30.0, end)
-        };
-
-        match shot_effect {
-            ShotEffect::Smoke => {
-                let effect = effects::create(
-                    EffectKind::Smoke,
-                    &mut scene.graph,
-                    engine.resource_manager.clone(),
-                    begin,
-                    Default::default(),
-                );
-                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
-            }
-            ShotEffect::Beam => {
-                let trail_radius = 0.0014;
-                MeshBuilder::new(
-                    BaseBuilder::new()
-                        .with_script(Script::new(ShotTrail::new(0.2)))
-                        .with_cast_shadows(false)
-                        .with_local_transform(
-                            TransformBuilder::new()
-                                .with_local_position(begin)
-                                .with_local_scale(Vector3::new(
-                                    trail_radius,
-                                    trail_radius,
-                                    trail_len,
-                                ))
-                                .with_local_rotation(UnitQuaternion::face_towards(
-                                    &(end - begin),
-                                    &Vector3::y(),
-                                ))
-                                .build(),
-                        ),
-                )
-                .with_surfaces(vec![SurfaceBuilder::new(self.beam.clone().unwrap())
-                    .with_material(Arc::new(Mutex::new({
-                        let mut material = Material::standard();
-                        Log::verify(material.set_property(
-                            &ImmutableString::new("diffuseColor"),
-                            PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
-                        ));
-                        material
-                    })))
-                    .build()])
-                .with_render_path(RenderPath::Forward)
-                .build(&mut scene.graph);
-            }
-            ShotEffect::Rail => {
-                let effect = effects::create_rail(
-                    &mut scene.graph,
-                    engine.resource_manager.clone(),
-                    begin,
-                    hit_point,
-                    Color::opaque(255, 0, 0),
-                );
-                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
-            }
-        }
     }
 
     fn apply_splash_damage(
@@ -461,22 +219,12 @@ impl Level {
                 who,
                 critical_shot_probability,
             ),
-            Message::ShootRay {
-                shooter: weapon,
-                begin,
-                end,
-                damage,
-                shot_effect,
-            } => {
-                self.shoot_ray(engine, *weapon, *begin, *end, *damage, *shot_effect);
-            }
             _ => (),
         }
     }
 
     pub fn resolve(&mut self, engine: &mut PluginContext, sender: MessageSender) {
         self.set_message_sender(sender);
-        self.beam = Some(make_beam());
         let scene = &mut engine.scenes[self.scene];
         self.sound_manager.resolve(scene);
     }

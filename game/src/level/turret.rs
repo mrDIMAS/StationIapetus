@@ -1,10 +1,9 @@
-use crate::character::{character_ref, try_get_character_ref};
 use crate::{
+    character::{character_ref, try_get_character_ref},
     current_level_ref,
     message::Message,
-    weapon::definition::ShotEffect,
-    weapon::projectile::{Damage, Shooter},
-    MessageSender, Player,
+    weapon::{definition::ShotEffect, projectile::Damage},
+    MessageSender, Player, Weapon,
 };
 use fyrox::{
     core::{
@@ -21,6 +20,7 @@ use fyrox::{
         reflect::Reflect,
         uuid::{uuid, Uuid},
     },
+    engine::resource_manager::ResourceManager,
     impl_component_provider,
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
@@ -216,6 +216,8 @@ impl ScriptTrait for Turret {
                                 ctx.handle,
                                 ctx.scene,
                                 target_position,
+                                &level_ref.actors,
+                                ctx.resource_manager,
                                 level_ref.sender.as_ref().unwrap(),
                             );
                             self.barrel_index += 1;
@@ -230,6 +232,8 @@ impl ScriptTrait for Turret {
                                 ctx.handle,
                                 ctx.scene,
                                 target_position,
+                                &level_ref.actors,
+                                ctx.resource_manager,
                                 level_ref.sender.as_ref().unwrap(),
                             );
                         }
@@ -300,21 +304,28 @@ impl Barrel {
     fn shoot(
         &mut self,
         owner_handle: Handle<Node>,
-        scene: &Scene,
+        scene: &mut Scene,
         target_position: Vector3<f32>,
+        actors: &[Handle<Node>],
+        resource_manager: &ResourceManager,
         sender: &MessageSender,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
-        let shoot_point = &scene.graph[self.shoot_point];
+        let shot_position = scene.graph[self.shoot_point].global_position();
 
-        sender.send(Message::ShootRay {
-            shooter: Shooter::Turret(owner_handle),
-            begin: shoot_point.global_position(),
-            end: target_position,
-            damage: Damage::Point(10.0),
-            shot_effect: ShotEffect::Smoke,
-        });
+        Weapon::shoot_ray(
+            &mut scene.graph,
+            resource_manager,
+            actors,
+            owner_handle,
+            shot_position,
+            target_position,
+            Damage::Point(10.0),
+            ShotEffect::Smoke,
+            sender,
+            0.01,
+        );
 
         let sounds = [
             "data/sounds/turret_shot_1.ogg",
@@ -324,7 +335,7 @@ impl Barrel {
 
         sender.send(Message::PlaySound {
             path: PathBuf::from(sounds.choose(&mut thread_rng()).unwrap()),
-            position: shoot_point.global_position(),
+            position: shot_position,
             gain: 1.0,
             rolloff_factor: 1.0,
             radius: 3.0,
