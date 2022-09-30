@@ -195,7 +195,7 @@ impl Level {
         }
     }
 
-    pub async fn handle_message(&mut self, engine: &mut PluginContext<'_>, message: &Message) {
+    pub async fn handle_message(&mut self, engine: &mut PluginContext<'_, '_>, message: &Message) {
         self.sound_manager
             .handle_message(
                 &mut engine.scenes[self.scene].graph,

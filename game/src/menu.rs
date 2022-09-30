@@ -48,7 +48,7 @@ pub struct MenuScene {
 }
 
 impl MenuScene {
-    pub async fn new(context: &mut PluginContext<'_>, sound_config: &SoundConfig) -> Self {
+    pub async fn new(context: &mut PluginContext<'_, '_>, sound_config: &SoundConfig) -> Self {
         let mut scene = SceneLoader::from_file(
             "data/levels/menu.rgs",
             context.serialization_context.clone(),
@@ -110,7 +110,7 @@ impl MenuScene {
 
 impl Menu {
     pub async fn new(
-        context: &mut PluginContext<'_>,
+        context: &mut PluginContext<'_, '_>,
         control_scheme: &ControlScheme,
         sender: MessageSender,
         font: SharedFont,

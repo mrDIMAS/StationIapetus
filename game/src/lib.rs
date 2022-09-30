@@ -460,10 +460,19 @@ impl Game {
         let map_path = map.as_ref().to_owned();
         std::thread::spawn(move || {
             let level = {
-                let (arrival, scene) =
-                    block_on(Level::new(map_path, resource_manager, sender, sound_config));
+                let (arrival, scene) = block_on(Level::new(
+                    map_path,
+                    resource_manager.clone(),
+                    sender,
+                    sound_config,
+                ));
                 (arrival, scene)
             };
+
+            // Wait until all resource are loaded and only then enter the game. This ensures that all textures
+            // are loaded and there won't be any visual artifact due to loading texture.
+            let resource_wait_context = resource_manager.state().containers_mut().wait_concurrent();
+            block_on(resource_wait_context.wait_concurrent());
 
             ctx.lock().level = Some(level);
         });
@@ -507,6 +516,9 @@ impl Game {
                         false,
                     ));
                     self.menu.sync_to_model(ctx, true);
+
+                    // Reset update lag to prevent lag after scene is loaded.
+                    *ctx.lag = 0.0;
                 } else {
                     self.loading_screen.set_progress(
                         ctx.user_interface,
