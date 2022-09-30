@@ -378,6 +378,7 @@ impl Character {
 
 #[derive(Default, Clone, Copy, PartialEq, Debug, Visit, Reflect, Inspect)]
 pub struct HitBox {
+    pub bone: Handle<Node>,
     pub collider: Handle<Node>,
     pub damage_factor: f32,
     pub movement_speed_factor: f32,

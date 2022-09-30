@@ -1,6 +1,3 @@
-use fyrox::scene::sound;
-use fyrox::scene::sound::context::SoundContext;
-use fyrox::scene::sound::listener::ListenerBuilder;
 use fyrox::{
     animation::{
         machine::{Machine, PoseNode, State},
@@ -19,9 +16,11 @@ use fyrox::{
         camera::{CameraBuilder, SkyBoxBuilder},
         graph::Graph,
         node::Node,
+        sound::{self, context::SoundContext, listener::ListenerBuilder},
         transform::TransformBuilder,
         Scene,
     },
+    utils::log::Log,
 };
 use std::collections::HashMap;
 
@@ -46,31 +45,34 @@ impl BodyImpactHandler {
         impact_point: Vector3<f32>,
         direction: Vector3<f32>,
     ) {
-        let global_transform = scene.graph[handle]
-            .global_transform()
-            .try_inverse()
-            .unwrap_or_default();
-        let local_impact_point = global_transform.transform_point(&Point3::from(impact_point));
-        let local_direction = global_transform.transform_vector(&direction);
-        // local_impact_point can be directly be used as vector because it is in
-        // local coordinates of rigid body.
-        if let Some(axis) = local_impact_point
-            .coords
-            .cross(&local_direction)
-            .try_normalize(f32::EPSILON)
-        {
-            let additional_rotation =
-                UnitQuaternion::from_axis_angle(&Unit::new_normalize(axis), 24.0f32.to_radians());
-            self.additional_rotations
-                .entry(handle)
-                .and_modify(|r| {
-                    r.source = additional_rotation;
-                    r.k = 0.0;
-                })
-                .or_insert(ImpactEntry {
-                    k: 0.0,
-                    source: additional_rotation,
-                });
+        if let Some(node) = scene.graph.try_get(handle) {
+            let global_transform = node.global_transform().try_inverse().unwrap_or_default();
+            let local_impact_point = global_transform.transform_point(&Point3::from(impact_point));
+            let local_direction = global_transform.transform_vector(&direction);
+            // local_impact_point can be directly be used as vector because it is in
+            // local coordinates of rigid body.
+            if let Some(axis) = local_impact_point
+                .coords
+                .cross(&local_direction)
+                .try_normalize(f32::EPSILON)
+            {
+                let additional_rotation = UnitQuaternion::from_axis_angle(
+                    &Unit::new_normalize(axis),
+                    24.0f32.to_radians(),
+                );
+                self.additional_rotations
+                    .entry(handle)
+                    .and_modify(|r| {
+                        r.source = additional_rotation;
+                        r.k = 0.0;
+                    })
+                    .or_insert(ImpactEntry {
+                        k: 0.0,
+                        source: additional_rotation,
+                    });
+            }
+        } else {
+            Log::warn(format!("[Impact Handler]: invalid handle {}!", handle))
         }
     }
 

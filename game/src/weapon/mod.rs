@@ -312,13 +312,12 @@ impl Weapon {
                     Default::default()
                 };
 
-            if try_get_bot_mut(hit.actor, graph).is_some() {
-                let body = graph[hit.collider].parent();
+            if let Some(hitbox) = hit.hit_box {
                 try_get_bot_mut(hit.actor, graph)
                     .unwrap()
                     .commands_queue
                     .push_back(BotCommand::HandleImpact {
-                        handle: body,
+                        handle: hitbox.bone,
                         impact_point: hit.position,
                         direction: dir,
                     });
