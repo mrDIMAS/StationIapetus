@@ -51,7 +51,7 @@ pub struct Character {
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: u32,
     pub weapon_pivot: Handle<Node>,
-    #[visit(skip)]
+    #[visit(optional)]
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
     #[visit(skip)]
@@ -376,7 +376,7 @@ impl Character {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Debug, Reflect, Inspect)]
+#[derive(Default, Clone, Copy, PartialEq, Debug, Visit, Reflect, Inspect)]
 pub struct HitBox {
     pub collider: Handle<Node>,
     pub damage_factor: f32,
