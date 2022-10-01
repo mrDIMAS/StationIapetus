@@ -1,19 +1,18 @@
-use crate::door::door_mut;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
-    character::{try_get_character_ref, Character, CharacterCommand},
+    character::{Character, CharacterCommand},
     current_level_mut, current_level_ref,
-    door::{door_ref, DoorContainer},
+    door::{door_mut, door_ref, DoorContainer},
     game_ref,
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
     utils::{is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
-    Message, MessageSender,
+    Message, MessageSender, Weapon,
 };
 use fyrox::{
     animation::machine::{Machine, PoseNode},
@@ -398,8 +397,23 @@ impl Bot {
                 critical_shot_probability,
             } = command
             {
-                if let Some(character) = try_get_character_ref(who, &scene.graph) {
-                    self.set_target(who, character.position(&scene.graph));
+                if let Some(shooter_script) = scene.graph.try_get(who).and_then(|n| n.script()) {
+                    if let Some(character) = shooter_script.query_component_ref::<Character>() {
+                        self.set_target(who, character.position(&scene.graph));
+                    } else if let Some(weapon) = shooter_script.query_component_ref::<Weapon>() {
+                        if let Some(weapon_owner_script) =
+                            scene.graph.try_get(weapon.owner()).and_then(|n| n.script())
+                        {
+                            if let Some(character_owner) =
+                                weapon_owner_script.query_component_ref::<Character>()
+                            {
+                                self.set_target(
+                                    weapon.owner(),
+                                    character_owner.position(&scene.graph),
+                                );
+                            }
+                        }
+                    }
                 }
 
                 if let Some(hitbox) = hitbox {

@@ -206,16 +206,14 @@ impl Weapon {
                     if hit_box.collider == hit.collider {
                         is_hitbox_hit = true;
 
-                        let who = shooter;
-
                         // Ignore intersections with owners.
-                        if who == actor_handle {
+                        if shooter == actor_handle {
                             continue 'actor_loop;
                         }
 
                         return Some(Hit {
                             actor: actor_handle,
-                            who,
+                            who: shooter,
                             position: hit.position.coords,
                             normal: hit.normal,
                             collider: hit.collider,
@@ -232,7 +230,7 @@ impl Weapon {
             } else {
                 Some(Hit {
                     actor: Handle::NONE,
-                    who: Handle::NONE,
+                    who: shooter,
                     position: hit.position.coords,
                     normal: hit.normal,
                     collider: hit.collider,
@@ -274,7 +272,6 @@ impl Weapon {
                 vector_to_quat(hit.normal),
             );
 
-            // Just send new messages, instead of doing everything manually here.
             sender.send(Message::PlayEnvironmentSound {
                 collider: hit.collider,
                 feature: hit.feature,
@@ -302,7 +299,7 @@ impl Weapon {
             let parent =
                 if let Some(collider_parent) = graph[hit_collider_body].cast_mut::<RigidBody>() {
                     collider_parent.apply_force_at_point(
-                        dir.try_normalize(std::f32::EPSILON)
+                        dir.try_normalize(f32::EPSILON)
                             .unwrap_or_default()
                             .scale(30.0),
                         hit.position,
@@ -312,15 +309,14 @@ impl Weapon {
                     Default::default()
                 };
 
-            if let Some(hitbox) = hit.hit_box {
-                try_get_bot_mut(hit.actor, graph)
-                    .unwrap()
-                    .commands_queue
-                    .push_back(BotCommand::HandleImpact {
-                        handle: hitbox.bone,
+            if let Some(hit_box) = hit.hit_box {
+                if let Some(bot) = try_get_bot_mut(hit.actor, graph) {
+                    bot.commands_queue.push_back(BotCommand::HandleImpact {
+                        handle: hit_box.bone,
                         impact_point: hit.position,
                         direction: dir,
                     });
+                }
             }
 
             Decal::new_bullet_hole(
@@ -337,7 +333,7 @@ impl Weapon {
             );
 
             // Add blood splatter on a surface behind an actor that was shot.
-            if !try_get_character_ref(hit.actor, graph).map_or(true, |a| a.is_dead()) {
+            if try_get_character_ref(hit.actor, graph).is_some() {
                 for intersection in hit.query_buffer.iter() {
                     if matches!(
                         graph[intersection.collider].as_collider().shape(),
