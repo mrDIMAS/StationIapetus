@@ -23,12 +23,12 @@
             walk_animation: "data/models/mutant/animations/walk.fbx",
             aim_animation: "", // Empty because cannot use weapons.
             dying_animation: "data/models/mutant/animations/dying.fbx",
-            weapon_hand_name: "Mutant:RightHand",
-            left_leg_name: "Mutant:LeftUpLeg",
-            right_leg_name: "Mutant:RightUpLeg",
-            head_name: "Mutant:Head",
-            hips: "Mutant:Hips",
-            spine: "Mutant:Spine", // Empty because cannot use weapons.
+            weapon_hand_name: "mixamorig:RightHand",
+            left_leg_name: "mixamorig:LeftUpLeg",
+            right_leg_name: "mixamorig:RightUpLeg",
+            head_name: "mixamorig:Head",
+            hips: "mixamorig:Hips",
+            spine: "mixamorig:Spine", // Empty because cannot use weapons.
             walk_speed: 0.7,
             scale: 1.0,
             weapon_scale: 130.0,
