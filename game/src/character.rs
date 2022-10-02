@@ -2,23 +2,28 @@ use crate::{
     block_on,
     inventory::Inventory,
     item::{item_mut, ItemKind},
+    sound::{SoundKind, SoundManager},
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
-    Item, Message, MessageSender, Weapon,
+    Item, Weapon,
 };
 use fyrox::{
     core::{
-        algebra::Vector3, inspect::prelude::*, pool::Handle, reflect::Reflect, visitor::prelude::*,
+        algebra::{Point3, Vector3},
+        inspect::prelude::*,
+        math::ray::Ray,
+        pool::Handle,
+        reflect::Reflect,
+        visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
     scene::{
         collider::Collider,
-        graph::{map::NodeHandleMap, Graph},
+        graph::{map::NodeHandleMap, physics::RayCastOptions, Graph},
         node::Node,
         Scene,
     },
 };
 use std::collections::VecDeque;
-use std::path::PathBuf;
 
 #[derive(Debug, Clone)]
 pub enum CharacterCommand {
@@ -168,7 +173,7 @@ impl Character {
         scene: &mut Scene,
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
     ) -> Option<CharacterCommand> {
         if let Some(command) = self.commands.pop_front() {
             match command {
@@ -197,13 +202,14 @@ impl Character {
 
                     scene.graph.remove_node(item_handle);
 
-                    sender.send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/item_pickup.ogg"),
+                    sound_manager.play_sound(
+                        &mut scene.graph,
+                        "data/sounds/item_pickup.ogg",
                         position,
-                        gain: 1.0,
-                        rolloff_factor: 3.0,
-                        radius: 2.0,
-                    });
+                        1.0,
+                        3.0,
+                        2.0,
+                    );
 
                     match kind {
                         ItemKind::Medkit => self.inventory.add_item(ItemKind::Medkit, 1),
@@ -360,18 +366,41 @@ impl Character {
         &mut self.inventory
     }
 
-    pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping
-            .map(&mut self.body)
-            .map(&mut self.weapon_pivot)
-            .map(&mut self.capsule_collider);
+    pub fn footstep_ray_check(
+        &self,
+        begin: Vector3<f32>,
+        scene: &mut Scene,
+        manager: &SoundManager,
+    ) {
+        let mut query_buffer = Vec::new();
 
-        for weapon_handle in self.weapons.iter_mut() {
-            old_new_mapping.map(weapon_handle);
-        }
+        let ray = Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0));
 
-        for hitbox in self.hit_boxes.iter_mut() {
-            hitbox.remap_handles(old_new_mapping);
+        scene.graph.physics.cast_ray(
+            RayCastOptions {
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
+                max_len: 100.0,
+                groups: Default::default(),
+                sort_results: true,
+            },
+            &mut query_buffer,
+        );
+
+        for intersection in query_buffer
+            .into_iter()
+            .filter(|i| i.collider != self.capsule_collider)
+        {
+            manager.play_environment_sound(
+                &mut scene.graph,
+                intersection.collider,
+                intersection.feature,
+                intersection.position.coords,
+                SoundKind::FootStep,
+                0.2,
+                1.0,
+                0.3,
+            );
         }
     }
 }

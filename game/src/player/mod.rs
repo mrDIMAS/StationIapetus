@@ -1,3 +1,4 @@
+use crate::sound::SoundManager;
 use crate::{
     character::{Character, CharacterCommand},
     control_scheme::ControlButton,
@@ -18,7 +19,7 @@ use crate::{
         projectile::{Projectile, ProjectileKind},
         try_weapon_ref, weapon_mut, weapon_ref,
     },
-    CameraController, Elevator, Game, Item, MessageSender,
+    CameraController, Elevator, Game, Item,
 };
 use fyrox::{
     animation::{
@@ -706,7 +707,7 @@ impl Player {
         is_walking: bool,
         is_jumping: bool,
         has_ground_contact: bool,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
     ) {
         let weapon_kind = self.current_weapon_kind(&scene.graph);
 
@@ -727,9 +728,9 @@ impl Player {
                 should_be_stunned: false,
                 weapon_kind,
             },
-            sender,
             has_ground_contact,
-            self.capsule_collider,
+            &self.character,
+            sound_manager,
         );
 
         self.upper_body_machine.apply(
@@ -1252,14 +1253,13 @@ impl ScriptTrait for Player {
 
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
-        let sender = &game.message_sender;
 
         while self
             .poll_command(
                 ctx.scene,
                 ctx.handle,
                 ctx.resource_manager,
-                &game.message_sender,
+                &level.sound_manager,
             )
             .is_some()
         {
@@ -1278,7 +1278,7 @@ impl ScriptTrait for Player {
             is_walking,
             is_jumping,
             has_ground_contact,
-            sender,
+            &level.sound_manager,
         );
 
         let is_running = self.is_running(ctx.scene);

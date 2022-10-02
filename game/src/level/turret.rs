@@ -1,9 +1,9 @@
 use crate::{
     character::{character_ref, try_get_character_ref},
     current_level_ref,
-    message::Message,
+    sound::SoundManager,
     weapon::{definition::ShotEffect, projectile::Damage},
-    MessageSender, Player, Weapon,
+    Player, Weapon,
 };
 use fyrox::{
     core::{
@@ -32,7 +32,6 @@ use fyrox::{
     },
     script::{ScriptContext, ScriptTrait},
 };
-use std::path::PathBuf;
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 #[derive(
@@ -218,7 +217,7 @@ impl ScriptTrait for Turret {
                                 target_position,
                                 &level_ref.actors,
                                 ctx.resource_manager,
-                                level_ref.sender.as_ref().unwrap(),
+                                &level_ref.sound_manager,
                             );
                             self.barrel_index += 1;
                             if self.barrel_index >= self.barrels.len() as u32 {
@@ -234,7 +233,7 @@ impl ScriptTrait for Turret {
                                 target_position,
                                 &level_ref.actors,
                                 ctx.resource_manager,
-                                level_ref.sender.as_ref().unwrap(),
+                                &level_ref.sound_manager,
                             );
                         }
                     }
@@ -308,7 +307,7 @@ impl Barrel {
         target_position: Vector3<f32>,
         actors: &[Handle<Node>],
         resource_manager: &ResourceManager,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
@@ -323,7 +322,7 @@ impl Barrel {
             target_position,
             Damage::Point(10.0),
             ShotEffect::Smoke,
-            sender,
+            sound_manager,
             0.01,
         );
 
@@ -333,13 +332,14 @@ impl Barrel {
             "data/sounds/turret_shot_3.ogg",
         ];
 
-        sender.send(Message::PlaySound {
-            path: PathBuf::from(sounds.choose(&mut thread_rng()).unwrap()),
-            position: shot_position,
-            gain: 1.0,
-            rolloff_factor: 1.0,
-            radius: 3.0,
-        });
+        sound_manager.play_sound(
+            &mut scene.graph,
+            sounds.choose(&mut thread_rng()).unwrap(),
+            shot_position,
+            1.0,
+            1.0,
+            3.0,
+        );
     }
 
     fn update(&mut self, scene: &mut Scene) {

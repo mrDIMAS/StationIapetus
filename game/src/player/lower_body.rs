@@ -1,8 +1,8 @@
 use crate::{
-    level::footstep_ray_check,
+    character::Character,
     player::{make_hit_reaction_state, upper_body::CombatWeaponKind, HitReactionStateDefinition},
+    sound::SoundManager,
     utils::create_play_animation_state,
-    MessageSender,
 };
 use fyrox::{
     animation::{
@@ -425,9 +425,9 @@ impl LowerBodyMachine {
         scene: &mut Scene,
         dt: f32,
         input: LowerBodyMachineInput,
-        sender: &MessageSender,
         has_ground_contact: bool,
-        self_collider: Handle<Node>,
+        character: &Character,
+        sound_manager: &SoundManager,
     ) {
         let (current_hit_reaction_animation, index) = match input.weapon_kind {
             CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),
@@ -506,13 +506,13 @@ impl LowerBodyMachine {
                 && walking
                 || input.run_factor >= 0.5 && !walking
             {
-                footstep_ray_check(begin, scene, self_collider, sender.clone());
+                character.footstep_ray_check(begin, scene, sound_manager);
             }
         }
 
         while let Some(evt) = scene.animations.get_mut(self.land_animation).pop_event() {
             if evt.signal_id == Self::FOOTSTEP_SIGNAL {
-                footstep_ray_check(begin, scene, self_collider, sender.clone());
+                character.footstep_ray_check(begin, scene, sound_manager);
             }
         }
     }

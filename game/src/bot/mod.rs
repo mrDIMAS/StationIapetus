@@ -10,9 +10,10 @@ use crate::{
     game_ref,
     inventory::{Inventory, ItemEntry},
     item::ItemKind,
+    sound::SoundManager,
     utils::{is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
-    Message, MessageSender, Weapon,
+    Weapon,
 };
 use fyrox::{
     animation::machine::{Machine, PoseNode},
@@ -49,12 +50,10 @@ use fyrox::{
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
 use serde::Deserialize;
-use std::collections::VecDeque;
 use std::{
-    collections::HashMap,
+    collections::{HashMap, VecDeque},
     fs::File,
     ops::{Deref, DerefMut},
-    path::PathBuf,
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
@@ -384,11 +383,11 @@ impl Bot {
         scene: &mut Scene,
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
     ) {
         while let Some(command) =
             self.character
-                .poll_command(scene, self_handle, resource_manager, sender)
+                .poll_command(scene, self_handle, resource_manager, sound_manager)
         {
             if let CharacterCommand::Damage {
                 who,
@@ -436,13 +435,15 @@ impl Bot {
                     if let Some(grunt_sound) =
                         self.definition.pain_sounds.choose(&mut rand::thread_rng())
                     {
-                        sender.send(Message::PlaySound {
-                            path: PathBuf::from(grunt_sound.clone()),
-                            position: self.position(&scene.graph),
-                            gain: 0.8,
-                            rolloff_factor: 1.0,
-                            radius: 0.6,
-                        });
+                        let position = self.position(&scene.graph);
+                        sound_manager.play_sound(
+                            &mut scene.graph,
+                            grunt_sound,
+                            position,
+                            0.8,
+                            1.0,
+                            0.6,
+                        );
                     }
                 }
             }
@@ -546,7 +547,7 @@ impl ScriptTrait for Bot {
             ctx.scene,
             ctx.handle,
             ctx.resource_manager,
-            &game.message_sender,
+            &level.sound_manager,
         );
 
         let movement_speed_factor;
@@ -578,6 +579,7 @@ impl ScriptTrait for Bot {
                 target_move_speed: &mut self.target_move_speed,
                 move_speed: self.move_speed,
                 threaten_timeout: &mut self.threaten_timeout,
+                sound_manager: &level.sound_manager,
 
                 // Output
                 attack_animation_index: 0,

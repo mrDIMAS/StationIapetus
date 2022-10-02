@@ -1,4 +1,4 @@
-use crate::{character::character_ref, current_level_mut, game_mut, message::Message};
+use crate::{character::character_ref, current_level_mut, game_mut};
 use fyrox::{
     core::{
         algebra::Vector3,
@@ -26,7 +26,7 @@ use fyrox::{
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::log::Log,
 };
-use std::{path::PathBuf, sync::Arc};
+use std::sync::Arc;
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 pub mod ui;
@@ -186,6 +186,7 @@ impl ScriptTrait for Door {
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = game_mut(ctx.plugins);
+        let level = game.level.as_ref().unwrap();
 
         let speed = 0.55;
 
@@ -197,27 +198,26 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
 
-        let someone_nearby = game.level.as_ref().map_or(false, |level| {
-            level.actors.iter().any(|a| {
-                let actor_position = character_ref(*a, &ctx.scene.graph).position(&ctx.scene.graph);
-                let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
-                if close_enough {
-                    closest_actor = Some(a);
-                }
-                close_enough
-            })
+        let someone_nearby = level.actors.iter().any(|a| {
+            let actor_position = character_ref(*a, &ctx.scene.graph).position(&ctx.scene.graph);
+            let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
+            if close_enough {
+                closest_actor = Some(a);
+            }
+            close_enough
         });
 
         if !someone_nearby && self.state == DoorState::Opened {
             self.state = DoorState::Closing;
-
-            game.message_sender.send(Message::PlaySound {
-                path: PathBuf::from("data/sounds/door_close.ogg"),
-                position: node.global_position(),
-                gain: 0.6,
-                rolloff_factor: 1.0,
-                radius: 1.0,
-            });
+            let position = node.global_position();
+            level.sound_manager.play_sound(
+                &mut ctx.scene.graph,
+                "data/sounds/door_close.ogg",
+                position,
+                0.6,
+                1.0,
+                1.0,
+            );
         }
 
         if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
@@ -291,40 +291,44 @@ impl ScriptTrait for Door {
             if self.state == DoorState::Closed {
                 self.state = DoorState::Opening;
 
-                game.message_sender.send(Message::PlaySound {
-                    path: PathBuf::from("data/sounds/door_open.ogg"),
+                level.sound_manager.play_sound(
+                    &mut ctx.scene.graph,
+                    "data/sounds/door_open.ogg",
                     position,
-                    gain: 0.6,
-                    rolloff_factor: 1.0,
-                    radius: 1.0,
-                });
+                    0.6,
+                    1.0,
+                    1.0,
+                );
             } else if self.state == DoorState::Locked {
                 if open_request.has_key {
                     self.state = DoorState::Opening;
 
-                    game.message_sender.send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/door_open.ogg"),
+                    level.sound_manager.play_sound(
+                        &mut ctx.scene.graph,
+                        "data/sounds/door_open.ogg",
                         position,
-                        gain: 0.6,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    });
+                        0.6,
+                        1.0,
+                        1.0,
+                    );
 
-                    game.message_sender.send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/access_granted.ogg"),
+                    level.sound_manager.play_sound(
+                        &mut ctx.scene.graph,
+                        "data/sounds/access_granted.ogg",
                         position,
-                        gain: 1.0,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    });
+                        1.0,
+                        1.0,
+                        1.0,
+                    );
                 } else {
-                    game.message_sender.send(Message::PlaySound {
-                        path: PathBuf::from("data/sounds/door_deny.ogg"),
+                    level.sound_manager.play_sound(
+                        &mut ctx.scene.graph,
+                        "data/sounds/door_deny.ogg",
                         position,
-                        gain: 1.0,
-                        rolloff_factor: 1.0,
-                        radius: 1.0,
-                    });
+                        1.0,
+                        1.0,
+                        1.0,
+                    );
                 }
             }
         }

@@ -1,7 +1,6 @@
-use crate::character::{try_get_character_mut, CharacterCommand};
 use crate::{
     bot::{behavior::BehaviorContext, upper_body::UpperBodyMachine, BotDefinition},
-    message::Message,
+    character::{try_get_character_mut, CharacterCommand},
 };
 use fyrox::{
     asset::core::rand::prelude::IteratorRandom,
@@ -94,13 +93,15 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                         .iter()
                         .choose(&mut fyrox::rand::thread_rng())
                     {
-                        context.sender.send(Message::PlaySound {
-                            path: attack_sound.clone().into(),
-                            position: context.character.position(&context.scene.graph),
-                            gain: 1.0,
-                            rolloff_factor: 1.0,
-                            radius: 1.0,
-                        });
+                        let position = context.character.position(&context.scene.graph);
+                        context.sound_manager.play_sound(
+                            &mut context.scene.graph,
+                            attack_sound,
+                            position,
+                            1.0,
+                            1.0,
+                            1.0,
+                        );
                     }
                 }
             }

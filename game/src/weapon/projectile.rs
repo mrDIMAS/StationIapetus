@@ -33,7 +33,6 @@ use serde::Deserialize;
 use std::{
     collections::{HashMap, HashSet},
     fs::File,
-    path::PathBuf,
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
@@ -311,13 +310,14 @@ impl ScriptTrait for Projectile {
                 vector_to_quat(effect_normal),
             );
 
-            game.message_sender.send(Message::PlaySound {
-                path: PathBuf::from(self.definition.impact_sound.clone()),
-                position: effect_position,
-                gain: 1.0,
-                rolloff_factor: 4.0,
-                radius: 3.0,
-            });
+            game.level.as_ref().unwrap().sound_manager.play_sound(
+                &mut context.scene.graph,
+                &self.definition.impact_sound,
+                effect_position,
+                1.0,
+                4.0,
+                3.0,
+            );
         }
 
         for hit in self.hits.drain() {

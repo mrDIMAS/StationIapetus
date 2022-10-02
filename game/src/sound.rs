@@ -1,13 +1,14 @@
-use crate::message::Message;
-use fyrox::scene::mesh::Mesh;
 use fyrox::{
-    core::{algebra::Vector3, pool::Handle, sstorage::ImmutableString, visitor::prelude::*},
+    core::{
+        algebra::Vector3, futures::executor::block_on, pool::Handle, sstorage::ImmutableString,
+    },
     engine::resource_manager::ResourceManager,
     material::PropertyValue,
     rand::{self, seq::SliceRandom},
     scene::{
         base::BaseBuilder,
         graph::{physics::FeatureId, Graph},
+        mesh::Mesh,
         node::Node,
         sound::{
             effect::{BaseEffectBuilder, Effect, EffectInput, ReverbEffectBuilder},
@@ -172,17 +173,16 @@ impl SoundMap {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Default)]
 pub struct SoundManager {
     reverb: Handle<Effect>,
-    #[visit(skip)]
     sound_base: SoundBase,
-    #[visit(skip)]
     sound_map: SoundMap,
+    resource_manager: Option<ResourceManager>,
 }
 
 impl SoundManager {
-    pub fn new(scene: &mut Scene) -> Self {
+    pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
         let reverb = ReverbEffectBuilder::new(BaseEffectBuilder::new().with_gain(0.7))
             .with_wet(0.5)
             .with_dry(0.5)
@@ -195,20 +195,25 @@ impl SoundManager {
             reverb,
             sound_map: SoundMap::new(scene, &sound_base),
             sound_base,
+            resource_manager: Some(resource_manager),
         }
     }
 
-    async fn play_sound(
+    pub fn play_sound<P: AsRef<Path>>(
         &self,
         graph: &mut Graph,
-        path: &Path,
+        path: P,
         position: Vector3<f32>,
         gain: f32,
         rolloff_factor: f32,
         radius: f32,
-        resource_manager: ResourceManager,
     ) {
-        if let Ok(buffer) = resource_manager.request_sound_buffer(path).await {
+        if let Ok(buffer) = block_on(
+            self.resource_manager
+                .as_ref()
+                .unwrap()
+                .request_sound_buffer(path.as_ref()),
+        ) {
             let sound = SoundBuilder::new(
                 BaseBuilder::new().with_local_transform(
                     TransformBuilder::new()
@@ -235,111 +240,71 @@ impl SoundManager {
         } else {
             Log::writeln(
                 MessageKind::Error,
-                format!("Unable to play sound {:?}", path),
+                format!("Unable to play sound {:?}", path.as_ref()),
             );
         }
     }
 
-    pub async fn handle_message(
-        &mut self,
+    pub fn play_environment_sound(
+        &self,
         graph: &mut Graph,
-        resource_manager: ResourceManager,
-        message: &Message,
+        collider: Handle<Node>,
+        feature: FeatureId,
+        position: Vector3<f32>,
+        sound_kind: SoundKind,
+        gain: f32,
+        rolloff_factor: f32,
+        radius: f32,
     ) {
-        match message {
-            Message::PlaySound {
-                path,
-                position,
-                gain,
-                rolloff_factor,
-                radius,
-            } => {
-                self.play_sound(
-                    graph,
-                    path,
-                    *position,
-                    *gain,
-                    *rolloff_factor,
-                    *radius,
-                    resource_manager,
-                )
-                .await;
-            }
-            &Message::PlayEnvironmentSound {
-                collider,
-                feature,
-                position,
-                sound_kind,
-                gain,
-                rolloff_factor,
-                radius,
-            } => {
-                let material = self.sound_map.ranges_of(collider).and_then(|ranges| {
-                    match feature {
-                        FeatureId::Face(idx) => {
-                            let mut material = None;
-                            for range in ranges {
-                                if range.range.contains(&idx) {
-                                    material = Some(range.material);
-                                    break;
-                                }
-                            }
-                            material
-                        }
-                        _ => {
-                            // Some object have convex shape colliders, they're not provide any
-                            // useful info about the point of impact, so we have to use first
-                            // available material.
-                            ranges.first().map(|first_range| first_range.material)
+        let material = self.sound_map.ranges_of(collider).and_then(|ranges| {
+            match feature {
+                FeatureId::Face(idx) => {
+                    let mut material = None;
+                    for range in ranges {
+                        if range.range.contains(&idx) {
+                            material = Some(range.material);
+                            break;
                         }
                     }
-                });
-
-                if let Some(material) = material {
-                    if let Some(map) = self.sound_base.material_to_sound.get(&material) {
-                        if let Some(sound_list) = map.get(&sound_kind) {
-                            if let Some(sound) = sound_list.choose(&mut rand::thread_rng()) {
-                                self.play_sound(
-                                    graph,
-                                    sound.as_ref(),
-                                    position,
-                                    gain,
-                                    rolloff_factor,
-                                    radius,
-                                    resource_manager,
-                                )
-                                .await;
-                            }
-                        } else {
-                            Log::writeln(
-                                MessageKind::Warning,
-                                format!(
-                                    "Unable to play environment sound: there \
-                                is no respective mapping for {:?} sound kind!",
-                                    sound_kind
-                                ),
-                            );
-                        }
-                    } else {
-                        Log::writeln(
-                            MessageKind::Warning,
-                            format!(
-                                "Unable to play environment sound: there \
-                                is no respective mapping for {:?} material!",
-                                material
-                            ),
-                        );
-                    }
-                } else {
-                    Log::warn("Unable to play environment sound: unable to fetch material type!");
+                    material
+                }
+                _ => {
+                    // Some object have convex shape colliders, they're not provide any
+                    // useful info about the point of impact, so we have to use first
+                    // available material.
+                    ranges.first().map(|first_range| first_range.material)
                 }
             }
-            _ => {}
-        }
-    }
+        });
 
-    pub fn resolve(&mut self, scene: &Scene) {
-        self.sound_base = SoundBase::load();
-        self.sound_map = SoundMap::new(scene, &self.sound_base);
+        if let Some(material) = material {
+            if let Some(map) = self.sound_base.material_to_sound.get(&material) {
+                if let Some(sound_list) = map.get(&sound_kind) {
+                    if let Some(sound) = sound_list.choose(&mut rand::thread_rng()) {
+                        self.play_sound(graph, sound, position, gain, rolloff_factor, radius);
+                    }
+                } else {
+                    Log::writeln(
+                        MessageKind::Warning,
+                        format!(
+                            "Unable to play environment sound: there \
+                                is no respective mapping for {:?} sound kind!",
+                            sound_kind
+                        ),
+                    );
+                }
+            } else {
+                Log::writeln(
+                    MessageKind::Warning,
+                    format!(
+                        "Unable to play environment sound: there \
+                                is no respective mapping for {:?} material!",
+                        material
+                    ),
+                );
+            }
+        } else {
+            Log::warn("Unable to play environment sound: unable to fetch material type!");
+        }
     }
 }

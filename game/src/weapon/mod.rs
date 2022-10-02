@@ -8,16 +8,14 @@ use crate::{
     },
     current_level_mut, current_level_ref, effects,
     effects::EffectKind,
-    game_ref,
     level::trail::ShotTrail,
-    message::Message,
-    sound::SoundKind,
+    sound::{SoundKind, SoundManager},
     weapon::{
         definition::{ShotEffect, WeaponDefinition, WeaponKind, WeaponProjectile},
         projectile::{Damage, Projectile},
         sight::{LaserSight, SightReaction},
     },
-    CollisionGroups, Decal, MessageSender,
+    CollisionGroups, Decal,
 };
 use fyrox::{
     core::{
@@ -57,7 +55,6 @@ use fyrox::{
 };
 use std::{
     hash::{Hash, Hasher},
-    path::PathBuf,
     sync::Arc,
 };
 
@@ -253,7 +250,7 @@ impl Weapon {
         end: Vector3<f32>,
         damage: Damage,
         shot_effect: ShotEffect,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
         critical_shot_probability: f32,
     ) -> Option<Hit> {
         // Do immediate intersection test and solve it.
@@ -272,15 +269,16 @@ impl Weapon {
                 vector_to_quat(hit.normal),
             );
 
-            sender.send(Message::PlayEnvironmentSound {
-                collider: hit.collider,
-                feature: hit.feature,
-                position: hit.position,
-                sound_kind: SoundKind::Impact,
-                gain: 1.0,
-                rolloff_factor: 1.0,
-                radius: 0.5,
-            });
+            sound_manager.play_environment_sound(
+                graph,
+                hit.collider,
+                hit.feature,
+                hit.position,
+                SoundKind::Impact,
+                1.0,
+                1.0,
+                0.5,
+            );
 
             if let Some(character) = try_get_character_mut(hit.actor, graph) {
                 character.push_command(CharacterCommand::Damage {
@@ -495,7 +493,7 @@ impl Weapon {
         elapsed_time: f32,
         resource_manager: &ResourceManager,
         direction: Option<Vector3<f32>>,
-        sender: &MessageSender,
+        sound_manager: &SoundManager,
         actors: &[Handle<Node>],
     ) {
         self.last_shot_time = elapsed_time;
@@ -507,13 +505,7 @@ impl Weapon {
             .shot_sounds
             .choose(&mut fyrox::rand::thread_rng())
         {
-            sender.send(Message::PlaySound {
-                path: PathBuf::from(random_shot_sound.clone()),
-                position,
-                gain: 1.0,
-                rolloff_factor: 5.0,
-                radius: 3.0,
-            });
+            sound_manager.play_sound(&mut scene.graph, random_shot_sound, position, 1.0, 5.0, 3.0);
         }
 
         if self.muzzle_flash.is_some() {
@@ -569,7 +561,7 @@ impl Weapon {
                     position + direction.scale(1000.0),
                     damage,
                     self.definition.shot_effect,
-                    sender,
+                    sound_manager,
                     self.definition.base_critical_shot_probability,
                 ) {
                     if hit.actor.is_some() {
@@ -653,14 +645,13 @@ impl ScriptTrait for Weapon {
         }
 
         if let Some(request) = self.shot_request.take() {
-            let game = game_ref(ctx.plugins);
             self.shoot(
                 ctx.handle,
                 ctx.scene,
                 ctx.elapsed_time,
                 ctx.resource_manager,
                 request.direction,
-                &game.message_sender,
+                &level.sound_manager,
                 &level.actors,
             );
         }

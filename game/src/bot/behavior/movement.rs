@@ -1,7 +1,6 @@
 use crate::{
     bot::{behavior::BehaviorContext, lower_body::LowerBodyMachine, upper_body::UpperBodyMachine},
     character::HitBox,
-    level::footstep_ray_check,
     utils::BodyImpactHandler,
 };
 use fyrox::{
@@ -85,11 +84,10 @@ impl<'a> Behavior<'a> for MoveToTarget {
                     let begin = context.scene.graph[context.model].global_position()
                         + Vector3::new(0.0, 0.5, 0.0);
 
-                    footstep_ray_check(
+                    context.character.footstep_ray_check(
                         begin,
                         context.scene,
-                        context.character.capsule_collider,
-                        context.sender.clone(),
+                        context.sound_manager,
                     );
                 }
             }

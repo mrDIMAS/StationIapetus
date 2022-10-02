@@ -251,6 +251,7 @@ impl Game {
                 override_scene,
                 message_sender.clone(),
                 sound_config,
+                context.resource_manager.clone(),
             ))
         } else {
             None

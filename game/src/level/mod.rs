@@ -5,20 +5,15 @@ use crate::{
     door::DoorContainer,
     item::ItemContainer,
     message::Message,
-    sound::{SoundKind, SoundManager},
+    sound::SoundManager,
     utils::use_hrtf,
     MessageSender,
 };
 use fyrox::{
-    core::{
-        algebra::{Point3, Vector3},
-        math::{ray::Ray, PositionProvider},
-        pool::Handle,
-        visitor::prelude::*,
-    },
+    core::{algebra::Vector3, math::PositionProvider, pool::Handle, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
     plugin::PluginContext,
-    scene::{self, graph::physics::RayCastOptions, node::Node, Scene},
+    scene::{self, node::Node, Scene},
 };
 use std::path::Path;
 
@@ -36,49 +31,13 @@ pub struct Level {
     pub player: Handle<Node>,
     pub actors: Vec<Handle<Node>>,
     pub items: ItemContainer,
-    sound_manager: SoundManager,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
 
     #[visit(skip)]
+    pub sound_manager: SoundManager,
+    #[visit(skip)]
     sender: Option<MessageSender>,
-}
-
-pub fn footstep_ray_check(
-    begin: Vector3<f32>,
-    scene: &mut Scene,
-    self_collider: Handle<Node>,
-    sender: MessageSender,
-) {
-    let mut query_buffer = Vec::new();
-
-    let ray = Ray::from_two_points(begin, begin + Vector3::new(0.0, -100.0, 0.0));
-
-    scene.graph.physics.cast_ray(
-        RayCastOptions {
-            ray_origin: Point3::from(ray.origin),
-            ray_direction: ray.dir,
-            max_len: 100.0,
-            groups: Default::default(),
-            sort_results: true,
-        },
-        &mut query_buffer,
-    );
-
-    for intersection in query_buffer
-        .into_iter()
-        .filter(|i| i.collider != self_collider)
-    {
-        sender.send(Message::PlayEnvironmentSound {
-            collider: intersection.collider,
-            feature: intersection.feature,
-            position: intersection.position.coords,
-            sound_kind: SoundKind::FootStep,
-            gain: 0.2,
-            rolloff_factor: 1.0,
-            radius: 0.3,
-        });
-    }
 }
 
 impl Level {
@@ -90,7 +49,8 @@ impl Level {
         scene: &mut Scene,
         scene_handle: Handle<Scene>,
         sender: MessageSender,
-        sound_config: SoundConfig, // Using copy, instead of reference because of async.
+        sound_config: SoundConfig,
+        resource_manager: ResourceManager,
     ) -> Self {
         if sound_config.use_hrtf {
             use_hrtf(&mut scene.graph.sound_context)
@@ -109,7 +69,7 @@ impl Level {
             items: Default::default(),
             scene: scene_handle,
             sender: Some(sender),
-            sound_manager: SoundManager::new(scene),
+            sound_manager: SoundManager::new(scene, resource_manager),
             doors_container: Default::default(),
             map_path: Default::default(),
             elevators: Default::default(),
@@ -149,7 +109,7 @@ impl Level {
             items: Default::default(),
             scene: Handle::NONE, // Filled when scene will be moved to engine.
             sender: Some(sender),
-            sound_manager: SoundManager::new(&mut scene),
+            sound_manager: SoundManager::new(&mut scene, resource_manager),
             doors_container: Default::default(),
             map_path: map,
             elevators: Default::default(),
@@ -196,14 +156,6 @@ impl Level {
     }
 
     pub async fn handle_message(&mut self, engine: &mut PluginContext<'_, '_>, message: &Message) {
-        self.sound_manager
-            .handle_message(
-                &mut engine.scenes[self.scene].graph,
-                engine.resource_manager.clone(),
-                message,
-            )
-            .await;
-
         match message {
             &Message::ApplySplashDamage {
                 amount,
@@ -223,10 +175,10 @@ impl Level {
         }
     }
 
-    pub fn resolve(&mut self, engine: &mut PluginContext, sender: MessageSender) {
+    pub fn resolve(&mut self, ctx: &mut PluginContext, sender: MessageSender) {
         self.set_message_sender(sender);
-        let scene = &mut engine.scenes[self.scene];
-        self.sound_manager.resolve(scene);
+        self.sound_manager =
+            SoundManager::new(&mut ctx.scenes[self.scene], ctx.resource_manager.clone());
     }
 
     pub fn set_message_sender(&mut self, sender: MessageSender) {

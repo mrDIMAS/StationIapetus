@@ -1,3 +1,4 @@
+use crate::sound::SoundManager;
 use crate::{
     bot::{
         behavior::{
@@ -103,6 +104,7 @@ pub struct BehaviorContext<'a> {
     pub move_speed: f32,
     pub target_move_speed: &'a mut f32,
     pub threaten_timeout: &'a mut f32,
+    pub sound_manager: &'a SoundManager,
 
     // Output
     pub attack_animation_index: usize,

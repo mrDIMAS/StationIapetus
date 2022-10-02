@@ -6,6 +6,7 @@ use station_iapetus::{
     character::{Character, HitBox},
     door::{DoorDirection, DoorState},
     elevator::call_button::CallButtonKind,
+    inventory::{Inventory, ItemEntry},
     item::ItemKind,
     level::{
         spawn::DefaultWeapon,
@@ -38,6 +39,8 @@ fn main() {
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<ProjectileKind, _>();
     editors.register_inheritable_enum::<TriggerKind, _>();
+    editors.register_inheritable_inspectable::<Inventory>();
+    editors.register_inheritable_inspectable::<ItemEntry>();
     editors.register_inheritable_inspectable::<Barrel>();
     editors.register_inheritable_inspectable::<Character>();
     editors.register_inheritable_inspectable::<CameraController>();
@@ -45,6 +48,7 @@ fn main() {
     editors.register_inheritable_vec_collection::<Barrel>();
     editors.register_inheritable_vec_collection::<HitBox>();
     editors.register_inheritable_vec_collection::<DefaultWeapon>();
+    editors.register_inheritable_vec_collection::<ItemEntry>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)

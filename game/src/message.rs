@@ -3,35 +3,17 @@
 //! required entity. This is very effective decoupling mechanism that works perfectly with
 //! strict ownership rules of Rust.
 
-use crate::sound::SoundKind;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle},
-    scene::{graph::physics::FeatureId, node::Node},
+    scene::node::Node,
 };
 use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
-    PlaySound {
-        path: PathBuf,
-        position: Vector3<f32>,
-        gain: f32,
-        rolloff_factor: f32,
-        radius: f32,
-    },
     Play2DSound {
         path: PathBuf,
         gain: f32,
-    },
-    /// Plays environment-specific sound. It also handles foot step sounds.
-    PlayEnvironmentSound {
-        collider: Handle<Node>,
-        feature: FeatureId,
-        position: Vector3<f32>,
-        sound_kind: SoundKind,
-        gain: f32,
-        rolloff_factor: f32,
-        radius: f32,
     },
     ApplySplashDamage {
         amount: f32,
