@@ -23,6 +23,8 @@ pub struct UpperBodyMachine {
     pub machine: Machine,
     pub attack_animations: Vec<Handle<Animation>>,
     pub aim_state: Handle<State>,
+    #[visit(optional)]
+    pub attack_state: Handle<State>,
     pub dying_animation: Handle<Animation>,
     pub scream_animation: Handle<Animation>,
 }
@@ -377,6 +379,7 @@ impl UpperBodyMachine {
             aim_state,
             dying_animation,
             scream_animation,
+            attack_state,
         }
     }
 

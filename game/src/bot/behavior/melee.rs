@@ -69,6 +69,8 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                 .pop_event()
             {
                 if event.signal_id == UpperBodyMachine::HIT_SIGNAL
+                    && context.upper_body_machine.machine.active_state()
+                        == context.upper_body_machine.attack_state
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
                     if let Some(character) =
