@@ -1,23 +1,26 @@
 use crate::{block_on, current_level_mut, weapon::definition::WeaponKind};
-use fyrox::core::algebra::{Point3, Vector3};
-use fyrox::core::math::ray::Ray;
-use fyrox::engine::resource_manager::ResourceManager;
-use fyrox::scene::collider::ColliderShape;
-use fyrox::scene::graph::physics::RayCastOptions;
-use fyrox::scene::Scene;
 use fyrox::{
     core::{
+        algebra::{Point3, Vector3},
         color::Color,
         inspect::prelude::*,
+        math::ray::Ray,
         pool::Handle,
         reflect::Reflect,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
+    engine::resource_manager::ResourceManager,
     impl_component_provider,
     lazy_static::lazy_static,
     scene::{
-        base::BaseBuilder, graph::Graph, node::Node, node::TypeUuidProvider, sprite::SpriteBuilder,
+        base::BaseBuilder,
+        collider::ColliderShape,
+        graph::physics::RayCastOptions,
+        graph::Graph,
+        node::{Node, TypeUuidProvider},
+        sprite::SpriteBuilder,
+        Scene,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };

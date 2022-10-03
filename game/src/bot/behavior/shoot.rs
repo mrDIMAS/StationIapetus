@@ -1,6 +1,6 @@
 use crate::{
     bot::behavior::BehaviorContext,
-    item::ItemKind,
+    level::item::ItemKind,
     weapon::{weapon_mut, weapon_ref},
 };
 use fyrox::{

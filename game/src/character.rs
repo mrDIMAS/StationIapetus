@@ -1,7 +1,7 @@
 use crate::{
     block_on,
     inventory::Inventory,
-    item::{item_mut, ItemKind},
+    level::item::{item_mut, ItemKind},
     sound::{SoundKind, SoundManager},
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
     Item, Weapon,

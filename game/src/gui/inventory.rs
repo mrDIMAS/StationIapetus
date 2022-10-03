@@ -1,7 +1,7 @@
 use crate::character::CharacterCommand;
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
-    item::{Item, ItemKind},
+    level::item::{Item, ItemKind},
     message::Message,
     player::Player,
     MessageSender,

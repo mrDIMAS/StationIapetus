@@ -9,7 +9,6 @@ pub mod effects;
 pub mod elevator;
 pub mod gui;
 pub mod inventory;
-pub mod item;
 pub mod level;
 pub mod light;
 pub mod loading_screen;
@@ -32,9 +31,9 @@ use crate::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
-    item::Item,
     level::{
-        death_zone::DeathZone, decal::Decal, spawn::CharacterSpawnPoint, turret::Turret, Level,
+        death_zone::DeathZone, decal::Decal, item::Item, spawn::CharacterSpawnPoint,
+        turret::Turret, Level,
     },
     light::AnimatedLight,
     loading_screen::LoadingScreen,

@@ -1,6 +1,4 @@
-use crate::weapon::weapon_ref;
-use crate::{item::ItemKind, player::Player};
-use fyrox::scene::graph::Graph;
+use crate::{level::item::ItemKind, player::Player, weapon::weapon_ref};
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -15,6 +13,7 @@ use fyrox::{
         UiNode, UserInterface, VerticalAlignment,
     },
     resource::texture::Texture,
+    scene::graph::Graph,
     utils,
 };
 use std::path::Path;

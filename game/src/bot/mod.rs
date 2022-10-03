@@ -9,7 +9,7 @@ use crate::{
     door::{door_mut, door_ref, DoorContainer},
     game_ref,
     inventory::{Inventory, ItemEntry},
-    item::ItemKind,
+    level::item::ItemKind,
     sound::SoundManager,
     utils::{is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,

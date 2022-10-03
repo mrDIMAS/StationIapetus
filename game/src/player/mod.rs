@@ -1,4 +1,3 @@
-use crate::sound::SoundManager;
 use crate::{
     character::{Character, CharacterCommand},
     control_scheme::ControlButton,
@@ -8,12 +7,13 @@ use crate::{
     game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
-    item::ItemKind,
+    level::item::ItemKind,
     message::Message,
     player::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
     },
+    sound::SoundManager,
     weapon::{
         definition::WeaponKind,
         projectile::{Projectile, ProjectileKind},

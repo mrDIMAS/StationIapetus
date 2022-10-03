@@ -1,4 +1,4 @@
-use crate::item::{Item, ItemKind};
+use crate::level::item::{Item, ItemKind};
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     engine::resource_manager::ResourceManager,

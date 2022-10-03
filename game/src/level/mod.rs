@@ -3,7 +3,7 @@ use crate::{
     character::{character_ref, try_get_character_mut, CharacterCommand},
     config::SoundConfig,
     door::DoorContainer,
-    item::ItemContainer,
+    level::item::ItemContainer,
     message::Message,
     sound::SoundManager,
     utils::use_hrtf,
@@ -19,6 +19,7 @@ use std::path::Path;
 
 pub mod death_zone;
 pub mod decal;
+pub mod item;
 pub mod spawn;
 pub mod trail;
 pub mod trigger;

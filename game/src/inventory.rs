@@ -1,4 +1,4 @@
-use crate::item::ItemKind;
+use crate::level::item::ItemKind;
 use fyrox::core::{inspect::prelude::*, reflect::Reflect, visitor::prelude::*};
 
 #[derive(Default, Debug, Clone, Visit, Reflect, Inspect)]
