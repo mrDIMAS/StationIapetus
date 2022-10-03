@@ -33,7 +33,9 @@ use crate::{
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     item::Item,
-    level::{death_zone::DeathZone, decal::Decal, spawn::SpawnPoint, turret::Turret, Level},
+    level::{
+        death_zone::DeathZone, decal::Decal, spawn::CharacterSpawnPoint, turret::Turret, Level,
+    },
     light::AnimatedLight,
     loading_screen::LoadingScreen,
     menu::Menu,
@@ -778,7 +780,7 @@ impl PluginConstructor for GameConstructor {
             .add::<Player>("Player")
             .add::<CameraController>("Camera Controller")
             .add::<Bot>("Bot")
-            .add::<SpawnPoint>("Spawn Point")
+            .add::<CharacterSpawnPoint>("Character Spawn Point")
             .add::<DeathZone>("Death Zone")
             .add::<AnimatedLight>("Animated Light")
             .add::<Elevator>("Elevator")

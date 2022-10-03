@@ -21,20 +21,20 @@ use fyrox::{
 pub struct DefaultWeapon(WeaponKind);
 
 #[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
-pub struct SpawnPoint {
+pub struct CharacterSpawnPoint {
     default_weapons: Vec<DefaultWeapon>,
     prefab: Option<Model>,
 }
 
-impl_component_provider!(SpawnPoint);
+impl_component_provider!(CharacterSpawnPoint);
 
-impl TypeUuidProvider for SpawnPoint {
+impl TypeUuidProvider for CharacterSpawnPoint {
     fn type_uuid() -> Uuid {
         uuid!("39c47baa-9fc3-4204-92ca-878d621f3656")
     }
 }
 
-impl ScriptTrait for SpawnPoint {
+impl ScriptTrait for CharacterSpawnPoint {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
         if let Some(model) = self.prefab.as_ref() {
             // Take rotation and position for the point.
