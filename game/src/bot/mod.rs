@@ -531,6 +531,10 @@ impl ScriptTrait for Bot {
             .push(context.handle);
     }
 
+    fn on_start(&mut self, _ctx: &mut ScriptContext) {
+        self.definition = Self::get_definition(self.kind);
+    }
+
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
         if let Some(level) = current_level_mut(context.plugins) {
             if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
