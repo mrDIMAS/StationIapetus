@@ -5,6 +5,7 @@ use crate::{
     weapon::{definition::ShotEffect, projectile::Damage},
     Player, Weapon,
 };
+use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -105,6 +106,12 @@ pub struct Turret {
     pitch: SmoothAngle,
     projector: Handle<Node>,
 
+    #[visit(optional)]
+    collider: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    shoot_interval: f32,
+
     #[reflect(hidden)]
     #[inspect(skip)]
     shoot_timer: f32,
@@ -153,6 +160,8 @@ impl Default for Turret {
                 speed: 3.0, // rad/s
             },
             target_check_timer: 0.0,
+            collider: Default::default(),
+            shoot_interval: 0.2,
         }
     }
 }
@@ -206,7 +215,7 @@ impl ScriptTrait for Turret {
             }
 
             if self.shoot_timer <= 0.0 {
-                self.shoot_timer = 0.1;
+                self.shoot_timer = self.shoot_interval;
 
                 match self.shoot_mode {
                     ShootMode::Consecutive => {
@@ -373,12 +382,6 @@ impl Turret {
     fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {
         let self_position = scene.graph[self.model].global_position();
 
-        let self_collider = scene.graph[scene.graph[self.model].parent()]
-            .children()
-            .iter()
-            .find(|h| scene.graph[**h].is_collider())
-            .cloned();
-
         if !scene.graph.is_valid_handle(self.target)
             || !character_ref(self.target, &scene.graph).is_dead()
         {
@@ -419,10 +422,8 @@ impl Turret {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    if let Some(self_collider) = self_collider {
-                        if self_collider == hit.collider {
-                            continue 'hit_loop;
-                        }
+                    if *self.collider == hit.collider {
+                        continue 'hit_loop;
                     }
 
                     if let Some(collider) = &scene.graph[hit.collider].cast::<Collider>() {

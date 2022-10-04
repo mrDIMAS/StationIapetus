@@ -7,8 +7,8 @@ use station_iapetus::{
     door::{DoorDirection, DoorState},
     elevator::call_button::CallButtonKind,
     inventory::{Inventory, ItemEntry},
-    item::ItemKind,
     level::{
+        item::ItemKind,
         spawn::DefaultWeapon,
         trigger::TriggerKind,
         turret::{Barrel, Hostility, ShootMode},
