@@ -6,21 +6,20 @@ use fyrox::{
         color::Color,
         inspect::prelude::*,
         math::{lerpf, ray::Ray},
-        parking_lot::Mutex,
         pool::Handle,
         reflect::Reflect,
         sstorage::ImmutableString,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
-    material::{Material, PropertyValue},
+    material::{Material, PropertyValue, SharedMaterial},
     scene::{
         base::BaseBuilder,
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
         light::{point::PointLightBuilder, BaseLight, BaseLightBuilder},
         mesh::{
-            surface::{SurfaceBuilder, SurfaceData},
+            surface::{SurfaceBuilder, SurfaceData, SurfaceSharedData},
             MeshBuilder, RenderPath,
         },
         node::Node,
@@ -29,7 +28,6 @@ use fyrox::{
     },
     utils::log::Log,
 };
-use std::sync::Arc;
 
 #[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
 pub struct LaserSight {
@@ -86,7 +84,7 @@ impl LaserSight {
                 .with_cast_shadows(false)
                 .with_visibility(false),
         )
-        .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
+        .with_surfaces(vec![SurfaceBuilder::new(SurfaceSharedData::new(
             SurfaceData::make_cylinder(
                 6,
                 1.0,
@@ -95,15 +93,15 @@ impl LaserSight {
                 &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
                     .to_homogeneous(),
             ),
-        )))
-        .with_material(Arc::new(Mutex::new({
+        ))
+        .with_material(SharedMaterial::new({
             let mut material = Material::standard();
             Log::verify(material.set_property(
                 &ImmutableString::new("diffuseColor"),
                 PropertyValue::Color(NORMAL_COLOR),
             ));
             material
-        })))
+        }))
         .build()])
         .with_render_path(RenderPath::Forward)
         .build(&mut scene.graph);

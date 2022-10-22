@@ -23,7 +23,6 @@ use fyrox::{
         color::Color,
         inspect::prelude::*,
         math::{ray::Ray, vector_to_quat, Matrix4Ext},
-        parking_lot::Mutex,
         pool::Handle,
         reflect::Reflect,
         sstorage::ImmutableString,
@@ -32,7 +31,7 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
-    material::{shader::SamplerFallback, Material, PropertyValue},
+    material::{shader::SamplerFallback, Material, PropertyValue, SharedMaterial},
     rand::seq::SliceRandom,
     scene::{
         base::BaseBuilder,
@@ -42,7 +41,7 @@ use fyrox::{
             Graph,
         },
         mesh::{
-            surface::{SurfaceBuilder, SurfaceData},
+            surface::{SurfaceBuilder, SurfaceData, SurfaceSharedData},
             MeshBuilder, RenderPath,
         },
         node::{Node, TypeUuidProvider},
@@ -53,10 +52,7 @@ use fyrox::{
     script::{Script, ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::{self, log::Log},
 };
-use std::{
-    hash::{Hash, Hasher},
-    sync::Arc,
-};
+use std::hash::{Hash, Hasher};
 
 pub mod definition;
 pub mod projectile;
@@ -392,7 +388,7 @@ impl Weapon {
                                 .build(),
                         ),
                 )
-                .with_surfaces(vec![SurfaceBuilder::new(Arc::new(Mutex::new(
+                .with_surfaces(vec![SurfaceBuilder::new(SurfaceSharedData::new(
                     SurfaceData::make_cylinder(
                         6,
                         1.0,
@@ -401,15 +397,15 @@ impl Weapon {
                         &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
                             .to_homogeneous(),
                     ),
-                )))
-                .with_material(Arc::new(Mutex::new({
+                ))
+                .with_material(SharedMaterial::new({
                     let mut material = Material::standard();
                     Log::verify(material.set_property(
                         &ImmutableString::new("diffuseColor"),
                         PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
                     ));
                     material
-                })))
+                }))
                 .build()])
                 .with_render_path(RenderPath::Forward)
                 .build(graph);

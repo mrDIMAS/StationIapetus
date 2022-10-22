@@ -4,7 +4,6 @@ use fyrox::{
         algebra::Vector3,
         color::Color,
         inspect::prelude::*,
-        parking_lot::Mutex,
         pool::Handle,
         reflect::Reflect,
         sstorage::ImmutableString,
@@ -14,7 +13,7 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
-    material::{Material, PropertyValue},
+    material::{Material, PropertyValue, SharedMaterial},
     resource::texture::Texture,
     scene::{
         graph::Graph,
@@ -26,7 +25,6 @@ use fyrox::{
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
     utils::log::Log,
 };
-use std::sync::Arc;
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 pub mod ui;
@@ -389,7 +387,7 @@ impl Door {
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface.set_material(Arc::new(Mutex::new(material)));
+                    first_surface.set_material(SharedMaterial::new(material));
                 }
             }
         }
