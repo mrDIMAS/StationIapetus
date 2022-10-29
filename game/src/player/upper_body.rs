@@ -2,6 +2,7 @@ use crate::{
     player::{make_hit_reaction_state, HitReactionStateDefinition},
     utils::create_play_animation_state,
 };
+use fyrox::animation::value::{TrackValue, ValueBinding};
 use fyrox::{
     animation::{
         machine::{
@@ -977,12 +978,25 @@ impl UpperBodyMachine {
                 if handle == hips_handle {
                     // Ignore position and rotation for hips. Some animations has unwanted shifts
                     // and we want to ignore them.
-                    node.local_transform_mut().set_scale(pose.scale());
+                    pose.values()
+                        .values
+                        .iter()
+                        .filter_map(|v| {
+                            if v.binding == ValueBinding::Scale {
+                                if let TrackValue::Vector3(vec3) = v.value {
+                                    Some(vec3)
+                                } else {
+                                    None
+                                }
+                            } else {
+                                None
+                            }
+                        })
+                        .for_each(|v| {
+                            node.local_transform_mut().set_scale(v);
+                        })
                 } else {
-                    node.local_transform_mut()
-                        .set_position(pose.position())
-                        .set_rotation(pose.rotation())
-                        .set_scale(pose.scale());
+                    pose.values().apply(node);
                 }
             });
     }

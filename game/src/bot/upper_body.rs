@@ -2,12 +2,13 @@ use crate::{
     bot::{clean_machine, BotDefinition},
     utils::{create_play_animation_state, model_map::ModelMap},
 };
+use fyrox::animation::value::ValueBinding;
 use fyrox::{
     animation::{
         machine::{
             node::blend::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,
         },
-        Animation, AnimationSignal, PoseEvaluationFlags,
+        Animation, AnimationSignal,
     },
     core::{
         pool::Handle,
@@ -74,13 +75,9 @@ pub fn make_attack_state(
                     desc.timestamp,
                 ))
                 .set_speed(desc.speed)
-                .track_of_mut(hips)
-                .unwrap()
-                .set_flags(PoseEvaluationFlags {
-                    ignore_position: false,
-                    ignore_rotation: true,
-                    ignore_scale: false,
-                });
+                .tracks_of_mut(hips)
+                .filter(|t| t.binding() == &ValueBinding::Rotation)
+                .for_each(|t| t.enable(false));
             animation
         })
         .collect::<Vec<_>>();
@@ -430,13 +427,12 @@ impl UpperBodyMachine {
             let animation = &scene.animations[handle];
             if !animation.has_ended() && animation.is_enabled() {
                 for signal in animation.signals() {
-                    if signal.id() == Self::HIT_SIGNAL
-                        && animation.get_time_position() > signal.time()
+                    if signal.id() == Self::HIT_SIGNAL && animation.time_position() > signal.time()
                     {
                         return false;
                     }
                     if signal.id() == Self::STICK_SIGNAL
-                        && animation.get_time_position() > signal.time()
+                        && animation.time_position() > signal.time()
                     {
                         return true;
                     }
