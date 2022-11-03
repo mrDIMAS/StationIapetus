@@ -22,11 +22,10 @@ use fyrox::{
         arrayvec::ArrayVec,
         color::Color,
         futures::executor::block_on,
-        inspect::prelude::*,
         math::SmoothAngle,
         pool::Handle,
         rand::{seq::IteratorRandom, Rng},
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -71,7 +70,6 @@ mod upper_body;
     Debug,
     Visit,
     Reflect,
-    Inspect,
     AsRefStr,
     EnumString,
     EnumVariantNames,
@@ -116,36 +114,29 @@ pub enum BotCommand {
     },
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Bot {
     #[reflect(hidden)]
-    #[inspect(skip)]
     target: Option<Target>,
     pub kind: BotKind,
     model: Handle<Node>,
     character: Character,
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     pub definition: &'static BotDefinition,
     #[reflect(hidden)]
-    #[inspect(skip)]
     lower_body_machine: LowerBodyMachine,
     #[reflect(hidden)]
-    #[inspect(skip)]
     upper_body_machine: UpperBodyMachine,
     pub restoration_time: f32,
     hips: Handle<Node>,
     #[reflect(hidden)]
-    #[inspect(skip)]
     agent: NavmeshAgent,
     head_exploded: bool,
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     pub impact_handler: BodyImpactHandler,
     #[reflect(hidden)]
-    #[inspect(skip)]
     behavior: BotBehavior,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
@@ -155,7 +146,6 @@ pub struct Bot {
     threaten_timeout: f32,
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     pub commands_queue: VecDeque<BotCommand>,
 }
 

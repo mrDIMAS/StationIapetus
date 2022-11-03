@@ -1,9 +1,8 @@
 use crate::{elevator::Elevator, game_mut};
 use fyrox::{
     core::{
-        inspect::prelude::*,
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -22,7 +21,7 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Debug, Visit, Inspect, Reflect, Clone, AsRefStr, EnumString, EnumVariantNames)]
+#[derive(Debug, Visit, Reflect, Clone, AsRefStr, EnumString, EnumVariantNames)]
 pub enum CallButtonKind {
     FloorSelector,
     EndPoint,
@@ -34,7 +33,7 @@ impl Default for CallButtonKind {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct CallButton {
     pub floor: u32,
     pub kind: CallButtonKind,

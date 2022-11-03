@@ -1,8 +1,7 @@
 use crate::{character::character_ref, current_level_ref, game_ref, message::Message};
 use fyrox::{
     core::{
-        inspect::prelude::*,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -12,7 +11,7 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-#[derive(Debug, Clone, Visit, Reflect, Inspect, AsRefStr, EnumString, EnumVariantNames)]
+#[derive(Debug, Clone, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
 pub enum TriggerKind {
     NextLevel,
     EndGame,
@@ -24,7 +23,7 @@ impl Default for TriggerKind {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Default, Clone)]
+#[derive(Visit, Reflect, Debug, Default, Clone)]
 pub struct Trigger {
     kind: TriggerKind,
 }

@@ -3,9 +3,8 @@ use fyrox::{
     core::{
         algebra::Vector3,
         color::Color,
-        inspect::prelude::*,
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
@@ -30,17 +29,7 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 pub mod ui;
 
 #[derive(
-    Copy,
-    Clone,
-    Eq,
-    PartialEq,
-    Reflect,
-    Inspect,
-    Visit,
-    Debug,
-    AsRefStr,
-    EnumString,
-    EnumVariantNames,
+    Copy, Clone, Eq, PartialEq, Reflect, Visit, Debug, AsRefStr, EnumString, EnumVariantNames,
 )]
 #[repr(u32)]
 pub enum DoorState {
@@ -59,17 +48,7 @@ impl Default for DoorState {
 }
 
 #[derive(
-    Copy,
-    Clone,
-    Reflect,
-    Inspect,
-    Visit,
-    Debug,
-    AsRefStr,
-    PartialEq,
-    Eq,
-    EnumString,
-    EnumVariantNames,
+    Copy, Clone, Reflect, Visit, Debug, AsRefStr, PartialEq, Eq, EnumString, EnumVariantNames,
 )]
 #[repr(C)]
 pub enum DoorDirection {
@@ -88,49 +67,44 @@ struct OpenRequest {
     has_key: bool,
 }
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct Door {
-    #[inspect(
+    #[reflect(
         description = "An array of handles to light sources that indicates state of the door."
     )]
     lights: Vec<NodeHandle>,
 
-    #[inspect(description = "An array of handles to meshes that represents interactive screens.")]
+    #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
     screens: Vec<NodeHandle>,
 
-    #[inspect(
+    #[reflect(
         description = "A fixed direction of door to open. Given in local coordinates of the door."
     )]
     #[visit(optional)]
     open_direction: InheritableVariable<DoorDirection>,
 
-    #[inspect(
+    #[reflect(
         description = "Maximum offset along open_direction axis.",
         min_value = "0.0"
     )]
     #[visit(optional)]
     open_offset_amount: InheritableVariable<f32>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     #[visit(skip)]
     offset: f32,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     #[visit(skip)]
     state: DoorState,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     initial_position: Vector3<f32>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     #[visit(skip)]
     open_request: Option<OpenRequest>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     #[visit(skip)]
     self_handle: Handle<Node>,

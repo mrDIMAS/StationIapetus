@@ -2,11 +2,10 @@ use crate::Player;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
-        inspect::prelude::*,
         math::{ray::Ray, Vector3Ext},
         pool::Handle,
         rand::Rng,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -19,7 +18,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Default, Visit, Reflect, Debug, Clone)]
 pub struct CameraController {
     player: Handle<Node>,
     ignorable_collider: Handle<Node>,
@@ -32,7 +31,6 @@ pub struct CameraController {
     shake_timer: f32,
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     query_buffer: Vec<Intersection>,
 }
 

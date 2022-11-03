@@ -1,7 +1,7 @@
 use crate::level::item::ItemKind;
-use fyrox::core::{inspect::prelude::*, reflect::Reflect, visitor::prelude::*};
+use fyrox::core::{reflect::prelude::*, visitor::prelude::*};
 
-#[derive(Default, Debug, Clone, Visit, Reflect, Inspect)]
+#[derive(Default, Debug, Clone, Visit, Reflect)]
 pub struct ItemEntry {
     pub kind: ItemKind,
     pub amount: u32,
@@ -17,7 +17,7 @@ impl ItemEntry {
     }
 }
 
-#[derive(Default, Clone, Visit, Reflect, Inspect, Debug)]
+#[derive(Default, Clone, Visit, Reflect, Debug)]
 pub struct Inventory {
     items: Vec<ItemEntry>,
 }

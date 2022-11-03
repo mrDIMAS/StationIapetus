@@ -2,10 +2,9 @@ use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
-        inspect::prelude::*,
         math::vector_to_quat,
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -22,7 +21,7 @@ use fyrox::{
     script::{Script, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Decal {
     lifetime: f32,
     fade_interval: f32,

@@ -1,8 +1,7 @@
 use crate::current_level_mut;
 use fyrox::{
     core::{
-        inspect::prelude::*,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -17,7 +16,7 @@ use fyrox::{
 pub mod call_button;
 pub mod ui;
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct Elevator {
     pub current_floor: u32,
     pub dest_floor: u32,

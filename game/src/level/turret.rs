@@ -17,8 +17,7 @@ use fyrox::{
         visitor::{Visit, VisitResult, Visitor},
     },
     core::{
-        inspect::prelude::*,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
     },
     engine::resource_manager::ResourceManager,
@@ -44,7 +43,6 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
     Eq,
     Ord,
     Visit,
-    Inspect,
     Reflect,
     AsRefStr,
     EnumString,
@@ -74,7 +72,6 @@ impl Default for ShootMode {
     Eq,
     Ord,
     Visit,
-    Inspect,
     Reflect,
     AsRefStr,
     EnumString,
@@ -94,7 +91,7 @@ impl Default for Hostility {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Turret {
     model: Handle<Node>,
     body: Handle<Node>,
@@ -113,24 +110,19 @@ pub struct Turret {
     shoot_interval: f32,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     shoot_timer: f32,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     barrel_index: u32,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     target_check_timer: f32,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(skip)]
     target: Handle<Node>,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(skip)]
     frustum: Frustum,
 }
@@ -294,17 +286,15 @@ impl ScriptTrait for Turret {
     }
 }
 
-#[derive(Default, Visit, Reflect, Inspect, Clone, Debug)]
+#[derive(Default, Visit, Reflect, Clone, Debug)]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     initial_position: Vector3<f32>,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     offset: Vector3<f32>,
 }
 

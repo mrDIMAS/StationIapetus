@@ -4,8 +4,7 @@ use crate::{
 };
 use fyrox::{
     core::{
-        inspect::prelude::*,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -17,10 +16,10 @@ use fyrox::{
     utils::log::Log,
 };
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct DefaultWeapon(WeaponKind);
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct CharacterSpawnPoint {
     default_weapons: Vec<DefaultWeapon>,
     prefab: Option<Model>,

@@ -3,9 +3,7 @@ use crate::{
     weapon::projectile::{Damage, ProjectileKind},
 };
 use fyrox::{
-    core::{
-        algebra::Vector3, inspect::prelude::*, rand::Rng, reflect::Reflect, visitor::prelude::*,
-    },
+    core::{algebra::Vector3, rand::Rng, reflect::prelude::*, visitor::prelude::*},
     lazy_static::lazy_static,
 };
 use serde::Deserialize;
@@ -21,7 +19,6 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
     Deserialize,
     Hash,
     Visit,
-    Inspect,
     Reflect,
     AsRefStr,
     EnumString,

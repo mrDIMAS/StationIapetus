@@ -21,10 +21,9 @@ use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
         color::Color,
-        inspect::prelude::*,
         math::{ray::Ray, vector_to_quat, Matrix4Ext},
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -63,7 +62,7 @@ pub struct ShotRequest {
     direction: Option<Vector3<f32>>,
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Weapon {
     kind: WeaponKind,
     shot_point: Handle<Node>,
@@ -76,30 +75,24 @@ pub struct Weapon {
     pub enabled: bool,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     laser_sight: LaserSight,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     owner: Handle<Node>,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(optional)]
     last_shot_time: f32,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(skip)]
     pub definition: &'static WeaponDefinition,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(skip)]
     shot_request: Option<ShotRequest>,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     #[visit(skip)]
     self_handle: Handle<Node>,
 }

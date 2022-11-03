@@ -31,10 +31,9 @@ use fyrox::{
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
-        inspect::prelude::*,
         math::{self, SmoothAngle, Vector3Ext},
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -179,7 +178,7 @@ pub struct PlayerPersistentData {
     pub weapons: Vec<WeaponKind>,
 }
 
-#[derive(Visit, Reflect, Inspect, Debug)]
+#[derive(Visit, Reflect, Debug)]
 pub struct Player {
     character: Character,
     camera_controller: Handle<Node>,
@@ -210,29 +209,23 @@ pub struct Player {
     h_recoil: SmoothAngle,
     rig_light: Handle<Node>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     item_display: Handle<Node>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     lower_body_machine: LowerBodyMachine,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     upper_body_machine: UpperBodyMachine,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     weapon_change_direction: RequiredWeapon,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     pub journal: Journal,
 
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     controller: InputController,
 }
 

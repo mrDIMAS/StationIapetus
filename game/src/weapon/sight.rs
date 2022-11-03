@@ -4,10 +4,9 @@ use fyrox::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
-        inspect::prelude::*,
         math::{lerpf, ray::Ray},
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         visitor::prelude::*,
     },
@@ -29,7 +28,7 @@ use fyrox::{
     utils::log::Log,
 };
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct LaserSight {
     ray: Handle<Node>,
     tip: Handle<Node>,
@@ -37,11 +36,10 @@ pub struct LaserSight {
     pub enabled: bool,
 
     #[reflect(hidden)]
-    #[inspect(skip)]
     reaction_state: Option<ReactionState>,
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub enum ReactionState {
     HitDetected {
         time_remaining: f32,

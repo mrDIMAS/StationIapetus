@@ -3,10 +3,9 @@ use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         color::Color,
-        inspect::prelude::*,
         math::ray::Ray,
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -38,7 +37,6 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
     Hash,
     Visit,
     Reflect,
-    Inspect,
     AsRefStr,
     EnumString,
     EnumVariantNames,
@@ -85,21 +83,18 @@ impl ItemKind {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Item {
     kind: ItemKind,
     model: Handle<Node>,
     pub stack_size: u32,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     spark: Handle<Node>,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     spark_size_change_dir: f32,
 
-    #[inspect(skip)]
     #[reflect(hidden)]
     #[visit(skip)]
     pub definition: &'static ItemDefinition,

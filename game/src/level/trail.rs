@@ -1,7 +1,6 @@
 use fyrox::{
     core::{
-        inspect::prelude::*,
-        reflect::Reflect,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -22,7 +21,7 @@ impl ShotTrail {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct ShotTrail {
     lifetime: f32,
     max_lifetime: f32,

@@ -9,10 +9,9 @@ use crate::{
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
-        inspect::prelude::*,
         math::ray::Ray,
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
@@ -47,7 +46,7 @@ pub enum CharacterCommand {
     },
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Character {
     pub capsule_collider: Handle<Node>,
     pub body: Handle<Node>,
@@ -60,7 +59,6 @@ pub struct Character {
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
     #[visit(skip)]
-    #[inspect(skip)]
     #[reflect(hidden)]
     pub commands: VecDeque<CharacterCommand>,
 }
@@ -405,7 +403,7 @@ impl Character {
     }
 }
 
-#[derive(Default, Clone, Copy, PartialEq, Debug, Visit, Reflect, Inspect)]
+#[derive(Default, Clone, Copy, PartialEq, Debug, Visit, Reflect)]
 pub struct HitBox {
     pub bone: Handle<Node>,
     pub collider: Handle<Node>,

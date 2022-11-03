@@ -11,10 +11,9 @@ use fyrox::{
     core::{
         algebra::Vector3,
         futures::executor::block_on,
-        inspect::prelude::*,
         math::{vector_to_quat, Vector3Ext},
         pool::Handle,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
@@ -46,7 +45,6 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
     Hash,
     Visit,
     Reflect,
-    Inspect,
     AsRefStr,
     EnumString,
     EnumVariantNames,
@@ -88,7 +86,7 @@ impl Damage {
     }
 }
 
-#[derive(Visit, Reflect, Inspect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Projectile {
     kind: ProjectileKind,
     dir: Vector3<f32>,
@@ -102,12 +100,10 @@ pub struct Projectile {
 
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     definition: &'static ProjectileDefinition,
 
     #[visit(skip)]
     #[reflect(hidden)]
-    #[inspect(skip)]
     hits: HashSet<Hit>,
 }
 

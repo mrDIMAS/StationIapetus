@@ -1,8 +1,7 @@
 use fyrox::{
     core::{
-        inspect::prelude::*,
         rand::Rng,
-        reflect::Reflect,
+        reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -12,7 +11,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Inspect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct AnimatedLight {
     timer: f32,
 }
