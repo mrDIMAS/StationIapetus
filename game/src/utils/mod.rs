@@ -1,7 +1,7 @@
 use fyrox::{
     animation::{
-        machine::{Machine, PoseNode, State},
-        Animation,
+        machine::{MachineLayer, PoseNode, State},
+        Animation, AnimationContainer,
     },
     asset::core::rand::Rng,
     core::{
@@ -12,6 +12,7 @@ use fyrox::{
     rand,
     resource::{model::Model, texture::TextureWrapMode},
     scene::{
+        animation::AnimationPlayer,
         base::BaseBuilder,
         camera::{CameraBuilder, SkyBoxBuilder},
         graph::Graph,
@@ -156,19 +157,36 @@ pub fn use_hrtf(context: &mut SoundContext) {
 pub fn create_play_animation_state(
     animation_resource: Model,
     name: &str,
-    machine: &mut Machine,
+    layer: &mut MachineLayer,
     scene: &mut Scene,
     model: Handle<Node>,
 ) -> (Handle<Animation>, Handle<State>) {
     let animation = *animation_resource
-        .retarget_animations(model, scene)
+        .retarget_animations(model, &mut scene.graph)
         .get(0)
         .unwrap();
-    let node = machine.add_node(PoseNode::make_play_animation(animation));
-    let state = machine.add_state(State::new(name, node));
+    let node = layer.add_node(PoseNode::make_play_animation(animation));
+    let state = layer.add_state(State::new(name, node));
     (animation, state)
 }
 
 pub fn is_probability_event_occurred(probability: f32) -> bool {
     rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
+}
+
+pub fn fetch_animation_container_ref(graph: &Graph, handle: Handle<Node>) -> &AnimationContainer {
+    graph
+        .try_get_of_type::<AnimationPlayer>(handle)
+        .unwrap()
+        .animations()
+}
+
+pub fn fetch_animation_container_mut(
+    graph: &mut Graph,
+    handle: Handle<Node>,
+) -> &mut AnimationContainer {
+    graph
+        .try_get_mut_of_type::<AnimationPlayer>(handle)
+        .unwrap()
+        .animations_mut()
 }

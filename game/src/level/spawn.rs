@@ -42,7 +42,7 @@ impl ScriptTrait for CharacterSpawnPoint {
                 .graph
                 .global_rotation_position_no_scale(ctx.handle);
 
-            let root = model.instantiate_geometry(ctx.scene);
+            let root = model.instantiate(ctx.scene);
 
             let character_node = &mut ctx.scene.graph[root];
 

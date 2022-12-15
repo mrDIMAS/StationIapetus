@@ -1,17 +1,20 @@
 use crate::{
-    bot::{clean_machine, BotDefinition},
+    bot::BotDefinition,
+    utils,
     utils::{create_play_animation_state, model_map::ModelMap},
 };
-use fyrox::animation::value::ValueBinding;
 use fyrox::{
     animation::{
         machine::{
-            node::blend::IndexedBlendInput, Machine, Parameter, PoseNode, State, Transition,
+            node::blend::IndexedBlendInput, LayerMask, Machine, MachineLayer, Parameter, PoseNode,
+            State, Transition,
         },
+        value::ValueBinding,
         Animation, AnimationSignal,
     },
     core::{
         pool::Handle,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -48,32 +51,37 @@ pub struct AttackAnimation {
 }
 
 pub fn make_attack_state(
-    machine: &mut Machine,
+    layer: &mut MachineLayer,
     scene: &mut Scene,
     model: Handle<Node>,
     index_parameter: String,
     attack_animation_resources: Vec<AttackAnimation>,
     hips: Handle<Node>,
+    animations_player: Handle<Node>,
 ) -> (Handle<State>, Vec<Handle<Animation>>) {
     let animations = attack_animation_resources
         .into_iter()
         .map(|desc| {
             let animation = *desc
                 .resource
-                .retarget_animations(model, scene)
+                .retarget_animations(model, &mut scene.graph)
                 .get(0)
                 .unwrap();
-            scene.animations[animation]
+            utils::fetch_animation_container_mut(&mut scene.graph, animations_player)[animation]
                 .set_enabled(false)
                 .set_loop(false)
-                .add_signal(AnimationSignal::new(
-                    UpperBodyMachine::STICK_SIGNAL,
-                    desc.stick_timestamp,
-                ))
-                .add_signal(AnimationSignal::new(
-                    UpperBodyMachine::HIT_SIGNAL,
-                    desc.timestamp,
-                ))
+                .add_signal(AnimationSignal {
+                    id: UpperBodyMachine::STICK_SIGNAL,
+                    name: "Stick".to_string(),
+                    time: desc.stick_timestamp,
+                    enabled: true,
+                })
+                .add_signal(AnimationSignal {
+                    id: UpperBodyMachine::HIT_SIGNAL,
+                    name: "Hit".to_string(),
+                    time: desc.timestamp,
+                    enabled: true,
+                })
                 .set_speed(desc.speed)
                 .tracks_of_mut(hips)
                 .filter(|t| t.binding() == &ValueBinding::Rotation)
@@ -86,24 +94,21 @@ pub fn make_attack_state(
         .iter()
         .map(|&animation| IndexedBlendInput {
             blend_time: 0.2,
-            pose_source: machine.add_node(PoseNode::make_play_animation(animation)),
+            pose_source: layer.add_node(PoseNode::make_play_animation(animation)),
         })
         .collect::<Vec<_>>();
 
-    let walk_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+    let walk_node = layer.add_node(PoseNode::make_blend_animations_by_index(
         index_parameter,
         poses,
     ));
 
-    (
-        machine.add_state(State::new("Attack", walk_node)),
-        animations,
-    )
+    (layer.add_state(State::new("Attack", walk_node)), animations)
 }
 
 impl UpperBodyMachine {
-    pub const STICK_SIGNAL: u64 = 1;
-    pub const HIT_SIGNAL: u64 = 2;
+    pub const STICK_SIGNAL: Uuid = uuid!("8713a7e0-52cc-4745-8aa5-20f423f6fb92");
+    pub const HIT_SIGNAL: Uuid = uuid!("17e3a824-c7b3-4aac-9ead-9c611737e213");
 
     const ATTACK_TO_IDLE: &'static str = "AttackToIdle";
     const ATTACK_TO_WALK: &'static str = "AttackToWalk";
@@ -130,6 +135,7 @@ impl UpperBodyMachine {
         model: Handle<Node>,
         scene: &mut Scene,
         hips: Handle<Node>,
+        animations_player: Handle<Node>,
     ) -> Self {
         let mut resources = vec![
             &definition.idle_animation,
@@ -151,28 +157,35 @@ impl UpperBodyMachine {
                 None
             };
 
-        let mut machine = Machine::new(model);
+        let mut machine = Machine::new();
 
-        let (aim_animation, aim_state) = if let Some(aim_animation_resource) =
-            aim_animation_resource.clone()
-        {
-            create_play_animation_state(aim_animation_resource, "Aim", &mut machine, scene, model)
+        let root_layer = machine.layers_mut().first_mut().unwrap();
+
+        let mut layer_mask = LayerMask::default();
+        for leg_name in &[&definition.left_leg_name, &definition.right_leg_name] {
+            let leg_node = scene.graph.find_by_name(model, leg_name);
+            layer_mask.merge(LayerMask::from_hierarchy(&scene.graph, leg_node));
+        }
+        root_layer.set_mask(layer_mask);
+
+        let (_, aim_state) = if let Some(aim_animation_resource) = aim_animation_resource.clone() {
+            create_play_animation_state(aim_animation_resource, "Aim", root_layer, scene, model)
         } else {
             (Handle::NONE, Handle::NONE)
         };
 
-        let (idle_animation, idle_state) = create_play_animation_state(
+        let (_, idle_state) = create_play_animation_state(
             resources[&definition.idle_animation].clone(),
             "Idle",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
-        let (walk_animation, walk_state) = create_play_animation_state(
+        let (_, walk_state) = create_play_animation_state(
             resources[&definition.walk_animation].clone(),
             "Walk",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -180,20 +193,13 @@ impl UpperBodyMachine {
         let (scream_animation, scream_state) = create_play_animation_state(
             resources[&definition.scream_animation].clone(),
             "Scream",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
-        scene
-            .animations
-            .get_mut(scream_animation)
-            .set_loop(false)
-            .set_enabled(false)
-            .set_speed(1.0);
-
         let (attack_state, attack_animations) = make_attack_state(
-            &mut machine,
+            root_layer,
             scene,
             model,
             Self::ATTACK_INDEX.to_owned(),
@@ -208,115 +214,95 @@ impl UpperBodyMachine {
                 })
                 .collect(),
             hips,
+            animations_player,
         );
 
         let (dying_animation, dying_state) = create_play_animation_state(
             resources[&definition.dying_animation].clone(),
             "Dying",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
-        scene
-            .animations
+        let animations_container_mut =
+            utils::fetch_animation_container_mut(&mut scene.graph, animations_player);
+
+        animations_container_mut
+            .get_mut(scream_animation)
+            .set_loop(false)
+            .set_enabled(false)
+            .set_speed(1.0);
+
+        animations_container_mut
             .get_mut(dying_animation)
             .set_loop(false)
             .set_enabled(false);
 
-        for leg_name in &[&definition.left_leg_name, &definition.right_leg_name] {
-            let leg_node = scene.graph.find_by_name(model, leg_name);
-
-            for &animation in &[
-                idle_animation,
-                walk_animation,
-                aim_animation,
-                scream_animation,
-                dying_animation,
-            ] {
-                // Some animations may be missing for some kinds of bots.
-                if animation.is_some() {
-                    scene.animations.get_mut(animation).set_tracks_enabled_from(
-                        leg_node,
-                        false,
-                        &scene.graph,
-                    )
-                }
-            }
-
-            // HACK. Move into upper loop.
-            for &attack_animation in attack_animations.iter() {
-                scene
-                    .animations
-                    .get_mut(attack_animation)
-                    .set_tracks_enabled_from(leg_node, false, &scene.graph)
-            }
-        }
-
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Attack->Idle",
             attack_state,
             idle_state,
             0.2,
             Self::ATTACK_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Attack->Walk",
             attack_state,
             walk_state,
             0.2,
             Self::ATTACK_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Attack",
             idle_state,
             attack_state,
             0.2,
             Self::IDLE_TO_ATTACK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Attack",
             walk_state,
             attack_state,
             0.2,
             Self::WALK_TO_ATTACK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Walk",
             idle_state,
             walk_state,
             0.2,
             Self::IDLE_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Idle",
             walk_state,
             idle_state,
             0.2,
             Self::WALK_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Scream",
             idle_state,
             scream_state,
             0.2,
             Self::IDLE_TO_SCREAM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Scream",
             walk_state,
             scream_state,
             0.2,
             Self::WALK_TO_SCREAM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Scream->Walk",
             scream_state,
             walk_state,
             0.2,
             Self::SCREAM_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Scream->Idle",
             scream_state,
             idle_state,
@@ -324,21 +310,21 @@ impl UpperBodyMachine {
             Self::SCREAM_TO_IDLE,
         ));
         if aim_animation_resource.is_some() {
-            machine.add_transition(Transition::new(
+            root_layer.add_transition(Transition::new(
                 "Idle->Aim",
                 idle_state,
                 aim_state,
                 0.2,
                 Self::IDLE_TO_AIM,
             ));
-            machine.add_transition(Transition::new(
+            root_layer.add_transition(Transition::new(
                 "Aim->Idle",
                 aim_state,
                 idle_state,
                 0.2,
                 Self::AIM_TO_IDLE,
             ));
-            machine.add_transition(Transition::new(
+            root_layer.add_transition(Transition::new(
                 "Aim->Walk",
                 aim_state,
                 walk_state,
@@ -346,21 +332,21 @@ impl UpperBodyMachine {
                 Self::AIM_TO_WALK,
             ));
         }
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Attack->Dying",
             attack_state,
             dying_state,
             0.2,
             Self::ATTACK_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Dying",
             walk_state,
             dying_state,
             0.2,
             Self::WALK_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Dying",
             idle_state,
             dying_state,
@@ -368,7 +354,7 @@ impl UpperBodyMachine {
             Self::IDLE_TO_DYING,
         ));
 
-        machine.set_entry_state(idle_state);
+        root_layer.set_entry_state(idle_state);
 
         Self {
             machine,
@@ -380,12 +366,17 @@ impl UpperBodyMachine {
         }
     }
 
-    pub fn clean_up(&mut self, scene: &mut Scene) {
-        clean_machine(&self.machine, scene)
-    }
+    pub fn apply(
+        &mut self,
+        scene: &mut Scene,
+        dt: f32,
+        input: UpperBodyMachineInput,
+        animations_player: Handle<Node>,
+    ) {
+        let animations_container_ref =
+            utils::fetch_animation_container_ref(&scene.graph, animations_player);
 
-    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: UpperBodyMachineInput) {
-        let attack_animation_ended = scene.animations
+        let attack_animation_ended = animations_container_ref
             [self.attack_animations[input.attack_animation_index as usize]]
             .has_ended();
 
@@ -416,24 +407,24 @@ impl UpperBodyMachine {
             .set_parameter(Self::ATTACK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.dead))
-            .evaluate_pose(&scene.animations, dt)
+            .evaluate_pose(animations_container_ref, dt)
             .apply(&mut scene.graph);
     }
 
     /// Returns true if bot started to perform a swing to hit a target. This flag is used to
     /// modify speed of bot to speed it up if it too far away from the target.
-    pub fn should_stick_to_target(&self, scene: &Scene) -> bool {
+    pub fn should_stick_to_target(&self, scene: &Scene, animations_player: Handle<Node>) -> bool {
+        let animations_container_ref =
+            utils::fetch_animation_container_ref(&scene.graph, animations_player);
+
         for &handle in self.attack_animations.iter() {
-            let animation = &scene.animations[handle];
+            let animation = &animations_container_ref[handle];
             if !animation.has_ended() && animation.is_enabled() {
                 for signal in animation.signals() {
-                    if signal.id() == Self::HIT_SIGNAL && animation.time_position() > signal.time()
-                    {
+                    if signal.id == Self::HIT_SIGNAL && animation.time_position() > signal.time {
                         return false;
                     }
-                    if signal.id() == Self::STICK_SIGNAL
-                        && animation.time_position() > signal.time()
-                    {
+                    if signal.id == Self::STICK_SIGNAL && animation.time_position() > signal.time {
                         return true;
                     }
                 }

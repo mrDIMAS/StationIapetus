@@ -1,4 +1,7 @@
-use crate::bot::{behavior::Action, behavior::BehaviorContext};
+use crate::{
+    bot::{behavior::Action, behavior::BehaviorContext},
+    utils,
+};
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
@@ -38,23 +41,20 @@ impl<'a> Behavior<'a> for StayDead {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, context: &mut Self::Context) -> Status {
+        let animations_container = utils::fetch_animation_container_mut(
+            &mut context.scene.graph,
+            context.animation_player,
+        );
+
         for &animation in &[
             context.upper_body_machine.dying_animation,
             context.lower_body_machine.dying_animation,
         ] {
-            context
-                .scene
-                .animations
-                .get_mut(animation)
-                .set_enabled(true);
+            animations_container.get_mut(animation).set_enabled(true);
         }
 
         for &animation in context.upper_body_machine.attack_animations.iter() {
-            context
-                .scene
-                .animations
-                .get_mut(animation)
-                .set_enabled(false);
+            animations_container.get_mut(animation).set_enabled(false);
         }
 
         Status::Success

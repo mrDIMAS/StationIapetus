@@ -11,12 +11,12 @@ use crate::{
     inventory::{Inventory, ItemEntry},
     level::item::ItemKind,
     sound::SoundManager,
+    utils,
     utils::{is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
     Weapon,
 };
 use fyrox::{
-    animation::machine::{Machine, PoseNode},
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
@@ -144,6 +144,8 @@ pub struct Bot {
     move_speed: f32,
     target_move_speed: f32,
     threaten_timeout: f32,
+    #[visit(optional)]
+    animation_player: Handle<Node>,
     #[visit(skip)]
     #[reflect(hidden)]
     pub commands_queue: VecDeque<BotCommand>,
@@ -187,6 +189,7 @@ impl Default for Bot {
             move_speed: 0.0,
             target_move_speed: 0.0,
             threaten_timeout: 0.0,
+            animation_player: Default::default(),
             commands_queue: Default::default(),
         }
     }
@@ -263,7 +266,7 @@ impl Bot {
         let bot =
             block_on(resource_manager.request_model(Self::get_definition(kind).model.clone()))
                 .unwrap()
-                .instantiate_geometry(scene);
+                .instantiate(scene);
 
         let node = &mut scene.graph[bot];
 
@@ -320,8 +323,7 @@ impl Bot {
     }
 
     pub fn can_be_removed(&self, scene: &Scene) -> bool {
-        scene
-            .animations
+        utils::fetch_animation_container_ref(&scene.graph, self.animation_player)
             .get(self.upper_body_machine.dying_animation)
             .has_ended()
     }
@@ -351,8 +353,6 @@ impl Bot {
     }
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
-        self.upper_body_machine.clean_up(scene);
-        self.lower_body_machine.clean_up(scene);
         self.character.clean_up(scene);
     }
 
@@ -453,14 +453,6 @@ impl Bot {
     }
 }
 
-fn clean_machine(machine: &Machine, scene: &mut Scene) {
-    for node in machine.nodes() {
-        if let PoseNode::PlayAnimation(node) = node {
-            scene.animations.remove(node.animation);
-        }
-    }
-}
-
 impl TypeUuidProvider for Bot {
     fn type_uuid() -> Uuid {
         uuid!("15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")
@@ -475,6 +467,7 @@ impl ScriptTrait for Bot {
             context.resource_manager.clone(),
             self.definition,
             self.model,
+            self.animation_player,
             context.scene,
         ));
         self.upper_body_machine = block_on(UpperBodyMachine::new(
@@ -483,6 +476,7 @@ impl ScriptTrait for Bot {
             self.model,
             context.scene,
             self.hips,
+            self.animation_player,
         ));
 
         let possible_item = [
@@ -576,6 +570,7 @@ impl ScriptTrait for Bot {
                 sound_manager: &level.sound_manager,
 
                 // Output
+                animation_player: self.animation_player,
                 attack_animation_index: 0,
                 movement_speed_factor: 1.0,
                 is_moving: false,
@@ -609,6 +604,7 @@ impl ScriptTrait for Bot {
                 dead: self.is_dead(),
                 movement_speed_factor,
             },
+            self.animation_player,
         );
 
         self.upper_body_machine.apply(
@@ -622,6 +618,7 @@ impl ScriptTrait for Bot {
                 aim: is_aiming,
                 attack_animation_index: attack_animation_index as u32,
             },
+            self.animation_player,
         );
         self.impact_handler.update_and_apply(ctx.dt, ctx.scene);
 

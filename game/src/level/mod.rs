@@ -100,7 +100,7 @@ impl Level {
             .unwrap();
 
         // Instantiate map
-        map_model.instantiate_geometry(&mut scene);
+        map_model.instantiate(&mut scene);
 
         scene.graph.update(Default::default(), 0.0);
 

@@ -181,7 +181,7 @@ impl Character {
                         resource_manager.request_model(Weapon::definition(kind).model.clone()),
                     )
                     .unwrap()
-                    .instantiate_geometry(scene);
+                    .instantiate(scene);
 
                     // Root node must have Weapon script.
                     assert!(scene.graph[weapon].has_script::<Weapon>());

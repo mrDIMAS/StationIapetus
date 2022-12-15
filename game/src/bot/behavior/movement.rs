@@ -1,11 +1,12 @@
 use crate::{
     bot::{behavior::BehaviorContext, lower_body::LowerBodyMachine, upper_body::UpperBodyMachine},
     character::HitBox,
+    utils,
     utils::BodyImpactHandler,
 };
 use fyrox::{
-    core::{algebra::Vector3, visitor::prelude::*},
-    scene::Scene,
+    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
+    scene::{node::Node, Scene},
     utils::behavior::{Behavior, Status},
 };
 
@@ -19,8 +20,9 @@ fn calculate_movement_speed_factor(
     hit_boxes: &[HitBox],
     impact_handler: &BodyImpactHandler,
     scene: &Scene,
+    animation_player: Handle<Node>,
 ) -> f32 {
-    let mut k = if upper_body_machine.should_stick_to_target(scene) {
+    let mut k = if upper_body_machine.should_stick_to_target(scene, animation_player) {
         2.0
     } else {
         1.0
@@ -46,6 +48,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
             &context.character.hit_boxes,
             context.impact_handler,
             context.scene,
+            context.animation_player,
         );
 
         let body = context.scene.graph[context.character.body].as_rigid_body_mut();
@@ -74,12 +77,16 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         // Emit step sounds from walking animation.
         if context.lower_body_machine.is_walking() {
-            while let Some(event) = context
-                .scene
-                .animations
+            let animations_container = utils::fetch_animation_container_mut(
+                &mut context.scene.graph,
+                context.animation_player,
+            );
+
+            let mut events = animations_container
                 .get_mut(context.lower_body_machine.walk_animation)
-                .pop_event()
-            {
+                .events();
+
+            while let Some(event) = events.pop_front() {
                 if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
                     let begin = context.scene.graph[context.model].global_position()
                         + Vector3::new(0.0, 0.5, 0.0);

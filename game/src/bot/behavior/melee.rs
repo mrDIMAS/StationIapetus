@@ -1,6 +1,7 @@
 use crate::{
     bot::{behavior::BehaviorContext, upper_body::UpperBodyMachine, BotDefinition},
     character::{try_get_character_mut, CharacterCommand},
+    utils,
 };
 use fyrox::{
     asset::core::rand::prelude::IteratorRandom,
@@ -15,7 +16,13 @@ pub struct DoMeleeAttack {
 }
 
 fn can_shoot(upper_body_machine: &UpperBodyMachine, definition: &BotDefinition) -> bool {
-    upper_body_machine.machine.active_state() == upper_body_machine.aim_state
+    upper_body_machine
+        .machine
+        .layers()
+        .first()
+        .unwrap()
+        .active_state()
+        == upper_body_machine.aim_state
         && definition.can_use_weapons
 }
 
@@ -26,7 +33,14 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
         let current_attack_animation =
             context.upper_body_machine.attack_animations[self.attack_animation_index as usize];
 
-        let attack_animation = context.scene.animations.get_mut(current_attack_animation);
+        let self_position = context.character.position(&context.scene.graph);
+
+        let animations_container = utils::fetch_animation_container_mut(
+            &mut context.scene.graph,
+            context.animation_player,
+        );
+
+        let attack_animation = animations_container.get_mut(current_attack_animation);
         let attack_animation_ended = attack_animation.has_ended();
 
         if self.attack_timeout <= 0.0 && (attack_animation_ended || !attack_animation.is_enabled())
@@ -38,9 +52,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                 .gen_range(0..context.upper_body_machine.attack_animations.len())
                 as u32;
 
-            context
-                .scene
-                .animations
+            animations_container
                 .get_mut(
                     context.upper_body_machine.attack_animations
                         [self.attack_animation_index as usize],
@@ -59,16 +71,20 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
 
         context.attack_animation_index = self.attack_animation_index as usize;
 
+        let mut attack_animation_events =
+            animations_container.get(current_attack_animation).events();
+
         // Apply damage to target from melee attack
         if let Some(target) = context.target.as_ref() {
-            while let Some(event) = context
-                .scene
-                .animations
-                .get_mut(current_attack_animation)
-                .pop_event()
-            {
+            while let Some(event) = attack_animation_events.pop_front() {
                 if event.signal_id == UpperBodyMachine::HIT_SIGNAL
-                    && context.upper_body_machine.machine.active_state()
+                    && context
+                        .upper_body_machine
+                        .machine
+                        .layers()
+                        .first()
+                        .unwrap()
+                        .active_state()
                         == context.upper_body_machine.attack_state
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
@@ -93,11 +109,10 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                         .iter()
                         .choose(&mut fyrox::rand::thread_rng())
                     {
-                        let position = context.character.position(&context.scene.graph);
                         context.sound_manager.play_sound(
                             &mut context.scene.graph,
                             attack_sound,
-                            position,
+                            self_position,
                             1.0,
                             1.0,
                             1.0,

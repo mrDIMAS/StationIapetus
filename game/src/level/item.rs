@@ -246,7 +246,7 @@ impl Item {
 
         let item = block_on(resource_manager.request_model(&Self::get_definition(kind).model))
             .unwrap()
-            .instantiate_geometry(scene);
+            .instantiate(scene);
 
         let item_ref = &mut scene.graph[item];
 

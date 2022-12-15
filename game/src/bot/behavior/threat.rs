@@ -1,6 +1,7 @@
 //! Bots can threaten the player before attack, this mod has behavior nodes for this.
 
 use crate::bot::behavior::BehaviorContext;
+use crate::utils;
 use fyrox::{
     core::{rand::Rng, visitor::prelude::*},
     rand,
@@ -20,20 +21,26 @@ impl<'a> Behavior<'a> for ThreatenTarget {
             context.upper_body_machine.scream_animation,
             context.lower_body_machine.scream_animation,
         ];
+
+        let animations_container = utils::fetch_animation_container_mut(
+            &mut context.scene.graph,
+            context.animation_player,
+        );
+
         for &animation in &animations {
-            context.scene.animations[animation].set_enabled(true);
+            animations_container[animation].set_enabled(true);
         }
 
         if !self.in_progress {
             for &animation in &animations {
-                context.scene.animations[animation].rewind();
+                animations_container[animation].rewind();
             }
             self.in_progress = true;
         }
 
         let mut is_playing = true;
         for &animation in &animations {
-            if context.scene.animations[animation].has_ended() {
+            if animations_container[animation].has_ended() {
                 is_playing = false;
                 break;
             }

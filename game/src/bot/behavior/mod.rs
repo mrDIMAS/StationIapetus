@@ -105,6 +105,7 @@ pub struct BehaviorContext<'a> {
     pub target_move_speed: &'a mut f32,
     pub threaten_timeout: &'a mut f32,
     pub sound_manager: &'a SoundManager,
+    pub animation_player: Handle<Node>,
 
     // Output
     pub attack_animation_index: usize,

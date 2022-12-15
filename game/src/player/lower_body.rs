@@ -2,18 +2,21 @@ use crate::{
     character::Character,
     player::{make_hit_reaction_state, upper_body::CombatWeaponKind, HitReactionStateDefinition},
     sound::SoundManager,
+    utils,
     utils::create_play_animation_state,
 };
 use fyrox::{
     animation::{
         machine::{
-            node::blend::BlendPose, Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+            node::blend::BlendPose, Machine, MachineLayer, Parameter, PoseNode, PoseWeight, State,
+            Transition,
         },
         Animation, AnimationSignal,
     },
     core::{
         algebra::Vector3,
         pool::Handle,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -28,7 +31,7 @@ struct WalkStateDefinition {
 }
 
 fn make_walk_state(
-    machine: &mut Machine,
+    layer: &mut MachineLayer,
     scene: &mut Scene,
     model: Handle<Node>,
     walk_animation_resource: Model,
@@ -37,24 +40,24 @@ fn make_walk_state(
     run_factor: String,
 ) -> WalkStateDefinition {
     let walk_animation = *walk_animation_resource
-        .retarget_animations(model, scene)
+        .retarget_animations(model, &mut scene.graph)
         .get(0)
         .unwrap();
-    let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
+    let walk_animation_node = layer.add_node(PoseNode::make_play_animation(walk_animation));
 
     let run_animation = *run_animation_resource
-        .retarget_animations(model, scene)
+        .retarget_animations(model, &mut scene.graph)
         .get(0)
         .unwrap();
-    let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
+    let run_animation_node = layer.add_node(PoseNode::make_play_animation(run_animation));
 
-    let walk_node = machine.add_node(PoseNode::make_blend_animations(vec![
+    let walk_node = layer.add_node(PoseNode::make_blend_animations(vec![
         BlendPose::new(PoseWeight::Parameter(walk_factor), walk_animation_node),
         BlendPose::new(PoseWeight::Parameter(run_factor), run_animation_node),
     ]));
 
     WalkStateDefinition {
-        state: machine.add_state(State::new("Walk", walk_node)),
+        state: layer.add_state(State::new("Walk", walk_node)),
         walk_animation,
         run_animation,
     }
@@ -112,9 +115,9 @@ impl LowerBodyMachine {
     const HIT_REACTION_TO_WALK: &'static str = "HitReactionToWalk";
     const HIT_REACTION_TO_DYING: &'static str = "HitReactionToDying";
 
-    pub const JUMP_SIGNAL: u64 = 1;
-    pub const LANDING_SIGNAL: u64 = 2;
-    pub const FOOTSTEP_SIGNAL: u64 = 3;
+    pub const JUMP_SIGNAL: Uuid = uuid!("a4e54855-f59f-4aa3-8c46-61e335508789");
+    pub const LANDING_SIGNAL: Uuid = uuid!("19eb03b9-b984-4186-83f8-8f8748568f5b");
+    pub const FOOTSTEP_SIGNAL: Uuid = uuid!("15360b14-0463-46d9-a794-495b061569b1");
 
     const RUN_FACTOR: &'static str = "RunFactor";
     const WALK_FACTOR: &'static str = "WalkFactor";
@@ -124,8 +127,11 @@ impl LowerBodyMachine {
         scene: &mut Scene,
         model: Handle<Node>,
         resource_manager: ResourceManager,
+        animation_player: Handle<Node>,
     ) -> Self {
-        let mut machine = Machine::new(model);
+        let mut machine = Machine::new();
+
+        let root_layer = machine.layers_mut().first_mut().unwrap();
 
         // Load animations in parallel.
         let (
@@ -155,18 +161,19 @@ impl LowerBodyMachine {
             hit_reaction_pistol_animation,
             hit_reaction_rifle_animation,
         } = make_hit_reaction_state(
-            &mut machine,
+            root_layer,
             scene,
             model,
             Self::HIT_REACTION_WEAPON_KIND.to_owned(),
             hit_reaction_rifle_animation_resource.unwrap(),
             hit_reaction_pistol_animation_resource.unwrap(),
+            animation_player,
         );
 
         let (_, idle_state) = create_play_animation_state(
             idle_animation_resource.unwrap(),
             "Idle",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -174,7 +181,7 @@ impl LowerBodyMachine {
         let (jump_animation, jump_state) = create_play_animation_state(
             jump_animation_resource.unwrap(),
             "Jump",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -182,7 +189,7 @@ impl LowerBodyMachine {
         let (_, fall_state) = create_play_animation_state(
             falling_animation_resource.unwrap(),
             "Fall",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -190,7 +197,7 @@ impl LowerBodyMachine {
         let (land_animation, land_state) = create_play_animation_state(
             landing_animation_resource.unwrap(),
             "Land",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -198,7 +205,7 @@ impl LowerBodyMachine {
         let (dying_animation, dying_state) = create_play_animation_state(
             dying_animation_resource.unwrap(),
             "Dying",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -208,7 +215,7 @@ impl LowerBodyMachine {
             state: walk_state,
             run_animation,
         } = make_walk_state(
-            &mut machine,
+            root_layer,
             scene,
             model,
             walk_animation_resource.unwrap(),
@@ -217,85 +224,90 @@ impl LowerBodyMachine {
             Self::RUN_FACTOR.to_owned(),
         );
 
-        scene
-            .animations
+        let animations_container =
+            utils::fetch_animation_container_mut(&mut scene.graph, animation_player);
+
+        animations_container
             .get_mut(jump_animation)
             // Actual jump (applying force to physical body) must be synced with animation
             // so we have to be notified about this. This is where signals come into play
             // you can assign any signal in animation timeline and then in update loop you
             // can iterate over them and react appropriately.
             .set_enabled(false)
-            .add_signal(AnimationSignal::new(Self::JUMP_SIGNAL, 0.15))
+            .add_signal(AnimationSignal::new(Self::JUMP_SIGNAL, "Jump", 0.15))
             .set_loop(false);
 
-        scene
-            .animations
+        animations_container
             .get_mut(land_animation)
-            .add_signal(AnimationSignal::new(Self::LANDING_SIGNAL, 0.1))
+            .add_signal(AnimationSignal::new(Self::LANDING_SIGNAL, "Landing", 0.1))
             .set_loop(false);
 
-        scene
-            .animations
+        animations_container
             .get_mut(walk_animation)
             .set_speed(0.5)
-            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.4))
-            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.8));
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, "Footstep", 0.4))
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, "Footstep", 0.8));
 
-        scene
-            .animations
+        animations_container
             .get_mut(run_animation)
-            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.25))
-            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.5));
+            .add_signal(AnimationSignal::new(
+                Self::FOOTSTEP_SIGNAL,
+                "Footstep",
+                0.25,
+            ))
+            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, "Footstep", 0.5));
 
-        scene
-            .animations
+        animations_container
             .get_mut(land_animation)
-            .add_signal(AnimationSignal::new(Self::FOOTSTEP_SIGNAL, 0.12));
+            .add_signal(AnimationSignal::new(
+                Self::FOOTSTEP_SIGNAL,
+                "Footstep",
+                0.12,
+            ));
 
-        scene
-            .animations
+        animations_container
             .get_mut(dying_animation)
             .set_enabled(false)
             .set_loop(false);
 
         // Add transitions between states. This is the "heart" of animation blending state machine
         // it defines how it will respond to input parameters.
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Idle",
             walk_state,
             idle_state,
             0.30,
             Self::WALK_TO_IDLE,
         ));
-        let walk_to_jump = machine.add_transition(Transition::new(
+        let walk_to_jump = root_layer.add_transition(Transition::new(
             "Walk->Jump",
             walk_state,
             jump_state,
             0.20,
             Self::WALK_TO_JUMP,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Walk",
             idle_state,
             walk_state,
             0.40,
             Self::IDLE_TO_WALK,
         ));
-        let idle_to_jump = machine.add_transition(Transition::new(
+        let idle_to_jump = root_layer.add_transition(Transition::new(
             "Idle->Jump",
             idle_state,
             jump_state,
             0.25,
             Self::IDLE_TO_JUMP,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Falling->Landing",
             fall_state,
             land_state,
             0.20,
             Self::FALL_TO_LAND,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Landing->Idle",
             land_state,
             idle_state,
@@ -304,21 +316,21 @@ impl LowerBodyMachine {
         ));
 
         // Falling state can be entered from: Jump, Walk, Idle states.
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Jump->Falling",
             jump_state,
             fall_state,
             0.20,
             Self::JUMP_TO_FALL,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Falling",
             walk_state,
             fall_state,
             0.20,
             Self::WALK_TO_FALL,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Falling",
             idle_state,
             fall_state,
@@ -327,35 +339,35 @@ impl LowerBodyMachine {
         ));
 
         // Dying transitions.
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Land->Dying",
             land_state,
             dying_state,
             0.20,
             Self::LAND_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Fall->Dying",
             fall_state,
             dying_state,
             0.20,
             Self::FALL_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Dying",
             idle_state,
             dying_state,
             0.20,
             Self::IDLE_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Dying",
             walk_state,
             dying_state,
             0.20,
             Self::WALK_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Jump->Dying",
             jump_state,
             dying_state,
@@ -363,35 +375,35 @@ impl LowerBodyMachine {
             Self::JUMP_TO_DYING,
         ));
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Hit",
             idle_state,
             hit_reaction_state,
             0.20,
             Self::IDLE_TO_HIT_REACTION,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Hit",
             walk_state,
             hit_reaction_state,
             0.20,
             Self::WALK_TO_HIT_REACTION,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Idle",
             hit_reaction_state,
             idle_state,
             0.20,
             Self::HIT_REACTION_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Walk",
             hit_reaction_state,
             walk_state,
             0.20,
             Self::HIT_REACTION_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Dying",
             hit_reaction_state,
             dying_state,
@@ -399,7 +411,7 @@ impl LowerBodyMachine {
             Self::HIT_REACTION_TO_DYING,
         ));
 
-        machine.set_entry_state(idle_state);
+        root_layer.set_entry_state(idle_state);
 
         Self {
             machine,
@@ -428,13 +440,49 @@ impl LowerBodyMachine {
         has_ground_contact: bool,
         character: &Character,
         sound_manager: &SoundManager,
+        animation_player: Handle<Node>,
     ) {
         let (current_hit_reaction_animation, index) = match input.weapon_kind {
             CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),
             CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 1),
         };
+
+        let begin = scene.graph[self.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
+
+        let animations_container =
+            utils::fetch_animation_container_mut(&mut scene.graph, animation_player);
+
         let recovered = !input.should_be_stunned
-            && scene.animations[current_hit_reaction_animation].has_ended();
+            && animations_container[current_hit_reaction_animation].has_ended();
+
+        let jump_animation_ended = animations_container.get(self.jump_animation).has_ended();
+        let land_animation_ended = animations_container.get(self.land_animation).has_ended();
+
+        let mut walk_events = animations_container.get(self.walk_animation).events();
+        let mut run_events = animations_container.get(self.run_animation).events();
+        let mut land_events = animations_container.get(self.land_animation).events();
+
+        while let Some((walking, evt)) = walk_events
+            .pop_front()
+            .map(|e| (true, e))
+            .or_else(|| run_events.pop_front().map(|e| (false, e)))
+        {
+            if input.is_walking
+                && has_ground_contact
+                && evt.signal_id == Self::FOOTSTEP_SIGNAL
+                && input.run_factor < 0.5
+                && walking
+                || input.run_factor >= 0.5 && !walking
+            {
+                character.footstep_ray_check(begin, scene, sound_manager);
+            }
+        }
+
+        while let Some(evt) = land_events.pop_front() {
+            if evt.signal_id == Self::FOOTSTEP_SIGNAL {
+                character.footstep_ray_check(begin, scene, sound_manager);
+            }
+        }
 
         self.machine
             // Update parameters which will be used by transitions.
@@ -442,10 +490,7 @@ impl LowerBodyMachine {
             .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.is_walking))
             .set_parameter(Self::WALK_TO_JUMP, Parameter::Rule(input.is_jumping))
             .set_parameter(Self::IDLE_TO_JUMP, Parameter::Rule(input.is_jumping))
-            .set_parameter(
-                Self::JUMP_TO_FALL,
-                Parameter::Rule(scene.animations.get(self.jump_animation).has_ended()),
-            )
+            .set_parameter(Self::JUMP_TO_FALL, Parameter::Rule(jump_animation_ended))
             .set_parameter(
                 Self::WALK_TO_FALL,
                 Parameter::Rule(!input.has_ground_contact),
@@ -458,10 +503,7 @@ impl LowerBodyMachine {
                 Self::FALL_TO_LAND,
                 Parameter::Rule(input.has_ground_contact),
             )
-            .set_parameter(
-                Self::LAND_TO_IDLE,
-                Parameter::Rule(scene.animations.get(self.land_animation).has_ended()),
-            )
+            .set_parameter(Self::LAND_TO_IDLE, Parameter::Rule(land_animation_ended))
             .set_parameter(Self::LAND_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::FALL_TO_DYING, Parameter::Rule(input.is_dead))
@@ -481,44 +523,18 @@ impl LowerBodyMachine {
             .set_parameter(Self::HIT_REACTION_TO_DYING, Parameter::Rule(input.is_dead))
             .set_parameter(Self::WALK_FACTOR, Parameter::Weight(1.0 - input.run_factor))
             .set_parameter(Self::RUN_FACTOR, Parameter::Weight(input.run_factor))
-            .evaluate_pose(&scene.animations, dt)
+            .evaluate_pose(
+                utils::fetch_animation_container_mut(&mut scene.graph, animation_player),
+                dt,
+            )
             .apply(&mut scene.graph);
-
-        let begin = scene.graph[self.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
-
-        while let Some((walking, evt)) = scene
-            .animations
-            .get_mut(self.walk_animation)
-            .pop_event()
-            .map(|e| (true, e))
-            .or_else(|| {
-                scene
-                    .animations
-                    .get_mut(self.run_animation)
-                    .pop_event()
-                    .map(|e| (false, e))
-            })
-        {
-            if input.is_walking
-                && has_ground_contact
-                && evt.signal_id == Self::FOOTSTEP_SIGNAL
-                && input.run_factor < 0.5
-                && walking
-                || input.run_factor >= 0.5 && !walking
-            {
-                character.footstep_ray_check(begin, scene, sound_manager);
-            }
-        }
-
-        while let Some(evt) = scene.animations.get_mut(self.land_animation).pop_event() {
-            if evt.signal_id == Self::FOOTSTEP_SIGNAL {
-                character.footstep_ray_check(begin, scene, sound_manager);
-            }
-        }
     }
 
-    pub fn is_stunned(&self, scene: &Scene) -> bool {
-        let hr_animation = &scene.animations[self.hit_reaction_rifle_animation];
+    pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<Node>) -> bool {
+        let animations_container =
+            utils::fetch_animation_container_ref(&scene.graph, animation_player);
+
+        let hr_animation = &animations_container[self.hit_reaction_rifle_animation];
         !hr_animation.has_ended() && hr_animation.is_enabled()
     }
 

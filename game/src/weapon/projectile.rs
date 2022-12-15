@@ -177,7 +177,7 @@ impl Projectile {
 
         let instance_handle = block_on(resource_manager.request_model(definition.model.clone()))
             .unwrap()
-            .instantiate_geometry(scene);
+            .instantiate(scene);
 
         let instance_ref = &mut scene.graph[instance_handle];
 

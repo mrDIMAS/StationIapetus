@@ -1,7 +1,4 @@
-use crate::{
-    bot::{clean_machine, BotDefinition},
-    utils::create_play_animation_state,
-};
+use crate::{bot::BotDefinition, utils, utils::create_play_animation_state};
 use fyrox::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
@@ -9,6 +6,7 @@ use fyrox::{
     },
     core::{
         pool::Handle,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -33,7 +31,7 @@ pub struct LowerBodyMachineInput {
 }
 
 impl LowerBodyMachine {
-    pub const STEP_SIGNAL: u64 = 1;
+    pub const STEP_SIGNAL: Uuid = uuid!("f3d77f3b-a642-4297-ab04-7bc700056749");
 
     const IDLE_TO_WALK: &'static str = "IdleToWalk";
     const WALK_TO_IDLE: &'static str = "WalkToIdle";
@@ -48,6 +46,7 @@ impl LowerBodyMachine {
         resource_manager: ResourceManager,
         definition: &BotDefinition,
         model: Handle<Node>,
+        animation_player: Handle<Node>,
         scene: &mut Scene,
     ) -> Self {
         let (
@@ -62,12 +61,14 @@ impl LowerBodyMachine {
             resource_manager.request_model(&definition.dying_animation,),
         );
 
-        let mut machine = Machine::new(model);
+        let mut machine = Machine::new();
+
+        let root_layer = machine.layers_mut().first_mut().unwrap();
 
         let (_, idle_state) = create_play_animation_state(
             idle_animation_resource.unwrap(),
             "Idle",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -75,7 +76,7 @@ impl LowerBodyMachine {
         let (walk_animation, walk_state) = create_play_animation_state(
             walk_animation_resource.unwrap(),
             "Walk",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -83,87 +84,98 @@ impl LowerBodyMachine {
         let (scream_animation, scream_state) = create_play_animation_state(
             scream_animation_resource.unwrap(),
             "Scream",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
-        scene
-            .animations
+        let (dying_animation, dying_state) = create_play_animation_state(
+            dying_animation_resource.unwrap(),
+            "Dying",
+            root_layer,
+            scene,
+            model,
+        );
+
+        let animations_container =
+            utils::fetch_animation_container_mut(&mut scene.graph, animation_player);
+
+        animations_container
             .get_mut(scream_animation)
             .set_loop(false)
             .set_enabled(false)
             .set_speed(1.0);
 
-        let (dying_animation, dying_state) = create_play_animation_state(
-            dying_animation_resource.unwrap(),
-            "Dying",
-            &mut machine,
-            scene,
-            model,
-        );
-
-        scene
-            .animations
+        animations_container
             .get_mut(dying_animation)
             .set_loop(false)
             .set_enabled(false)
             .set_speed(1.0);
 
-        scene.animations[walk_animation]
-            .add_signal(AnimationSignal::new(Self::STEP_SIGNAL, 0.3))
-            .add_signal(AnimationSignal::new(Self::STEP_SIGNAL, 0.6));
+        animations_container[walk_animation]
+            .add_signal(AnimationSignal {
+                id: Self::STEP_SIGNAL,
+                name: "Step1".to_string(),
+                time: 0.3,
+                enabled: true,
+            })
+            .add_signal(AnimationSignal {
+                id: Self::STEP_SIGNAL,
+                name: "Step2".to_string(),
+                time: 0.6,
+                enabled: true,
+            });
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Walk",
             idle_state,
             walk_state,
             0.2,
             Self::IDLE_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Idle",
             walk_state,
             idle_state,
             0.2,
             Self::WALK_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Scream",
             idle_state,
             scream_state,
             0.2,
             Self::IDLE_TO_SCREAM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Scream",
             walk_state,
             scream_state,
             0.2,
             Self::WALK_TO_SCREAM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Scream->Walk",
             scream_state,
             walk_state,
             0.2,
             Self::SCREAM_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Scream->Idle",
             scream_state,
             idle_state,
             0.2,
             Self::SCREAM_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Dying",
             walk_state,
             dying_state,
             0.2,
             Self::WALK_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Dying",
             idle_state,
             dying_state,
@@ -171,7 +183,7 @@ impl LowerBodyMachine {
             Self::IDLE_TO_DYING,
         ));
 
-        machine.set_entry_state(idle_state);
+        root_layer.set_entry_state(idle_state);
 
         Self {
             scream_animation,
@@ -182,11 +194,16 @@ impl LowerBodyMachine {
         }
     }
 
-    pub fn clean_up(&mut self, scene: &mut Scene) {
-        clean_machine(&self.machine, scene)
-    }
+    pub fn apply(
+        &mut self,
+        scene: &mut Scene,
+        dt: f32,
+        input: LowerBodyMachineInput,
+        animation_player: Handle<Node>,
+    ) {
+        let animations_container =
+            utils::fetch_animation_container_ref(&mut scene.graph, animation_player);
 
-    pub fn apply(&mut self, scene: &mut Scene, dt: f32, input: LowerBodyMachineInput) {
         self.machine
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))
             .set_parameter(Self::WALK_TO_IDLE, Parameter::Rule(!input.walk))
@@ -196,14 +213,15 @@ impl LowerBodyMachine {
             .set_parameter(Self::SCREAM_TO_IDLE, Parameter::Rule(!input.scream))
             .set_parameter(Self::WALK_TO_DYING, Parameter::Rule(input.dead))
             .set_parameter(Self::IDLE_TO_DYING, Parameter::Rule(input.dead))
-            .evaluate_pose(&scene.animations, dt)
+            .evaluate_pose(animations_container, dt)
             .apply(&mut scene.graph);
     }
 
     pub fn is_walking(&self) -> bool {
-        let active_transition = self.machine.active_transition();
-        self.machine.active_state() == self.walk_state
+        let root_layer = self.machine.layers().first().unwrap();
+        let active_transition = root_layer.active_transition();
+        root_layer.active_state() == self.walk_state
             || (active_transition.is_some()
-                && self.machine.transitions().borrow(active_transition).dest() == self.walk_state)
+                && root_layer.transitions().borrow(active_transition).dest() == self.walk_state)
     }
 }

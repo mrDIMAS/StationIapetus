@@ -473,8 +473,9 @@ impl Game {
 
             // Wait until all resource are loaded and only then enter the game. This ensures that all textures
             // are loaded and there won't be any visual artifact due to loading texture.
-            let resource_wait_context = resource_manager.state().containers_mut().wait_concurrent();
-            block_on(resource_wait_context.wait_concurrent());
+            // let resource_wait_context =
+            //      resource_manager.state().containers_mut().get_wait_context();
+            // block_on(resource_wait_context.wait_concurrent());
 
             ctx.lock().level = Some(level);
         });

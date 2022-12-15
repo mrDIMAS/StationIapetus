@@ -1,18 +1,21 @@
 use crate::{
     player::{make_hit_reaction_state, HitReactionStateDefinition},
-    utils::create_play_animation_state,
+    utils::{
+        create_play_animation_state, fetch_animation_container_mut, fetch_animation_container_ref,
+    },
 };
-use fyrox::animation::value::{TrackValue, ValueBinding};
 use fyrox::{
     animation::{
         machine::{
             node::blend::{BlendPose, IndexedBlendInput},
-            Machine, Parameter, PoseNode, PoseWeight, State, Transition,
+            LayerMask, Machine, MachineLayer, Parameter, PoseNode, PoseWeight, State, Transition,
         },
+        value::{TrackValue, ValueBinding},
         Animation, AnimationSignal,
     },
     core::{
         pool::Handle,
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
@@ -22,34 +25,36 @@ use fyrox::{
 
 pub struct IdleStateDefinition {
     state: Handle<State>,
-    idle_animation: Handle<Animation>,
-    idle_pistol_animation: Handle<Animation>,
 }
 
 impl IdleStateDefinition {
     pub fn new(
-        machine: &mut Machine,
+        layer: &mut MachineLayer,
         scene: &mut Scene,
         model: Handle<Node>,
         idle_animation_resource: Model,
         idle_pistol_animation_resource: Model,
         index_parameter: String,
+        animation_player: Handle<Node>,
     ) -> Self {
         let idle_animation = *idle_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
-        let idle_animation_node = machine.add_node(PoseNode::make_play_animation(idle_animation));
+        let idle_animation_node = layer.add_node(PoseNode::make_play_animation(idle_animation));
 
         let idle_pistol_animation = *idle_pistol_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
-        scene.animations[idle_pistol_animation].set_speed(0.25);
-        let idle_pistol_animation_node =
-            machine.add_node(PoseNode::make_play_animation(idle_pistol_animation));
 
-        let idle_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+        fetch_animation_container_mut(&mut scene.graph, animation_player)[idle_pistol_animation]
+            .set_speed(0.25);
+
+        let idle_pistol_animation_node =
+            layer.add_node(PoseNode::make_play_animation(idle_pistol_animation));
+
+        let idle_node = layer.add_node(PoseNode::make_blend_animations_by_index(
             index_parameter,
             vec![
                 IndexedBlendInput {
@@ -64,9 +69,7 @@ impl IdleStateDefinition {
         ));
 
         Self {
-            state: machine.add_state(State::new("Idle", idle_node)),
-            idle_animation,
-            idle_pistol_animation,
+            state: layer.add_state(State::new("Idle", idle_node)),
         }
     }
 }
@@ -74,14 +77,12 @@ impl IdleStateDefinition {
 struct WalkStateDefinition {
     state: Handle<State>,
     walk_animation: Handle<Animation>,
-    walk_pistol_animation: Handle<Animation>,
     run_animation: Handle<Animation>,
-    run_pistol_animation: Handle<Animation>,
 }
 
 impl WalkStateDefinition {
     fn new(
-        machine: &mut Machine,
+        layer: &mut MachineLayer,
         scene: &mut Scene,
         model: Handle<Node>,
         walk_animation_resource: Model,
@@ -91,32 +92,32 @@ impl WalkStateDefinition {
         index: String,
     ) -> Self {
         let walk_animation = *walk_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
-        let walk_animation_node = machine.add_node(PoseNode::make_play_animation(walk_animation));
+        let walk_animation_node = layer.add_node(PoseNode::make_play_animation(walk_animation));
 
         let walk_pistol_animation = *walk_pistol_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
         let walk_pistol_animation_node =
-            machine.add_node(PoseNode::make_play_animation(walk_pistol_animation));
+            layer.add_node(PoseNode::make_play_animation(walk_pistol_animation));
 
         let run_animation = *run_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
-        let run_animation_node = machine.add_node(PoseNode::make_play_animation(run_animation));
+        let run_animation_node = layer.add_node(PoseNode::make_play_animation(run_animation));
 
         let run_pistol_animation = *run_pistol_animation_resource
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
         let run_pistol_animation_node =
-            machine.add_node(PoseNode::make_play_animation(run_pistol_animation));
+            layer.add_node(PoseNode::make_play_animation(run_pistol_animation));
 
-        let walk_node = machine.add_node(PoseNode::make_blend_animations_by_index(
+        let walk_node = layer.add_node(PoseNode::make_blend_animations_by_index(
             index,
             vec![
                 IndexedBlendInput {
@@ -139,11 +140,9 @@ impl WalkStateDefinition {
         ));
 
         Self {
-            state: machine.add_state(State::new("Walk", walk_node)),
+            state: layer.add_state(State::new("Walk", walk_node)),
             walk_animation,
-            walk_pistol_animation,
             run_animation,
-            run_pistol_animation,
         }
     }
 }
@@ -164,20 +163,6 @@ pub struct UpperBodyMachine {
     pub dying_animation: Handle<Animation>,
     pub hit_reaction_pistol_animation: Handle<Animation>,
     pub hit_reaction_rifle_animation: Handle<Animation>,
-}
-
-fn disable_leg_tracks(
-    animation: Handle<Animation>,
-    root: Handle<Node>,
-    leg_name: &str,
-    scene: &mut Scene,
-) {
-    let animation = scene.animations.get_mut(animation);
-    animation.set_tracks_enabled_from(
-        scene.graph.find_by_name(root, leg_name),
-        false,
-        &scene.graph,
-    )
 }
 
 #[derive(Eq, PartialEq, Copy, Clone)]
@@ -254,17 +239,26 @@ impl UpperBodyMachine {
     const IDLE_STATE_WEAPON_KIND: &'static str = "IdleStateWeaponKind";
     const WALK_STATE_WEAPON_KIND: &'static str = "IdleStateWeaponKind";
 
-    // Signals unique per animation so there can be equal numbers across multiple animations.
-    pub const GRAB_WEAPON_SIGNAL: u64 = 1;
-    pub const PUT_BACK_WEAPON_END_SIGNAL: u64 = 1;
-    pub const TOSS_GRENADE_SIGNAL: u64 = 1;
+    pub const GRAB_WEAPON_SIGNAL: Uuid = uuid!("4b80a4ac-b782-44c6-a6d6-cdead72f5369");
+    pub const PUT_BACK_WEAPON_END_SIGNAL: Uuid = uuid!("a923cabd-da6a-43ca-85cc-861370b1669a");
+    pub const TOSS_GRENADE_SIGNAL: Uuid = uuid!("ce07b80a-e099-4cc5-8361-43d6631f431c");
 
     pub async fn new(
         scene: &mut Scene,
         model: Handle<Node>,
         resource_manager: ResourceManager,
+        animation_player: Handle<Node>,
     ) -> Self {
-        let mut machine = Machine::new(model);
+        let mut machine = Machine::new();
+
+        let root_layer = machine.layers_mut().first_mut().unwrap();
+
+        let mut layer_mask = LayerMask::default();
+        for leg_name in &["mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"] {
+            let leg_node = scene.graph.find_by_name(model, leg_name);
+            layer_mask.merge(LayerMask::from_hierarchy(&scene.graph, leg_node));
+        }
+        root_layer.set_mask(layer_mask);
 
         let (
             walk_animation_resource,
@@ -309,31 +303,32 @@ impl UpperBodyMachine {
             hit_reaction_pistol_animation,
             hit_reaction_rifle_animation,
         } = make_hit_reaction_state(
-            &mut machine,
+            root_layer,
             scene,
             model,
             Self::HIT_REACTION_WEAPON_KIND.to_owned(),
             hit_reaction_rifle_animation_resource.unwrap(),
             hit_reaction_pistol_animation_resource.unwrap(),
+            animation_player,
         );
 
         let aim_rifle_animation = *aim_rifle_animation_resource
             .unwrap()
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
         let aim_rifle_animation_node =
-            machine.add_node(PoseNode::make_play_animation(aim_rifle_animation));
+            root_layer.add_node(PoseNode::make_play_animation(aim_rifle_animation));
 
         let aim_pistol_animation = *aim_pistol_animation_resource
             .unwrap()
-            .retarget_animations(model, scene)
+            .retarget_animations(model, &mut scene.graph)
             .get(0)
             .unwrap();
         let aim_pistol_animation_node =
-            machine.add_node(PoseNode::make_play_animation(aim_pistol_animation));
+            root_layer.add_node(PoseNode::make_play_animation(aim_pistol_animation));
 
-        let aim_node = machine.add_node(PoseNode::make_blend_animations(vec![
+        let aim_node = root_layer.add_node(PoseNode::make_blend_animations(vec![
             BlendPose::new(
                 PoseWeight::Parameter(Self::RIFLE_AIM_FACTOR.to_owned()),
                 aim_rifle_animation_node,
@@ -343,41 +338,40 @@ impl UpperBodyMachine {
                 aim_pistol_animation_node,
             ),
         ]));
-        let aim_state = machine.add_state(State::new("Aim", aim_node));
+        let aim_state = root_layer.add_state(State::new("Aim", aim_node));
 
         let (toss_grenade_animation, toss_grenade_state) = create_play_animation_state(
             toss_grenade_animation_resource.unwrap(),
             "TossGrenade",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
         let IdleStateDefinition {
-            state: idle_state,
-            idle_animation,
-            idle_pistol_animation,
+            state: idle_state, ..
         } = IdleStateDefinition::new(
-            &mut machine,
+            root_layer,
             scene,
             model,
             idle_animation_resource.unwrap(),
             idle_pistol_animation_resource.unwrap(),
             Self::IDLE_STATE_WEAPON_KIND.to_owned(),
+            animation_player,
         );
 
         let (jump_animation, jump_state) = create_play_animation_state(
             jump_animation_resource.unwrap(),
             "Jump",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
 
-        let (fall_animation, fall_state) = create_play_animation_state(
+        let (_, fall_state) = create_play_animation_state(
             falling_animation_resource.unwrap(),
             "Fall",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -385,7 +379,7 @@ impl UpperBodyMachine {
         let (land_animation, land_state) = create_play_animation_state(
             landing_animation_resource.unwrap(),
             "Land",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -393,7 +387,7 @@ impl UpperBodyMachine {
         let (put_back_animation, put_back_state) = create_play_animation_state(
             put_back_animation_resource.unwrap(),
             "PutBack",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -401,7 +395,7 @@ impl UpperBodyMachine {
         let (grab_animation, grab_state) = create_play_animation_state(
             grab_animation_resource.unwrap(),
             "Grab",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -409,7 +403,7 @@ impl UpperBodyMachine {
         let (dying_animation, dying_state) = create_play_animation_state(
             dying_animation_resource.unwrap(),
             "Dying",
-            &mut machine,
+            root_layer,
             scene,
             model,
         );
@@ -417,11 +411,10 @@ impl UpperBodyMachine {
         let WalkStateDefinition {
             walk_animation,
             state: walk_state,
-            walk_pistol_animation,
             run_animation,
-            run_pistol_animation,
+            ..
         } = WalkStateDefinition::new(
-            &mut machine,
+            root_layer,
             scene,
             model,
             walk_animation_resource.unwrap(),
@@ -431,80 +424,87 @@ impl UpperBodyMachine {
             Self::WALK_STATE_WEAPON_KIND.to_owned(),
         );
 
+        let animations_container =
+            fetch_animation_container_mut(&mut scene.graph, animation_player);
+
         // Some animations must not be looped.
-        scene
-            .animations
+        animations_container
             .get_mut(jump_animation)
             .set_enabled(false)
             .set_loop(false);
-        scene.animations.get_mut(land_animation).set_loop(false);
-        scene
-            .animations
+        animations_container.get_mut(land_animation).set_loop(false);
+        animations_container
             .get_mut(grab_animation)
             .set_loop(false)
             .set_speed(3.0)
             .set_enabled(false)
-            .add_signal(AnimationSignal::new(Self::GRAB_WEAPON_SIGNAL, 0.3));
-        let put_back_duration = scene.animations.get(put_back_animation).length();
-        scene
-            .animations
+            .add_signal(AnimationSignal::new(
+                Self::GRAB_WEAPON_SIGNAL,
+                "GrabWeapon",
+                0.3,
+            ));
+        let put_back_duration = animations_container.get(put_back_animation).length();
+        animations_container
             .get_mut(put_back_animation)
             .set_speed(3.0)
             .add_signal(AnimationSignal::new(
                 Self::PUT_BACK_WEAPON_END_SIGNAL,
+                "PutBackWeapon",
                 put_back_duration,
             ))
             .set_loop(false);
-        scene
-            .animations
+        animations_container
             .get_mut(toss_grenade_animation)
             .set_speed(1.5)
-            .add_signal(AnimationSignal::new(Self::TOSS_GRENADE_SIGNAL, 1.7))
+            .add_signal(AnimationSignal::new(
+                Self::TOSS_GRENADE_SIGNAL,
+                "TossGrenade",
+                1.7,
+            ))
             .set_enabled(false)
             .set_loop(false);
 
-        scene
-            .animations
+        animations_container
             .get_mut(dying_animation)
             .set_enabled(false)
             .set_loop(false);
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Idle",
             walk_state,
             idle_state,
             0.30,
             Self::WALK_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Jump",
             walk_state,
             jump_state,
             0.20,
             Self::WALK_TO_JUMP,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Walk",
             idle_state,
             walk_state,
             0.40,
             Self::IDLE_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Jump",
             idle_state,
             jump_state,
             0.25,
             Self::IDLE_TO_JUMP,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Falling->Landing",
             fall_state,
             land_state,
             0.20,
             Self::FALL_TO_LAND,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Landing->Idle",
             land_state,
             idle_state,
@@ -513,63 +513,63 @@ impl UpperBodyMachine {
         ));
 
         // Falling state can be entered from: Jump, Walk, Idle states.
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Jump->Falling",
             jump_state,
             fall_state,
             0.30,
             Self::JUMP_TO_FALL,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Falling",
             walk_state,
             fall_state,
             0.30,
             Self::WALK_TO_FALL,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Falling",
             idle_state,
             fall_state,
             0.20,
             Self::IDLE_TO_FALL,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Aim",
             idle_state,
             aim_state,
             0.20,
             Self::IDLE_TO_AIM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Aim",
             walk_state,
             aim_state,
             0.20,
             Self::WALK_TO_AIM,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Aim->Idle",
             aim_state,
             idle_state,
             0.20,
             Self::AIM_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Aim",
             aim_state,
             walk_state,
             0.20,
             Self::AIM_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Aim->TossGrenade",
             aim_state,
             toss_grenade_state,
             0.20,
             Self::AIM_TO_TOSS_GRENADE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "TossGrenade->Aim",
             toss_grenade_state,
             aim_state,
@@ -577,21 +577,21 @@ impl UpperBodyMachine {
             Self::TOSS_GRENADE_TO_AIM,
         ));
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Aim->PutBack",
             aim_state,
             put_back_state,
             0.10,
             Self::AIM_TO_PUT_BACK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->PutBack",
             walk_state,
             put_back_state,
             0.10,
             Self::WALK_TO_PUT_BACK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->PutBack",
             idle_state,
             put_back_state,
@@ -599,42 +599,42 @@ impl UpperBodyMachine {
             Self::IDLE_TO_PUT_BACK,
         ));
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "PutBack->Idle",
             put_back_state,
             idle_state,
             0.20,
             Self::PUT_BACK_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "PutBack->Walk",
             put_back_state,
             walk_state,
             0.20,
             Self::PUT_BACK_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "PutBack->Grab",
             put_back_state,
             grab_state,
             0.10,
             Self::PUT_BACK_TO_GRAB,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Grab->Idle",
             grab_state,
             idle_state,
             0.20,
             Self::GRAB_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Grab->Walk",
             grab_state,
             walk_state,
             0.20,
             Self::GRAB_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Grab->Aim",
             grab_state,
             aim_state,
@@ -643,63 +643,63 @@ impl UpperBodyMachine {
         ));
 
         // Dying transitions.
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Land->Dying",
             land_state,
             dying_state,
             0.20,
             Self::LAND_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Fall->Dying",
             fall_state,
             dying_state,
             0.20,
             Self::FALL_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->Dying",
             idle_state,
             dying_state,
             0.20,
             Self::IDLE_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->Dying",
             walk_state,
             dying_state,
             0.20,
             Self::WALK_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Jump->Dying",
             jump_state,
             dying_state,
             0.20,
             Self::JUMP_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Aim->Dying",
             aim_state,
             dying_state,
             0.20,
             Self::AIM_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "TossGrenade->Dying",
             toss_grenade_state,
             dying_state,
             0.20,
             Self::TOSS_GRENADE_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Grab->Dying",
             grab_state,
             dying_state,
             0.20,
             Self::GRAB_TO_DYING,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "PutBack->Dying",
             put_back_state,
             dying_state,
@@ -707,35 +707,35 @@ impl UpperBodyMachine {
             Self::PUT_BACK_TO_DYING,
         ));
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Idle->HitReaction",
             idle_state,
             hit_reaction_state,
             0.20,
             Self::IDLE_TO_HIT_REACTION,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Walk->HitReaction",
             walk_state,
             hit_reaction_state,
             0.20,
             Self::WALK_TO_HIT_REACTION,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Idle",
             hit_reaction_state,
             idle_state,
             0.20,
             Self::HIT_REACTION_TO_IDLE,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Walk",
             hit_reaction_state,
             walk_state,
             0.20,
             Self::HIT_REACTION_TO_WALK,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Dying",
             hit_reaction_state,
             dying_state,
@@ -743,14 +743,14 @@ impl UpperBodyMachine {
             Self::HIT_REACTION_TO_DYING,
         ));
 
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "Aim->HitReaction",
             aim_state,
             hit_reaction_state,
             0.20,
             Self::AIM_TO_HIT_REACTION,
         ));
-        machine.add_transition(Transition::new(
+        root_layer.add_transition(Transition::new(
             "HitReaction->Aim",
             hit_reaction_state,
             aim_state,
@@ -758,31 +758,7 @@ impl UpperBodyMachine {
             Self::HIT_REACTION_TO_AIM,
         ));
 
-        for leg in &["mixamorig:LeftUpLeg", "mixamorig:RightUpLeg"] {
-            for &animation in &[
-                aim_pistol_animation,
-                aim_rifle_animation,
-                toss_grenade_animation,
-                walk_animation,
-                walk_pistol_animation,
-                idle_animation,
-                idle_pistol_animation,
-                jump_animation,
-                fall_animation,
-                land_animation,
-                grab_animation,
-                put_back_animation,
-                run_animation,
-                run_pistol_animation,
-                dying_animation,
-                hit_reaction_rifle_animation,
-                hit_reaction_pistol_animation,
-            ] {
-                disable_leg_tracks(animation, model, leg, scene);
-            }
-        }
-
-        machine.set_entry_state(idle_state);
+        root_layer.set_entry_state(idle_state);
 
         Self {
             machine,
@@ -808,13 +784,16 @@ impl UpperBodyMachine {
         dt: f32,
         hips_handle: Handle<Node>,
         input: UpperBodyMachineInput,
+        animation_player: Handle<Node>,
     ) {
+        let animations_container = fetch_animation_container_ref(&scene.graph, animation_player);
+
         let (current_hit_reaction_animation, index) = match input.weapon_kind {
             CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),
             CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 1),
         };
         let recovered = !input.should_be_stunned
-            && scene.animations[current_hit_reaction_animation].has_ended();
+            && animations_container[current_hit_reaction_animation].has_ended();
 
         self.machine
             // Update parameters which will be used by transitions.
@@ -824,7 +803,7 @@ impl UpperBodyMachine {
             .set_parameter(Self::IDLE_TO_JUMP, Parameter::Rule(input.is_jumping))
             .set_parameter(
                 Self::JUMP_TO_FALL,
-                Parameter::Rule(scene.animations.get(self.jump_animation).has_ended()),
+                Parameter::Rule(animations_container.get(self.jump_animation).has_ended()),
             )
             .set_parameter(
                 Self::WALK_TO_FALL,
@@ -840,7 +819,7 @@ impl UpperBodyMachine {
             )
             .set_parameter(
                 Self::LAND_TO_IDLE,
-                Parameter::Rule(scene.animations.get(self.land_animation).has_ended()),
+                Parameter::Rule(animations_container.get(self.land_animation).has_ended()),
             )
             .set_parameter(
                 Self::IDLE_TO_AIM,
@@ -868,7 +847,9 @@ impl UpperBodyMachine {
                 Self::PUT_BACK_TO_IDLE,
                 Parameter::Rule(
                     !input.change_weapon
-                        && scene.animations.get(self.put_back_animation).has_ended(),
+                        && animations_container
+                            .get(self.put_back_animation)
+                            .has_ended(),
                 ),
             )
             .set_parameter(
@@ -876,14 +857,18 @@ impl UpperBodyMachine {
                 Parameter::Rule(
                     !input.change_weapon
                         && input.is_walking
-                        && scene.animations.get(self.put_back_animation).has_ended(),
+                        && animations_container
+                            .get(self.put_back_animation)
+                            .has_ended(),
                 ),
             )
             .set_parameter(
                 Self::PUT_BACK_TO_GRAB,
                 Parameter::Rule(
                     input.change_weapon
-                        && scene.animations.get(self.put_back_animation).has_ended(),
+                        && animations_container
+                            .get(self.put_back_animation)
+                            .has_ended(),
                 ),
             )
             .set_parameter(
@@ -891,7 +876,7 @@ impl UpperBodyMachine {
                 Parameter::Rule(
                     !input.change_weapon
                         && !input.is_aiming
-                        && scene.animations.get(self.grab_animation).has_ended(),
+                        && animations_container.get(self.grab_animation).has_ended(),
                 ),
             )
             .set_parameter(
@@ -900,13 +885,13 @@ impl UpperBodyMachine {
                     !input.change_weapon
                         && input.is_walking
                         && !input.is_aiming
-                        && scene.animations.get(self.grab_animation).has_ended(),
+                        && animations_container.get(self.grab_animation).has_ended(),
                 ),
             )
             .set_parameter(
                 Self::GRAB_TO_AIM,
                 Parameter::Rule(
-                    input.is_aiming && scene.animations.get(self.grab_animation).has_ended(),
+                    input.is_aiming && animations_container.get(self.grab_animation).has_ended(),
                 ),
             )
             .set_parameter(
@@ -962,8 +947,7 @@ impl UpperBodyMachine {
                 Self::TOSS_GRENADE_TO_AIM,
                 Parameter::Rule(
                     !input.toss_grenade
-                        && scene
-                            .animations
+                        && animations_container
                             .get(self.toss_grenade_animation)
                             .has_ended(),
                 ),
@@ -973,7 +957,7 @@ impl UpperBodyMachine {
                 Parameter::Rule(input.toss_grenade && input.is_aiming),
             )
             .set_parameter(Self::IDLE_STATE_WEAPON_KIND, Parameter::Index(index))
-            .evaluate_pose(&scene.animations, dt)
+            .evaluate_pose(animations_container, dt)
             .apply_with(&mut scene.graph, |node, handle, pose| {
                 if handle == hips_handle {
                     // Ignore position and rotation for hips. Some animations has unwanted shifts
