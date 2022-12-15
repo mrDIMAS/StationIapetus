@@ -77,7 +77,7 @@ pub fn make_hit_reaction_state(
     animation_player: Handle<Node>,
 ) -> HitReactionStateDefinition {
     let hit_reaction_rifle_animation = *hit_reaction_rifle_animation_resource
-        .retarget_animations(model, &mut scene.graph)
+        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
         .get(0)
         .unwrap();
 
@@ -85,7 +85,7 @@ pub fn make_hit_reaction_state(
         layer.add_node(PoseNode::make_play_animation(hit_reaction_rifle_animation));
 
     let hit_reaction_pistol_animation = *hit_reaction_pistol_animation_resource
-        .retarget_animations(model, &mut scene.graph)
+        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
         .get(0)
         .unwrap();
     let hit_reaction_pistol_animation_node =

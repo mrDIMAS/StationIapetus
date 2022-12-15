@@ -64,7 +64,7 @@ pub fn make_attack_state(
         .map(|desc| {
             let animation = *desc
                 .resource
-                .retarget_animations(model, &mut scene.graph)
+                .retarget_animations_to_player(model, animations_player, &mut scene.graph)
                 .get(0)
                 .unwrap();
             utils::fetch_animation_container_mut(&mut scene.graph, animations_player)[animation]
@@ -169,7 +169,14 @@ impl UpperBodyMachine {
         root_layer.set_mask(layer_mask);
 
         let (_, aim_state) = if let Some(aim_animation_resource) = aim_animation_resource.clone() {
-            create_play_animation_state(aim_animation_resource, "Aim", root_layer, scene, model)
+            create_play_animation_state(
+                aim_animation_resource,
+                "Aim",
+                root_layer,
+                scene,
+                model,
+                animations_player,
+            )
         } else {
             (Handle::NONE, Handle::NONE)
         };
@@ -180,6 +187,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animations_player,
         );
 
         let (_, walk_state) = create_play_animation_state(
@@ -188,6 +196,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animations_player,
         );
 
         let (scream_animation, scream_state) = create_play_animation_state(
@@ -196,6 +205,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animations_player,
         );
 
         let (attack_state, attack_animations) = make_attack_state(
@@ -223,6 +233,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animations_player,
         );
 
         let animations_container_mut =

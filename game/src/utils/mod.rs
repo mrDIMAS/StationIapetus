@@ -160,9 +160,10 @@ pub fn create_play_animation_state(
     layer: &mut MachineLayer,
     scene: &mut Scene,
     model: Handle<Node>,
+    animation_player: Handle<Node>,
 ) -> (Handle<Animation>, Handle<State>) {
     let animation = *animation_resource
-        .retarget_animations(model, &mut scene.graph)
+        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
         .get(0)
         .unwrap();
     let node = layer.add_node(PoseNode::make_play_animation(animation));

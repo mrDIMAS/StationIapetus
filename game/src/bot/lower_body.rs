@@ -71,6 +71,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (walk_animation, walk_state) = create_play_animation_state(
@@ -79,6 +80,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (scream_animation, scream_state) = create_play_animation_state(
@@ -87,6 +89,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (dying_animation, dying_state) = create_play_animation_state(
@@ -95,6 +98,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let animations_container =

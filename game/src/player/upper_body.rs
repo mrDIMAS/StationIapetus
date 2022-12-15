@@ -38,13 +38,13 @@ impl IdleStateDefinition {
         animation_player: Handle<Node>,
     ) -> Self {
         let idle_animation = *idle_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let idle_animation_node = layer.add_node(PoseNode::make_play_animation(idle_animation));
 
         let idle_pistol_animation = *idle_pistol_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
 
@@ -90,28 +90,29 @@ impl WalkStateDefinition {
         run_animation_resource: Model,
         run_pistol_animation_resource: Model,
         index: String,
+        animation_player: Handle<Node>,
     ) -> Self {
         let walk_animation = *walk_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let walk_animation_node = layer.add_node(PoseNode::make_play_animation(walk_animation));
 
         let walk_pistol_animation = *walk_pistol_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let walk_pistol_animation_node =
             layer.add_node(PoseNode::make_play_animation(walk_pistol_animation));
 
         let run_animation = *run_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let run_animation_node = layer.add_node(PoseNode::make_play_animation(run_animation));
 
         let run_pistol_animation = *run_pistol_animation_resource
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let run_pistol_animation_node =
@@ -314,7 +315,7 @@ impl UpperBodyMachine {
 
         let aim_rifle_animation = *aim_rifle_animation_resource
             .unwrap()
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let aim_rifle_animation_node =
@@ -322,7 +323,7 @@ impl UpperBodyMachine {
 
         let aim_pistol_animation = *aim_pistol_animation_resource
             .unwrap()
-            .retarget_animations(model, &mut scene.graph)
+            .retarget_animations_to_player(model, animation_player, &mut scene.graph)
             .get(0)
             .unwrap();
         let aim_pistol_animation_node =
@@ -346,6 +347,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let IdleStateDefinition {
@@ -366,6 +368,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (_, fall_state) = create_play_animation_state(
@@ -374,6 +377,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (land_animation, land_state) = create_play_animation_state(
@@ -382,6 +386,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (put_back_animation, put_back_state) = create_play_animation_state(
@@ -390,6 +395,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (grab_animation, grab_state) = create_play_animation_state(
@@ -398,6 +404,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (dying_animation, dying_state) = create_play_animation_state(
@@ -406,6 +413,7 @@ impl UpperBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let WalkStateDefinition {
@@ -422,6 +430,7 @@ impl UpperBodyMachine {
             run_animation_resource.unwrap(),
             run_pistol_animation_resource.unwrap(),
             Self::WALK_STATE_WEAPON_KIND.to_owned(),
+            animation_player,
         );
 
         let animations_container =

@@ -38,15 +38,16 @@ fn make_walk_state(
     run_animation_resource: Model,
     walk_factor: String,
     run_factor: String,
+    animation_player: Handle<Node>,
 ) -> WalkStateDefinition {
     let walk_animation = *walk_animation_resource
-        .retarget_animations(model, &mut scene.graph)
+        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
         .get(0)
         .unwrap();
     let walk_animation_node = layer.add_node(PoseNode::make_play_animation(walk_animation));
 
     let run_animation = *run_animation_resource
-        .retarget_animations(model, &mut scene.graph)
+        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
         .get(0)
         .unwrap();
     let run_animation_node = layer.add_node(PoseNode::make_play_animation(run_animation));
@@ -176,6 +177,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (jump_animation, jump_state) = create_play_animation_state(
@@ -184,6 +186,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (_, fall_state) = create_play_animation_state(
@@ -192,6 +195,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (land_animation, land_state) = create_play_animation_state(
@@ -200,6 +204,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let (dying_animation, dying_state) = create_play_animation_state(
@@ -208,6 +213,7 @@ impl LowerBodyMachine {
             root_layer,
             scene,
             model,
+            animation_player,
         );
 
         let WalkStateDefinition {
@@ -222,6 +228,7 @@ impl LowerBodyMachine {
             run_animation_resource.unwrap(),
             Self::WALK_FACTOR.to_owned(),
             Self::RUN_FACTOR.to_owned(),
+            animation_player,
         );
 
         let animations_container =
