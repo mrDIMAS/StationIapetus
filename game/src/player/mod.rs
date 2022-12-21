@@ -9,10 +9,7 @@ use crate::{
     inventory::Inventory,
     level::item::ItemKind,
     message::Message,
-    player::{
-        lower_body::{LowerBodyMachine, LowerBodyMachineInput},
-        upper_body::{CombatWeaponKind, UpperBodyMachine, UpperBodyMachineInput},
-    },
+    player::state_machine::{CombatWeaponKind, StateMachine, StateMachineInput},
     sound::SoundManager,
     utils,
     weapon::{
@@ -23,15 +20,10 @@ use crate::{
     CameraController, Elevator, Game, Item,
 };
 use fyrox::{
-    animation::{
-        machine::{node::blend::IndexedBlendInput, MachineLayer, PoseNode, State},
-        Animation,
-    },
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
-        futures::executor::block_on,
         math::{self, SmoothAngle, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -43,8 +35,9 @@ use fyrox::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
-    resource::{model::Model, texture::Texture},
+    resource::texture::Texture,
     scene::{
+        animation::absm::AnimationBlendingStateMachine,
         base::BaseBuilder,
         graph::Graph,
         light::BaseLight,
@@ -58,71 +51,7 @@ use fyrox::{
 use std::ops::{Deref, DerefMut};
 
 pub mod camera;
-mod lower_body;
-mod upper_body;
-
-pub struct HitReactionStateDefinition {
-    state: Handle<State>,
-    hit_reaction_rifle_animation: Handle<Animation>,
-    hit_reaction_pistol_animation: Handle<Animation>,
-}
-
-pub fn make_hit_reaction_state(
-    layer: &mut MachineLayer,
-    scene: &mut Scene,
-    model: Handle<Node>,
-    index: String,
-    hit_reaction_rifle_animation_resource: Model,
-    hit_reaction_pistol_animation_resource: Model,
-    animation_player: Handle<Node>,
-) -> HitReactionStateDefinition {
-    let hit_reaction_rifle_animation = *hit_reaction_rifle_animation_resource
-        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
-        .get(0)
-        .unwrap();
-
-    let hit_reaction_rifle_animation_node =
-        layer.add_node(PoseNode::make_play_animation(hit_reaction_rifle_animation));
-
-    let hit_reaction_pistol_animation = *hit_reaction_pistol_animation_resource
-        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
-        .get(0)
-        .unwrap();
-    let hit_reaction_pistol_animation_node =
-        layer.add_node(PoseNode::make_play_animation(hit_reaction_pistol_animation));
-
-    let animations_container =
-        utils::fetch_animation_container_mut(&mut scene.graph, animation_player);
-    animations_container[hit_reaction_pistol_animation]
-        .set_speed(1.5)
-        .set_enabled(false)
-        .set_loop(false);
-    animations_container[hit_reaction_rifle_animation]
-        .set_speed(1.5)
-        .set_enabled(true)
-        .set_loop(false);
-
-    let pose_node = PoseNode::make_blend_animations_by_index(
-        index,
-        vec![
-            IndexedBlendInput {
-                blend_time: 0.2,
-                pose_source: hit_reaction_rifle_animation_node,
-            },
-            IndexedBlendInput {
-                blend_time: 0.2,
-                pose_source: hit_reaction_pistol_animation_node,
-            },
-        ],
-    );
-    let handle = layer.add_node(pose_node);
-
-    HitReactionStateDefinition {
-        state: layer.add_state(State::new("HitReaction", handle)),
-        hit_reaction_rifle_animation,
-        hit_reaction_pistol_animation,
-    }
-}
+mod state_machine;
 
 #[derive(Default, Debug)]
 pub struct InputController {
@@ -214,6 +143,7 @@ pub struct Player {
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
     rig_light: Handle<Node>,
+    machine: Handle<Node>,
 
     #[visit(optional)]
     animation_player: Handle<Node>,
@@ -222,10 +152,8 @@ pub struct Player {
     item_display: Handle<Node>,
 
     #[reflect(hidden)]
-    lower_body_machine: LowerBodyMachine,
-
-    #[reflect(hidden)]
-    upper_body_machine: UpperBodyMachine,
+    #[visit(skip)]
+    state_machine: StateMachine,
 
     #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
@@ -248,9 +176,7 @@ impl Default for Player {
             weapon_origin: Default::default(),
             model: Default::default(),
             controller: Default::default(),
-            lower_body_machine: Default::default(),
             health_cylinder: Default::default(),
-            upper_body_machine: Default::default(),
             spine: Default::default(),
             hips: Default::default(),
             model_yaw: SmoothAngle {
@@ -299,6 +225,8 @@ impl Default for Player {
             model_pivot: Default::default(),
             model_sub_pivot: Default::default(),
             animation_player: Default::default(),
+            machine: Default::default(),
+            state_machine: Default::default(),
         }
     }
 }
@@ -334,12 +262,12 @@ impl Clone for Player {
             v_recoil: self.v_recoil.clone(),
             h_recoil: self.h_recoil.clone(),
             rig_light: self.rig_light,
-            lower_body_machine: Default::default(),
-            upper_body_machine: Default::default(),
             weapon_change_direction: self.weapon_change_direction,
             journal: Default::default(),
             controller: Default::default(),
             animation_player: self.animation_player,
+            machine: self.machine,
+            state_machine: self.state_machine.clone(),
         }
     }
 }
@@ -511,18 +439,19 @@ impl Player {
         let mut new_y_vel = None;
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
-        while let Some(event) = animations_container
-            .get_mut(self.lower_body_machine.jump_animation)
-            .pop_event()
-        {
-            let layer = self.lower_body_machine.machine.layers().first().unwrap();
-            let active_transition = layer.active_transition();
-            if event.signal_id == LowerBodyMachine::JUMP_SIGNAL
-                && (active_transition == self.lower_body_machine.idle_to_jump
-                    || active_transition == self.lower_body_machine.walk_to_jump
-                    || layer.active_state() == self.lower_body_machine.jump_state)
-            {
-                new_y_vel = Some(3.0 * dt);
+        let mut events = animations_container
+            .get_mut(self.state_machine.jump_animation)
+            .events();
+        while let Some(event) = events.pop_front() {
+            if let Some(layer) = self.state_machine.lower_body_layer(&scene.graph) {
+                let active_transition = layer.active_transition();
+                if event.signal_id == StateMachine::JUMP_SIGNAL
+                    && (active_transition == self.state_machine.idle_to_jump
+                        || active_transition == self.state_machine.walk_to_jump
+                        || layer.active_state() == self.state_machine.jump_state)
+                {
+                    new_y_vel = Some(3.0 * dt);
+                }
             }
         }
         new_y_vel
@@ -532,10 +461,10 @@ impl Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get_mut(self.upper_body_machine.grab_animation)
+            .get_mut(self.state_machine.grab_animation)
             .events();
         while let Some(event) = events.pop_front() {
-            if event.signal_id == UpperBodyMachine::GRAB_WEAPON_SIGNAL {
+            if event.signal_id == StateMachine::GRAB_WEAPON_SIGNAL {
                 match self.weapon_change_direction {
                     RequiredWeapon::None => (),
                     RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
@@ -554,12 +483,12 @@ impl Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         while let Some(event) = animations_container
-            .get_mut(self.upper_body_machine.put_back_animation)
+            .get_mut(self.state_machine.put_back_animation)
             .pop_event()
         {
-            if event.signal_id == UpperBodyMachine::PUT_BACK_WEAPON_END_SIGNAL {
+            if event.signal_id == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
                 animations_container
-                    .get_mut(self.upper_body_machine.grab_animation)
+                    .get_mut(self.state_machine.grab_animation)
                     .set_enabled(true);
             }
         }
@@ -574,10 +503,10 @@ impl Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get_mut(self.upper_body_machine.toss_grenade_animation)
+            .get_mut(self.state_machine.toss_grenade_animation)
             .events();
         while let Some(event) = events.pop_front() {
-            if event.signal_id == UpperBodyMachine::TOSS_GRENADE_SIGNAL {
+            if event.signal_id == StateMachine::TOSS_GRENADE_SIGNAL {
                 let position = scene.graph[self.weapon_pivot].global_position();
 
                 let direction = scene
@@ -670,10 +599,10 @@ impl Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         for &animation in self
-            .lower_body_machine
+            .state_machine
             .hit_reaction_animations()
             .iter()
-            .chain(self.upper_body_machine.hit_reaction_animations().iter())
+            .chain(self.state_machine.hit_reaction_animations().iter())
         {
             animations_container[animation].set_enabled(true).rewind();
         }
@@ -710,7 +639,6 @@ impl Player {
 
     fn update_animation_machines(
         &mut self,
-        dt: f32,
         scene: &mut Scene,
         is_walking: bool,
         is_jumping: bool,
@@ -724,41 +652,29 @@ impl Player {
             self.stun(scene);
         }
 
-        self.lower_body_machine.apply(
+        self.state_machine.apply(StateMachineInput {
+            is_walking,
+            is_jumping,
+            has_ground_contact: has_ground_contact && self.in_air_time <= 0.3,
+            is_aiming: self.controller.aim,
+            run_factor: self.run_factor,
+            is_dead: self.is_dead(),
+            should_be_stunned: false,
+            machine: self.machine,
+            weapon_kind,
+            toss_grenade: self.controller.toss_grenade,
+            change_weapon: self.weapon_change_direction != RequiredWeapon::None,
             scene,
-            dt,
-            LowerBodyMachineInput {
-                is_walking,
-                is_jumping,
-                has_ground_contact: self.in_air_time <= 0.3,
-                run_factor: self.run_factor,
-                is_dead: self.is_dead(),
-                should_be_stunned: false,
-                weapon_kind,
-            },
-            has_ground_contact,
+        });
+
+        self.state_machine.handle_animation_events(
             &self.character,
             sound_manager,
-            self.animation_player,
-        );
-
-        self.upper_body_machine.apply(
+            self.position(&scene.graph),
             scene,
-            dt,
-            self.hips,
-            UpperBodyMachineInput {
-                is_walking,
-                is_jumping,
-                has_ground_contact: self.in_air_time <= 0.3,
-                is_aiming: self.controller.aim,
-                toss_grenade: self.controller.toss_grenade,
-                weapon_kind,
-                change_weapon: self.weapon_change_direction != RequiredWeapon::None,
-                run_factor: self.run_factor,
-                is_dead: self.is_dead(),
-                should_be_stunned,
-            },
-            self.animation_player,
+            is_walking,
+            self.run_factor,
+            has_ground_contact,
         );
     }
 
@@ -811,15 +727,13 @@ impl Player {
             .weapons
             .get(self.character.current_weapon as usize)
         {
-            if self
-                .upper_body_machine
-                .machine
-                .layers()
-                .first()
-                .unwrap()
-                .active_state()
-                == self.upper_body_machine.aim_state
-            {
+            let aiming = self
+                .state_machine
+                .upper_body_layer(&scene.graph)
+                .map(|l| l.active_state() == self.state_machine.aim_state)
+                .unwrap_or(false);
+
+            if aiming {
                 weapon_mut(current_weapon_handle, &mut scene.graph)
                     .laser_sight_mut()
                     .enabled = true;
@@ -875,10 +789,16 @@ impl Player {
         }
     }
 
-    fn can_move(&self) -> bool {
-        let layer = self.lower_body_machine.machine.layers().first().unwrap();
-        layer.active_state() != self.lower_body_machine.fall_state
-            && layer.active_state() != self.lower_body_machine.land_state
+    fn can_move(&self, graph: &Graph) -> bool {
+        if let Some(layer) = graph
+            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine)
+            .and_then(|absm| absm.machine().layers().first())
+        {
+            layer.active_state() != self.state_machine.fall_state
+                && layer.active_state() != self.state_machine.land_state
+        } else {
+            true
+        }
     }
 
     fn apply_weapon_angular_correction(&mut self, scene: &mut Scene, can_move: bool, dt: f32) {
@@ -921,9 +841,7 @@ impl Player {
         !self.is_dead()
             && self.controller.run
             && !self.controller.aim
-            && !self
-                .lower_body_machine
-                .is_stunned(scene, self.animation_player)
+            && !self.state_machine.is_stunned(scene, self.animation_player)
     }
 
     pub fn is_aiming(&self) -> bool {
@@ -934,8 +852,8 @@ impl Player {
         let animations_container =
             utils::fetch_animation_container_ref(&scene.graph, self.animation_player);
         self.is_dead()
-            && (animations_container[self.upper_body_machine.dying_animation].has_ended()
-                || animations_container[self.lower_body_machine.dying_animation].has_ended())
+            && (animations_container[self.state_machine.dying_animation].has_ended()
+                || animations_container[self.state_machine.dying_animation].has_ended())
     }
 
     pub fn resolve(
@@ -1015,20 +933,6 @@ impl TypeUuidProvider for Player {
 
 impl ScriptTrait for Player {
     fn on_init(&mut self, context: &mut ScriptContext) {
-        self.lower_body_machine = block_on(LowerBodyMachine::new(
-            context.scene,
-            self.model,
-            context.resource_manager.clone(),
-            self.animation_player,
-        ));
-
-        self.upper_body_machine = block_on(UpperBodyMachine::new(
-            context.scene,
-            self.model,
-            context.resource_manager.clone(),
-            self.animation_player,
-        ));
-
         self.item_display = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.05))
             .with_size(0.1)
             .build(&mut context.scene.graph);
@@ -1045,6 +949,9 @@ impl ScriptTrait for Player {
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         let game = game_ref(ctx.plugins);
+
+        self.state_machine = StateMachine::new(self.machine, &ctx.scene.graph).unwrap();
+
         self.resolve(
             ctx.scene,
             game.weapon_display.render_target.clone(),
@@ -1121,11 +1028,11 @@ impl ScriptTrait for Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut context.scene.graph, self.animation_player);
 
-        let jump_anim = animations_container.get(self.lower_body_machine.jump_animation);
+        let jump_anim = animations_container.get(self.state_machine.jump_animation);
         let can_jump = !jump_anim.is_enabled() || jump_anim.has_ended();
 
         let can_change_weapon = self.weapon_change_direction.is_none()
-            && animations_container[self.upper_body_machine.grab_animation].has_ended()
+            && animations_container[self.state_machine.grab_animation].has_ended()
             && self.weapons.len() > 1;
 
         let current_weapon_kind = if self.current_weapon().is_some() {
@@ -1160,11 +1067,11 @@ impl ScriptTrait for Player {
 
                     // Rewind jump animation to beginning before jump.
                     animations_container
-                        .get_mut(self.lower_body_machine.jump_animation)
+                        .get_mut(self.state_machine.jump_animation)
                         .set_enabled(true)
                         .rewind();
                     animations_container
-                        .get_mut(self.upper_body_machine.jump_animation)
+                        .get_mut(self.state_machine.jump_animation)
                         .set_enabled(true)
                         .rewind();
                 }
@@ -1217,7 +1124,7 @@ impl ScriptTrait for Player {
                         );
 
                         animations_container
-                            .get_mut(self.upper_body_machine.toss_grenade_animation)
+                            .get_mut(self.state_machine.toss_grenade_animation)
                             .set_enabled(true)
                             .rewind();
                     }
@@ -1266,11 +1173,11 @@ impl ScriptTrait for Player {
             );
 
             animations_container
-                .get_mut(self.upper_body_machine.put_back_animation)
+                .get_mut(self.state_machine.put_back_animation)
                 .rewind();
 
             animations_container
-                .get_mut(self.upper_body_machine.grab_animation)
+                .get_mut(self.state_machine.grab_animation)
                 .set_enabled(false)
                 .rewind();
         }
@@ -1303,7 +1210,6 @@ impl ScriptTrait for Player {
         let is_jumping = has_ground_contact && self.controller.jump;
 
         self.update_animation_machines(
-            ctx.dt,
             ctx.scene,
             is_walking,
             is_jumping,
@@ -1321,7 +1227,7 @@ impl ScriptTrait for Player {
             }
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
-            let can_move = self.can_move();
+            let can_move = self.can_move(&ctx.scene.graph);
             self.update_velocity(ctx.scene, can_move, ctx.dt);
             let new_y_vel = self.handle_jump_signal(ctx.scene, ctx.dt);
             self.handle_weapon_grab_signal(ctx.scene);
@@ -1427,10 +1333,10 @@ impl ScriptTrait for Player {
                 };
 
                 for &animation in &[
-                    self.lower_body_machine.walk_animation,
-                    self.upper_body_machine.walk_animation,
-                    self.lower_body_machine.run_animation,
-                    self.upper_body_machine.run_animation,
+                    self.state_machine.walk_animation,
+                    self.state_machine.walk_animation,
+                    self.state_machine.run_animation,
+                    self.state_machine.run_animation,
                 ] {
                     let animations_container = utils::fetch_animation_container_mut(
                         &mut ctx.scene.graph,
@@ -1450,8 +1356,8 @@ impl ScriptTrait for Player {
 
             if !has_ground_contact {
                 for &land_animation in &[
-                    self.lower_body_machine.land_animation,
-                    self.upper_body_machine.land_animation,
+                    self.state_machine.land_animation,
+                    self.state_machine.land_animation,
                 ] {
                     let animations_container = utils::fetch_animation_container_mut(
                         &mut ctx.scene.graph,
@@ -1477,8 +1383,8 @@ impl ScriptTrait for Player {
             );
         } else {
             for &dying_animation in &[
-                self.lower_body_machine.dying_animation,
-                self.upper_body_machine.dying_animation,
+                self.state_machine.dying_animation,
+                self.state_machine.dying_animation,
             ] {
                 let animations_container = utils::fetch_animation_container_mut(
                     &mut ctx.scene.graph,
