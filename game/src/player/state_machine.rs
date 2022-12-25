@@ -16,9 +16,10 @@ use fyrox::{
 };
 
 #[derive(Eq, PartialEq, Copy, Clone)]
+#[repr(u32)]
 pub enum CombatWeaponKind {
-    Pistol,
-    Rifle,
+    Pistol = 0,
+    Rifle = 1,
 }
 
 pub struct StateMachineInput<'a> {
@@ -195,9 +196,9 @@ impl StateMachine {
         let animations_container =
             utils::fetch_animation_container_ref(&scene.graph, animation_player);
 
-        let (current_hit_reaction_animation, index) = match weapon_kind {
-            CombatWeaponKind::Rifle => (self.hit_reaction_rifle_animation, 0),
-            CombatWeaponKind::Pistol => (self.hit_reaction_pistol_animation, 1),
+        let current_hit_reaction_animation = match weapon_kind {
+            CombatWeaponKind::Rifle => self.hit_reaction_rifle_animation,
+            CombatWeaponKind::Pistol => self.hit_reaction_pistol_animation,
         };
 
         let recovered = !input.should_be_stunned
@@ -205,10 +206,10 @@ impl StateMachine {
 
         let jump_animation_ended = animations_container.get(self.jump_animation).has_ended();
         let land_animation_ended = animations_container.get(self.land_animation).has_ended();
-        let weapon_changed = !change_weapon
-            && animations_container
-                .get(self.put_back_animation)
-                .has_ended();
+        let put_back_animation_ended = animations_container
+            .get(self.put_back_animation)
+            .has_ended();
+        let grab_animation_ended = animations_container.get(self.grab_animation).has_ended();
 
         scene
             .graph
@@ -223,7 +224,7 @@ impl StateMachine {
                 "Landed",
                 Parameter::Rule(has_ground_contact && land_animation_ended),
             )
-            .set_parameter("WeaponKind", Parameter::Index(index))
+            .set_parameter("WeaponKind", Parameter::Index(weapon_kind as u32))
             .set_parameter("HasGroundContact", Parameter::Rule(has_ground_contact))
             .set_parameter("Dead", Parameter::Rule(is_dead))
             .set_parameter("Aim", Parameter::Rule(is_aiming))
@@ -231,9 +232,9 @@ impl StateMachine {
             .set_parameter("RunFactor", Parameter::Weight(run_factor))
             .set_parameter("TossGrenade", Parameter::Rule(toss_grenade))
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
-            .set_parameter("GrabWeapon", Parameter::Rule(should_be_stunned))
-            .set_parameter("RemoveWeapon", Parameter::Rule(should_be_stunned))
-            .set_parameter("WeaponChanged", Parameter::Rule(weapon_changed));
+            .set_parameter("GrabWeapon", Parameter::Rule(put_back_animation_ended))
+            .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
+            .set_parameter("WeaponChanged", Parameter::Rule(grab_animation_ended));
     }
 
     pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {

@@ -60,7 +60,7 @@ impl ScriptTrait for ShotTrail {
         }
 
         if self.lifetime >= self.max_lifetime {
-            context.scene.remove_node(context.handle);
+            context.scene.graph.remove_node(context.handle);
         }
     }
 

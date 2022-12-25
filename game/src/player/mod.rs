@@ -659,7 +659,7 @@ impl Player {
             is_aiming: self.controller.aim,
             run_factor: self.run_factor,
             is_dead: self.is_dead(),
-            should_be_stunned: false,
+            should_be_stunned,
             machine: self.machine,
             weapon_kind,
             toss_grenade: self.controller.toss_grenade,
@@ -939,6 +939,7 @@ impl ScriptTrait for Player {
 
         // Add default weapon.
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
+        //self.push_command(CharacterCommand::AddWeapon(WeaponKind::M4));
 
         let level = current_level_mut(context.plugins).unwrap();
 

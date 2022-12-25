@@ -85,7 +85,7 @@ pub fn make_attack_state(
                 .set_speed(desc.speed)
                 .tracks_of_mut(hips)
                 .filter(|t| t.binding() == &ValueBinding::Rotation)
-                .for_each(|t| t.enable(false));
+                .for_each(|t| t.set_enabled(false));
             animation
         })
         .collect::<Vec<_>>();

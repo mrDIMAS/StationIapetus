@@ -548,7 +548,7 @@ impl Game {
         self.update_statistics(0.0, ctx);
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
-        if true {
+        if false {
             self.debug_render(ctx);
         }
     }

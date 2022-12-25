@@ -352,7 +352,7 @@ impl Character {
 
     pub fn clean_up(&mut self, scene: &mut Scene) {
         if scene.graph.is_valid_handle(self.body) {
-            scene.remove_node(self.body);
+            scene.graph.remove_node(self.body);
         }
     }
 

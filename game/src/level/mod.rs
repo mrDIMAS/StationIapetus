@@ -62,7 +62,9 @@ impl Level {
                 .set_renderer(fyrox::scene::sound::Renderer::Default);
         }
 
-        scene.graph.update(Default::default(), 0.0);
+        scene
+            .graph
+            .update(Default::default(), 0.0, Default::default());
 
         Self {
             player: Default::default(),
@@ -102,7 +104,9 @@ impl Level {
         // Instantiate map
         map_model.instantiate(&mut scene);
 
-        scene.graph.update(Default::default(), 0.0);
+        scene
+            .graph
+            .update(Default::default(), 0.0, Default::default());
 
         let level = Self {
             player: Default::default(),
