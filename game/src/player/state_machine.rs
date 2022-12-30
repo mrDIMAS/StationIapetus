@@ -6,7 +6,7 @@ use fyrox::{
         machine::{State, Transition},
         Animation,
     },
-    core::{algebra::Vector3, pool::Handle, uuid::Uuid},
+    core::{algebra::Vector3, pool::Handle},
     scene::{
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
         graph::Graph,
@@ -62,11 +62,11 @@ pub struct StateMachine {
 }
 
 impl StateMachine {
-    pub const FOOTSTEP_SIGNAL: Uuid = Uuid::nil(); // TODO
-    pub const JUMP_SIGNAL: Uuid = Uuid::nil(); // TODO
-    pub const GRAB_WEAPON_SIGNAL: Uuid = Uuid::nil(); // TODO
-    pub const PUT_BACK_WEAPON_END_SIGNAL: Uuid = Uuid::nil(); // TODO
-    pub const TOSS_GRENADE_SIGNAL: Uuid = Uuid::nil(); // TODO
+    pub const FOOTSTEP_SIGNAL: &'static str = "Footstep";
+    pub const JUMP_SIGNAL: &'static str = "Jump";
+    pub const GRAB_WEAPON_SIGNAL: &'static str = "Grab";
+    pub const PUT_BACK_WEAPON_END_SIGNAL: &'static str = "PutBack";
+    pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
 
     pub fn new(machine_handle: Handle<Node>, graph: &Graph) -> Option<Self> {
         let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)?;
@@ -153,7 +153,7 @@ impl StateMachine {
                 {
                     if is_walking
                         && has_ground_contact
-                        && evt.signal_id == Self::FOOTSTEP_SIGNAL
+                        && evt.name == Self::FOOTSTEP_SIGNAL
                         && run_factor < 0.5
                         && walking
                         || run_factor >= 0.5 && !walking
@@ -163,7 +163,7 @@ impl StateMachine {
                 }
 
                 while let Some(evt) = land_events.pop_front() {
-                    if evt.signal_id == Self::FOOTSTEP_SIGNAL {
+                    if evt.name == Self::FOOTSTEP_SIGNAL {
                         character.footstep_ray_check(begin, scene, sound_manager);
                     }
                 }

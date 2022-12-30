@@ -438,14 +438,14 @@ impl Player {
     fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
         let mut new_y_vel = None;
         let animations_container =
-            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get_mut(self.state_machine.jump_animation)
+            .get(self.state_machine.jump_animation)
             .events();
         while let Some(event) = events.pop_front() {
             if let Some(layer) = self.state_machine.lower_body_layer(&scene.graph) {
                 let active_transition = layer.active_transition();
-                if event.signal_id == StateMachine::JUMP_SIGNAL
+                if event.name == StateMachine::JUMP_SIGNAL
                     && (active_transition == self.state_machine.idle_to_jump
                         || active_transition == self.state_machine.walk_to_jump
                         || layer.active_state() == self.state_machine.jump_state)
@@ -459,12 +459,12 @@ impl Player {
 
     fn handle_weapon_grab_signal(&mut self, scene: &mut Scene) {
         let animations_container =
-            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get_mut(self.state_machine.grab_animation)
+            .get(self.state_machine.grab_animation)
             .events();
         while let Some(event) = events.pop_front() {
-            if event.signal_id == StateMachine::GRAB_WEAPON_SIGNAL {
+            if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
                 match self.weapon_change_direction {
                     RequiredWeapon::None => (),
                     RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
@@ -486,7 +486,7 @@ impl Player {
             .get_mut(self.state_machine.put_back_animation)
             .pop_event()
         {
-            if event.signal_id == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
+            if event.name == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
                 animations_container
                     .get_mut(self.state_machine.grab_animation)
                     .set_enabled(true);
@@ -501,12 +501,12 @@ impl Player {
         resource_manager: &ResourceManager,
     ) {
         let animations_container =
-            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get_mut(self.state_machine.toss_grenade_animation)
+            .get(self.state_machine.toss_grenade_animation)
             .events();
         while let Some(event) = events.pop_front() {
-            if event.signal_id == StateMachine::TOSS_GRENADE_SIGNAL {
+            if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
                 let position = scene.graph[self.weapon_pivot].global_position();
 
                 let direction = scene
@@ -939,7 +939,7 @@ impl ScriptTrait for Player {
 
         // Add default weapon.
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
-        //self.push_command(CharacterCommand::AddWeapon(WeaponKind::M4));
+        self.push_command(CharacterCommand::AddWeapon(WeaponKind::M4));
 
         let level = current_level_mut(context.plugins).unwrap();
 
