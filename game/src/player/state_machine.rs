@@ -136,15 +136,23 @@ impl StateMachine {
             .graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
         {
+            let animation_player = absm.animation_player();
+
             if let Some(animation_player) = scene
                 .graph
-                .try_get_of_type::<AnimationPlayer>(absm.animation_player())
+                .try_get_mut_of_type::<AnimationPlayer>(animation_player)
             {
-                let animations_container = animation_player.animations();
+                let animations_container = animation_player.animations_mut();
 
-                let mut walk_events = animations_container.get(self.walk_animation).events();
-                let mut run_events = animations_container.get(self.run_animation).events();
-                let mut land_events = animations_container.get(self.land_animation).events();
+                let mut walk_events = animations_container
+                    .get_mut(self.walk_animation)
+                    .take_events();
+                let mut run_events = animations_container
+                    .get_mut(self.run_animation)
+                    .take_events();
+                let mut land_events = animations_container
+                    .get_mut(self.land_animation)
+                    .take_events();
 
                 while let Some((walking, evt)) = walk_events
                     .pop_front()
@@ -210,6 +218,9 @@ impl StateMachine {
             .get(self.put_back_animation)
             .has_ended();
         let grab_animation_ended = animations_container.get(self.grab_animation).has_ended();
+        let toss_grenade_animation_ended = animations_container
+            .get(self.toss_grenade_animation)
+            .has_ended();
 
         scene
             .graph
@@ -234,7 +245,11 @@ impl StateMachine {
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
             .set_parameter("GrabWeapon", Parameter::Rule(put_back_animation_ended))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
-            .set_parameter("WeaponChanged", Parameter::Rule(grab_animation_ended));
+            .set_parameter("WeaponChanged", Parameter::Rule(grab_animation_ended))
+            .set_parameter(
+                "GrenadeTossed",
+                Parameter::Rule(toss_grenade_animation_ended),
+            );
     }
 
     pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {

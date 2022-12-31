@@ -71,8 +71,9 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
 
         context.attack_animation_index = self.attack_animation_index as usize;
 
-        let mut attack_animation_events =
-            animations_container.get(current_attack_animation).events();
+        let mut attack_animation_events = animations_container
+            .get_mut(current_attack_animation)
+            .take_events();
 
         // Apply damage to target from melee attack
         if let Some(target) = context.target.as_ref() {

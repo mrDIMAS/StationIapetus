@@ -84,7 +84,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
             let mut events = animations_container
                 .get_mut(context.lower_body_machine.walk_animation)
-                .events();
+                .take_events();
 
             while let Some(event) = events.pop_front() {
                 if event.signal_id == LowerBodyMachine::STEP_SIGNAL {

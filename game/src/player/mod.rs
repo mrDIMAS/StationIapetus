@@ -438,10 +438,10 @@ impl Player {
     fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
         let mut new_y_vel = None;
         let animations_container =
-            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get(self.state_machine.jump_animation)
-            .events();
+            .get_mut(self.state_machine.jump_animation)
+            .take_events();
         while let Some(event) = events.pop_front() {
             if let Some(layer) = self.state_machine.lower_body_layer(&scene.graph) {
                 let active_transition = layer.active_transition();
@@ -459,10 +459,10 @@ impl Player {
 
     fn handle_weapon_grab_signal(&mut self, scene: &mut Scene) {
         let animations_container =
-            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get(self.state_machine.grab_animation)
-            .events();
+            .get_mut(self.state_machine.grab_animation)
+            .take_events();
         while let Some(event) = events.pop_front() {
             if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
                 match self.weapon_change_direction {
@@ -501,10 +501,10 @@ impl Player {
         resource_manager: &ResourceManager,
     ) {
         let animations_container =
-            utils::fetch_animation_container_ref(&mut scene.graph, self.animation_player);
+            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
-            .get(self.state_machine.toss_grenade_animation)
-            .events();
+            .get_mut(self.state_machine.toss_grenade_animation)
+            .take_events();
         while let Some(event) = events.pop_front() {
             if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
                 let position = scene.graph[self.weapon_pivot].global_position();
@@ -655,7 +655,7 @@ impl Player {
         self.state_machine.apply(StateMachineInput {
             is_walking,
             is_jumping,
-            has_ground_contact: has_ground_contact && self.in_air_time <= 0.3,
+            has_ground_contact: has_ground_contact && self.in_air_time <= 0.5,
             is_aiming: self.controller.aim,
             run_factor: self.run_factor,
             is_dead: self.is_dead(),
@@ -940,6 +940,8 @@ impl ScriptTrait for Player {
         // Add default weapon.
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
         self.push_command(CharacterCommand::AddWeapon(WeaponKind::M4));
+
+        self.inventory.add_item(ItemKind::Grenade, 10);
 
         let level = current_level_mut(context.plugins).unwrap();
 
