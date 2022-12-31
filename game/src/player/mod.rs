@@ -655,7 +655,7 @@ impl Player {
         self.state_machine.apply(StateMachineInput {
             is_walking,
             is_jumping,
-            has_ground_contact: has_ground_contact && self.in_air_time <= 0.5,
+            has_ground_contact: self.in_air_time <= 0.3,
             is_aiming: self.controller.aim,
             run_factor: self.run_factor,
             is_dead: self.is_dead(),
