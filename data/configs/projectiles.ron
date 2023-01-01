@@ -17,7 +17,7 @@
             lifetime: 10.0,
             is_kinematic: false,
             impact_sound: "data/sounds/explosion.wav",
-            model: "data/models/grenade/grenade.rgs",
+            model: "data/models/grenade/grenade_proj.rgs",
         )
     }
 )
