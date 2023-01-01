@@ -532,7 +532,7 @@ impl Weapon {
             WeaponProjectile::Projectile(projectile) => {
                 Projectile::add_to_scene(
                     projectile,
-                    &resource_manager,
+                    resource_manager,
                     scene,
                     direction,
                     position,

@@ -1019,8 +1019,7 @@ impl ScriptTrait for Player {
                     };
                     self.controller.pitch = (self.controller.pitch
                         + pitch_direction * (delta.1 as f32) * mouse_sens)
-                        .max(-90.0f32.to_radians())
-                        .min(90.0f32.to_radians());
+                        .clamp(-90.0f32.to_radians(), 90.0f32.to_radians());
                     None
                 }
                 _ => None,

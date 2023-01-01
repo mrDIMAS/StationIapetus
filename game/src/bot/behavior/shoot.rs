@@ -25,7 +25,7 @@ impl<'a> Behavior<'a> for ShootTarget {
             context.is_aiming_weapon = true;
 
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
-            if weapon.can_shoot(context.elapsed_time as f32) {
+            if weapon.can_shoot(context.elapsed_time) {
                 let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
 
                 if context

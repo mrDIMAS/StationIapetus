@@ -161,22 +161,22 @@ impl Level {
     }
 
     pub async fn handle_message(&mut self, engine: &mut PluginContext<'_, '_>, message: &Message) {
-        match message {
-            &Message::ApplySplashDamage {
-                amount,
-                radius,
-                center,
-                who,
-                critical_shot_probability,
-            } => self.apply_splash_damage(
+        if let &Message::ApplySplashDamage {
+            amount,
+            radius,
+            center,
+            who,
+            critical_shot_probability,
+        } = message
+        {
+            self.apply_splash_damage(
                 engine,
                 amount,
                 radius,
                 center,
                 who,
                 critical_shot_probability,
-            ),
-            _ => (),
+            )
         }
     }
 
