@@ -1,9 +1,7 @@
 use crate::{character::Character, sound::SoundManager, utils};
 use fyrox::{
     animation::{
-        machine::MachineLayer,
-        machine::Parameter,
-        machine::{State, Transition},
+        machine::{MachineLayer, Parameter, State, Transition},
         Animation,
     },
     core::{algebra::Vector3, pool::Handle},
@@ -246,6 +244,7 @@ impl StateMachine {
             .set_parameter("GrabWeapon", Parameter::Rule(put_back_animation_ended))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("WeaponChanged", Parameter::Rule(grab_animation_ended))
+            .set_parameter("Recovered", Parameter::Rule(recovered))
             .set_parameter(
                 "GrenadeTossed",
                 Parameter::Rule(toss_grenade_animation_ended),
