@@ -21,6 +21,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::weapon::projectile::Projectile;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -784,7 +785,8 @@ impl PluginConstructor for GameConstructor {
             .add::<DeathZone>("Death Zone")
             .add::<AnimatedLight>("Animated Light")
             .add::<Elevator>("Elevator")
-            .add::<CallButton>("Call Button");
+            .add::<CallButton>("Call Button")
+            .add::<Projectile>("Projectile");
     }
 
     fn create_instance(
