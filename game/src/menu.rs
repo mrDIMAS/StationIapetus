@@ -73,10 +73,12 @@ impl MenuScene {
             .with_gain(sound_config.music_volume)
             .build(&mut scene.graph);
 
-        let position = scene.graph[scene
+        let position = scene
             .graph
-            .find_from_root(&mut |n| n.tag() == "CameraPoint")]
-        .global_position();
+            .find_from_root(&mut |n| n.tag() == "CameraPoint")
+            .unwrap()
+            .1
+            .global_position();
 
         create_camera(
             context.resource_manager.clone(),
@@ -89,7 +91,11 @@ impl MenuScene {
         Self {
             music,
             angle: 0.0,
-            iapetus: scene.graph.find_from_root(&mut |n| n.tag() == "Iapetus"),
+            iapetus: scene
+                .graph
+                .find_from_root(&mut |n| n.tag() == "Iapetus")
+                .unwrap()
+                .0,
             scene: context.scenes.add(scene),
         }
     }

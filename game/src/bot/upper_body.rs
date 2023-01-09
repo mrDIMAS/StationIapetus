@@ -163,7 +163,7 @@ impl UpperBodyMachine {
 
         let mut layer_mask = LayerMask::default();
         for leg_name in &[&definition.left_leg_name, &definition.right_leg_name] {
-            let leg_node = scene.graph.find_by_name(model, leg_name);
+            let leg_node = scene.graph.find_by_name(model, leg_name).unwrap().0;
             layer_mask.merge(LayerMask::from_hierarchy(&scene.graph, leg_node));
         }
         root_layer.set_mask(layer_mask);

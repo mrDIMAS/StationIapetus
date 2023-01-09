@@ -634,11 +634,11 @@ impl ScriptTrait for Bot {
         );
 
         if self.head_exploded {
-            let head = ctx
+            if let Some((head, _)) = ctx
                 .scene
                 .graph
-                .find_by_name(self.model, &self.definition.head_name);
-            if head.is_some() {
+                .find_by_name(self.model, &self.definition.head_name)
+            {
                 ctx.scene.graph[head]
                     .local_transform_mut()
                     .set_scale(Vector3::new(0.0, 0.0, 0.0));
