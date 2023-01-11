@@ -1,5 +1,5 @@
 use crate::{
-    character::{Character, CharacterCommand},
+    character::{Character, CharacterCommand, CharacterMessage},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
     door::{door_mut, DoorContainer},
@@ -20,6 +20,7 @@ use crate::{
     CameraController, Elevator, Game, Item,
 };
 use fyrox::{
+    animation::machine,
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,
@@ -734,10 +735,6 @@ impl Player {
                 .unwrap_or(false);
 
             if aiming {
-                weapon_mut(current_weapon_handle, &mut scene.graph)
-                    .laser_sight_mut()
-                    .enabled = true;
-
                 let ammo_indicator_offset = weapon_ref(current_weapon_handle, &scene.graph)
                     .definition
                     .ammo_indicator_offset();
@@ -781,9 +778,6 @@ impl Player {
                     }
                 }
             } else {
-                weapon_mut(current_weapon_handle, &mut scene.graph)
-                    .laser_sight_mut()
-                    .enabled = false;
                 scene.graph[self.weapon_display].set_visibility(false);
             }
         }
@@ -1203,6 +1197,30 @@ impl ScriptTrait for Player {
             .is_some()
         {
             // TODO: Handle commands here
+        }
+
+        if let Some(upper_body_layer) = self
+            .state_machine
+            .upper_body_layer_mut(&mut ctx.scene.graph)
+        {
+            while let Some(event) = upper_body_layer.pop_event() {
+                match event {
+                    machine::Event::ActiveStateChanged { prev, new } => {
+                        if prev == self.state_machine.aim_state
+                            && new != self.state_machine.aim_state
+                        {
+                            ctx.message_sender
+                                .send_global(CharacterMessage::EndedAiming(ctx.handle))
+                        } else if prev != self.state_machine.aim_state
+                            && new == self.state_machine.aim_state
+                        {
+                            ctx.message_sender
+                                .send_global(CharacterMessage::BeganAiming(ctx.handle))
+                        }
+                    }
+                    _ => (),
+                }
+            }
         }
 
         self.update_health_cylinder(ctx.scene);

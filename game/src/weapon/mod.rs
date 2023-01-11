@@ -3,7 +3,7 @@
 use crate::{
     bot::{try_get_bot_mut, BotCommand},
     character::{
-        character_mut, character_ref, try_get_character_mut, try_get_character_ref, Character,
+        character_mut, character_ref, try_get_character_mut, try_get_character_ref,
         CharacterCommand, HitBox,
     },
     current_level_mut, current_level_ref, effects,
@@ -13,7 +13,6 @@ use crate::{
     weapon::{
         definition::{ShotEffect, WeaponDefinition, WeaponKind, WeaponProjectile},
         projectile::{Damage, Projectile},
-        sight::{LaserSight, SightReaction},
     },
     CollisionGroups, Decal,
 };
@@ -74,8 +73,8 @@ pub struct Weapon {
     flash_light_enabled: bool,
     pub enabled: bool,
 
-    #[reflect(hidden)]
-    laser_sight: LaserSight,
+    #[visit(optional)]
+    laser_sight: Handle<Node>,
 
     #[reflect(hidden)]
     owner: Handle<Node>,
@@ -455,20 +454,12 @@ impl Weapon {
         self.flash_light_enabled = !self.flash_light_enabled;
     }
 
-    pub fn laser_sight(&self) -> &LaserSight {
-        &self.laser_sight
-    }
-
-    pub fn laser_sight_mut(&mut self) -> &mut LaserSight {
-        &mut self.laser_sight
+    pub fn laser_sight(&mut self) -> Handle<Node> {
+        self.laser_sight
     }
 
     pub fn can_shoot(&self, elapsed_time: f32) -> bool {
         elapsed_time - self.last_shot_time >= self.definition.shoot_interval
-    }
-
-    pub fn set_sight_reaction(&mut self, reaction: SightReaction) {
-        self.laser_sight.set_reaction(reaction);
     }
 
     pub fn request_shot(&mut self, direction: Option<Vector3<f32>>) {
@@ -554,7 +545,8 @@ impl Weapon {
                     self.definition.base_critical_shot_probability,
                 ) {
                     if hit.actor.is_some() {
-                        self.set_sight_reaction(SightReaction::HitDetected);
+                        // TODO
+                        // self.set_sight_reaction(SightReaction::HitDetected);
                     }
                 }
             }
@@ -571,10 +563,6 @@ impl TypeUuidProvider for Weapon {
 }
 
 impl ScriptTrait for Weapon {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.laser_sight = LaserSight::new(ctx.scene, ctx.resource_manager.clone());
-    }
-
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::definition(self.kind);
         self.self_handle = ctx.handle;
@@ -612,22 +600,6 @@ impl ScriptTrait for Weapon {
             ctx.scene.graph[self.muzzle_flash].set_visibility(false);
             ctx.scene.graph[self.shot_light].set_visibility(false);
         }
-
-        let mut ignored_collider = Default::default();
-
-        if let Some(node) = ctx.scene.graph.try_get(self.owner) {
-            if let Some(character) = node
-                .script()
-                .and_then(|s| s.query_component_ref::<Character>())
-            {
-                ignored_collider = character.capsule_collider;
-            }
-        }
-
-        let dir = self.shot_direction(&ctx.scene.graph);
-        let pos = self.shot_position(&ctx.scene.graph);
-        self.laser_sight
-            .update(ctx.scene, pos, dir, ignored_collider, ctx.dt);
 
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
             flash_light.set_visibility(self.flash_light_enabled);

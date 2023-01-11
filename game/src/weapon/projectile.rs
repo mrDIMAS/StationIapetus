@@ -4,7 +4,7 @@ use crate::{
     effects::EffectKind,
     game_ref,
     message::Message,
-    weapon::{sight::SightReaction, Hit},
+    weapon::Hit,
     Turret, Weapon,
 };
 use fyrox::{
@@ -330,7 +330,8 @@ impl ScriptTrait for Projectile {
                     .map_or(0.0, |owner_node| {
                         if let Some(weapon) = owner_node.try_get_script_mut::<Weapon>() {
                             if hit.actor.is_some() {
-                                weapon.set_sight_reaction(SightReaction::HitDetected);
+                                // TODO
+                                //    weapon.set_sight_reaction(SightReaction::HitDetected);
                             }
                             weapon.definition.base_critical_shot_probability
                         } else if owner_node.has_script::<Turret>() {

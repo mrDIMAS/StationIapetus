@@ -66,6 +66,9 @@ impl StateMachine {
     pub const PUT_BACK_WEAPON_END_SIGNAL: &'static str = "PutBack";
     pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
 
+    const LOWER_BODY_LAYER_INDEX: usize = 0;
+    const UPPER_BODY_LAYER_INDEX: usize = 1;
+
     pub fn new(machine_handle: Handle<Node>, graph: &Graph) -> Option<Self> {
         let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)?;
 
@@ -73,8 +76,10 @@ impl StateMachine {
         let animations = animation_player.animations();
         let machine = absm.machine();
 
-        let lower_body = machine.find_layer_by_name_ref("LowerBody")?.1;
-        let upper_body = machine.find_layer_by_name_ref("UpperBody")?.1;
+        let (lower_body_layer_index, lower_body) = machine.find_layer_by_name_ref("LowerBody")?;
+        assert_eq!(lower_body_layer_index, Self::LOWER_BODY_LAYER_INDEX);
+        let (upper_body_layer_index, upper_body) = machine.find_layer_by_name_ref("UpperBody")?;
+        assert_eq!(upper_body_layer_index, Self::UPPER_BODY_LAYER_INDEX);
 
         Some(Self {
             machine_handle,
@@ -104,18 +109,37 @@ impl StateMachine {
         })
     }
 
-    pub fn fetch_layer<'a>(&self, graph: &'a Graph, name: &str) -> Option<&'a MachineLayer> {
+    pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
         graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
-            .and_then(|absm| absm.machine().find_layer_by_name_ref(name).map(|(_, l)| l))
+            .and_then(|absm| absm.machine().layers().get(idx))
     }
 
     pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
-        self.fetch_layer(graph, "LowerBody")
+        self.fetch_layer(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
     pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
-        self.fetch_layer(graph, "UpperBody")
+        self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
+    }
+
+    pub fn fetch_layer_mut<'a>(
+        &self,
+        graph: &'a mut Graph,
+        idx: usize,
+    ) -> Option<&'a mut MachineLayer> {
+        graph
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
+            .and_then(|absm| absm.machine_mut().layers_mut().get_mut(idx))
+    }
+
+    #[allow(dead_code)]
+    pub fn lower_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
+        self.fetch_layer_mut(graph, Self::LOWER_BODY_LAYER_INDEX)
+    }
+
+    pub fn upper_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
+        self.fetch_layer_mut(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 
     pub fn handle_animation_events(

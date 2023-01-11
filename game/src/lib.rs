@@ -21,7 +21,6 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::weapon::projectile::Projectile;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -42,7 +41,7 @@ use crate::{
     message::Message,
     player::{camera::CameraController, Player},
     utils::use_hrtf,
-    weapon::Weapon,
+    weapon::{projectile::Projectile, sight::LaserSight, Weapon},
 };
 use fyrox::{
     core::{
@@ -786,7 +785,8 @@ impl PluginConstructor for GameConstructor {
             .add::<AnimatedLight>("Animated Light")
             .add::<Elevator>("Elevator")
             .add::<CallButton>("Call Button")
-            .add::<Projectile>("Projectile");
+            .add::<Projectile>("Projectile")
+            .add::<LaserSight>("LaserSight");
     }
 
     fn create_instance(

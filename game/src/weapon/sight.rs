@@ -1,7 +1,11 @@
-use crate::CollisionGroups;
+use crate::{
+    character::{Character, CharacterMessage},
+    CollisionGroups,
+};
+use fyrox::script::ScriptMessagePayload;
 use fyrox::{
     core::{
-        algebra::{Point3, UnitQuaternion, Vector3},
+        algebra::{Point3, Vector3},
         arrayvec::ArrayVec,
         color::Color,
         math::{lerpf, ray::Ray},
@@ -10,30 +14,29 @@ use fyrox::{
         sstorage::ImmutableString,
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
-    material::{Material, PropertyValue, SharedMaterial},
+    core::{
+        reflect::Reflect,
+        uuid::{uuid, Uuid},
+    },
+    impl_component_provider,
+    material::PropertyValue,
     scene::{
-        base::BaseBuilder,
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
-        light::{point::PointLightBuilder, BaseLight, BaseLightBuilder},
-        mesh::{
-            surface::{SurfaceBuilder, SurfaceData, SurfaceSharedData},
-            MeshBuilder, RenderPath,
-        },
-        node::Node,
-        sprite::SpriteBuilder,
-        Scene,
+        light::BaseLight,
+        node::{Node, TypeUuidProvider},
     },
+    script::{ScriptContext, ScriptTrait},
     utils::log::Log,
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct LaserSight {
     ray: Handle<Node>,
+    #[visit(optional)]
+    ray_mesh: Handle<Node>,
     tip: Handle<Node>,
     light: Handle<Node>,
-    pub enabled: bool,
 
     #[reflect(hidden)]
     reaction_state: Option<ReactionState>,
@@ -75,145 +78,14 @@ const NORMAL_RADIUS: f32 = 0.0012;
 const ENEMY_KILLED_TIME: f32 = 0.55;
 const HIT_DETECTED_TIME: f32 = 0.4;
 
+fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<Node>, &Character)> {
+    graph.find_up_map(sight, &mut |n| {
+        n.script()
+            .and_then(|n| n.query_component_ref::<Character>())
+    })
+}
+
 impl LaserSight {
-    pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
-        let ray = MeshBuilder::new(
-            BaseBuilder::new()
-                .with_cast_shadows(false)
-                .with_visibility(false),
-        )
-        .with_surfaces(vec![SurfaceBuilder::new(SurfaceSharedData::new(
-            SurfaceData::make_cylinder(
-                6,
-                1.0,
-                1.0,
-                false,
-                &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
-                    .to_homogeneous(),
-            ),
-        ))
-        .with_material(SharedMaterial::new({
-            let mut material = Material::standard();
-            Log::verify(material.set_property(
-                &ImmutableString::new("diffuseColor"),
-                PropertyValue::Color(NORMAL_COLOR),
-            ));
-            material
-        }))
-        .build()])
-        .with_render_path(RenderPath::Forward)
-        .build(&mut scene.graph);
-
-        let light;
-        let tip = SpriteBuilder::new(BaseBuilder::new().with_visibility(false).with_children(&[{
-            light = PointLightBuilder::new(
-                BaseLightBuilder::new(BaseBuilder::new())
-                    .cast_shadows(false)
-                    .with_scatter_enabled(false)
-                    .with_color(NORMAL_COLOR),
-            )
-            .with_radius(0.30)
-            .build(&mut scene.graph);
-            light
-        }]))
-        .with_texture(resource_manager.request_texture("data/particles/star_09.png"))
-        .with_color(NORMAL_COLOR)
-        .with_size(0.025)
-        .build(&mut scene.graph);
-
-        Self {
-            ray,
-            tip,
-            light,
-            enabled: true,
-            reaction_state: None,
-        }
-    }
-
-    pub fn update(
-        &mut self,
-        scene: &mut Scene,
-        position: Vector3<f32>,
-        direction: Vector3<f32>,
-        ignore_collider: Handle<Node>,
-        dt: f32,
-    ) {
-        scene.graph[self.tip].set_visibility(self.enabled);
-        scene.graph[self.ray].set_visibility(self.enabled);
-
-        let mut intersections = ArrayVec::<_, 64>::new();
-
-        let max_toi = 100.0;
-
-        let ray = Ray::new(position, direction.scale(max_toi));
-
-        scene.graph.physics.cast_ray(
-            RayCastOptions {
-                ray_origin: Point3::from(ray.origin),
-                ray_direction: ray.dir,
-                max_len: max_toi,
-                groups: InteractionGroups::new(
-                    BitMask(0xFFFF),
-                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
-                ),
-                sort_results: true,
-            },
-            &mut intersections,
-        );
-
-        let ray_node = &mut scene.graph[self.ray];
-        if let Some(result) = intersections
-            .into_iter()
-            .find(|i| i.collider != ignore_collider)
-        {
-            ray_node
-                .local_transform_mut()
-                .set_position(position)
-                .set_rotation(UnitQuaternion::face_towards(&direction, &Vector3::y()))
-                .set_scale(Vector3::new(NORMAL_RADIUS, NORMAL_RADIUS, result.toi));
-
-            scene.graph[self.tip]
-                .local_transform_mut()
-                .set_position(result.position.coords - direction.scale(0.02));
-        }
-
-        if let Some(reaction_state) = self.reaction_state.as_mut() {
-            match reaction_state {
-                ReactionState::HitDetected {
-                    time_remaining,
-                    begin_color,
-                    end_color,
-                } => {
-                    *time_remaining -= dt;
-                    if *time_remaining <= 0.0 {
-                        self.reaction_state = None;
-                    } else {
-                        let t = *time_remaining / HIT_DETECTED_TIME;
-                        let color = end_color.lerp(*begin_color, t);
-                        self.set_color(&mut scene.graph, color);
-                    }
-                }
-                ReactionState::EnemyKilled {
-                    time_remaining,
-                    dilation_factor,
-                    begin_color,
-                    end_color,
-                } => {
-                    *time_remaining -= dt;
-                    if *time_remaining <= 0.0 {
-                        self.reaction_state = None;
-                    } else {
-                        let t = *time_remaining / HIT_DETECTED_TIME;
-                        let color = end_color.lerp(*begin_color, t);
-                        let dilation_factor = lerpf(1.0, *dilation_factor, t);
-                        self.set_color(&mut scene.graph, color);
-                        self.dilate(&mut scene.graph, dilation_factor);
-                    }
-                }
-            }
-        }
-    }
-
     pub fn set_reaction(&mut self, reaction: SightReaction) {
         self.reaction_state = Some(match reaction {
             SightReaction::HitDetected => ReactionState::HitDetected {
@@ -232,7 +104,7 @@ impl LaserSight {
 
     fn set_color(&self, graph: &mut Graph, color: Color) {
         Log::verify(
-            graph[self.ray]
+            graph[self.ray_mesh]
                 .as_mesh_mut()
                 .surfaces()
                 .first()
@@ -260,9 +132,121 @@ impl LaserSight {
             scale.z,
         ));
     }
+}
 
-    pub fn clean_up(&mut self, scene: &mut Scene) {
-        scene.graph.remove_node(self.ray);
-        scene.graph.remove_node(self.tip);
+impl_component_provider!(LaserSight);
+
+impl TypeUuidProvider for LaserSight {
+    fn type_uuid() -> Uuid {
+        uuid!("f9bcf484-e84a-4de1-9e6d-32913d35f2ef")
+    }
+}
+
+impl ScriptTrait for LaserSight {
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let ignore_collider = find_parent_character(ctx.handle, &ctx.scene.graph)
+            .map(|(_, c)| c.capsule_collider)
+            .unwrap_or_default();
+
+        let this_node = &ctx.scene.graph[ctx.handle];
+        let position = this_node.global_position();
+        let direction = this_node.look_vector();
+
+        let mut intersections = ArrayVec::<_, 64>::new();
+
+        let max_toi = 100.0;
+
+        let ray = Ray::new(position, direction.scale(max_toi));
+
+        ctx.scene.graph.physics.cast_ray(
+            RayCastOptions {
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
+                max_len: max_toi,
+                groups: InteractionGroups::new(
+                    BitMask(0xFFFF),
+                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
+                ),
+                sort_results: true,
+            },
+            &mut intersections,
+        );
+
+        let ray_node = &mut ctx.scene.graph[self.ray];
+        if let Some(result) = intersections
+            .into_iter()
+            .find(|i| i.collider != ignore_collider)
+        {
+            ray_node
+                .local_transform_mut()
+                .set_scale(Vector3::new(1.0, 1.0, result.toi));
+
+            ctx.scene.graph[self.tip]
+                .local_transform_mut()
+                .set_position(Vector3::new(0.0, 0.0, result.toi - 0.025));
+        }
+
+        if let Some(reaction_state) = self.reaction_state.as_mut() {
+            match reaction_state {
+                ReactionState::HitDetected {
+                    time_remaining,
+                    begin_color,
+                    end_color,
+                } => {
+                    *time_remaining -= ctx.dt;
+                    if *time_remaining <= 0.0 {
+                        self.reaction_state = None;
+                    } else {
+                        let t = *time_remaining / HIT_DETECTED_TIME;
+                        let color = end_color.lerp(*begin_color, t);
+                        self.set_color(&mut ctx.scene.graph, color);
+                    }
+                }
+                ReactionState::EnemyKilled {
+                    time_remaining,
+                    dilation_factor,
+                    begin_color,
+                    end_color,
+                } => {
+                    *time_remaining -= ctx.dt;
+                    if *time_remaining <= 0.0 {
+                        self.reaction_state = None;
+                    } else {
+                        let t = *time_remaining / HIT_DETECTED_TIME;
+                        let color = end_color.lerp(*begin_color, t);
+                        let dilation_factor = lerpf(1.0, *dilation_factor, t);
+                        self.set_color(&mut ctx.scene.graph, color);
+                        self.dilate(&mut ctx.scene.graph, dilation_factor);
+                    }
+                }
+            }
+        }
+    }
+
+    fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptContext) {
+        if let Some(character_event) = message.downcast_ref::<CharacterMessage>() {
+            if let Some((parent_character_handle, _)) =
+                find_parent_character(ctx.handle, &ctx.scene.graph)
+            {
+                let this = &mut ctx.scene.graph[ctx.handle];
+
+                match character_event {
+                    CharacterMessage::BeganAiming(character) => {
+                        if *character == parent_character_handle {
+                            this.set_visibility(true);
+                        }
+                    }
+                    CharacterMessage::EndedAiming(character) => {
+                        if *character == parent_character_handle {
+                            this.set_visibility(false);
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    fn id(&self) -> Uuid {
+        Self::type_uuid()
     }
 }

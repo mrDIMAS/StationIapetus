@@ -24,6 +24,11 @@ use fyrox::{
 };
 use std::collections::VecDeque;
 
+pub enum CharacterMessage {
+    BeganAiming(Handle<Node>),
+    EndedAiming(Handle<Node>),
+}
+
 #[derive(Debug, Clone)]
 pub enum CharacterCommand {
     SelectWeapon(WeaponKind),
