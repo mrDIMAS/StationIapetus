@@ -1,5 +1,6 @@
+use crate::character::DamageDealer;
 use crate::{
-    character::{try_get_character_mut, CharacterCommand},
+    character::{CharacterMessage, CharacterMessageData},
     current_level_ref,
 };
 use fyrox::{
@@ -29,15 +30,18 @@ impl ScriptTrait for DeathZone {
         let self_bounds = context.scene.graph[context.handle].world_bounding_box();
         for &actor in current_level_ref(context.plugins).unwrap().actors.iter() {
             let character_position = context.scene.graph[actor].global_position();
-            if let Some(character) = try_get_character_mut(actor, &mut context.scene.graph) {
-                if self_bounds.is_contains_point(character_position) {
-                    character.push_command(CharacterCommand::Damage {
-                        who: Default::default(),
+            if self_bounds.is_contains_point(character_position) {
+                context.message_sender.send_global(CharacterMessage {
+                    character: actor,
+                    data: CharacterMessageData::Damage {
+                        dealer: DamageDealer {
+                            entity: Default::default(),
+                        },
                         hitbox: None,
                         amount: 99999.0,
                         critical_shot_probability: 0.0,
-                    });
-                }
+                    },
+                })
             }
         }
     }

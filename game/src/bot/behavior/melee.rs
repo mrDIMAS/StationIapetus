@@ -1,6 +1,7 @@
+use crate::character::DamageDealer;
 use crate::{
     bot::{behavior::BehaviorContext, upper_body::UpperBodyMachine, BotDefinition},
-    character::{try_get_character_mut, CharacterCommand},
+    character::{CharacterMessage, CharacterMessageData},
     utils,
 };
 use fyrox::{
@@ -89,11 +90,12 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                         == context.upper_body_machine.attack_state
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
-                    if let Some(character) =
-                        try_get_character_mut(target.handle, &mut context.scene.graph)
-                    {
-                        character.push_command(CharacterCommand::Damage {
-                            who: Default::default(),
+                    context.script_message_sender.send_global(CharacterMessage {
+                        character: target.handle,
+                        data: CharacterMessageData::Damage {
+                            dealer: DamageDealer {
+                                entity: context.bot_handle,
+                            },
                             hitbox: None,
                             /// TODO: Find hit box maybe?
                             amount: context.definition.attack_animations
@@ -101,8 +103,8 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                                 .damage
                                 .amount(),
                             critical_shot_probability: 0.0,
-                        });
-                    }
+                        },
+                    });
 
                     if let Some(attack_sound) = context
                         .definition

@@ -4,17 +4,15 @@ use crate::{
         lower_body::{LowerBodyMachine, LowerBodyMachineInput},
         upper_body::{UpperBodyMachine, UpperBodyMachineInput},
     },
-    character::{Character, CharacterCommand},
+    character::{Character, CharacterMessage, CharacterMessageData},
     current_level_mut, current_level_ref,
     door::{door_mut, door_ref, DoorContainer},
     game_ref,
     inventory::{Inventory, ItemEntry},
     level::item::ItemKind,
     sound::SoundManager,
-    utils,
-    utils::{is_probability_event_occurred, BodyImpactHandler},
+    utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
-    Weapon,
 };
 use fyrox::{
     core::{
@@ -45,7 +43,7 @@ use fyrox::{
         rigidbody::RigidBody,
         Scene,
     },
-    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
+    script::{ScriptContext, ScriptDeinitContext, ScriptMessagePayload, ScriptTrait},
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
 use serde::Deserialize;
@@ -375,69 +373,11 @@ impl Bot {
         resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
     ) {
-        while let Some(command) =
-            self.character
-                .poll_command(scene, self_handle, resource_manager, sound_manager)
-        {
-            if let CharacterCommand::Damage {
-                who,
-                amount,
-                hitbox,
-                critical_shot_probability,
-            } = command
-            {
-                if let Some(shooter_script) = scene.graph.try_get(who).and_then(|n| n.script()) {
-                    if let Some(character) = shooter_script.query_component_ref::<Character>() {
-                        self.set_target(who, character.position(&scene.graph));
-                    } else if let Some(weapon) = shooter_script.query_component_ref::<Weapon>() {
-                        if let Some(weapon_owner_script) =
-                            scene.graph.try_get(weapon.owner()).and_then(|n| n.script())
-                        {
-                            if let Some(character_owner) =
-                                weapon_owner_script.query_component_ref::<Character>()
-                            {
-                                self.set_target(
-                                    weapon.owner(),
-                                    character_owner.position(&scene.graph),
-                                );
-                            }
-                        }
-                    }
-                }
-
-                if let Some(hitbox) = hitbox {
-                    // Handle critical head shots.
-                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
-                    if hitbox.is_head
-                        && is_probability_event_occurred(critical_head_shot_probability)
-                    {
-                        self.damage(amount * 1000.0);
-
-                        self.blow_up_head(&mut scene.graph);
-                    }
-                }
-
-                // Prevent spamming with grunt sounds.
-                if self.last_health - self.health > 20.0 && !self.is_dead() {
-                    self.last_health = self.health;
-                    self.restoration_time = 0.8;
-
-                    if let Some(grunt_sound) =
-                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
-                    {
-                        let position = self.position(&scene.graph);
-                        sound_manager.play_sound(
-                            &mut scene.graph,
-                            grunt_sound,
-                            position,
-                            0.8,
-                            1.0,
-                            0.6,
-                        );
-                    }
-                }
-            }
-        }
+        while self
+            .character
+            .poll_command(scene, self_handle, resource_manager, sound_manager)
+            .is_some()
+        {}
 
         while let Some(bot_command) = self.commands_queue.pop_front() {
             match bot_command {
@@ -527,6 +467,62 @@ impl ScriptTrait for Bot {
         }
     }
 
+    fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptContext) {
+        if let Some(char_message) = message.downcast_ref::<CharacterMessage>() {
+            if char_message.character != ctx.handle {
+                return;
+            }
+
+            self.character.on_message(&char_message.data);
+
+            if let CharacterMessageData::Damage {
+                dealer,
+                amount,
+                hitbox,
+                critical_shot_probability,
+            } = char_message.data
+            {
+                if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
+                    self.set_target(character_handle, character.position(&ctx.scene.graph));
+                }
+
+                if let Some(hitbox) = hitbox {
+                    // Handle critical head shots.
+                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
+                    if hitbox.is_head
+                        && is_probability_event_occurred(critical_head_shot_probability)
+                    {
+                        self.damage(amount * 1000.0);
+
+                        self.blow_up_head(&mut ctx.scene.graph);
+                    }
+                }
+
+                // Prevent spamming with grunt sounds.
+                if self.last_health - self.health > 20.0 && !self.is_dead() {
+                    self.last_health = self.health;
+                    self.restoration_time = 0.8;
+
+                    if let Some(grunt_sound) =
+                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
+                    {
+                        let position = self.position(&ctx.scene.graph);
+
+                        let level = current_level_ref(ctx.plugins).unwrap();
+                        level.sound_manager.play_sound(
+                            &mut ctx.scene.graph,
+                            grunt_sound,
+                            position,
+                            0.8,
+                            1.0,
+                            0.6,
+                        );
+                    }
+                }
+            }
+        }
+    }
+
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
@@ -568,6 +564,7 @@ impl ScriptTrait for Bot {
                 move_speed: self.move_speed,
                 threaten_timeout: &mut self.threaten_timeout,
                 sound_manager: &level.sound_manager,
+                script_message_sender: ctx.message_sender,
 
                 // Output
                 animation_player: self.animation_player,

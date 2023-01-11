@@ -1,9 +1,9 @@
+use crate::character::{character_ref, DamageDealer};
 use crate::{
-    character::{try_get_character_mut, CharacterCommand},
+    character::{CharacterMessage, CharacterMessageData},
     current_level_ref, effects,
     effects::EffectKind,
     game_ref,
-    message::Message,
     weapon::Hit,
     Turret, Weapon,
 };
@@ -255,7 +255,7 @@ impl ScriptTrait for Projectile {
         let (effect_position, effect_normal, effect_kind) = if let Some(hit) = ray_hit {
             let position = hit.position;
             let normal = hit.normal;
-            let blood_effect = hit.actor.is_some();
+            let blood_effect = hit.hit_actor.is_some();
 
             self.hits.insert(hit);
             self.kill();
@@ -329,7 +329,7 @@ impl ScriptTrait for Projectile {
                     .try_get_mut(self.owner)
                     .map_or(0.0, |owner_node| {
                         if let Some(weapon) = owner_node.try_get_script_mut::<Weapon>() {
-                            if hit.actor.is_some() {
+                            if hit.hit_actor.is_some() {
                                 // TODO
                                 //    weapon.set_sight_reaction(SightReaction::HitDetected);
                             }
@@ -343,25 +343,40 @@ impl ScriptTrait for Projectile {
 
             match damage {
                 Damage::Splash { radius, amount } => {
-                    game.message_sender.send(Message::ApplySplashDamage {
-                        amount,
-                        radius,
-                        center: position,
-                        who: hit.who,
-                        critical_shot_probability,
-                    })
+                    let level = current_level_ref(context.plugins).unwrap();
+                    // Just find out actors which must be damaged and re-cast damage message for each.
+                    for &actor_handle in level.actors.iter() {
+                        let character = character_ref(actor_handle, &context.scene.graph);
+                        // TODO: Add occlusion test. This will hit actors through walls.
+                        let character_position = character.position(&context.scene.graph);
+                        if character_position.metric_distance(&position) <= radius {
+                            context.message_sender.send_global(CharacterMessage {
+                                character: actor_handle,
+                                data: CharacterMessageData::Damage {
+                                    dealer: DamageDealer {
+                                        entity: hit.shooter_actor,
+                                    },
+                                    hitbox: None,
+                                    /// TODO: Maybe collect all hitboxes?
+                                    amount,
+                                    critical_shot_probability,
+                                },
+                            });
+                        }
+                    }
                 }
                 Damage::Point(amount) => {
-                    if let Some(character) =
-                        try_get_character_mut(hit.actor, &mut context.scene.graph)
-                    {
-                        character.push_command(CharacterCommand::Damage {
-                            who: hit.who,
+                    context.message_sender.send_global(CharacterMessage {
+                        character: hit.hit_actor,
+                        data: CharacterMessageData::Damage {
+                            dealer: DamageDealer {
+                                entity: hit.shooter_actor,
+                            },
                             hitbox: hit.hit_box,
                             amount,
                             critical_shot_probability,
-                        });
-                    }
+                        },
+                    });
                 }
             }
         }

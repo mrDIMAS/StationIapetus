@@ -674,11 +674,6 @@ impl Game {
                             .build(&mut menu_scene.graph);
                     }
                 }
-                _ => (),
-            }
-
-            if let Some(ref mut level) = self.level {
-                fyrox::core::futures::executor::block_on(level.handle_message(context, &message));
             }
         }
     }

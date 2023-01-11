@@ -5,7 +5,6 @@ use crate::{
     weapon::{definition::ShotEffect, projectile::Damage},
     Player, Weapon,
 };
-use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -14,11 +13,10 @@ use fyrox::{
         math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
         pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
-        visitor::{Visit, VisitResult, Visitor},
-    },
-    core::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
+        visitor::{Visit, VisitResult, Visitor},
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
@@ -30,7 +28,7 @@ use fyrox::{
         node::{Node, TypeUuidProvider},
         Scene,
     },
-    script::{ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptMessageSender, ScriptTrait},
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
@@ -176,7 +174,7 @@ impl ScriptTrait for Turret {
         self.target_check_timer -= ctx.dt;
 
         if self.target_check_timer <= 0.0 {
-            self.select_target(ctx.scene, &level_ref.actors);
+            //  self.select_target(ctx.scene, &level_ref.actors);
             self.target_check_timer = 0.15;
         }
 
@@ -219,6 +217,7 @@ impl ScriptTrait for Turret {
                                 &level_ref.actors,
                                 ctx.resource_manager,
                                 &level_ref.sound_manager,
+                                ctx.message_sender,
                             );
                             self.barrel_index += 1;
                             if self.barrel_index >= self.barrels.len() as u32 {
@@ -235,6 +234,7 @@ impl ScriptTrait for Turret {
                                 &level_ref.actors,
                                 ctx.resource_manager,
                                 &level_ref.sound_manager,
+                                ctx.message_sender,
                             );
                         }
                     }
@@ -307,6 +307,7 @@ impl Barrel {
         actors: &[Handle<Node>],
         resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
+        script_message_sender: &ScriptMessageSender,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
@@ -323,6 +324,7 @@ impl Barrel {
             ShotEffect::Smoke,
             sound_manager,
             0.01,
+            script_message_sender,
         );
 
         let sounds = [

@@ -1,3 +1,4 @@
+use crate::character::CharacterMessageData;
 use crate::{
     character::{Character, CharacterCommand, CharacterMessage},
     control_scheme::ControlButton,
@@ -1209,13 +1210,17 @@ impl ScriptTrait for Player {
                         if prev == self.state_machine.aim_state
                             && new != self.state_machine.aim_state
                         {
-                            ctx.message_sender
-                                .send_global(CharacterMessage::EndedAiming(ctx.handle))
+                            ctx.message_sender.send_global(CharacterMessage {
+                                character: ctx.handle,
+                                data: CharacterMessageData::EndedAiming,
+                            })
                         } else if prev != self.state_machine.aim_state
                             && new == self.state_machine.aim_state
                         {
-                            ctx.message_sender
-                                .send_global(CharacterMessage::BeganAiming(ctx.handle))
+                            ctx.message_sender.send_global(CharacterMessage {
+                                character: ctx.handle,
+                                data: CharacterMessageData::BeganAiming,
+                            })
                         }
                     }
                     _ => (),

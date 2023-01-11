@@ -1,3 +1,4 @@
+use crate::character::CharacterMessageData;
 use crate::{
     character::{Character, CharacterMessage},
     CollisionGroups,
@@ -224,23 +225,32 @@ impl ScriptTrait for LaserSight {
     }
 
     fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptContext) {
-        if let Some(character_event) = message.downcast_ref::<CharacterMessage>() {
+        if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
             if let Some((parent_character_handle, _)) =
                 find_parent_character(ctx.handle, &ctx.scene.graph)
             {
                 let this = &mut ctx.scene.graph[ctx.handle];
 
-                match character_event {
-                    CharacterMessage::BeganAiming(character) => {
-                        if *character == parent_character_handle {
-                            this.set_visibility(true);
+                match character_message.data {
+                    CharacterMessageData::BeganAiming
+                        if character_message.character == parent_character_handle =>
+                    {
+                        this.set_visibility(true);
+                    }
+                    CharacterMessageData::EndedAiming
+                        if character_message.character == parent_character_handle =>
+                    {
+                        this.set_visibility(false);
+                    }
+                    CharacterMessageData::Damage { dealer, hitbox, .. } => {
+                        if let Some((character_dealer, _)) = dealer.as_character(&ctx.scene.graph) {
+                            if character_dealer == parent_character_handle && hitbox.is_some() {
+                                // If a parent character done some damage, then the laser sight must react to it.
+                                self.set_reaction(SightReaction::HitDetected);
+                            }
                         }
                     }
-                    CharacterMessage::EndedAiming(character) => {
-                        if *character == parent_character_handle {
-                            this.set_visibility(false);
-                        }
-                    }
+                    _ => (),
                 }
             }
         }

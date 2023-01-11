@@ -1,16 +1,9 @@
 use crate::{
-    bot::Bot,
-    character::{character_ref, try_get_character_mut, CharacterCommand},
-    config::SoundConfig,
-    door::DoorContainer,
-    level::item::ItemContainer,
-    message::Message,
-    sound::SoundManager,
-    utils::use_hrtf,
-    MessageSender,
+    bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
+    sound::SoundManager, utils::use_hrtf, MessageSender,
 };
 use fyrox::{
-    core::{algebra::Vector3, math::PositionProvider, pool::Handle, visitor::prelude::*},
+    core::{math::PositionProvider, pool::Handle, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
     plugin::PluginContext,
     scene::{self, node::Node, Scene},
@@ -129,55 +122,6 @@ impl Level {
 
     pub fn get_player(&self) -> Handle<Node> {
         self.player
-    }
-
-    fn apply_splash_damage(
-        &mut self,
-        engine: &mut PluginContext,
-        amount: f32,
-        radius: f32,
-        center: Vector3<f32>,
-        who: Handle<Node>,
-        critical_shot_probability: f32,
-    ) {
-        let scene = &mut engine.scenes[self.scene];
-        // Just find out actors which must be damaged and re-cast damage message for each.
-        for &actor_handle in self.actors.iter() {
-            let character = character_ref(actor_handle, &scene.graph);
-            // TODO: Add occlusion test. This will hit actors through walls.
-            let position = character.position(&scene.graph);
-            if position.metric_distance(&center) <= radius {
-                if let Some(character) = try_get_character_mut(actor_handle, &mut scene.graph) {
-                    character.push_command(CharacterCommand::Damage {
-                        who,
-                        hitbox: None,
-                        /// TODO: Maybe collect all hitboxes?
-                        amount,
-                        critical_shot_probability,
-                    });
-                }
-            }
-        }
-    }
-
-    pub async fn handle_message(&mut self, engine: &mut PluginContext<'_, '_>, message: &Message) {
-        if let &Message::ApplySplashDamage {
-            amount,
-            radius,
-            center,
-            who,
-            critical_shot_probability,
-        } = message
-        {
-            self.apply_splash_damage(
-                engine,
-                amount,
-                radius,
-                center,
-                who,
-                critical_shot_probability,
-            )
-        }
     }
 
     pub fn resolve(&mut self, ctx: &mut PluginContext, sender: MessageSender) {

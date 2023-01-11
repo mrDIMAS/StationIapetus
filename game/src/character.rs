@@ -24,24 +24,39 @@ use fyrox::{
 };
 use std::collections::VecDeque;
 
-pub enum CharacterMessage {
-    BeganAiming(Handle<Node>),
-    EndedAiming(Handle<Node>),
+#[derive(Copy, Clone)]
+pub struct DamageDealer {
+    pub entity: Handle<Node>,
 }
 
-#[derive(Debug, Clone)]
-pub enum CharacterCommand {
-    SelectWeapon(WeaponKind),
-    AddWeapon(WeaponKind),
-    PickupItem(Handle<Node>),
-    DropItems {
-        item: ItemKind,
-        count: u32,
-    },
+impl DamageDealer {
+    pub fn as_character<'a>(&self, graph: &'a Graph) -> Option<(Handle<Node>, &'a Character)> {
+        if let Some(dealer_script) = graph.try_get(self.entity).and_then(|n| n.script()) {
+            if let Some(character) = dealer_script.query_component_ref::<Character>() {
+                return Some((self.entity, character));
+            } else if let Some(weapon) = dealer_script.query_component_ref::<Weapon>() {
+                if let Some(weapon_owner_script) =
+                    graph.try_get(weapon.owner()).and_then(|n| n.script())
+                {
+                    if let Some(character_owner) =
+                        weapon_owner_script.query_component_ref::<Character>()
+                    {
+                        return Some((weapon.owner(), character_owner));
+                    }
+                }
+            }
+        }
+        None
+    }
+}
+
+pub enum CharacterMessageData {
+    BeganAiming,
+    EndedAiming,
     Damage {
-        /// Actor who damaged target actor, can be Handle::NONE if damage came from environment
-        /// or not from any actor.
-        who: Handle<Node>,
+        /// An entity which damaged the target actor. It could be a handle of a character that done a melee attack,
+        /// or a weapon that made a ray hit, or a projectile (such as grenade).
+        dealer: DamageDealer,
         /// A body part which was hit.
         hitbox: Option<HitBox>,
         /// Numeric value of damage.
@@ -49,6 +64,19 @@ pub enum CharacterCommand {
         /// Only takes effect iff damage was applied to a head hit box!
         critical_shot_probability: f32,
     },
+}
+
+pub struct CharacterMessage {
+    pub character: Handle<Node>,
+    pub data: CharacterMessageData,
+}
+
+#[derive(Debug, Clone)]
+pub enum CharacterCommand {
+    SelectWeapon(WeaponKind),
+    AddWeapon(WeaponKind),
+    PickupItem(Handle<Node>),
+    DropItems { item: ItemKind, count: u32 },
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
@@ -171,6 +199,15 @@ impl Character {
         self.commands.push_back(command);
     }
 
+    pub fn on_message(&mut self, message_data: &CharacterMessageData) {
+        match message_data {
+            CharacterMessageData::Damage { amount, .. } => {
+                self.damage(*amount);
+            }
+            _ => (),
+        }
+    }
+
     pub fn poll_command(
         &mut self,
         scene: &mut Scene,
@@ -273,9 +310,6 @@ impl Character {
                             true,
                         );
                     }
-                }
-                CharacterCommand::Damage { amount, .. } => {
-                    self.damage(amount);
                 }
             }
 

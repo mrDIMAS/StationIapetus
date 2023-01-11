@@ -18,6 +18,7 @@ use crate::{
     utils::BodyImpactHandler,
     MessageSender,
 };
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     scene::{node::Node, Scene},
@@ -106,6 +107,7 @@ pub struct BehaviorContext<'a> {
     pub threaten_timeout: &'a mut f32,
     pub sound_manager: &'a SoundManager,
     pub animation_player: Handle<Node>,
+    pub script_message_sender: &'a ScriptMessageSender,
 
     // Output
     pub attack_animation_index: usize,

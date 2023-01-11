@@ -1,11 +1,9 @@
 //! Weapon related stuff.
 
+use crate::character::{CharacterMessage, CharacterMessageData, DamageDealer};
 use crate::{
     bot::{try_get_bot_mut, BotCommand},
-    character::{
-        character_mut, character_ref, try_get_character_mut, try_get_character_ref,
-        CharacterCommand, HitBox,
-    },
+    character::{character_mut, character_ref, try_get_character_ref, HitBox},
     current_level_mut, current_level_ref, effects,
     effects::EffectKind,
     level::trail::ShotTrail,
@@ -16,6 +14,7 @@ use crate::{
     },
     CollisionGroups, Decal,
 };
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
@@ -120,8 +119,8 @@ impl Default for Weapon {
 
 #[derive(Clone, Debug)]
 pub struct Hit {
-    pub actor: Handle<Node>, // Can be None if level geometry was hit.
-    pub who: Handle<Node>,
+    pub hit_actor: Handle<Node>, // Can be None if level geometry was hit.
+    pub shooter_actor: Handle<Node>,
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
     pub collider: Handle<Node>,
@@ -132,8 +131,8 @@ pub struct Hit {
 
 impl PartialEq for Hit {
     fn eq(&self, other: &Self) -> bool {
-        self.actor == other.actor
-            && self.who == other.who
+        self.hit_actor == other.hit_actor
+            && self.shooter_actor == other.shooter_actor
             && self.position == other.position
             && self.normal == other.normal
             && self.collider == other.collider
@@ -197,8 +196,8 @@ impl Weapon {
                         }
 
                         return Some(Hit {
-                            actor: actor_handle,
-                            who: shooter,
+                            hit_actor: actor_handle,
+                            shooter_actor: shooter,
                             position: hit.position.coords,
                             normal: hit.normal,
                             collider: hit.collider,
@@ -214,8 +213,8 @@ impl Weapon {
                 None
             } else {
                 Some(Hit {
-                    actor: Handle::NONE,
-                    who: shooter,
+                    hit_actor: Handle::NONE,
+                    shooter_actor: shooter,
                     position: hit.position.coords,
                     normal: hit.normal,
                     collider: hit.collider,
@@ -240,13 +239,14 @@ impl Weapon {
         shot_effect: ShotEffect,
         sound_manager: &SoundManager,
         critical_shot_probability: f32,
+        script_message_sender: &ScriptMessageSender,
     ) -> Option<Hit> {
         // Do immediate intersection test and solve it.
         let (trail_len, hit_point, hit) = if let Some(hit) =
             Weapon::ray_hit(begin, end, shooter, actors, graph, Default::default())
         {
             effects::create(
-                if hit.actor.is_some() {
+                if hit.hit_actor.is_some() {
                     EffectKind::BloodSpray
                 } else {
                     EffectKind::BulletImpact
@@ -268,16 +268,19 @@ impl Weapon {
                 0.5,
             );
 
-            if let Some(character) = try_get_character_mut(hit.actor, graph) {
-                character.push_command(CharacterCommand::Damage {
-                    who: hit.who,
+            script_message_sender.send_global(CharacterMessage {
+                character: hit.hit_actor,
+                data: CharacterMessageData::Damage {
+                    dealer: DamageDealer {
+                        entity: hit.shooter_actor,
+                    },
                     hitbox: hit.hit_box,
                     amount: damage
                         .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
                         .amount(),
                     critical_shot_probability,
-                });
-            }
+                },
+            });
 
             let dir = hit.position - begin;
 
@@ -296,7 +299,7 @@ impl Weapon {
                 };
 
             if let Some(hit_box) = hit.hit_box {
-                if let Some(bot) = try_get_bot_mut(hit.actor, graph) {
+                if let Some(bot) = try_get_bot_mut(hit.hit_actor, graph) {
                     bot.commands_queue.push_back(BotCommand::HandleImpact {
                         handle: hit_box.bone,
                         impact_point: hit.position,
@@ -311,7 +314,7 @@ impl Weapon {
                 hit.position,
                 hit.normal,
                 parent,
-                if hit.actor.is_some() {
+                if hit.hit_actor.is_some() {
                     Color::opaque(160, 0, 0)
                 } else {
                     Color::opaque(20, 20, 20)
@@ -319,7 +322,7 @@ impl Weapon {
             );
 
             // Add blood splatter on a surface behind an actor that was shot.
-            if try_get_character_ref(hit.actor, graph).is_some() {
+            if try_get_character_ref(hit.hit_actor, graph).is_some() {
                 for intersection in hit.query_buffer.iter() {
                     if matches!(
                         graph[intersection.collider].as_collider().shape(),
@@ -475,6 +478,7 @@ impl Weapon {
         direction: Option<Vector3<f32>>,
         sound_manager: &SoundManager,
         actors: &[Handle<Node>],
+        script_message_sender: &ScriptMessageSender,
     ) {
         self.last_shot_time = elapsed_time;
 
@@ -532,7 +536,7 @@ impl Weapon {
                 );
             }
             WeaponProjectile::Ray { damage } => {
-                if let Some(hit) = Self::shoot_ray(
+                Self::shoot_ray(
                     &mut scene.graph,
                     resource_manager,
                     actors,
@@ -543,12 +547,8 @@ impl Weapon {
                     self.definition.shot_effect,
                     sound_manager,
                     self.definition.base_critical_shot_probability,
-                ) {
-                    if hit.actor.is_some() {
-                        // TODO
-                        // self.set_sight_reaction(SightReaction::HitDetected);
-                    }
-                }
+                    script_message_sender,
+                );
             }
         }
     }
@@ -614,6 +614,7 @@ impl ScriptTrait for Weapon {
                 request.direction,
                 &level.sound_manager,
                 &level.actors,
+                ctx.message_sender,
             );
         }
     }
