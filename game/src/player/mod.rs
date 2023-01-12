@@ -1,6 +1,5 @@
-use crate::character::CharacterMessageData;
 use crate::{
-    character::{Character, CharacterCommand, CharacterMessage},
+    character::{Character, CharacterCommand, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
     door::{door_mut, DoorContainer},
@@ -47,7 +46,9 @@ use fyrox::{
         sprite::SpriteBuilder,
         Scene,
     },
-    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
+    script::{
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
+    },
     utils::log::Log,
 };
 use std::ops::{Deref, DerefMut};
@@ -948,6 +949,9 @@ impl ScriptTrait for Player {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         let game = game_ref(ctx.plugins);
 
+        ctx.message_dispatcher
+            .subscribe_to::<CharacterMessage>(ctx.handle);
+
         self.state_machine = StateMachine::new(self.machine, &ctx.scene.graph).unwrap();
 
         self.resolve(
@@ -1177,6 +1181,20 @@ impl ScriptTrait for Player {
                 .get_mut(self.state_machine.grab_animation)
                 .set_enabled(false)
                 .rewind();
+        }
+    }
+
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        ctx: &mut ScriptMessageContext,
+    ) {
+        if let Some(char_message) = message.downcast_ref::<CharacterMessage>() {
+            if char_message.character != ctx.handle {
+                return;
+            }
+
+            self.character.on_message(&char_message.data);
         }
     }
 

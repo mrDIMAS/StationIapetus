@@ -43,7 +43,9 @@ use fyrox::{
         rigidbody::RigidBody,
         Scene,
     },
-    script::{ScriptContext, ScriptDeinitContext, ScriptMessagePayload, ScriptTrait},
+    script::{
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
+    },
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
 use serde::Deserialize;
@@ -455,8 +457,10 @@ impl ScriptTrait for Bot {
             .push(context.handle);
     }
 
-    fn on_start(&mut self, _ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::get_definition(self.kind);
+        ctx.message_dispatcher
+            .subscribe_to::<CharacterMessage>(ctx.handle);
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
@@ -467,7 +471,11 @@ impl ScriptTrait for Bot {
         }
     }
 
-    fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptContext) {
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        ctx: &mut ScriptMessageContext,
+    ) {
         if let Some(char_message) = message.downcast_ref::<CharacterMessage>() {
             if char_message.character != ctx.handle {
                 return;

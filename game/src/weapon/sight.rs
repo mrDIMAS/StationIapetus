@@ -1,9 +1,7 @@
-use crate::character::CharacterMessageData;
 use crate::{
-    character::{Character, CharacterMessage},
+    character::{Character, CharacterMessage, CharacterMessageData},
     CollisionGroups,
 };
-use fyrox::script::ScriptMessagePayload;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -27,7 +25,7 @@ use fyrox::{
         light::BaseLight,
         node::{Node, TypeUuidProvider},
     },
-    script::{ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
     utils::log::Log,
 };
 
@@ -144,6 +142,11 @@ impl TypeUuidProvider for LaserSight {
 }
 
 impl ScriptTrait for LaserSight {
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        ctx.message_dispatcher
+            .subscribe_to::<CharacterMessage>(ctx.handle);
+    }
+
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let ignore_collider = find_parent_character(ctx.handle, &ctx.scene.graph)
             .map(|(_, c)| c.capsule_collider)
@@ -224,7 +227,11 @@ impl ScriptTrait for LaserSight {
         }
     }
 
-    fn on_message(&mut self, message: &mut dyn ScriptMessagePayload, ctx: &mut ScriptContext) {
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        ctx: &mut ScriptMessageContext,
+    ) {
         if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
             if let Some((parent_character_handle, _)) =
                 find_parent_character(ctx.handle, &ctx.scene.graph)
