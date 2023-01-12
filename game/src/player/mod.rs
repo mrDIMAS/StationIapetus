@@ -19,6 +19,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     animation::machine,
     core::{
@@ -167,6 +168,10 @@ pub struct Player {
     #[visit(skip)]
     #[reflect(hidden)]
     controller: InputController,
+
+    #[visit(skip)]
+    #[reflect(hidden)]
+    pub script_message_sender: Option<ScriptMessageSender>,
 }
 
 impl Default for Player {
@@ -230,6 +235,7 @@ impl Default for Player {
             animation_player: Default::default(),
             machine: Default::default(),
             state_machine: Default::default(),
+            script_message_sender: None,
         }
     }
 }
@@ -271,6 +277,7 @@ impl Clone for Player {
             animation_player: self.animation_player,
             machine: self.machine,
             state_machine: self.state_machine.clone(),
+            script_message_sender: self.script_message_sender.clone(),
         }
     }
 }
@@ -460,7 +467,12 @@ impl Player {
         new_y_vel
     }
 
-    fn handle_weapon_grab_signal(&mut self, scene: &mut Scene) {
+    fn handle_weapon_grab_signal(
+        &mut self,
+        scene: &mut Scene,
+        self_handle: Handle<Node>,
+        script_message_sender: &ScriptMessageSender,
+    ) {
         let animations_container =
             utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
         let mut events = animations_container
@@ -473,7 +485,13 @@ impl Player {
                     RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
                     RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
                     RequiredWeapon::Specific(kind) => {
-                        self.push_command(CharacterCommand::SelectWeapon(kind));
+                        script_message_sender.send_to_target(
+                            self_handle,
+                            CharacterMessage {
+                                character: self_handle,
+                                data: CharacterMessageData::SelectWeapon(kind),
+                            },
+                        );
                     }
                 }
 
@@ -952,6 +970,8 @@ impl ScriptTrait for Player {
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
 
+        self.script_message_sender = Some(ctx.message_sender.clone());
+
         self.state_machine = StateMachine::new(self.machine, &ctx.scene.graph).unwrap();
 
         self.resolve(
@@ -1194,7 +1214,7 @@ impl ScriptTrait for Player {
                 return;
             }
 
-            self.character.on_message(&char_message.data);
+            self.character.on_message(&char_message.data, ctx.scene);
         }
     }
 
@@ -1273,7 +1293,7 @@ impl ScriptTrait for Player {
             let can_move = self.can_move(&ctx.scene.graph);
             self.update_velocity(ctx.scene, can_move, ctx.dt);
             let new_y_vel = self.handle_jump_signal(ctx.scene, ctx.dt);
-            self.handle_weapon_grab_signal(ctx.scene);
+            self.handle_weapon_grab_signal(ctx.scene, ctx.handle, ctx.message_sender);
             self.handle_put_back_weapon_end_signal(ctx.scene);
             self.handle_toss_grenade_signal(Default::default(), ctx.scene, ctx.resource_manager);
 

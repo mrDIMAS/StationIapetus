@@ -481,7 +481,7 @@ impl ScriptTrait for Bot {
                 return;
             }
 
-            self.character.on_message(&char_message.data);
+            self.character.on_message(&char_message.data, ctx.scene);
 
             if let CharacterMessageData::Damage {
                 dealer,

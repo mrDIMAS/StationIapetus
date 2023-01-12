@@ -729,6 +729,7 @@ impl Game {
                             &event,
                             &self.control_scheme,
                             player_ref,
+                            player_handle,
                         );
                         self.journal_display
                             .process_os_event(&event, &self.control_scheme);

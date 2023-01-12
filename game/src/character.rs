@@ -64,6 +64,7 @@ pub enum CharacterMessageData {
         /// Only takes effect iff damage was applied to a head hit box!
         critical_shot_probability: f32,
     },
+    SelectWeapon(WeaponKind),
 }
 
 pub struct CharacterMessage {
@@ -73,7 +74,6 @@ pub struct CharacterMessage {
 
 #[derive(Debug, Clone)]
 pub enum CharacterCommand {
-    SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),
     PickupItem(Handle<Node>),
     DropItems { item: ItemKind, count: u32 },
@@ -199,11 +199,12 @@ impl Character {
         self.commands.push_back(command);
     }
 
-    pub fn on_message(&mut self, message_data: &CharacterMessageData) {
+    pub fn on_message(&mut self, message_data: &CharacterMessageData, scene: &mut Scene) {
         match message_data {
             CharacterMessageData::Damage { amount, .. } => {
                 self.damage(*amount);
             }
+            CharacterMessageData::SelectWeapon(kind) => self.select_weapon(*kind, &mut scene.graph),
             _ => (),
         }
     }
@@ -217,7 +218,6 @@ impl Character {
     ) -> Option<CharacterCommand> {
         if let Some(command) = self.commands.pop_front() {
             match command {
-                CharacterCommand::SelectWeapon(kind) => self.select_weapon(kind, &mut scene.graph),
                 CharacterCommand::AddWeapon(kind) => {
                     let weapon = block_on(
                         resource_manager.request_model(Weapon::definition(kind).model.clone()),

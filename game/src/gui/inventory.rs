@@ -1,4 +1,4 @@
-use crate::character::CharacterCommand;
+use crate::character::{CharacterCommand, CharacterMessage, CharacterMessageData};
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
     level::item::{Item, ItemKind},
@@ -6,6 +6,7 @@ use crate::{
     player::Player,
     MessageSender,
 };
+use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -419,6 +420,7 @@ impl InventoryInterface {
         os_event: &OsEvent,
         control_scheme: &ControlScheme,
         player: &mut Player,
+        player_handle: Handle<Node>,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -465,9 +467,19 @@ impl InventoryInterface {
                                     } else if let Some(associated_weapon) =
                                         item.item.associated_weapon()
                                     {
-                                        player.push_command(CharacterCommand::SelectWeapon(
-                                            associated_weapon,
-                                        ));
+                                        player
+                                            .script_message_sender
+                                            .as_ref()
+                                            .unwrap()
+                                            .send_to_target(
+                                                player_handle,
+                                                CharacterMessage {
+                                                    character: player_handle,
+                                                    data: CharacterMessageData::SelectWeapon(
+                                                        associated_weapon,
+                                                    ),
+                                                },
+                                            )
                                     }
                                 } else {
                                     unreachable!()
