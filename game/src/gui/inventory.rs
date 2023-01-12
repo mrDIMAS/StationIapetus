@@ -1,12 +1,11 @@
-use crate::character::{CharacterCommand, CharacterMessage, CharacterMessageData};
 use crate::{
+    character::{CharacterMessage, CharacterMessageData},
     control_scheme::{ControlButton, ControlScheme},
     level::item::{Item, ItemKind},
     message::Message,
     player::Player,
     MessageSender,
 };
-use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     engine::resource_manager::ResourceManager,
@@ -28,6 +27,7 @@ use fyrox::{
         VerticalAlignment,
     },
     resource::texture::Texture,
+    scene::node::Node,
 };
 use std::{
     any::{Any, TypeId},
@@ -493,10 +493,20 @@ impl InventoryInterface {
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
                                 {
-                                    player.push_command(CharacterCommand::DropItems {
-                                        item: item.item,
-                                        count: 1,
-                                    });
+                                    player
+                                        .script_message_sender
+                                        .as_ref()
+                                        .unwrap()
+                                        .send_to_target(
+                                            player_handle,
+                                            CharacterMessage {
+                                                character: player_handle,
+                                                data: CharacterMessageData::DropItems {
+                                                    item: item.item,
+                                                    count: 1,
+                                                },
+                                            },
+                                        );
                                     self.sender.send(Message::SyncInventory);
                                 } else {
                                     unreachable!()

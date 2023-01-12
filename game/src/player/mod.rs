@@ -1256,10 +1256,6 @@ impl ScriptTrait for Player {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
 
-        while self.poll_command(ctx.scene, ctx.resource_manager).is_some() {
-            // TODO: Handle commands here
-        }
-
         if let Some(upper_body_layer) = self
             .state_machine
             .upper_body_layer_mut(&mut ctx.scene.graph)

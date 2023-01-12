@@ -367,13 +367,7 @@ impl Bot {
         self.definition = Self::get_definition(self.kind);
     }
 
-    fn poll_commands(&mut self, scene: &mut Scene, resource_manager: &ResourceManager) {
-        while self
-            .character
-            .poll_command(scene, resource_manager)
-            .is_some()
-        {}
-
+    fn poll_commands(&mut self, scene: &mut Scene) {
         while let Some(bot_command) = self.commands_queue.pop_front() {
             match bot_command {
                 BotCommand::HandleImpact {
@@ -536,7 +530,7 @@ impl ScriptTrait for Bot {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
 
-        self.poll_commands(ctx.scene, ctx.resource_manager);
+        self.poll_commands(ctx.scene);
 
         let movement_speed_factor;
         let is_attacking;

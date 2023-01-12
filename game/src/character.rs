@@ -23,7 +23,6 @@ use fyrox::{
     },
     script::ScriptMessageSender,
 };
-use std::collections::VecDeque;
 
 #[derive(Copy, Clone)]
 pub struct DamageDealer {
@@ -68,16 +67,15 @@ pub enum CharacterMessageData {
     SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),
     PickupItem(Handle<Node>),
+    DropItems {
+        item: ItemKind,
+        count: u32,
+    },
 }
 
 pub struct CharacterMessage {
     pub character: Handle<Node>,
     pub data: CharacterMessageData,
-}
-
-#[derive(Debug, Clone)]
-pub enum CharacterCommand {
-    DropItems { item: ItemKind, count: u32 },
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
@@ -92,9 +90,6 @@ pub struct Character {
     #[visit(optional)]
     pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
-    #[visit(skip)]
-    #[reflect(hidden)]
-    pub commands: VecDeque<CharacterCommand>,
 }
 
 impl Default for Character {
@@ -109,7 +104,6 @@ impl Default for Character {
             weapon_pivot: Handle::NONE,
             hit_boxes: Default::default(),
             inventory: Default::default(),
-            commands: Default::default(),
         }
     }
 }
@@ -194,10 +188,6 @@ impl Character {
             | ItemKind::Grenade
             | ItemKind::MasterKey => (),
         }
-    }
-
-    pub fn push_command(&mut self, command: CharacterCommand) {
-        self.commands.push_back(command);
     }
 
     pub fn on_message(
@@ -289,45 +279,24 @@ impl Character {
                     }
                 }
             }
-            _ => (),
-        }
-    }
+            &CharacterMessageData::DropItems { item, count } => {
+                let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
+                let weapons = self.weapons().to_vec();
 
-    pub fn poll_command(
-        &mut self,
-        scene: &mut Scene,
-        resource_manager: &ResourceManager,
-    ) -> Option<CharacterCommand> {
-        if let Some(command) = self.commands.pop_front() {
-            match command {
-                CharacterCommand::DropItems { item, count } => {
-                    let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
-                    let weapons = self.weapons().to_vec();
-
-                    if self.inventory.try_extract_exact_items(item, count) == count {
-                        // Make sure to remove weapons associated with items.
-                        if let Some(weapon_kind) = item.associated_weapon() {
-                            for weapon in weapons {
-                                if weapon_ref(weapon, &scene.graph).kind() == weapon_kind {
-                                    scene.graph.remove_node(weapon);
-                                }
+                if self.inventory.try_extract_exact_items(item, count) == count {
+                    // Make sure to remove weapons associated with items.
+                    if let Some(weapon_kind) = item.associated_weapon() {
+                        for weapon in weapons {
+                            if weapon_ref(weapon, &scene.graph).kind() == weapon_kind {
+                                scene.graph.remove_node(weapon);
                             }
                         }
-
-                        Item::add_to_scene(
-                            scene,
-                            resource_manager.clone(),
-                            item,
-                            drop_position,
-                            true,
-                        );
                     }
+
+                    Item::add_to_scene(scene, resource_manager.clone(), item, drop_position, true);
                 }
             }
-
-            Some(command)
-        } else {
-            None
+            _ => (),
         }
     }
 
