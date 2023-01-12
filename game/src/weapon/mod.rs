@@ -1,9 +1,10 @@
 //! Weapon related stuff.
 
-use crate::character::{CharacterMessage, CharacterMessageData, DamageDealer};
 use crate::{
-    bot::{try_get_bot_mut, BotCommand},
-    character::{character_mut, character_ref, try_get_character_ref, HitBox},
+    character::{
+        character_mut, character_ref, try_get_character_ref, CharacterMessage,
+        CharacterMessageData, DamageDealer, HitBox,
+    },
     current_level_mut, current_level_ref, effects,
     effects::EffectKind,
     level::trail::ShotTrail,
@@ -14,7 +15,6 @@ use crate::{
     },
     CollisionGroups, Decal,
 };
-use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
@@ -46,7 +46,7 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
-    script::{Script, ScriptContext, ScriptDeinitContext, ScriptTrait},
+    script::{Script, ScriptContext, ScriptDeinitContext, ScriptMessageSender, ScriptTrait},
     utils::{self, log::Log},
 };
 use std::hash::{Hash, Hasher};
@@ -299,13 +299,17 @@ impl Weapon {
                 };
 
             if let Some(hit_box) = hit.hit_box {
-                if let Some(bot) = try_get_bot_mut(hit.hit_actor, graph) {
-                    bot.commands_queue.push_back(BotCommand::HandleImpact {
-                        handle: hit_box.bone,
-                        impact_point: hit.position,
-                        direction: dir,
-                    });
-                }
+                script_message_sender.send_to_target(
+                    hit.hit_actor,
+                    CharacterMessage {
+                        character: hit.hit_actor,
+                        data: CharacterMessageData::HandleImpact {
+                            handle: hit_box.bone,
+                            impact_point: hit.position,
+                            direction: dir,
+                        },
+                    },
+                );
             }
 
             Decal::new_bullet_hole(

@@ -49,7 +49,7 @@ use fyrox::{
 };
 use serde::Deserialize;
 use std::{
-    collections::{HashMap, VecDeque},
+    collections::HashMap,
     fs::File,
     ops::{Deref, DerefMut},
 };
@@ -104,15 +104,6 @@ pub struct Target {
     handle: Handle<Node>,
 }
 
-#[derive(Debug, Clone)]
-pub enum BotCommand {
-    HandleImpact {
-        handle: Handle<Node>,
-        impact_point: Vector3<f32>,
-        direction: Vector3<f32>,
-    },
-}
-
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Bot {
     #[reflect(hidden)]
@@ -145,9 +136,6 @@ pub struct Bot {
     threaten_timeout: f32,
     #[visit(optional)]
     animation_player: Handle<Node>,
-    #[visit(skip)]
-    #[reflect(hidden)]
-    pub commands_queue: VecDeque<BotCommand>,
 }
 
 impl_component_provider!(Bot, character: Character);
@@ -189,7 +177,6 @@ impl Default for Bot {
             target_move_speed: 0.0,
             threaten_timeout: 0.0,
             animation_player: Default::default(),
-            commands_queue: Default::default(),
         }
     }
 }
@@ -366,20 +353,6 @@ impl Bot {
     pub fn resolve(&mut self) {
         self.definition = Self::get_definition(self.kind);
     }
-
-    fn poll_commands(&mut self, scene: &mut Scene) {
-        while let Some(bot_command) = self.commands_queue.pop_front() {
-            match bot_command {
-                BotCommand::HandleImpact {
-                    handle,
-                    impact_point,
-                    direction,
-                } => self
-                    .impact_handler
-                    .handle_impact(scene, handle, impact_point, direction),
-            }
-        }
-    }
 }
 
 impl TypeUuidProvider for Bot {
@@ -479,49 +452,62 @@ impl ScriptTrait for Bot {
                 &level.sound_manager,
             );
 
-            if let CharacterMessageData::Damage {
-                dealer,
-                amount,
-                hitbox,
-                critical_shot_probability,
-            } = char_message.data
-            {
-                if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
-                    self.set_target(character_handle, character.position(&ctx.scene.graph));
-                }
-
-                if let Some(hitbox) = hitbox {
-                    // Handle critical head shots.
-                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
-                    if hitbox.is_head
-                        && is_probability_event_occurred(critical_head_shot_probability)
+            match char_message.data {
+                CharacterMessageData::Damage {
+                    dealer,
+                    amount,
+                    hitbox,
+                    critical_shot_probability,
+                } => {
+                    if let Some((character_handle, character)) =
+                        dealer.as_character(&ctx.scene.graph)
                     {
-                        self.damage(amount * 1000.0);
+                        self.set_target(character_handle, character.position(&ctx.scene.graph));
+                    }
 
-                        self.blow_up_head(&mut ctx.scene.graph);
+                    if let Some(hitbox) = hitbox {
+                        // Handle critical head shots.
+                        let critical_head_shot_probability =
+                            critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
+                        if hitbox.is_head
+                            && is_probability_event_occurred(critical_head_shot_probability)
+                        {
+                            self.damage(amount * 1000.0);
+
+                            self.blow_up_head(&mut ctx.scene.graph);
+                        }
+                    }
+
+                    // Prevent spamming with grunt sounds.
+                    if self.last_health - self.health > 20.0 && !self.is_dead() {
+                        self.last_health = self.health;
+                        self.restoration_time = 0.8;
+
+                        if let Some(grunt_sound) =
+                            self.definition.pain_sounds.choose(&mut rand::thread_rng())
+                        {
+                            let position = self.position(&ctx.scene.graph);
+
+                            level.sound_manager.play_sound(
+                                &mut ctx.scene.graph,
+                                grunt_sound,
+                                position,
+                                0.8,
+                                1.0,
+                                0.6,
+                            );
+                        }
                     }
                 }
-
-                // Prevent spamming with grunt sounds.
-                if self.last_health - self.health > 20.0 && !self.is_dead() {
-                    self.last_health = self.health;
-                    self.restoration_time = 0.8;
-
-                    if let Some(grunt_sound) =
-                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
-                    {
-                        let position = self.position(&ctx.scene.graph);
-
-                        level.sound_manager.play_sound(
-                            &mut ctx.scene.graph,
-                            grunt_sound,
-                            position,
-                            0.8,
-                            1.0,
-                            0.6,
-                        );
-                    }
+                CharacterMessageData::HandleImpact {
+                    handle,
+                    impact_point,
+                    direction,
+                } => {
+                    self.impact_handler
+                        .handle_impact(ctx.scene, handle, impact_point, direction);
                 }
+                _ => (),
             }
         }
     }
@@ -529,8 +515,6 @@ impl ScriptTrait for Bot {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
-
-        self.poll_commands(ctx.scene);
 
         let movement_speed_factor;
         let is_attacking;

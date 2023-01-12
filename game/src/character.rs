@@ -71,6 +71,11 @@ pub enum CharacterMessageData {
         item: ItemKind,
         count: u32,
     },
+    HandleImpact {
+        handle: Handle<Node>,
+        impact_point: Vector3<f32>,
+        direction: Vector3<f32>,
+    },
 }
 
 pub struct CharacterMessage {
