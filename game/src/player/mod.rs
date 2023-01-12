@@ -961,20 +961,21 @@ impl ScriptTrait for Player {
             .build(&mut context.scene.graph);
 
         // Add default weapons.
-        context.message_sender.send_to_target(
-            context.handle,
-            CharacterMessage {
-                character: context.handle,
-                data: CharacterMessageData::AddWeapon(WeaponKind::Glock),
-            },
-        );
-        context.message_sender.send_to_target(
-            context.handle,
-            CharacterMessage {
-                character: context.handle,
-                data: CharacterMessageData::AddWeapon(WeaponKind::M4),
-            },
-        );
+        for weapon in [
+            WeaponKind::Glock,
+            WeaponKind::M4,
+            WeaponKind::Ak47,
+            WeaponKind::PlasmaRifle,
+            WeaponKind::RailGun,
+        ] {
+            context.message_sender.send_to_target(
+                context.handle,
+                CharacterMessage {
+                    character: context.handle,
+                    data: CharacterMessageData::AddWeapon(weapon),
+                },
+            );
+        }
 
         self.inventory.add_item(ItemKind::Grenade, 10);
 
