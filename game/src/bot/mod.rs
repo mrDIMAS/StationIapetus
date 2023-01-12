@@ -10,11 +10,9 @@ use crate::{
     game_ref,
     inventory::{Inventory, ItemEntry},
     level::item::ItemKind,
-    sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
 };
-use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -369,23 +367,10 @@ impl Bot {
         self.definition = Self::get_definition(self.kind);
     }
 
-    fn poll_commands(
-        &mut self,
-        scene: &mut Scene,
-        self_handle: Handle<Node>,
-        resource_manager: &ResourceManager,
-        sound_manager: &SoundManager,
-        script_message_sender: &ScriptMessageSender,
-    ) {
+    fn poll_commands(&mut self, scene: &mut Scene, resource_manager: &ResourceManager) {
         while self
             .character
-            .poll_command(
-                scene,
-                self_handle,
-                resource_manager,
-                sound_manager,
-                script_message_sender,
-            )
+            .poll_command(scene, resource_manager)
             .is_some()
         {}
 
@@ -489,11 +474,15 @@ impl ScriptTrait for Bot {
                 return;
             }
 
+            let level = current_level_ref(ctx.plugins).unwrap();
+
             self.character.on_message(
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
                 ctx.resource_manager,
+                ctx.message_sender,
+                &level.sound_manager,
             );
 
             if let CharacterMessageData::Damage {
@@ -529,7 +518,6 @@ impl ScriptTrait for Bot {
                     {
                         let position = self.position(&ctx.scene.graph);
 
-                        let level = current_level_ref(ctx.plugins).unwrap();
                         level.sound_manager.play_sound(
                             &mut ctx.scene.graph,
                             grunt_sound,
@@ -548,13 +536,7 @@ impl ScriptTrait for Bot {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
 
-        self.poll_commands(
-            ctx.scene,
-            ctx.handle,
-            ctx.resource_manager,
-            &level.sound_manager,
-            ctx.message_sender,
-        );
+        self.poll_commands(ctx.scene, ctx.resource_manager);
 
         let movement_speed_factor;
         let is_attacking;

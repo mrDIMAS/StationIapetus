@@ -6,7 +6,6 @@ use crate::{
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
     Item, Weapon,
 };
-use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -22,6 +21,7 @@ use fyrox::{
         node::Node,
         Scene,
     },
+    script::ScriptMessageSender,
 };
 use std::collections::VecDeque;
 
@@ -67,6 +67,7 @@ pub enum CharacterMessageData {
     },
     SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),
+    PickupItem(Handle<Node>),
 }
 
 pub struct CharacterMessage {
@@ -76,7 +77,6 @@ pub struct CharacterMessage {
 
 #[derive(Debug, Clone)]
 pub enum CharacterCommand {
-    PickupItem(Handle<Node>),
     DropItems { item: ItemKind, count: u32 },
 }
 
@@ -206,6 +206,8 @@ impl Character {
         scene: &mut Scene,
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
+        script_message_sender: &ScriptMessageSender,
+        sound_manager: &SoundManager,
     ) {
         match message_data {
             CharacterMessageData::Damage { amount, .. } => {
@@ -228,6 +230,65 @@ impl Character {
                 scene.graph.link_nodes(weapon, self.weapon_pivot());
                 self.inventory_mut().add_item(kind.associated_item(), 1);
             }
+            &CharacterMessageData::PickupItem(item_handle) => {
+                let position = scene.graph[item_handle].global_position();
+                let item = item_mut(item_handle, &mut scene.graph);
+
+                let kind = item.get_kind();
+
+                scene.graph.remove_node(item_handle);
+
+                sound_manager.play_sound(
+                    &mut scene.graph,
+                    "data/sounds/item_pickup.ogg",
+                    position,
+                    1.0,
+                    3.0,
+                    2.0,
+                );
+
+                match kind {
+                    ItemKind::Medkit => self.inventory.add_item(ItemKind::Medkit, 1),
+                    ItemKind::Medpack => self.inventory.add_item(ItemKind::Medpack, 1),
+                    ItemKind::Ak47
+                    | ItemKind::PlasmaGun
+                    | ItemKind::M4
+                    | ItemKind::Glock
+                    | ItemKind::RailGun => {
+                        let weapon_kind = kind.associated_weapon().unwrap();
+
+                        let mut found = false;
+                        for weapon_handle in self.weapons.iter() {
+                            let weapon = weapon_ref(*weapon_handle, &scene.graph);
+                            if weapon.kind() == weapon_kind {
+                                found = true;
+                                break;
+                            }
+                        }
+                        if found {
+                            self.inventory.add_item(ItemKind::Ammo, 24);
+                        } else {
+                            // Finally if actor does not have such weapon, give new one to him.
+                            script_message_sender.send_to_target(
+                                self_handle,
+                                CharacterMessage {
+                                    character: self_handle,
+                                    data: CharacterMessageData::AddWeapon(weapon_kind),
+                                },
+                            );
+                        }
+                    }
+                    ItemKind::Ammo => {
+                        self.inventory.add_item(ItemKind::Ammo, 24);
+                    }
+                    ItemKind::Grenade => {
+                        self.inventory.add_item(ItemKind::Grenade, 1);
+                    }
+                    ItemKind::MasterKey => {
+                        self.inventory.add_item(ItemKind::MasterKey, 1);
+                    }
+                }
+            }
             _ => (),
         }
     }
@@ -235,72 +296,10 @@ impl Character {
     pub fn poll_command(
         &mut self,
         scene: &mut Scene,
-        self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
-        sound_manager: &SoundManager,
-        script_message_sender: &ScriptMessageSender,
     ) -> Option<CharacterCommand> {
         if let Some(command) = self.commands.pop_front() {
             match command {
-                CharacterCommand::PickupItem(item_handle) => {
-                    let position = scene.graph[item_handle].global_position();
-                    let item = item_mut(item_handle, &mut scene.graph);
-
-                    let kind = item.get_kind();
-
-                    scene.graph.remove_node(item_handle);
-
-                    sound_manager.play_sound(
-                        &mut scene.graph,
-                        "data/sounds/item_pickup.ogg",
-                        position,
-                        1.0,
-                        3.0,
-                        2.0,
-                    );
-
-                    match kind {
-                        ItemKind::Medkit => self.inventory.add_item(ItemKind::Medkit, 1),
-                        ItemKind::Medpack => self.inventory.add_item(ItemKind::Medpack, 1),
-                        ItemKind::Ak47
-                        | ItemKind::PlasmaGun
-                        | ItemKind::M4
-                        | ItemKind::Glock
-                        | ItemKind::RailGun => {
-                            let weapon_kind = kind.associated_weapon().unwrap();
-
-                            let mut found = false;
-                            for weapon_handle in self.weapons.iter() {
-                                let weapon = weapon_ref(*weapon_handle, &scene.graph);
-                                if weapon.kind() == weapon_kind {
-                                    found = true;
-                                    break;
-                                }
-                            }
-                            if found {
-                                self.inventory.add_item(ItemKind::Ammo, 24);
-                            } else {
-                                // Finally if actor does not have such weapon, give new one to him.
-                                script_message_sender.send_to_target(
-                                    self_handle,
-                                    CharacterMessage {
-                                        character: self_handle,
-                                        data: CharacterMessageData::AddWeapon(weapon_kind),
-                                    },
-                                );
-                            }
-                        }
-                        ItemKind::Ammo => {
-                            self.inventory.add_item(ItemKind::Ammo, 24);
-                        }
-                        ItemKind::Grenade => {
-                            self.inventory.add_item(ItemKind::Grenade, 1);
-                        }
-                        ItemKind::MasterKey => {
-                            self.inventory.add_item(ItemKind::MasterKey, 1);
-                        }
-                    }
-                }
                 CharacterCommand::DropItems { item, count } => {
                     let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
                     let weapons = self.weapons().to_vec();

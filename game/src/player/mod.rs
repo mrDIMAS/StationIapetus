@@ -1,5 +1,5 @@
 use crate::{
-    character::{Character, CharacterCommand, CharacterMessage, CharacterMessageData},
+    character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
     current_level_mut, current_level_ref,
     door::{door_mut, DoorContainer},
@@ -19,7 +19,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
-use fyrox::script::ScriptMessageSender;
 use fyrox::{
     animation::machine,
     core::{
@@ -48,7 +47,8 @@ use fyrox::{
         Scene,
     },
     script::{
-        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
+        ScriptMessageSender, ScriptTrait,
     },
     utils::log::Log,
 };
@@ -327,6 +327,8 @@ impl Player {
         game: &mut Game,
         scene: &mut Scene,
         resource_manager: &ResourceManager,
+        self_handle: Handle<Node>,
+        script_message_sender: &ScriptMessageSender,
     ) {
         let sender = &game.message_sender;
         let items = &game.level.as_ref().unwrap().items;
@@ -345,7 +347,14 @@ impl Player {
                     );
 
                     if self.controller.action {
-                        self.push_command(CharacterCommand::PickupItem(item_handle));
+                        script_message_sender.send_to_target(
+                            self_handle,
+                            CharacterMessage {
+                                character: self_handle,
+                                data: CharacterMessageData::PickupItem(item_handle),
+                            },
+                        );
+
                         sender.send(Message::SyncInventory);
 
                         self.controller.action = false;
@@ -1226,11 +1235,15 @@ impl ScriptTrait for Player {
                 return;
             }
 
+            let level = current_level_ref(ctx.plugins).unwrap();
+
             self.character.on_message(
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
                 ctx.resource_manager,
+                ctx.message_sender,
+                &level.sound_manager,
             );
         }
     }
@@ -1243,16 +1256,7 @@ impl ScriptTrait for Player {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
 
-        while self
-            .poll_command(
-                ctx.scene,
-                ctx.handle,
-                ctx.resource_manager,
-                &level.sound_manager,
-                ctx.message_sender,
-            )
-            .is_some()
-        {
+        while self.poll_command(ctx.scene, ctx.resource_manager).is_some() {
             // TODO: Handle commands here
         }
 
@@ -1453,7 +1457,13 @@ impl ScriptTrait for Player {
             self.check_doors(ctx.scene, &level.doors_container);
             self.check_elevators(ctx.scene, &level.elevators);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time);
-            self.check_items(game_mut(ctx.plugins), ctx.scene, ctx.resource_manager);
+            self.check_items(
+                game_mut(ctx.plugins),
+                ctx.scene,
+                ctx.resource_manager,
+                ctx.handle,
+                ctx.message_sender,
+            );
 
             let spine_transform = ctx.scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
