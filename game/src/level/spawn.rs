@@ -1,5 +1,5 @@
 use crate::{
-    character::{Character, CharacterCommand},
+    character::{CharacterMessage, CharacterMessageData},
     weapon::definition::WeaponKind,
 };
 use fyrox::{
@@ -42,9 +42,9 @@ impl ScriptTrait for CharacterSpawnPoint {
                 .graph
                 .global_rotation_position_no_scale(ctx.handle);
 
-            let root = model.instantiate(ctx.scene);
+            let character_root_node_handle = model.instantiate(ctx.scene);
 
-            let character_node = &mut ctx.scene.graph[root];
+            let character_node = &mut ctx.scene.graph[character_root_node_handle];
 
             // Rotate the character accordingly.
             character_node
@@ -53,15 +53,14 @@ impl ScriptTrait for CharacterSpawnPoint {
                 .set_rotation(rotation);
 
             // Give some default weapons.
-            if let Some(character) = character_node
-                .script_mut()
-                .and_then(|s| s.query_component_mut::<Character>())
-            {
-                for weapon in self.default_weapons.iter() {
-                    character.push_command(CharacterCommand::AddWeapon(weapon.0))
-                }
-            } else {
-                Log::err("Unable to find character in a prefab!")
+            for weapon in self.default_weapons.iter() {
+                ctx.message_sender.send_to_target(
+                    character_root_node_handle,
+                    CharacterMessage {
+                        character: character_root_node_handle,
+                        data: CharacterMessageData::AddWeapon(weapon.0),
+                    },
+                )
             }
         } else {
             Log::warn("Prefab is not set, nothing to spawn!")

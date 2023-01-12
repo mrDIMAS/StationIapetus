@@ -951,9 +951,21 @@ impl ScriptTrait for Player {
             .with_size(0.1)
             .build(&mut context.scene.graph);
 
-        // Add default weapon.
-        self.push_command(CharacterCommand::AddWeapon(WeaponKind::Glock));
-        self.push_command(CharacterCommand::AddWeapon(WeaponKind::M4));
+        // Add default weapons.
+        context.message_sender.send_to_target(
+            context.handle,
+            CharacterMessage {
+                character: context.handle,
+                data: CharacterMessageData::AddWeapon(WeaponKind::Glock),
+            },
+        );
+        context.message_sender.send_to_target(
+            context.handle,
+            CharacterMessage {
+                character: context.handle,
+                data: CharacterMessageData::AddWeapon(WeaponKind::M4),
+            },
+        );
 
         self.inventory.add_item(ItemKind::Grenade, 10);
 
@@ -1214,7 +1226,12 @@ impl ScriptTrait for Player {
                 return;
             }
 
-            self.character.on_message(&char_message.data, ctx.scene);
+            self.character.on_message(
+                &char_message.data,
+                ctx.scene,
+                ctx.handle,
+                ctx.resource_manager,
+            );
         }
     }
 
@@ -1232,6 +1249,7 @@ impl ScriptTrait for Player {
                 ctx.handle,
                 ctx.resource_manager,
                 &level.sound_manager,
+                ctx.message_sender,
             )
             .is_some()
         {

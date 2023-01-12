@@ -14,6 +14,7 @@ use crate::{
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
 };
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -374,10 +375,17 @@ impl Bot {
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
+        script_message_sender: &ScriptMessageSender,
     ) {
         while self
             .character
-            .poll_command(scene, self_handle, resource_manager, sound_manager)
+            .poll_command(
+                scene,
+                self_handle,
+                resource_manager,
+                sound_manager,
+                script_message_sender,
+            )
             .is_some()
         {}
 
@@ -481,7 +489,12 @@ impl ScriptTrait for Bot {
                 return;
             }
 
-            self.character.on_message(&char_message.data, ctx.scene);
+            self.character.on_message(
+                &char_message.data,
+                ctx.scene,
+                ctx.handle,
+                ctx.resource_manager,
+            );
 
             if let CharacterMessageData::Damage {
                 dealer,
@@ -540,6 +553,7 @@ impl ScriptTrait for Bot {
             ctx.handle,
             ctx.resource_manager,
             &level.sound_manager,
+            ctx.message_sender,
         );
 
         let movement_speed_factor;

@@ -6,6 +6,7 @@ use crate::{
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
     Item, Weapon,
 };
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -65,6 +66,7 @@ pub enum CharacterMessageData {
         critical_shot_probability: f32,
     },
     SelectWeapon(WeaponKind),
+    AddWeapon(WeaponKind),
 }
 
 pub struct CharacterMessage {
@@ -74,7 +76,6 @@ pub struct CharacterMessage {
 
 #[derive(Debug, Clone)]
 pub enum CharacterCommand {
-    AddWeapon(WeaponKind),
     PickupItem(Handle<Node>),
     DropItems { item: ItemKind, count: u32 },
 }
@@ -199,12 +200,34 @@ impl Character {
         self.commands.push_back(command);
     }
 
-    pub fn on_message(&mut self, message_data: &CharacterMessageData, scene: &mut Scene) {
+    pub fn on_message(
+        &mut self,
+        message_data: &CharacterMessageData,
+        scene: &mut Scene,
+        self_handle: Handle<Node>,
+        resource_manager: &ResourceManager,
+    ) {
         match message_data {
             CharacterMessageData::Damage { amount, .. } => {
                 self.damage(*amount);
             }
             CharacterMessageData::SelectWeapon(kind) => self.select_weapon(*kind, &mut scene.graph),
+            CharacterMessageData::AddWeapon(kind) => {
+                let weapon = block_on(
+                    resource_manager.request_model(Weapon::definition(*kind).model.clone()),
+                )
+                .unwrap()
+                .instantiate(scene);
+
+                // Root node must have Weapon script.
+                assert!(scene.graph[weapon].has_script::<Weapon>());
+
+                weapon_mut(weapon, &mut scene.graph).set_owner(self_handle);
+
+                self.add_weapon(weapon, &mut scene.graph);
+                scene.graph.link_nodes(weapon, self.weapon_pivot());
+                self.inventory_mut().add_item(kind.associated_item(), 1);
+            }
             _ => (),
         }
     }
@@ -215,25 +238,10 @@ impl Character {
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
+        script_message_sender: &ScriptMessageSender,
     ) -> Option<CharacterCommand> {
         if let Some(command) = self.commands.pop_front() {
             match command {
-                CharacterCommand::AddWeapon(kind) => {
-                    let weapon = block_on(
-                        resource_manager.request_model(Weapon::definition(kind).model.clone()),
-                    )
-                    .unwrap()
-                    .instantiate(scene);
-
-                    // Root node must have Weapon script.
-                    assert!(scene.graph[weapon].has_script::<Weapon>());
-
-                    weapon_mut(weapon, &mut scene.graph).set_owner(self_handle);
-
-                    self.add_weapon(weapon, &mut scene.graph);
-                    scene.graph.link_nodes(weapon, self.weapon_pivot());
-                    self.inventory_mut().add_item(kind.associated_item(), 1);
-                }
                 CharacterCommand::PickupItem(item_handle) => {
                     let position = scene.graph[item_handle].global_position();
                     let item = item_mut(item_handle, &mut scene.graph);
@@ -273,8 +281,13 @@ impl Character {
                                 self.inventory.add_item(ItemKind::Ammo, 24);
                             } else {
                                 // Finally if actor does not have such weapon, give new one to him.
-                                self.commands
-                                    .push_back(CharacterCommand::AddWeapon(weapon_kind));
+                                script_message_sender.send_to_target(
+                                    self_handle,
+                                    CharacterMessage {
+                                        character: self_handle,
+                                        data: CharacterMessageData::AddWeapon(weapon_kind),
+                                    },
+                                );
                             }
                         }
                         ItemKind::Ammo => {
