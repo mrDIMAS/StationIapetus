@@ -142,6 +142,10 @@ impl TypeUuidProvider for LaserSight {
 }
 
 impl ScriptTrait for LaserSight {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        ctx.scene.graph[ctx.handle].set_visibility(false);
+    }
+
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
