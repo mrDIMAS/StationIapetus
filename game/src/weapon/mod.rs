@@ -42,7 +42,7 @@ use fyrox::{
             MeshBuilder, RenderPath,
         },
         node::{Node, TypeUuidProvider},
-        rigidbody::RigidBody,
+        rigidbody::{RigidBody, RigidBodyType},
         transform::TransformBuilder,
         Scene,
     },
@@ -288,19 +288,20 @@ impl Weapon {
 
             let dir = hit.position - begin;
 
-            let hit_collider_body = graph[hit.collider].parent();
-            let parent =
-                if let Some(collider_parent) = graph[hit_collider_body].cast_mut::<RigidBody>() {
-                    collider_parent.apply_force_at_point(
-                        dir.try_normalize(f32::EPSILON)
-                            .unwrap_or_default()
-                            .scale(30.0),
-                        hit.position,
-                    );
-                    hit_collider_body
-                } else {
-                    Default::default()
-                };
+            let mut node = hit.collider;
+            while let Some(node_ref) = graph.try_get_mut(node) {
+                if let Some(rigid_body) = node_ref.query_component_mut::<RigidBody>() {
+                    if rigid_body.body_type() == RigidBodyType::Dynamic {
+                        rigid_body.apply_force_at_point(
+                            dir.try_normalize(f32::EPSILON)
+                                .unwrap_or_default()
+                                .scale(30.0),
+                            hit.position,
+                        );
+                    }
+                }
+                node = node_ref.parent();
+            }
 
             if let Some(hit_box) = hit.hit_box {
                 script_message_sender.send_to_target(
@@ -321,7 +322,7 @@ impl Weapon {
                 graph,
                 hit.position,
                 hit.normal,
-                parent,
+                hit.collider,
                 if hit.hit_actor.is_some() {
                     Color::opaque(160, 0, 0)
                 } else {
