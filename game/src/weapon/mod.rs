@@ -159,6 +159,10 @@ impl Weapon {
         graph: &mut Graph,
         ignored_collider: Handle<Node>,
     ) -> Option<Hit> {
+        if begin == end {
+            return None;
+        }
+
         let physics = &mut graph.physics;
         let ray = Ray::from_two_points(begin, end);
 
