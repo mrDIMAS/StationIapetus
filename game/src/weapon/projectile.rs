@@ -1,6 +1,6 @@
-use crate::character::{character_ref, DamageDealer};
+use crate::character::Character;
 use crate::{
-    character::{CharacterMessage, CharacterMessageData},
+    character::{character_ref, CharacterMessage, CharacterMessageData, DamageDealer},
     current_level_ref, effects,
     effects::EffectKind,
     game_ref,
@@ -21,18 +21,16 @@ use fyrox::{
     impl_component_provider,
     lazy_static::lazy_static,
     scene::{
+        collider::Collider,
+        graph::physics::FeatureId,
         node::{Node, TypeUuidProvider},
         rigidbody::RigidBody,
-        sprite::Sprite,
         Scene,
     },
     script::{ScriptContext, ScriptTrait},
 };
 use serde::Deserialize;
-use std::{
-    collections::{HashMap, HashSet},
-    fs::File,
-};
+use std::{collections::HashMap, fs::File};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 #[derive(
@@ -89,22 +87,30 @@ impl Damage {
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Projectile {
     kind: ProjectileKind,
+
+    #[reflect(hidden)]
     dir: Vector3<f32>,
-    lifetime: f32,
-    rotation_angle: f32,
+
     pub owner: Handle<Node>,
+
+    #[reflect(hidden)]
     initial_velocity: Vector3<f32>,
-    /// Position of projectile on the previous frame, it is used to simulate
-    /// continuous intersection detection from fast moving projectiles.
+
+    #[reflect(hidden)]
     last_position: Vector3<f32>,
+
+    #[visit(optional)]
+    use_ray_casting: bool,
 
     #[visit(skip)]
     #[reflect(hidden)]
     definition: &'static ProjectileDefinition,
 
+    // A handle to collider of the projectile. It is used as a cache to prevent searching for it
+    // every frame.
     #[visit(skip)]
     #[reflect(hidden)]
-    hits: HashSet<Hit>,
+    collider: Handle<Node>,
 }
 
 impl_component_provider!(Projectile);
@@ -120,13 +126,12 @@ impl Default for Projectile {
         Self {
             kind: ProjectileKind::Plasma,
             dir: Default::default(),
-            lifetime: 0.0,
-            rotation_angle: 0.0,
             owner: Default::default(),
             initial_velocity: Default::default(),
             last_position: Default::default(),
+            use_ray_casting: true,
             definition: Self::get_definition(ProjectileKind::Plasma),
-            hits: Default::default(),
+            collider: Default::default(),
         }
     }
 }
@@ -135,7 +140,6 @@ impl Default for Projectile {
 pub struct ProjectileDefinition {
     damage: Damage,
     speed: f32,
-    lifetime: f32,
     /// Means that movement of projectile controlled by code, not physics.
     /// However projectile still could have rigid body to detect collisions.
     is_kinematic: bool,
@@ -191,24 +195,14 @@ impl Projectile {
             projectile.owner = owner;
         }
 
+        scene.graph.update_hierarchical_data();
+
         instance_handle
-    }
-
-    pub fn is_dead(&self) -> bool {
-        self.lifetime <= 0.0
-    }
-
-    pub fn kill(&mut self) {
-        self.lifetime = 0.0;
     }
 }
 
 impl ScriptTrait for Projectile {
     fn on_init(&mut self, context: &mut ScriptContext) {
-        let definition = Self::get_definition(self.kind);
-
-        self.lifetime = definition.lifetime;
-
         let node = &mut context.scene.graph[context.handle];
 
         self.last_position = node.global_position();
@@ -218,121 +212,111 @@ impl ScriptTrait for Projectile {
         }
     }
 
-    fn on_start(&mut self, _context: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::get_definition(self.kind);
+
+        self.collider = ctx
+            .scene
+            .graph
+            .find(ctx.handle, &mut |n| {
+                n.query_component_ref::<Collider>().is_some()
+            })
+            .map(|(h, _)| h)
+            .unwrap_or_default();
     }
 
-    fn on_update(&mut self, context: &mut ScriptContext) {
-        let game = game_ref(context.plugins);
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let game = game_ref(ctx.plugins);
+        let level = current_level_ref(ctx.plugins).unwrap();
 
-        // Fetch current position of projectile.
-        let (position, collider) =
-            if let Some(body) = context.scene.graph[context.handle].cast::<RigidBody>() {
-                let position = body.global_position();
-                let collider = body
-                    .children()
-                    .iter()
-                    .cloned()
-                    .find(|c| context.scene.graph[*c].is_collider())
-                    .unwrap_or_default();
-                (position, collider)
-            } else {
-                (
-                    context.scene.graph[context.handle].global_position(),
-                    Handle::NONE,
-                )
-            };
+        let position = ctx.scene.graph[ctx.handle].global_position();
 
-        let ray_hit = Weapon::ray_hit(
-            self.last_position,
-            position,
-            self.owner,
-            &current_level_ref(context.plugins).unwrap().actors,
-            &mut context.scene.graph,
-            collider,
-        );
+        let mut hit = None;
 
-        let (effect_position, effect_normal, effect_kind) = if let Some(hit) = ray_hit {
-            let position = hit.position;
-            let normal = hit.normal;
-            let blood_effect = hit.hit_actor.is_some();
-
-            self.hits.insert(hit);
-            self.kill();
-
-            (
+        if self.use_ray_casting {
+            hit = Weapon::ray_hit(
+                self.last_position,
                 position,
-                normal,
-                if blood_effect {
-                    EffectKind::BloodSpray
-                } else {
-                    EffectKind::BulletImpact
-                },
-            )
-        } else {
-            (
-                context.scene.graph[context.handle].global_position(),
-                Vector3::y(),
-                EffectKind::BulletImpact,
-            )
-        };
-
-        // Movement of kinematic projectiles are controlled explicitly.
-        if self.definition.is_kinematic {
-            let total_velocity = self.dir.scale(self.definition.speed);
-            context.scene.graph[context.handle]
-                .local_transform_mut()
-                .offset(total_velocity);
-        }
-
-        // TODO: Replace with animation.
-        if let Some(sprite) = context.scene.graph[context.handle].cast_mut::<Sprite>() {
-            sprite.set_rotation(self.rotation_angle);
-            self.rotation_angle += 1.5;
-        }
-
-        // Reduce initial velocity down to zero over time. This is needed because projectile
-        // stabilizes its movement over time.
-        self.initial_velocity.follow(&Vector3::default(), 0.15);
-
-        self.lifetime -= context.dt;
-
-        if self.lifetime <= 0.0 {
-            effects::create(
-                effect_kind,
-                &mut context.scene.graph,
-                context.resource_manager,
-                effect_position,
-                vector_to_quat(effect_normal),
+                self.owner,
+                &current_level_ref(ctx.plugins).unwrap().actors,
+                &mut ctx.scene.graph,
+                // Ignore self collider.
+                self.collider,
             );
-
-            game.level.as_ref().unwrap().sound_manager.play_sound(
-                &mut context.scene.graph,
-                &self.definition.impact_sound,
-                effect_position,
-                1.0,
-                4.0,
-                3.0,
-            );
+            self.last_position = position;
         }
 
-        for hit in self.hits.drain() {
+        if hit.is_none() {
+            // Collect hits from self collider.
+            if let Some(collider) = ctx.scene.graph.try_get_of_type::<Collider>(self.collider) {
+                let owner_character =
+                    ctx.scene
+                        .graph
+                        .try_get(self.owner)
+                        .map_or(Default::default(), |owner_node| {
+                            if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
+                                weapon.owner
+                            } else if owner_node
+                                .script()
+                                .map(|s| s.query_component_ref::<Character>())
+                                .is_some()
+                            {
+                                self.owner
+                            } else {
+                                Default::default()
+                            }
+                        });
+
+                'contact_loop: for contact in collider.contacts(&ctx.scene.graph.physics) {
+                    let other_collider = if self.collider == contact.collider1 {
+                        contact.collider2
+                    } else {
+                        contact.collider1
+                    };
+                    for manifold in contact.manifolds {
+                        for point in manifold.points {
+                            for &actor_handle in level.actors.iter() {
+                                let character = character_ref(actor_handle, &ctx.scene.graph);
+                                for hit_box in character.hit_boxes.iter() {
+                                    if hit_box.collider == other_collider {
+                                        hit = Some(Hit {
+                                            hit_actor: actor_handle,
+                                            shooter_actor: owner_character,
+                                            position: position
+                                                + if self.collider == contact.collider1 {
+                                                    point.local_p2
+                                                } else {
+                                                    point.local_p1
+                                                },
+                                            normal: manifold.normal,
+                                            collider: other_collider,
+                                            feature: FeatureId::Unknown,
+                                            hit_box: Some(*hit_box),
+                                            query_buffer: vec![],
+                                        });
+
+                                        break 'contact_loop;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+        if let Some(hit) = hit {
             let damage = self
                 .definition
                 .damage
                 .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
 
             let critical_shot_probability =
-                context
-                    .scene
+                ctx.scene
                     .graph
-                    .try_get_mut(self.owner)
+                    .try_get(self.owner)
                     .map_or(0.0, |owner_node| {
-                        if let Some(weapon) = owner_node.try_get_script_mut::<Weapon>() {
-                            if hit.hit_actor.is_some() {
-                                // TODO
-                                //    weapon.set_sight_reaction(SightReaction::HitDetected);
-                            }
+                        if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
                             weapon.definition.base_critical_shot_probability
                         } else if owner_node.has_script::<Turret>() {
                             0.01
@@ -343,14 +327,14 @@ impl ScriptTrait for Projectile {
 
             match damage {
                 Damage::Splash { radius, amount } => {
-                    let level = current_level_ref(context.plugins).unwrap();
+                    let level = current_level_ref(ctx.plugins).unwrap();
                     // Just find out actors which must be damaged and re-cast damage message for each.
                     for &actor_handle in level.actors.iter() {
-                        let character = character_ref(actor_handle, &context.scene.graph);
+                        let character = character_ref(actor_handle, &ctx.scene.graph);
                         // TODO: Add occlusion test. This will hit actors through walls.
-                        let character_position = character.position(&context.scene.graph);
+                        let character_position = character.position(&ctx.scene.graph);
                         if character_position.metric_distance(&position) <= radius {
-                            context.message_sender.send_global(CharacterMessage {
+                            ctx.message_sender.send_global(CharacterMessage {
                                 character: actor_handle,
                                 data: CharacterMessageData::Damage {
                                     dealer: DamageDealer {
@@ -366,7 +350,7 @@ impl ScriptTrait for Projectile {
                     }
                 }
                 Damage::Point(amount) => {
-                    context.message_sender.send_global(CharacterMessage {
+                    ctx.message_sender.send_global(CharacterMessage {
                         character: hit.hit_actor,
                         data: CharacterMessageData::Damage {
                             dealer: DamageDealer {
@@ -379,13 +363,43 @@ impl ScriptTrait for Projectile {
                     });
                 }
             }
+
+            effects::create(
+                if hit.hit_actor.is_some() {
+                    EffectKind::BloodSpray
+                } else {
+                    EffectKind::BulletImpact
+                },
+                &mut ctx.scene.graph,
+                ctx.resource_manager,
+                hit.position,
+                vector_to_quat(hit.normal),
+            );
+
+            game.level.as_ref().unwrap().sound_manager.play_sound(
+                &mut ctx.scene.graph,
+                &self.definition.impact_sound,
+                hit.position,
+                1.0,
+                4.0,
+                3.0,
+            );
+
+            // Defer destruction.
+            ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
 
-        self.last_position = position;
-
-        if self.is_dead() {
-            context.scene.graph.remove_node(context.handle);
+        // Movement of kinematic projectiles is controlled explicitly.
+        if self.definition.is_kinematic {
+            let total_velocity = self.dir.scale(self.definition.speed);
+            ctx.scene.graph[ctx.handle]
+                .local_transform_mut()
+                .offset(total_velocity);
         }
+
+        // Reduce initial velocity down to zero over time. This is needed because projectile
+        // stabilizes its movement over time.
+        self.initial_velocity.follow(&Vector3::default(), 0.15);
     }
 
     fn id(&self) -> Uuid {
