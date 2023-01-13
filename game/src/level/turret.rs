@@ -174,7 +174,7 @@ impl ScriptTrait for Turret {
         self.target_check_timer -= ctx.dt;
 
         if self.target_check_timer <= 0.0 {
-            //  self.select_target(ctx.scene, &level_ref.actors);
+            self.select_target(ctx.scene, &level_ref.actors);
             self.target_check_timer = 0.15;
         }
 
