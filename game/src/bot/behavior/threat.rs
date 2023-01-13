@@ -16,16 +16,14 @@ pub struct ThreatenTarget {
 impl<'a> Behavior<'a> for ThreatenTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
         let animations = [
-            context.upper_body_machine.scream_animation,
-            context.lower_body_machine.scream_animation,
+            ctx.upper_body_machine.scream_animation,
+            ctx.lower_body_machine.scream_animation,
         ];
 
-        let animations_container = utils::fetch_animation_container_mut(
-            &mut context.scene.graph,
-            context.animation_player,
-        );
+        let animations_container =
+            utils::fetch_animation_container_mut(&mut ctx.scene.graph, ctx.animation_player);
 
         for &animation in &animations {
             animations_container[animation].set_enabled(true);
@@ -48,11 +46,14 @@ impl<'a> Behavior<'a> for ThreatenTarget {
 
         if !is_playing {
             self.in_progress = false;
-            *context.threaten_timeout = rand::thread_rng().gen_range(20.0..60.0);
+            *ctx.threaten_timeout = rand::thread_rng().gen_range(20.0..60.0);
         }
 
         if self.in_progress && is_playing {
-            context.is_screaming = true;
+            ctx.is_screaming = true;
+
+            ctx.character.stand_still(&mut ctx.scene.graph);
+
             Status::Running
         } else {
             Status::Success

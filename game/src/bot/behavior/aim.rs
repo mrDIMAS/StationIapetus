@@ -98,27 +98,24 @@ impl AimOnTarget {
 impl<'a> Behavior<'a> for AimOnTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
-        let look_dir = context.target.clone().unwrap().position
-            - context.character.position(&context.scene.graph);
+    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+        let look_dir =
+            ctx.target.clone().unwrap().position - ctx.character.position(&ctx.scene.graph);
 
-        let aimed_horizontally = self.aim_horizontally(
-            look_dir,
-            context.scene,
-            context.model,
-            context.dt,
-            context.character.body,
-        );
+        let aimed_horizontally =
+            self.aim_horizontally(look_dir, ctx.scene, ctx.model, ctx.dt, ctx.character.body);
         let aimed_vertically = self.aim_vertically(
             look_dir,
-            &mut context.scene.graph,
-            context.dt,
-            context.definition.v_aim_angle_hack.to_radians(),
+            &mut ctx.scene.graph,
+            ctx.dt,
+            ctx.definition.v_aim_angle_hack.to_radians(),
         );
 
         if aimed_horizontally && aimed_vertically {
             Status::Success
         } else {
+            ctx.character.stand_still(&mut ctx.scene.graph);
+
             Status::Running
         }
     }

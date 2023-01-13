@@ -40,22 +40,22 @@ impl StayDead {
 impl<'a> Behavior<'a> for StayDead {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
-        let animations_container = utils::fetch_animation_container_mut(
-            &mut context.scene.graph,
-            context.animation_player,
-        );
+    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+        let animations_container =
+            utils::fetch_animation_container_mut(&mut ctx.scene.graph, ctx.animation_player);
 
         for &animation in &[
-            context.upper_body_machine.dying_animation,
-            context.lower_body_machine.dying_animation,
+            ctx.upper_body_machine.dying_animation,
+            ctx.lower_body_machine.dying_animation,
         ] {
             animations_container.get_mut(animation).set_enabled(true);
         }
 
-        for &animation in context.upper_body_machine.attack_animations.iter() {
+        for &animation in ctx.upper_body_machine.attack_animations.iter() {
             animations_container.get_mut(animation).set_enabled(false);
         }
+
+        ctx.character.stand_still(&mut ctx.scene.graph);
 
         Status::Success
     }

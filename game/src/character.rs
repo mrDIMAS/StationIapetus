@@ -114,6 +114,11 @@ impl Default for Character {
 }
 
 impl Character {
+    pub fn stand_still(&self, graph: &mut Graph) {
+        let body = graph[self.body].as_rigid_body_mut();
+        body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
+    }
+
     pub fn has_ground_contact(&self, graph: &Graph) -> bool {
         if let Some(collider) = graph
             .try_get(self.capsule_collider)
