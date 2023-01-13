@@ -24,7 +24,7 @@ fn main() {
         &event_loop,
         Some(StartupData {
             working_directory: Default::default(),
-            scene: "data/levels/loading_bay.rgs".into(),
+            scene: "data/levels/testbed.rgs".into(),
         }),
     );
 
