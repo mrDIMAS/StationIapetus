@@ -63,9 +63,14 @@ impl Control for InventoryItem {
     }
 
     fn draw(&self, drawing_context: &mut DrawingContext) {
-        let bounds = self.screen_bounds();
+        let bounds = self.bounding_rect();
         drawing_context.push_rect(&bounds, 1.0);
-        drawing_context.commit(bounds, self.foreground(), CommandTexture::None, None);
+        drawing_context.commit(
+            self.clip_bounds(),
+            self.foreground(),
+            CommandTexture::None,
+            None,
+        );
     }
 
     fn handle_routed_message(&mut self, ui: &mut UserInterface, message: &mut UiMessage) {
@@ -224,7 +229,7 @@ impl InventoryInterface {
         BorderBuilder::new(
             WidgetBuilder::new()
                 .with_foreground(Brush::Solid(Color::opaque(120, 120, 120)))
-                .with_opacity(Some(0.66))
+                .with_opacity(Some(0.9))
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
                 .with_child(
