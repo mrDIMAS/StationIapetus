@@ -1,7 +1,7 @@
 use crate::{
     bot::behavior::BehaviorContext,
     level::item::ItemKind,
-    weapon::{weapon_mut, weapon_ref},
+    weapon::{weapon_ref, WeaponMessage, WeaponMessageData},
 };
 use fyrox::{
     core::visitor::prelude::*,
@@ -41,7 +41,15 @@ impl<'a> Behavior<'a> for ShootTarget {
                         .h_recoil
                         .set_target(weapon.definition.gen_h_recoil_angle());
 
-                    weapon_mut(weapon_handle, &mut context.scene.graph).request_shot(None);
+                    context.script_message_sender.send_to_target(
+                        weapon_handle,
+                        WeaponMessage {
+                            weapon: weapon_handle,
+                            data: WeaponMessageData::Shoot {
+                                direction: Default::default(),
+                            },
+                        },
+                    );
 
                     return Status::Success;
                 } else {

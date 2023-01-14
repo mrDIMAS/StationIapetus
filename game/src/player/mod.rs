@@ -14,16 +14,17 @@ use crate::{
     utils,
     weapon::{
         definition::WeaponKind, projectile::Projectile, try_weapon_ref, weapon_mut, weapon_ref,
+        WeaponMessage, WeaponMessageData,
     },
     CameraController, Elevator, Game, Item,
 };
-use fyrox::core::futures::executor::block_on;
 use fyrox::{
     animation::machine,
     core::{
         algebra::{UnitQuaternion, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
+        futures::executor::block_on,
         math::{self, SmoothAngle, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -750,7 +751,13 @@ impl Player {
         }
     }
 
-    fn update_shooting(&mut self, scene: &mut Scene, dt: f32, elapsed_time: f32) {
+    fn update_shooting(
+        &mut self,
+        scene: &mut Scene,
+        dt: f32,
+        elapsed_time: f32,
+        script_message_sender: &ScriptMessageSender,
+    ) {
         self.v_recoil.update(dt);
         self.h_recoil.update(dt);
 
@@ -775,9 +782,8 @@ impl Player {
                     .local_transform_mut()
                     .set_position(ammo_indicator_offset);
 
-                if self.controller.shoot
-                    && weapon_ref(current_weapon_handle, &scene.graph).can_shoot(elapsed_time)
-                {
+                let current_weapon = weapon_ref(current_weapon_handle, &scene.graph);
+                if self.controller.shoot && current_weapon.can_shoot(elapsed_time) {
                     let ammo_per_shot = weapon_ref(current_weapon_handle, &scene.graph)
                         .definition
                         .ammo_consumption_per_shot;
@@ -787,7 +793,20 @@ impl Player {
                         .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                         == ammo_per_shot
                     {
-                        weapon_mut(current_weapon_handle, &mut scene.graph).request_shot(None);
+                        script_message_sender.send_to_target(
+                            current_weapon_handle,
+                            WeaponMessage {
+                                weapon: current_weapon_handle,
+                                data: WeaponMessageData::Shoot {
+                                    direction: Default::default(),
+                                },
+                            },
+                        );
+
+                        self.v_recoil
+                            .set_target(current_weapon.definition.gen_v_recoil_angle());
+                        self.h_recoil
+                            .set_target(current_weapon.definition.gen_h_recoil_angle());
 
                         if let Some(camera_controller) = scene
                             .graph
@@ -796,16 +815,6 @@ impl Player {
                         {
                             camera_controller.request_shake_camera();
                         }
-                        self.v_recoil.set_target(
-                            weapon_ref(current_weapon_handle, &scene.graph)
-                                .definition
-                                .gen_v_recoil_angle(),
-                        );
-                        self.h_recoil.set_target(
-                            weapon_ref(current_weapon_handle, &scene.graph)
-                                .definition
-                                .gen_h_recoil_angle(),
-                        );
                     }
                 }
             } else {
@@ -1455,7 +1464,7 @@ impl ScriptTrait for Player {
 
             self.check_doors(ctx.scene, &level.doors_container);
             self.check_elevators(ctx.scene, &level.elevators);
-            self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time);
+            self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time, ctx.message_sender);
             self.check_items(
                 game_mut(ctx.plugins),
                 ctx.scene,

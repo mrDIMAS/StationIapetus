@@ -15,7 +15,6 @@ use crate::{
     },
     CollisionGroups, Decal,
 };
-use fyrox::resource::model::Model;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
@@ -31,6 +30,7 @@ use fyrox::{
     impl_component_provider,
     material::{shader::SamplerFallback, Material, PropertyValue, SharedMaterial},
     rand::seq::SliceRandom,
+    resource::model::Model,
     scene::{
         base::BaseBuilder,
         collider::{BitMask, ColliderShape, InteractionGroups},
@@ -47,7 +47,10 @@ use fyrox::{
         transform::TransformBuilder,
         Scene,
     },
-    script::{Script, ScriptContext, ScriptDeinitContext, ScriptMessageSender, ScriptTrait},
+    script::{
+        Script, ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
+        ScriptMessageSender, ScriptTrait,
+    },
     utils::{self, log::Log},
 };
 use std::hash::{Hash, Hasher};
@@ -57,9 +60,13 @@ pub mod definition;
 pub mod projectile;
 pub mod sight;
 
-#[derive(Debug, Default, Clone)]
-pub struct ShotRequest {
-    direction: Option<Vector3<f32>>,
+pub struct WeaponMessage {
+    pub weapon: Handle<Node>,
+    pub data: WeaponMessageData,
+}
+
+pub enum WeaponMessageData {
+    Shoot { direction: Option<Vector3<f32>> },
 }
 
 #[derive(Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
@@ -102,10 +109,6 @@ pub struct Weapon {
 
     #[reflect(hidden)]
     #[visit(skip)]
-    shot_request: Option<ShotRequest>,
-
-    #[reflect(hidden)]
-    #[visit(skip)]
     self_handle: Handle<Node>,
 }
 
@@ -128,7 +131,6 @@ impl Default for Weapon {
                 damage: Damage::Point(10.0),
             },
             laser_sight: Default::default(),
-            shot_request: None,
             self_handle: Default::default(),
         }
     }
@@ -491,10 +493,6 @@ impl Weapon {
         elapsed_time - self.last_shot_time >= self.definition.shoot_interval
     }
 
-    pub fn request_shot(&mut self, direction: Option<Vector3<f32>>) {
-        self.shot_request = Some(ShotRequest { direction });
-    }
-
     fn shoot(
         &mut self,
         self_handle: Handle<Node>,
@@ -593,6 +591,9 @@ impl ScriptTrait for Weapon {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.definition = Self::definition(self.kind);
         self.self_handle = ctx.handle;
+
+        ctx.message_dispatcher
+            .subscribe_to::<WeaponMessage>(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
@@ -615,8 +616,6 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let level = current_level_ref(ctx.plugins).unwrap();
-
         ctx.scene.graph[ctx.handle].set_visibility(self.enabled);
 
         let node = &mut ctx.scene.graph[ctx.handle];
@@ -631,19 +630,6 @@ impl ScriptTrait for Weapon {
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
             flash_light.set_visibility(self.flash_light_enabled);
         }
-
-        if let Some(request) = self.shot_request.take() {
-            self.shoot(
-                ctx.handle,
-                ctx.scene,
-                ctx.elapsed_time,
-                ctx.resource_manager,
-                request.direction,
-                &level.sound_manager,
-                &level.actors,
-                ctx.message_sender,
-            );
-        }
     }
 
     fn restore_resources(&mut self, resource_manager: ResourceManager) {
@@ -653,6 +639,33 @@ impl ScriptTrait for Weapon {
                 .containers_mut()
                 .models
                 .try_restore_optional_resource(model)
+        }
+    }
+
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        ctx: &mut ScriptMessageContext,
+    ) {
+        if let Some(msg) = message.downcast_ref::<WeaponMessage>() {
+            if msg.weapon != ctx.handle {
+                return;
+            }
+
+            if let WeaponMessageData::Shoot { direction } = msg.data {
+                let level = current_level_ref(ctx.plugins).unwrap();
+
+                self.shoot(
+                    ctx.handle,
+                    ctx.scene,
+                    ctx.elapsed_time,
+                    ctx.resource_manager,
+                    direction,
+                    &level.sound_manager,
+                    &level.actors,
+                    ctx.message_sender,
+                );
+            }
         }
     }
 
