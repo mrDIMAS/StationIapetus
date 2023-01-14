@@ -1,6 +1,5 @@
-use crate::character::Character;
 use crate::{
-    character::{character_ref, CharacterMessage, CharacterMessageData, DamageDealer},
+    character::{character_ref, Character, CharacterMessage, CharacterMessageData, DamageDealer},
     current_level_ref, effects,
     effects::EffectKind,
     game_ref,
@@ -10,7 +9,6 @@ use crate::{
 use fyrox::{
     core::{
         algebra::Vector3,
-        futures::executor::block_on,
         math::{vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -19,40 +17,23 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
-    lazy_static::lazy_static,
+    resource::model::Model,
     scene::{
         collider::Collider,
         graph::physics::FeatureId,
         node::{Node, TypeUuidProvider},
         rigidbody::RigidBody,
+        sound::SoundBufferResource,
         Scene,
     },
     script::{ScriptContext, ScriptTrait},
 };
 use serde::Deserialize;
-use std::{collections::HashMap, fs::File};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 #[derive(
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Debug,
-    Deserialize,
-    Hash,
-    Visit,
-    Reflect,
-    AsRefStr,
-    EnumString,
-    EnumVariantNames,
+    Deserialize, Copy, Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames,
 )]
-pub enum ProjectileKind {
-    Plasma,
-    Grenade,
-}
-
-#[derive(Deserialize, Copy, Clone, Debug, Visit)]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
@@ -86,8 +67,6 @@ impl Damage {
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Projectile {
-    kind: ProjectileKind,
-
     #[reflect(hidden)]
     dir: Vector3<f32>,
 
@@ -102,9 +81,17 @@ pub struct Projectile {
     #[visit(optional)]
     use_ray_casting: bool,
 
-    #[visit(skip)]
-    #[reflect(hidden)]
-    definition: &'static ProjectileDefinition,
+    #[visit(optional)]
+    speed: Option<f32>,
+
+    #[visit(optional)]
+    impact_effect: Option<Model>,
+
+    #[visit(optional)]
+    impact_sound: Option<SoundBufferResource>,
+
+    #[visit(optional)]
+    damage: Damage,
 
     // A handle to collider of the projectile. It is used as a cache to prevent searching for it
     // every frame.
@@ -124,64 +111,30 @@ impl TypeUuidProvider for Projectile {
 impl Default for Projectile {
     fn default() -> Self {
         Self {
-            kind: ProjectileKind::Plasma,
             dir: Default::default(),
             owner: Default::default(),
             initial_velocity: Default::default(),
             last_position: Default::default(),
             use_ray_casting: true,
-            definition: Self::get_definition(ProjectileKind::Plasma),
+            speed: Some(10.0),
+            impact_effect: None,
+            impact_sound: None,
+            damage: Default::default(),
             collider: Default::default(),
         }
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ProjectileDefinition {
-    damage: Damage,
-    speed: f32,
-    /// Means that movement of projectile controlled by code, not physics.
-    /// However projectile still could have rigid body to detect collisions.
-    is_kinematic: bool,
-    impact_sound: String,
-    model: String,
-}
-
-#[derive(Deserialize, Default)]
-pub struct ProjectileDefinitionContainer {
-    map: HashMap<ProjectileKind, ProjectileDefinition>,
-}
-
-impl ProjectileDefinitionContainer {
-    pub fn new() -> Self {
-        let file = File::open("data/configs/projectiles.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
-    }
-}
-
-lazy_static! {
-    static ref DEFINITIONS: ProjectileDefinitionContainer = ProjectileDefinitionContainer::new();
-}
-
 impl Projectile {
-    pub fn get_definition(kind: ProjectileKind) -> &'static ProjectileDefinition {
-        DEFINITIONS.map.get(&kind).unwrap()
-    }
-
     pub fn add_to_scene(
-        kind: ProjectileKind,
-        resource_manager: &ResourceManager,
+        resource: &Model,
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
         owner: Handle<Node>,
         initial_velocity: Vector3<f32>,
     ) -> Handle<Node> {
-        let definition = Self::get_definition(kind);
-
-        let instance_handle = block_on(resource_manager.request_model(definition.model.clone()))
-            .unwrap()
-            .instantiate(scene);
+        let instance_handle = resource.instantiate(scene);
 
         let instance_ref = &mut scene.graph[instance_handle];
 
@@ -189,9 +142,7 @@ impl Projectile {
 
         if let Some(projectile) = instance_ref.try_get_script_mut::<Projectile>() {
             projectile.initial_velocity = initial_velocity;
-            projectile.dir = dir
-                .try_normalize(std::f32::EPSILON)
-                .unwrap_or_else(Vector3::y);
+            projectile.dir = dir.try_normalize(f32::EPSILON).unwrap_or_else(Vector3::y);
             projectile.owner = owner;
         }
 
@@ -213,8 +164,6 @@ impl ScriptTrait for Projectile {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
-        self.definition = Self::get_definition(self.kind);
-
         self.collider = ctx
             .scene
             .graph
@@ -307,7 +256,6 @@ impl ScriptTrait for Projectile {
 
         if let Some(hit) = hit {
             let damage = self
-                .definition
                 .damage
                 .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
 
@@ -376,22 +324,28 @@ impl ScriptTrait for Projectile {
                 vector_to_quat(hit.normal),
             );
 
-            game.level.as_ref().unwrap().sound_manager.play_sound(
-                &mut ctx.scene.graph,
-                &self.definition.impact_sound,
-                hit.position,
-                1.0,
-                4.0,
-                3.0,
-            );
+            if let Some(impact_sound) = self.impact_sound.as_ref() {
+                game.level
+                    .as_ref()
+                    .unwrap()
+                    .sound_manager
+                    .play_sound_buffer(
+                        &mut ctx.scene.graph,
+                        impact_sound,
+                        hit.position,
+                        1.0,
+                        4.0,
+                        3.0,
+                    );
+            }
 
             // Defer destruction.
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
 
         // Movement of kinematic projectiles is controlled explicitly.
-        if self.definition.is_kinematic {
-            let total_velocity = self.dir.scale(self.definition.speed);
+        if let Some(speed) = self.speed {
+            let total_velocity = self.dir.scale(speed);
             ctx.scene.graph[ctx.handle]
                 .local_transform_mut()
                 .offset(total_velocity);
@@ -400,6 +354,20 @@ impl ScriptTrait for Projectile {
         // Reduce initial velocity down to zero over time. This is needed because projectile
         // stabilizes its movement over time.
         self.initial_velocity.follow(&Vector3::default(), 0.15);
+    }
+
+    fn restore_resources(&mut self, resource_manager: ResourceManager) {
+        let mut state = resource_manager.state();
+
+        let containers = state.containers_mut();
+
+        containers
+            .models
+            .try_restore_optional_resource(&mut self.impact_effect);
+
+        containers
+            .sound_buffers
+            .try_restore_optional_resource(&mut self.impact_sound);
     }
 
     fn id(&self) -> Uuid {

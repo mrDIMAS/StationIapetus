@@ -1,7 +1,4 @@
-use crate::{
-    level::item::ItemKind,
-    weapon::projectile::{Damage, ProjectileKind},
-};
+use crate::level::item::ItemKind;
 use fyrox::{
     core::{algebra::Vector3, rand::Rng, reflect::prelude::*, visitor::prelude::*},
     lazy_static::lazy_static,
@@ -59,20 +56,10 @@ impl WeaponKind {
     }
 }
 
-#[derive(Copy, Clone, Debug, Deserialize)]
-pub enum WeaponProjectile {
-    Projectile(ProjectileKind),
-    /// For high-speed "projectiles".
-    Ray {
-        damage: Damage,
-    },
-}
-
 #[derive(Deserialize, Debug)]
 pub struct WeaponDefinition {
     pub model: String,
     pub shot_sounds: Vec<String>,
-    pub projectile: WeaponProjectile,
     pub shoot_interval: f32,
     pub yaw_correction: f32,
     pub pitch_correction: f32,

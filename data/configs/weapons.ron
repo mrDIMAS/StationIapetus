@@ -8,7 +8,6 @@
                 "data/sounds/enfield_l85_shot_2.wav",
                 "data/sounds/enfield_l85_shot_3.wav"
             ],
-            projectile: Ray(damage: Point(19.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
@@ -26,7 +25,6 @@
                 "data/sounds/akm_shot_2.wav",
                 "data/sounds/akm_shot_3.wav",
             ],
-            projectile: Ray(damage: Point(15.0)),
             shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
@@ -40,7 +38,6 @@
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.rgs",
             shot_sounds: ["data/sounds/plasma_shot.ogg"],
-            projectile: Projectile(Plasma),
             shoot_interval: 0.25,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
@@ -58,7 +55,6 @@
                 "data/sounds/glock_shot_2.wav",
                 "data/sounds/glock_shot_3.wav"
             ],
-            projectile: Ray(damage: Point(10.0)),
             shoot_interval: 0.21,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
@@ -72,7 +68,6 @@
         RailGun: (
             model: "data/models/rail_gun/rail_gun.rgs",
             shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
-            projectile: Ray(damage: Point(240.0)),
             shoot_interval: 2.0,
             yaw_correction: -10.0,
             pitch_correction: -4.0,

@@ -10,11 +10,12 @@ use crate::{
     level::trail::ShotTrail,
     sound::{SoundKind, SoundManager},
     weapon::{
-        definition::{ShotEffect, WeaponDefinition, WeaponKind, WeaponProjectile},
+        definition::{ShotEffect, WeaponDefinition, WeaponKind},
         projectile::{Damage, Projectile},
     },
     CollisionGroups, Decal,
 };
+use fyrox::resource::model::Model;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
@@ -50,6 +51,7 @@ use fyrox::{
     utils::{self, log::Log},
 };
 use std::hash::{Hash, Hasher};
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 pub mod definition;
 pub mod projectile;
@@ -58,6 +60,15 @@ pub mod sight;
 #[derive(Debug, Default, Clone)]
 pub struct ShotRequest {
     direction: Option<Vector3<f32>>,
+}
+
+#[derive(Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
+pub enum WeaponProjectile {
+    Projectile(Option<Model>),
+    /// For high-speed "projectiles".
+    Ray {
+        damage: Damage,
+    },
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
@@ -71,6 +82,9 @@ pub struct Weapon {
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
     pub enabled: bool,
+
+    #[visit(optional)]
+    projectile: WeaponProjectile,
 
     #[visit(optional)]
     laser_sight: Handle<Node>,
@@ -110,6 +124,9 @@ impl Default for Weapon {
             flash_light: Default::default(),
             flash_light_enabled: false,
             enabled: true,
+            projectile: WeaponProjectile::Ray {
+                damage: Damage::Point(10.0),
+            },
             laser_sight: Default::default(),
             shot_request: None,
             self_handle: Default::default(),
@@ -532,17 +549,18 @@ impl Weapon {
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
-        match self.definition.projectile {
-            WeaponProjectile::Projectile(projectile) => {
-                Projectile::add_to_scene(
-                    projectile,
-                    resource_manager,
-                    scene,
-                    direction,
-                    position,
-                    self_handle,
-                    Default::default(),
-                );
+        match self.projectile {
+            WeaponProjectile::Projectile(ref projectile) => {
+                if let Some(model) = projectile {
+                    Projectile::add_to_scene(
+                        model,
+                        scene,
+                        direction,
+                        position,
+                        self_handle,
+                        Default::default(),
+                    );
+                }
             }
             WeaponProjectile::Ray { damage } => {
                 Self::shoot_ray(
@@ -625,6 +643,16 @@ impl ScriptTrait for Weapon {
                 &level.actors,
                 ctx.message_sender,
             );
+        }
+    }
+
+    fn restore_resources(&mut self, resource_manager: ResourceManager) {
+        if let WeaponProjectile::Projectile(ref mut model) = self.projectile {
+            resource_manager
+                .state()
+                .containers_mut()
+                .models
+                .try_restore_optional_resource(model)
         }
     }
 

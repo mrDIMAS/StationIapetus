@@ -13,12 +13,11 @@ use crate::{
     sound::SoundManager,
     utils,
     weapon::{
-        definition::WeaponKind,
-        projectile::{Projectile, ProjectileKind},
-        try_weapon_ref, weapon_mut, weapon_ref,
+        definition::WeaponKind, projectile::Projectile, try_weapon_ref, weapon_mut, weapon_ref,
     },
     CameraController, Elevator, Game, Item,
 };
+use fyrox::core::futures::executor::block_on;
 use fyrox::{
     animation::machine,
     core::{
@@ -547,15 +546,18 @@ impl Player {
                     .unwrap_or_default();
 
                 if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
-                    Projectile::add_to_scene(
-                        ProjectileKind::Grenade,
-                        resource_manager,
-                        scene,
-                        direction,
-                        position,
-                        self_handle,
-                        direction.scale(15.0),
-                    );
+                    if let Ok(grenade) = block_on(
+                        resource_manager.request_model("data/models/grenade/grenade_proj.rgs"),
+                    ) {
+                        Projectile::add_to_scene(
+                            &grenade,
+                            scene,
+                            direction,
+                            position,
+                            self_handle,
+                            direction.scale(15.0),
+                        );
+                    }
                 }
             }
         }

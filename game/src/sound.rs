@@ -1,3 +1,4 @@
+use fyrox::scene::sound::SoundBufferResource;
 use fyrox::{
     core::{
         algebra::Vector3, futures::executor::block_on, pool::Handle, sstorage::ImmutableString,
@@ -199,6 +200,40 @@ impl SoundManager {
         }
     }
 
+    pub fn play_sound_buffer(
+        &self,
+        graph: &mut Graph,
+        buffer: &SoundBufferResource,
+        position: Vector3<f32>,
+        gain: f32,
+        rolloff_factor: f32,
+        radius: f32,
+    ) {
+        let sound = SoundBuilder::new(
+            BaseBuilder::new().with_local_transform(
+                TransformBuilder::new()
+                    .with_local_position(position)
+                    .build(),
+            ),
+        )
+        .with_buffer(buffer.clone().into())
+        .with_status(Status::Playing)
+        .with_play_once(true)
+        .with_gain(gain)
+        .with_radius(radius)
+        .with_rolloff_factor(rolloff_factor)
+        .build(graph);
+
+        graph
+            .sound_context
+            .effect_mut(self.reverb)
+            .inputs_mut()
+            .push(EffectInput {
+                sound,
+                filter: None,
+            });
+    }
+
     pub fn play_sound<P: AsRef<Path>>(
         &self,
         graph: &mut Graph,
@@ -214,29 +249,7 @@ impl SoundManager {
                 .unwrap()
                 .request_sound_buffer(path.as_ref()),
         ) {
-            let sound = SoundBuilder::new(
-                BaseBuilder::new().with_local_transform(
-                    TransformBuilder::new()
-                        .with_local_position(position)
-                        .build(),
-                ),
-            )
-            .with_buffer(buffer.into())
-            .with_status(Status::Playing)
-            .with_play_once(true)
-            .with_gain(gain)
-            .with_radius(radius)
-            .with_rolloff_factor(rolloff_factor)
-            .build(graph);
-
-            graph
-                .sound_context
-                .effect_mut(self.reverb)
-                .inputs_mut()
-                .push(EffectInput {
-                    sound,
-                    filter: None,
-                });
+            self.play_sound_buffer(graph, &buffer, position, gain, rolloff_factor, radius)
         } else {
             Log::writeln(
                 MessageKind::Error,
