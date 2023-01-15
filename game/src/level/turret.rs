@@ -218,6 +218,7 @@ impl ScriptTrait for Turret {
                                 ctx.resource_manager,
                                 &level_ref.sound_manager,
                                 ctx.message_sender,
+                                *self.collider,
                             );
                             self.barrel_index += 1;
                             if self.barrel_index >= self.barrels.len() as u32 {
@@ -235,6 +236,7 @@ impl ScriptTrait for Turret {
                                 ctx.resource_manager,
                                 &level_ref.sound_manager,
                                 ctx.message_sender,
+                                *self.collider,
                             );
                         }
                     }
@@ -308,6 +310,7 @@ impl Barrel {
         resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
         script_message_sender: &ScriptMessageSender,
+        turret_collider: Handle<Node>,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
@@ -321,10 +324,11 @@ impl Barrel {
             shot_position,
             target_position,
             Damage::Point(10.0),
-            ShotEffect::Smoke,
+            ShotEffect::Beam,
             sound_manager,
             0.01,
             script_message_sender,
+            turret_collider,
         );
 
         let sounds = [

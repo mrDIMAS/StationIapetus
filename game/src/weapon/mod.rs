@@ -2,7 +2,7 @@
 
 use crate::{
     character::{
-        character_mut, character_ref, try_get_character_ref, CharacterMessage,
+        character_mut, character_ref, try_get_character_ref, Character, CharacterMessage,
         CharacterMessageData, DamageDealer, HitBox,
     },
     current_level_mut, current_level_ref, effects,
@@ -230,6 +230,20 @@ impl Weapon {
                         });
                     }
                 }
+
+                // If none of hit boxes is hit, then check if we hit actor's capsule.
+                if character.capsule_collider == hit.collider {
+                    return Some(Hit {
+                        hit_actor: actor_handle,
+                        shooter_actor: shooter,
+                        position: hit.position.coords,
+                        normal: hit.normal,
+                        collider: hit.collider,
+                        feature: hit.feature,
+                        hit_box: None,
+                        query_buffer,
+                    });
+                }
             }
 
             if is_hitbox_hit {
@@ -263,10 +277,11 @@ impl Weapon {
         sound_manager: &SoundManager,
         critical_shot_probability: f32,
         script_message_sender: &ScriptMessageSender,
+        ignored_collider: Handle<Node>,
     ) -> Option<Hit> {
         // Do immediate intersection test and solve it.
         let (trail_len, hit_point, hit) = if let Some(hit) =
-            Weapon::ray_hit(begin, end, shooter, actors, graph, Default::default())
+            Weapon::ray_hit(begin, end, shooter, actors, graph, ignored_collider)
         {
             effects::create(
                 if hit.hit_actor.is_some() {
@@ -547,6 +562,15 @@ impl Weapon {
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
+        let ignored_collider = scene
+            .graph
+            .find_up_map(self_handle, &mut |n| {
+                n.script()
+                    .and_then(|s| s.query_component_ref::<Character>())
+            })
+            .map(|(_, c)| c.capsule_collider)
+            .unwrap_or_default();
+
         match self.projectile {
             WeaponProjectile::Projectile(ref projectile) => {
                 if let Some(model) = projectile {
@@ -573,6 +597,7 @@ impl Weapon {
                     sound_manager,
                     self.definition.base_critical_shot_probability,
                     script_message_sender,
+                    ignored_collider,
                 );
             }
         }
