@@ -677,20 +677,19 @@ impl ScriptTrait for Weapon {
                 return;
             }
 
-            if let WeaponMessageData::Shoot { direction } = msg.data {
-                let level = current_level_ref(ctx.plugins).unwrap();
+            let WeaponMessageData::Shoot { direction } = msg.data;
+            let level = current_level_ref(ctx.plugins).unwrap();
 
-                self.shoot(
-                    ctx.handle,
-                    ctx.scene,
-                    ctx.elapsed_time,
-                    ctx.resource_manager,
-                    direction,
-                    &level.sound_manager,
-                    &level.actors,
-                    ctx.message_sender,
-                );
-            }
+            self.shoot(
+                ctx.handle,
+                ctx.scene,
+                ctx.elapsed_time,
+                ctx.resource_manager,
+                direction,
+                &level.sound_manager,
+                &level.actors,
+                ctx.message_sender,
+            );
         }
     }
 

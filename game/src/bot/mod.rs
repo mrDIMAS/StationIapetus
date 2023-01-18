@@ -338,10 +338,6 @@ impl Bot {
         // TODO: Add effect.
     }
 
-    pub fn clean_up(&mut self, scene: &mut Scene) {
-        self.character.clean_up(scene);
-    }
-
     pub fn on_actor_removed(&mut self, handle: Handle<Node>) {
         if let Some(target) = self.target.as_ref() {
             if target.handle == handle {

@@ -1273,25 +1273,20 @@ impl ScriptTrait for Player {
             .upper_body_layer_mut(&mut ctx.scene.graph)
         {
             while let Some(event) = upper_body_layer.pop_event() {
-                match event {
-                    machine::Event::ActiveStateChanged { prev, new } => {
-                        if prev == self.state_machine.aim_state
-                            && new != self.state_machine.aim_state
-                        {
-                            ctx.message_sender.send_global(CharacterMessage {
-                                character: ctx.handle,
-                                data: CharacterMessageData::EndedAiming,
-                            })
-                        } else if prev != self.state_machine.aim_state
-                            && new == self.state_machine.aim_state
-                        {
-                            ctx.message_sender.send_global(CharacterMessage {
-                                character: ctx.handle,
-                                data: CharacterMessageData::BeganAiming,
-                            })
-                        }
+                if let machine::Event::ActiveStateChanged { prev, new } = event {
+                    if prev == self.state_machine.aim_state && new != self.state_machine.aim_state {
+                        ctx.message_sender.send_global(CharacterMessage {
+                            character: ctx.handle,
+                            data: CharacterMessageData::EndedAiming,
+                        })
+                    } else if prev != self.state_machine.aim_state
+                        && new == self.state_machine.aim_state
+                    {
+                        ctx.message_sender.send_global(CharacterMessage {
+                            character: ctx.handle,
+                            data: CharacterMessageData::BeganAiming,
+                        })
                     }
-                    _ => (),
                 }
             }
         }
