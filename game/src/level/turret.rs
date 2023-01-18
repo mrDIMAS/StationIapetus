@@ -317,7 +317,7 @@ impl Barrel {
         let shot_position = scene.graph[self.shoot_point].global_position();
 
         Weapon::shoot_ray(
-            &mut scene.graph,
+            scene,
             resource_manager,
             actors,
             owner_handle,

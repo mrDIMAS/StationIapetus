@@ -15,6 +15,7 @@ use crate::{
     },
     CollisionGroups, Decal,
 };
+use fyrox::core::futures::executor::block_on;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
@@ -266,7 +267,7 @@ impl Weapon {
     }
 
     pub fn shoot_ray(
-        graph: &mut Graph,
+        scene: &mut Scene,
         resource_manager: &ResourceManager,
         actors: &[Handle<Node>],
         shooter: Handle<Node>,
@@ -280,23 +281,36 @@ impl Weapon {
         ignored_collider: Handle<Node>,
     ) -> Option<Hit> {
         // Do immediate intersection test and solve it.
-        let (trail_len, hit_point, hit) = if let Some(hit) =
-            Weapon::ray_hit(begin, end, shooter, actors, graph, ignored_collider)
-        {
-            effects::create(
-                if hit.hit_actor.is_some() {
-                    EffectKind::BloodSpray
-                } else {
-                    EffectKind::BulletImpact
-                },
-                graph,
-                resource_manager,
-                hit.position,
-                vector_to_quat(hit.normal),
-            );
+        let (trail_len, hit_point, hit) = if let Some(hit) = Weapon::ray_hit(
+            begin,
+            end,
+            shooter,
+            actors,
+            &mut scene.graph,
+            ignored_collider,
+        ) {
+            if hit.hit_actor.is_some() {
+                effects::create(
+                    EffectKind::BloodSpray,
+                    &mut scene.graph,
+                    resource_manager,
+                    hit.position,
+                    vector_to_quat(hit.normal),
+                );
+            } else {
+                if let Ok(effect_prefab) =
+                    block_on(resource_manager.request_model("data/models/bullet_impact.rgs"))
+                {
+                    let instance = effect_prefab.instantiate(scene);
+                    scene.graph[instance]
+                        .local_transform_mut()
+                        .set_position(hit.position)
+                        .set_rotation(vector_to_quat(hit.normal));
+                }
+            }
 
             sound_manager.play_environment_sound(
-                graph,
+                &mut scene.graph,
                 hit.collider,
                 hit.feature,
                 hit.position,
@@ -323,7 +337,7 @@ impl Weapon {
             let dir = hit.position - begin;
 
             let mut node = hit.collider;
-            while let Some(node_ref) = graph.try_get_mut(node) {
+            while let Some(node_ref) = scene.graph.try_get_mut(node) {
                 if let Some(rigid_body) = node_ref.query_component_mut::<RigidBody>() {
                     if rigid_body.body_type() == RigidBodyType::Dynamic {
                         rigid_body.apply_force_at_point(
@@ -353,7 +367,7 @@ impl Weapon {
 
             Decal::new_bullet_hole(
                 resource_manager,
-                graph,
+                &mut scene.graph,
                 hit.position,
                 hit.normal,
                 hit.collider,
@@ -365,15 +379,15 @@ impl Weapon {
             );
 
             // Add blood splatter on a surface behind an actor that was shot.
-            if try_get_character_ref(hit.hit_actor, graph).is_some() {
+            if try_get_character_ref(hit.hit_actor, &mut scene.graph).is_some() {
                 for intersection in hit.query_buffer.iter() {
                     if matches!(
-                        graph[intersection.collider].as_collider().shape(),
+                        scene.graph[intersection.collider].as_collider().shape(),
                         ColliderShape::Trimesh(_)
                     ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
                     {
                         Decal::add_to_graph(
-                            graph,
+                            &mut scene.graph,
                             intersection.position.coords,
                             dir,
                             Handle::NONE,
@@ -398,12 +412,12 @@ impl Weapon {
             ShotEffect::Smoke => {
                 let effect = effects::create(
                     EffectKind::Smoke,
-                    graph,
+                    &mut scene.graph,
                     resource_manager,
                     begin,
                     Default::default(),
                 );
-                graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
+                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
             }
             ShotEffect::Beam => {
                 let trail_radius = 0.0014;
@@ -446,17 +460,17 @@ impl Weapon {
                 }))
                 .build()])
                 .with_render_path(RenderPath::Forward)
-                .build(graph);
+                .build(&mut scene.graph);
             }
             ShotEffect::Rail => {
                 let effect = effects::create_rail(
-                    graph,
+                    &mut scene.graph,
                     resource_manager,
                     begin,
                     hit_point,
                     Color::opaque(255, 0, 0),
                 );
-                graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
+                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
             }
         }
 
@@ -586,7 +600,7 @@ impl Weapon {
             }
             WeaponProjectile::Ray { damage } => {
                 Self::shoot_ray(
-                    &mut scene.graph,
+                    scene,
                     resource_manager,
                     actors,
                     self_handle,

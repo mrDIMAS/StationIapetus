@@ -85,7 +85,6 @@ use std::{
         mpsc::{self, Receiver, Sender},
         Arc,
     },
-    time::Duration,
 };
 
 pub struct Game {
@@ -111,7 +110,6 @@ pub struct Game {
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
     sound_config: SoundConfig,
-    update_duration: Duration,
     show_debug_info: bool,
     smaller_font: SharedFont,
 }
@@ -295,7 +293,6 @@ impl Game {
             message_receiver: rx,
             message_sender,
             sound_config,
-            update_duration: Default::default(),
             door_ui_container: Default::default(),
             call_button_ui_container: Default::default(),
         };
@@ -492,8 +489,6 @@ impl Game {
     }
 
     pub fn update(&mut self, ctx: &mut PluginContext) {
-        let last_time = std::time::Instant::now();
-
         let window = ctx.window;
 
         self.render_offscreen(ctx);
@@ -544,11 +539,10 @@ impl Game {
 
         self.handle_messages(ctx);
 
-        self.update_duration = std::time::Instant::now() - last_time;
         self.update_statistics(0.0, ctx);
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
-        if false {
+        if true {
             self.debug_render(ctx);
         }
     }
@@ -684,7 +678,7 @@ impl Game {
             use std::fmt::Write;
             write!(
                 self.debug_string,
-                "Up time: {:.1}\n{}{}\nTotal Update Time: {:?}",
+                "Up time: {:.1}\n{}{}\n{}",
                 elapsed,
                 context.renderer.get_statistics(),
                 if let Some(level) = self.level.as_ref() {
@@ -692,7 +686,7 @@ impl Game {
                 } else {
                     Default::default()
                 },
-                self.update_duration
+                context.performance_statistics,
             )
             .unwrap();
 

@@ -1,5 +1,3 @@
-use fyrox::scene::light::{point::PointLightBuilder, BaseLightBuilder};
-
 use fyrox::scene::particle_system::particle::Particle;
 use fyrox::{
     core::{
@@ -28,7 +26,6 @@ use std::path::Path;
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
 pub enum EffectKind {
-    BulletImpact,
     BloodSpray,
     Smoke,
 }
@@ -44,67 +41,9 @@ pub fn create(
     orientation: UnitQuaternion<f32>,
 ) -> Handle<Node> {
     match kind {
-        EffectKind::BulletImpact => create_bullet_impact(graph, resource_manager, pos, orientation),
         EffectKind::BloodSpray => create_blood_spray(graph, resource_manager, pos, orientation),
         EffectKind::Smoke => create_smoke(graph, resource_manager, pos, orientation),
     }
-}
-
-fn create_bullet_impact(
-    graph: &mut Graph,
-    resource_manager: &ResourceManager,
-    pos: Vector3<f32>,
-    orientation: UnitQuaternion<f32>,
-) -> Handle<Node> {
-    ParticleSystemBuilder::new(
-        BaseBuilder::new()
-            .with_children(&[PointLightBuilder::new(
-                BaseLightBuilder::new(
-                    BaseBuilder::new().with_lifetime(0.1).with_local_transform(
-                        TransformBuilder::new()
-                            .with_local_position(Vector3::new(0.0, 0.0, 0.05))
-                            .build(),
-                    ),
-                )
-                .with_color(Color::opaque(255, 255, 200))
-                .with_scatter_enabled(false)
-                .cast_shadows(false),
-            )
-            .with_radius(0.5)
-            .build(graph)])
-            .with_lifetime(0.2)
-            .with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(pos)
-                    .with_local_rotation(orientation)
-                    .build(),
-            ),
-    )
-    .with_acceleration(Vector3::new(0.0, 0.0, 0.0))
-    .with_color_over_lifetime_gradient({
-        let mut gradient = ColorGradient::new();
-        gradient.add_point(GradientPoint::new(0.00, Color::from_rgba(255, 255, 0, 255)));
-        gradient.add_point(GradientPoint::new(0.30, Color::from_rgba(255, 255, 0, 255)));
-        gradient.add_point(GradientPoint::new(0.50, Color::from_rgba(255, 160, 0, 255)));
-        gradient.add_point(GradientPoint::new(1.00, Color::from_rgba(255, 60, 0, 0)));
-        gradient
-    })
-    .with_emitters(vec![SphereEmitterBuilder::new(
-        BaseEmitterBuilder::new()
-            .with_max_particles(200)
-            .with_spawn_rate(3000)
-            .with_size_modifier_range(-0.01..-0.0125)
-            .with_size_range(0.0075..0.015)
-            .with_lifetime_range(0.05..0.2)
-            .with_x_velocity_range(-0.0075..0.0075)
-            .with_y_velocity_range(-0.0075..0.0075)
-            .with_z_velocity_range(0.025..0.045)
-            .resurrect_particles(false),
-    )
-    .with_radius(0.01)
-    .build()])
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/circle_05.png")))
-    .build(graph)
 }
 
 fn create_blood_spray(
