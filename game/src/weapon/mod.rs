@@ -6,7 +6,6 @@ use crate::{
         CharacterMessageData, DamageDealer, HitBox,
     },
     current_level_mut, current_level_ref, effects,
-    effects::EffectKind,
     level::trail::ShotTrail,
     sound::{SoundKind, SoundManager},
     weapon::{
@@ -15,11 +14,11 @@ use crate::{
     },
     CollisionGroups, Decal,
 };
-use fyrox::core::futures::executor::block_on;
 use fyrox::{
     core::{
         algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
         color::Color,
+        futures::executor::block_on,
         math::{ray::Ray, vector_to_quat, Matrix4Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -403,16 +402,7 @@ impl Weapon {
         };
 
         match shot_effect {
-            ShotEffect::Smoke => {
-                let effect = effects::create(
-                    EffectKind::Smoke,
-                    &mut scene.graph,
-                    resource_manager,
-                    begin,
-                    Default::default(),
-                );
-                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
-            }
+            ShotEffect::None => {}
             ShotEffect::Beam => {
                 let trail_radius = 0.0014;
                 MeshBuilder::new(

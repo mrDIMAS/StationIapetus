@@ -1,4 +1,3 @@
-use fyrox::scene::particle_system::particle::Particle;
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -11,81 +10,11 @@ use fyrox::{
         base::BaseBuilder,
         graph::Graph,
         node::Node,
-        particle_system::{
-            emitter::{base::BaseEmitterBuilder, sphere::SphereEmitterBuilder},
-            ParticleSystemBuilder,
-        },
+        particle_system::{particle::Particle, ParticleSystemBuilder},
         transform::TransformBuilder,
     },
 };
 use std::path::Path;
-
-/// TODO: These effects are legacy from rusty-shooter, at that moment, particle system editor
-/// didn't exist and there was just no other options, only to create effects by hand. Effects
-/// should be re-made in rusty-editor and loaded as resources.
-
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug)]
-pub enum EffectKind {
-    Smoke,
-}
-
-/// # Notes
-///
-/// Each effect is Z-oriented and rotated using given orientation.
-pub fn create(
-    kind: EffectKind,
-    graph: &mut Graph,
-    resource_manager: &ResourceManager,
-    pos: Vector3<f32>,
-    orientation: UnitQuaternion<f32>,
-) -> Handle<Node> {
-    match kind {
-        EffectKind::Smoke => create_smoke(graph, resource_manager, pos, orientation),
-    }
-}
-
-fn create_smoke(
-    graph: &mut Graph,
-    resource_manager: &ResourceManager,
-    pos: Vector3<f32>,
-    orientation: UnitQuaternion<f32>,
-) -> Handle<Node> {
-    ParticleSystemBuilder::new(
-        BaseBuilder::new().with_lifetime(5.0).with_local_transform(
-            TransformBuilder::new()
-                .with_local_position(pos)
-                .with_local_rotation(orientation)
-                .build(),
-        ),
-    )
-    .with_acceleration(Vector3::new(0.0, 0.0, 0.0))
-    .with_color_over_lifetime_gradient({
-        let mut gradient = ColorGradient::new();
-        gradient.add_point(GradientPoint::new(0.00, Color::from_rgba(150, 150, 150, 0)));
-        gradient.add_point(GradientPoint::new(
-            0.05,
-            Color::from_rgba(150, 150, 150, 220),
-        ));
-        gradient.add_point(GradientPoint::new(
-            0.85,
-            Color::from_rgba(255, 255, 255, 180),
-        ));
-        gradient.add_point(GradientPoint::new(1.00, Color::from_rgba(255, 255, 255, 0)));
-        gradient
-    })
-    .with_emitters(vec![SphereEmitterBuilder::new(
-        BaseEmitterBuilder::new()
-            .with_max_particles(100)
-            .with_spawn_rate(50)
-            .with_x_velocity_range(-0.01..0.01)
-            .with_y_velocity_range(0.02..0.03)
-            .with_z_velocity_range(-0.01..0.01),
-    )
-    .with_radius(0.01)
-    .build()])
-    .with_texture(resource_manager.request_texture(Path::new("data/particles/smoke_04.tga")))
-    .build(graph)
-}
 
 pub fn create_rail(
     graph: &mut Graph,

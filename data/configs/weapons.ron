@@ -45,7 +45,7 @@
             ammo_consumption_per_shot: 4,
             v_recoil: (-0.3, 1.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: Smoke,
+            shot_effect: None,
             base_critical_shot_probability: 0.01
         ),
         Glock: (
