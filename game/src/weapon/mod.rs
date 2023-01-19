@@ -289,24 +289,18 @@ impl Weapon {
             &mut scene.graph,
             ignored_collider,
         ) {
-            if hit.hit_actor.is_some() {
-                effects::create(
-                    EffectKind::BloodSpray,
-                    &mut scene.graph,
-                    resource_manager,
-                    hit.position,
-                    vector_to_quat(hit.normal),
-                );
-            } else {
-                if let Ok(effect_prefab) =
-                    block_on(resource_manager.request_model("data/models/bullet_impact.rgs"))
-                {
-                    let instance = effect_prefab.instantiate(scene);
-                    scene.graph[instance]
-                        .local_transform_mut()
-                        .set_position(hit.position)
-                        .set_rotation(vector_to_quat(hit.normal));
-                }
+            if let Ok(effect_prefab) =
+                block_on(resource_manager.request_model(if hit.hit_actor.is_some() {
+                    "data/models/blood_splatter.rgs"
+                } else {
+                    "data/models/bullet_impact.rgs"
+                }))
+            {
+                let instance = effect_prefab.instantiate(scene);
+                scene.graph[instance]
+                    .local_transform_mut()
+                    .set_position(hit.position)
+                    .set_rotation(vector_to_quat(hit.normal));
             }
 
             sound_manager.play_environment_sound(

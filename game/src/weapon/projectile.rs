@@ -1,15 +1,13 @@
 use crate::{
     character::{character_ref, Character, CharacterMessage, CharacterMessageData, DamageDealer},
-    current_level_ref, effects,
-    effects::EffectKind,
-    game_ref,
+    current_level_ref, game_ref,
     weapon::Hit,
     Turret, Weapon,
 };
-use fyrox::core::futures::executor::block_on;
 use fyrox::{
     core::{
         algebra::Vector3,
+        futures::executor::block_on,
         math::{vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -313,25 +311,18 @@ impl ScriptTrait for Projectile {
                 }
             }
 
-            if hit.hit_actor.is_some() {
-                effects::create(
-                    EffectKind::BloodSpray,
-                    &mut ctx.scene.graph,
-                    ctx.resource_manager,
-                    hit.position,
-                    vector_to_quat(hit.normal),
-                );
-            } else {
-                if let Ok(effect_prefab) = block_on(
-                    ctx.resource_manager
-                        .request_model("data/models/bullet_impact.rgs"),
-                ) {
-                    let instance = effect_prefab.instantiate(ctx.scene);
-                    ctx.scene.graph[instance]
-                        .local_transform_mut()
-                        .set_position(hit.position)
-                        .set_rotation(vector_to_quat(hit.normal));
-                }
+            if let Ok(effect_prefab) = block_on(ctx.resource_manager.request_model(
+                if hit.hit_actor.is_some() {
+                    "data/models/blood_splatter.rgs"
+                } else {
+                    "data/models/bullet_impact.rgs"
+                },
+            )) {
+                let instance = effect_prefab.instantiate(ctx.scene);
+                ctx.scene.graph[instance]
+                    .local_transform_mut()
+                    .set_position(hit.position)
+                    .set_rotation(vector_to_quat(hit.normal));
             }
 
             if let Some(impact_sound) = self.impact_sound.as_ref() {
