@@ -14,7 +14,6 @@ use fyrox::{
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     resource::model::Model,
     scene::{
@@ -355,20 +354,6 @@ impl ScriptTrait for Projectile {
         // Reduce initial velocity down to zero over time. This is needed because projectile
         // stabilizes its movement over time.
         self.initial_velocity.follow(&Vector3::default(), 0.15);
-    }
-
-    fn restore_resources(&mut self, resource_manager: ResourceManager) {
-        let mut state = resource_manager.state();
-
-        let containers = state.containers_mut();
-
-        containers
-            .models
-            .try_restore_optional_resource(&mut self.impact_effect);
-
-        containers
-            .sound_buffers
-            .try_restore_optional_resource(&mut self.impact_sound);
     }
 
     fn id(&self) -> Uuid {

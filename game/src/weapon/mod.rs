@@ -655,16 +655,6 @@ impl ScriptTrait for Weapon {
         }
     }
 
-    fn restore_resources(&mut self, resource_manager: ResourceManager) {
-        if let WeaponProjectile::Projectile(ref mut model) = self.projectile {
-            resource_manager
-                .state()
-                .containers_mut()
-                .models
-                .try_restore_optional_resource(model)
-        }
-    }
-
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,

@@ -8,7 +8,6 @@ use fyrox::{
         uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     resource::model::Model,
     scene::node::TypeUuidProvider,
@@ -65,14 +64,6 @@ impl ScriptTrait for CharacterSpawnPoint {
         } else {
             Log::warn("Prefab is not set, nothing to spawn!")
         }
-    }
-
-    fn restore_resources(&mut self, resource_manager: ResourceManager) {
-        resource_manager
-            .state()
-            .containers_mut()
-            .models
-            .try_restore_optional_resource(&mut self.prefab);
     }
 
     fn id(&self) -> Uuid {
