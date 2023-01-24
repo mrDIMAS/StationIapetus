@@ -3,3 +3,6 @@ members = ["editor", "executor", "game"]
 
 [profile.dev.package."*"]
 opt-level = 3
+
+[profile.release]
+debug = true
