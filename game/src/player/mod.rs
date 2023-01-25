@@ -13,7 +13,7 @@ use crate::{
     sound::SoundManager,
     utils,
     weapon::{
-        definition::WeaponKind, projectile::Projectile, try_weapon_ref, weapon_mut, weapon_ref,
+        definition::WeaponKind, projectile::Projectile, try_weapon_mut, try_weapon_ref, weapon_ref,
         WeaponMessage, WeaponMessageData,
     },
     CameraController, Elevator, Game, Item,
@@ -611,8 +611,8 @@ impl Player {
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
-        if self.current_weapon().is_some() {
-            match weapon_ref(self.current_weapon(), graph).kind() {
+        if let Some(current_weapon) = try_weapon_ref(self.current_weapon(), graph) {
+            match current_weapon.kind() {
                 WeaponKind::M4
                 | WeaponKind::Ak47
                 | WeaponKind::PlasmaRifle
@@ -620,7 +620,7 @@ impl Player {
                 WeaponKind::Glock => CombatWeaponKind::Pistol,
             }
         } else {
-            CombatWeaponKind::Rifle
+            CombatWeaponKind::Pistol
         }
     }
 
@@ -689,7 +689,7 @@ impl Player {
             is_walking,
             is_jumping,
             has_ground_contact: self.in_air_time <= 0.3,
-            is_aiming: self.controller.aim,
+            is_aiming: self.controller.aim && !self.character.weapons.is_empty(),
             run_factor: self.run_factor,
             is_dead: self.is_dead(),
             should_be_stunned,
@@ -1002,6 +1002,8 @@ impl ScriptTrait for Player {
 
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
+        ctx.message_dispatcher
+            .subscribe_to::<WeaponMessage>(ctx.handle);
 
         self.script_message_sender = Some(ctx.message_sender.clone());
 
@@ -1089,11 +1091,8 @@ impl ScriptTrait for Player {
             && animations_container[self.state_machine.grab_animation].has_ended()
             && self.weapons.len() > 1;
 
-        let current_weapon_kind = if self.current_weapon().is_some() {
-            Some(weapon_ref(self.current_weapon(), &context.scene.graph).kind())
-        } else {
-            None
-        };
+        let current_weapon_kind =
+            try_weapon_ref(self.current_weapon(), &context.scene.graph).map(|weapon| weapon.kind());
 
         let mut weapon_change_direction = None;
 
@@ -1135,9 +1134,10 @@ impl ScriptTrait for Player {
                 self.controller.run = state == ElementState::Pressed;
             } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
-                    let current_weapon = self.current_weapon();
-                    if current_weapon.is_some() {
-                        weapon_mut(current_weapon, &mut context.scene.graph).switch_flash_light();
+                    if let Some(current_weapon) =
+                        try_weapon_mut(self.current_weapon(), &mut context.scene.graph)
+                    {
+                        current_weapon.switch_flash_light();
                     }
                 }
             } else if button == control_scheme.grab_ak47.button && can_change_weapon {
@@ -1249,7 +1249,7 @@ impl ScriptTrait for Player {
 
             let level = current_level_ref(ctx.plugins).unwrap();
 
-            self.character.on_message(
+            self.character.on_character_message(
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
@@ -1257,6 +1257,9 @@ impl ScriptTrait for Player {
                 ctx.message_sender,
                 &level.sound_manager,
             );
+        } else if let Some(weapon_message) = message.downcast_ref() {
+            self.character
+                .on_weapon_message(weapon_message, &mut ctx.scene.graph);
         }
     }
 

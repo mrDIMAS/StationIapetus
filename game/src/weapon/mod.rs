@@ -2,10 +2,10 @@
 
 use crate::{
     character::{
-        character_mut, character_ref, try_get_character_ref, Character, CharacterMessage,
-        CharacterMessageData, DamageDealer, HitBox,
+        character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
+        DamageDealer, HitBox,
     },
-    current_level_mut, current_level_ref, effects,
+    current_level_ref, effects,
     level::trail::ShotTrail,
     sound::{SoundKind, SoundManager},
     weapon::{
@@ -67,6 +67,7 @@ pub struct WeaponMessage {
 
 pub enum WeaponMessageData {
     Shoot { direction: Option<Vector3<f32>> },
+    Removed,
 }
 
 #[derive(Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
@@ -88,7 +89,6 @@ pub struct Weapon {
     muzzle_flash_timer: f32,
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
-    pub enabled: bool,
 
     #[visit(optional)]
     projectile: WeaponProjectile,
@@ -126,7 +126,6 @@ impl Default for Weapon {
             shot_light: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: false,
-            enabled: true,
             projectile: WeaponProjectile::Ray {
                 damage: Damage::Point(10.0),
             },
@@ -620,27 +619,13 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
-        if let Some(level) = current_level_mut(ctx.plugins) {
-            for actor in level.actors.iter() {
-                let character = character_mut(*actor, &mut ctx.scene.graph);
-
-                if let Some(i) = character.weapons.iter().position(|&w| w == ctx.node_handle) {
-                    character.weapons.remove(i);
-                }
-
-                if character.current_weapon() == ctx.node_handle {
-                    if let Some(&first_weapon) = character.weapons.first() {
-                        character.current_weapon = 0;
-                        weapon_mut(first_weapon, &mut ctx.scene.graph).enabled = true;
-                    }
-                }
-            }
-        }
+        ctx.message_sender.send_global(WeaponMessage {
+            weapon: ctx.node_handle,
+            data: WeaponMessageData::Removed,
+        });
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        ctx.scene.graph[ctx.handle].set_visibility(self.enabled);
-
         let node = &mut ctx.scene.graph[ctx.handle];
         self.shot_position = node.global_position();
 
@@ -665,19 +650,20 @@ impl ScriptTrait for Weapon {
                 return;
             }
 
-            let WeaponMessageData::Shoot { direction } = msg.data;
-            let level = current_level_ref(ctx.plugins).unwrap();
+            if let WeaponMessageData::Shoot { direction } = msg.data {
+                let level = current_level_ref(ctx.plugins).unwrap();
 
-            self.shoot(
-                ctx.handle,
-                ctx.scene,
-                ctx.elapsed_time,
-                ctx.resource_manager,
-                direction,
-                &level.sound_manager,
-                &level.actors,
-                ctx.message_sender,
-            );
+                self.shoot(
+                    ctx.handle,
+                    ctx.scene,
+                    ctx.elapsed_time,
+                    ctx.resource_manager,
+                    direction,
+                    &level.sound_manager,
+                    &level.actors,
+                    ctx.message_sender,
+                );
+            }
         }
     }
 
@@ -686,12 +672,20 @@ impl ScriptTrait for Weapon {
     }
 }
 
+pub fn try_weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Weapon> {
+    graph
+        .try_get_mut(handle)
+        .and_then(|node| node.try_get_script_mut::<Weapon>())
+}
+
 pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {
     graph[handle].try_get_script_mut::<Weapon>().unwrap()
 }
 
 pub fn try_weapon_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Weapon> {
-    graph[handle].try_get_script::<Weapon>()
+    graph
+        .try_get(handle)
+        .and_then(|node| node.try_get_script::<Weapon>())
 }
 
 pub fn weapon_ref(handle: Handle<Node>, graph: &Graph) -> &Weapon {

@@ -1,3 +1,4 @@
+use crate::weapon::WeaponMessage;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
@@ -417,6 +418,8 @@ impl ScriptTrait for Bot {
         self.definition = Self::get_definition(self.kind);
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
+        ctx.message_dispatcher
+            .subscribe_to::<WeaponMessage>(ctx.handle);
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
@@ -439,7 +442,7 @@ impl ScriptTrait for Bot {
 
             let level = current_level_ref(ctx.plugins).unwrap();
 
-            self.character.on_message(
+            self.character.on_character_message(
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
@@ -505,6 +508,9 @@ impl ScriptTrait for Bot {
                 }
                 _ => (),
             }
+        } else if let Some(weapon_message) = message.downcast_ref() {
+            self.character
+                .on_weapon_message(weapon_message, &mut ctx.scene.graph);
         }
     }
 
