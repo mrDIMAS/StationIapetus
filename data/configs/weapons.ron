@@ -15,7 +15,6 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 4.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: Beam,
             base_critical_shot_probability: 0.028
         ),
         Ak47: (
@@ -32,7 +31,6 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 5.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: Beam,
             base_critical_shot_probability: 0.025
         ),
         PlasmaRifle: (
@@ -45,7 +43,6 @@
             ammo_consumption_per_shot: 4,
             v_recoil: (-0.3, 1.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: None,
             base_critical_shot_probability: 0.01
         ),
         Glock: (
@@ -62,7 +59,6 @@
             ammo_consumption_per_shot: 1,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: Beam,
             base_critical_shot_probability: 0.03
         ),
         RailGun: (
@@ -75,7 +71,6 @@
             ammo_consumption_per_shot: 10,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
-            shot_effect: Rail,
             base_critical_shot_probability: 0.06
         )
     }

@@ -1,12 +1,15 @@
 use crate::{
+    character::try_get_character_ref,
     character::{character_ref, Character, CharacterMessage, CharacterMessageData, DamageDealer},
     current_level_ref, game_ref,
+    level::decal::Decal,
     weapon::Hit,
     Turret, Weapon,
 };
 use fyrox::{
     core::{
         algebra::Vector3,
+        color::Color,
         futures::executor::block_on,
         math::{vector_to_quat, Vector3Ext},
         pool::Handle,
@@ -17,7 +20,7 @@ use fyrox::{
     impl_component_provider,
     resource::model::Model,
     scene::{
-        collider::Collider,
+        collider::{Collider, ColliderShape},
         graph::physics::FeatureId,
         node::{Node, TypeUuidProvider},
         rigidbody::RigidBody,
@@ -89,6 +92,18 @@ pub struct Projectile {
     impact_sound: Option<SoundBufferResource>,
 
     #[visit(optional)]
+    #[reflect(
+        description = "A prefab that will be instantiated when the projectile is just appeared (spawned)."
+    )]
+    appear_effect: Option<Model>,
+
+    #[visit(optional)]
+    #[reflect(
+        description = "Limit lifetime of the projectile just one update frame. Useful for ray-based projectiles."
+    )]
+    one_frame: bool,
+
+    #[visit(optional)]
     damage: Damage,
 
     // A handle to collider of the projectile. It is used as a cache to prevent searching for it
@@ -117,6 +132,8 @@ impl Default for Projectile {
             speed: Some(10.0),
             impact_effect: None,
             impact_sound: None,
+            appear_effect: None,
+            one_frame: false,
             damage: Default::default(),
             collider: Default::default(),
         }
@@ -124,7 +141,7 @@ impl Default for Projectile {
 }
 
 impl Projectile {
-    pub fn add_to_scene(
+    pub fn spawn(
         resource: &Model,
         scene: &mut Scene,
         dir: Vector3<f32>,
@@ -136,7 +153,10 @@ impl Projectile {
 
         let instance_ref = &mut scene.graph[instance_handle];
 
-        instance_ref.local_transform_mut().set_position(position);
+        instance_ref
+            .local_transform_mut()
+            .set_position(position)
+            .set_rotation(vector_to_quat(dir));
 
         if let Some(projectile) = instance_ref.try_get_script_mut::<Projectile>() {
             projectile.initial_velocity = initial_velocity;
@@ -144,7 +164,9 @@ impl Projectile {
             projectile.owner = owner;
         }
 
-        scene.graph.update_hierarchical_data();
+        scene
+            .graph
+            .update_hierarchical_data_for_descendants(instance_handle);
 
         instance_handle
     }
@@ -154,10 +176,26 @@ impl ScriptTrait for Projectile {
     fn on_init(&mut self, context: &mut ScriptContext) {
         let node = &mut context.scene.graph[context.handle];
 
-        self.last_position = node.global_position();
+        let current_position = node.global_position();
+
+        self.last_position = current_position;
 
         if let Some(rigid_body) = node.cast_mut::<RigidBody>() {
             rigid_body.set_lin_vel(self.initial_velocity);
+        }
+
+        if let Some(appear_effect) = self.appear_effect.as_ref() {
+            let root = appear_effect.instantiate(context.scene);
+
+            context.scene.graph[root]
+                .local_transform_mut()
+                .set_position(current_position)
+                .set_rotation(vector_to_quat(self.dir));
+
+            context
+                .scene
+                .graph
+                .update_hierarchical_data_for_descendants(root);
         }
     }
 
@@ -175,6 +213,22 @@ impl ScriptTrait for Projectile {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
+
+        // Movement of kinematic projectiles is controlled explicitly.
+        if let Some(speed) = self.speed {
+            let total_velocity = self.dir.scale(speed);
+            ctx.scene.graph[ctx.handle]
+                .local_transform_mut()
+                .offset(total_velocity);
+
+            ctx.scene
+                .graph
+                .update_hierarchical_data_for_descendants(ctx.handle);
+        }
+
+        // Reduce initial velocity down to zero over time. This is needed because projectile
+        // stabilizes its movement over time.
+        self.initial_velocity.follow(&Vector3::default(), 0.15);
 
         let position = ctx.scene.graph[ctx.handle].global_position();
 
@@ -339,21 +393,51 @@ impl ScriptTrait for Projectile {
                     );
             }
 
+            Decal::new_bullet_hole(
+                ctx.resource_manager,
+                &mut ctx.scene.graph,
+                hit.position,
+                hit.normal,
+                hit.collider,
+                if hit.hit_actor.is_some() {
+                    Color::opaque(160, 0, 0)
+                } else {
+                    Color::opaque(20, 20, 20)
+                },
+            );
+
+            // Add blood splatter on a surface behind an actor that was shot.
+            if try_get_character_ref(hit.hit_actor, &mut ctx.scene.graph).is_some() {
+                for intersection in hit.query_buffer.iter() {
+                    if matches!(
+                        ctx.scene.graph[intersection.collider].as_collider().shape(),
+                        ColliderShape::Trimesh(_)
+                    ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
+                    {
+                        Decal::add_to_graph(
+                            &mut ctx.scene.graph,
+                            intersection.position.coords,
+                            -hit.normal,
+                            Handle::NONE,
+                            Color::opaque(255, 255, 255),
+                            Vector3::new(0.45, 0.45, 0.2),
+                            ctx.resource_manager.request_texture(
+                                "data/textures/decals/BloodSplatter_BaseColor.png",
+                            ),
+                        );
+
+                        break;
+                    }
+                }
+            }
+
             // Defer destruction.
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
 
-        // Movement of kinematic projectiles is controlled explicitly.
-        if let Some(speed) = self.speed {
-            let total_velocity = self.dir.scale(speed);
-            ctx.scene.graph[ctx.handle]
-                .local_transform_mut()
-                .offset(total_velocity);
+        if self.one_frame {
+            ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
-
-        // Reduce initial velocity down to zero over time. This is needed because projectile
-        // stabilizes its movement over time.
-        self.initial_velocity.follow(&Vector3::default(), 0.15);
     }
 
     fn id(&self) -> Uuid {

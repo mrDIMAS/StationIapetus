@@ -14,7 +14,6 @@ pub mod death_zone;
 pub mod decal;
 pub mod item;
 pub mod spawn;
-pub mod trail;
 pub mod trigger;
 pub mod turret;
 

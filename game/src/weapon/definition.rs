@@ -30,14 +30,6 @@ pub enum WeaponKind {
     RailGun = 4,
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Debug, Deserialize, Hash)]
-#[repr(u32)]
-pub enum ShotEffect {
-    None = 0,
-    Beam = 1,
-    Rail = 2,
-}
-
 impl Default for WeaponKind {
     fn default() -> Self {
         Self::M4
@@ -67,7 +59,6 @@ pub struct WeaponDefinition {
     pub ammo_consumption_per_shot: u32,
     pub v_recoil: (f32, f32),
     pub h_recoil: (f32, f32),
-    pub shot_effect: ShotEffect,
     pub base_critical_shot_probability: f32,
 }
 

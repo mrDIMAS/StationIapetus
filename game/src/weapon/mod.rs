@@ -1,25 +1,19 @@
 //! Weapon related stuff.
 
 use crate::{
-    character::{
-        character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
-        DamageDealer, HitBox,
-    },
-    current_level_ref, effects,
-    level::trail::ShotTrail,
-    sound::{SoundKind, SoundManager},
+    character::{character_ref, HitBox},
+    current_level_ref,
+    sound::SoundManager,
     weapon::{
-        definition::{ShotEffect, WeaponDefinition, WeaponKind},
-        projectile::{Damage, Projectile},
+        definition::{WeaponDefinition, WeaponKind},
+        projectile::Projectile,
     },
-    CollisionGroups, Decal,
+    CollisionGroups,
 };
 use fyrox::{
     core::{
-        algebra::{Matrix3, Point3, UnitQuaternion, Vector3},
-        color::Color,
-        futures::executor::block_on,
-        math::{ray::Ray, vector_to_quat, Matrix4Ext},
+        algebra::{Matrix3, Point3, Vector3},
+        math::{ray::Ray, Matrix4Ext},
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -28,33 +22,24 @@ use fyrox::{
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
-    material::{shader::SamplerFallback, Material, PropertyValue, SharedMaterial},
+    material::{shader::SamplerFallback, PropertyValue},
     rand::seq::SliceRandom,
     resource::model::Model,
     scene::{
-        base::BaseBuilder,
-        collider::{BitMask, ColliderShape, InteractionGroups},
+        collider::{BitMask, InteractionGroups},
         graph::{
             physics::{FeatureId, Intersection, RayCastOptions},
             Graph,
         },
-        mesh::{
-            surface::{SurfaceBuilder, SurfaceData, SurfaceSharedData},
-            MeshBuilder, RenderPath,
-        },
         node::{Node, TypeUuidProvider},
-        rigidbody::{RigidBody, RigidBodyType},
-        transform::TransformBuilder,
         Scene,
     },
     script::{
-        Script, ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
-        ScriptMessageSender, ScriptTrait,
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
     utils::{self, log::Log},
 };
 use std::hash::{Hash, Hasher};
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 pub mod definition;
 pub mod projectile;
@@ -70,15 +55,6 @@ pub enum WeaponMessageData {
     Removed,
 }
 
-#[derive(Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
-pub enum WeaponProjectile {
-    Projectile(Option<Model>),
-    /// For high-speed "projectiles".
-    Ray {
-        damage: Damage,
-    },
-}
-
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Weapon {
     kind: WeaponKind,
@@ -91,7 +67,7 @@ pub struct Weapon {
     flash_light_enabled: bool,
 
     #[visit(optional)]
-    projectile: WeaponProjectile,
+    projectile: Option<Model>,
 
     #[visit(optional)]
     laser_sight: Handle<Node>,
@@ -126,9 +102,7 @@ impl Default for Weapon {
             shot_light: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: false,
-            projectile: WeaponProjectile::Ray {
-                damage: Damage::Point(10.0),
-            },
+            projectile: None,
             laser_sight: Default::default(),
             self_handle: Default::default(),
         }
@@ -264,202 +238,6 @@ impl Weapon {
         }
     }
 
-    pub fn shoot_ray(
-        scene: &mut Scene,
-        resource_manager: &ResourceManager,
-        actors: &[Handle<Node>],
-        shooter: Handle<Node>,
-        begin: Vector3<f32>,
-        end: Vector3<f32>,
-        damage: Damage,
-        shot_effect: ShotEffect,
-        sound_manager: &SoundManager,
-        critical_shot_probability: f32,
-        script_message_sender: &ScriptMessageSender,
-        ignored_collider: Handle<Node>,
-    ) -> Option<Hit> {
-        // Do immediate intersection test and solve it.
-        let (trail_len, hit_point, hit) = if let Some(hit) = Weapon::ray_hit(
-            begin,
-            end,
-            shooter,
-            actors,
-            &mut scene.graph,
-            ignored_collider,
-        ) {
-            if let Ok(effect_prefab) =
-                block_on(resource_manager.request_model(if hit.hit_actor.is_some() {
-                    "data/models/blood_splatter.rgs"
-                } else {
-                    "data/models/bullet_impact.rgs"
-                }))
-            {
-                let instance = effect_prefab.instantiate(scene);
-                scene.graph[instance]
-                    .local_transform_mut()
-                    .set_position(hit.position)
-                    .set_rotation(vector_to_quat(hit.normal));
-            }
-
-            sound_manager.play_environment_sound(
-                &mut scene.graph,
-                hit.collider,
-                hit.feature,
-                hit.position,
-                SoundKind::Impact,
-                1.0,
-                1.0,
-                0.5,
-            );
-
-            script_message_sender.send_global(CharacterMessage {
-                character: hit.hit_actor,
-                data: CharacterMessageData::Damage {
-                    dealer: DamageDealer {
-                        entity: hit.shooter_actor,
-                    },
-                    hitbox: hit.hit_box,
-                    amount: damage
-                        .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor))
-                        .amount(),
-                    critical_shot_probability,
-                },
-            });
-
-            let dir = hit.position - begin;
-
-            let mut node = hit.collider;
-            while let Some(node_ref) = scene.graph.try_get_mut(node) {
-                if let Some(rigid_body) = node_ref.query_component_mut::<RigidBody>() {
-                    if rigid_body.body_type() == RigidBodyType::Dynamic {
-                        rigid_body.apply_force_at_point(
-                            dir.try_normalize(f32::EPSILON)
-                                .unwrap_or_default()
-                                .scale(30.0),
-                            hit.position,
-                        );
-                    }
-                }
-                node = node_ref.parent();
-            }
-
-            if let Some(hit_box) = hit.hit_box {
-                script_message_sender.send_to_target(
-                    hit.hit_actor,
-                    CharacterMessage {
-                        character: hit.hit_actor,
-                        data: CharacterMessageData::HandleImpact {
-                            handle: hit_box.bone,
-                            impact_point: hit.position,
-                            direction: dir,
-                        },
-                    },
-                );
-            }
-
-            Decal::new_bullet_hole(
-                resource_manager,
-                &mut scene.graph,
-                hit.position,
-                hit.normal,
-                hit.collider,
-                if hit.hit_actor.is_some() {
-                    Color::opaque(160, 0, 0)
-                } else {
-                    Color::opaque(20, 20, 20)
-                },
-            );
-
-            // Add blood splatter on a surface behind an actor that was shot.
-            if try_get_character_ref(hit.hit_actor, &mut scene.graph).is_some() {
-                for intersection in hit.query_buffer.iter() {
-                    if matches!(
-                        scene.graph[intersection.collider].as_collider().shape(),
-                        ColliderShape::Trimesh(_)
-                    ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
-                    {
-                        Decal::add_to_graph(
-                            &mut scene.graph,
-                            intersection.position.coords,
-                            dir,
-                            Handle::NONE,
-                            Color::opaque(255, 255, 255),
-                            Vector3::new(0.45, 0.45, 0.2),
-                            resource_manager.request_texture(
-                                "data/textures/decals/BloodSplatter_BaseColor.png",
-                            ),
-                        );
-
-                        break;
-                    }
-                }
-            }
-
-            (dir.norm(), hit.position, Some(hit))
-        } else {
-            (30.0, end, None)
-        };
-
-        match shot_effect {
-            ShotEffect::None => {}
-            ShotEffect::Beam => {
-                let trail_radius = 0.0014;
-                MeshBuilder::new(
-                    BaseBuilder::new()
-                        .with_script(Script::new(ShotTrail::new(0.2)))
-                        .with_cast_shadows(false)
-                        .with_local_transform(
-                            TransformBuilder::new()
-                                .with_local_position(begin)
-                                .with_local_scale(Vector3::new(
-                                    trail_radius,
-                                    trail_radius,
-                                    trail_len,
-                                ))
-                                .with_local_rotation(UnitQuaternion::face_towards(
-                                    &(end - begin),
-                                    &Vector3::y(),
-                                ))
-                                .build(),
-                        ),
-                )
-                .with_surfaces(vec![SurfaceBuilder::new(SurfaceSharedData::new(
-                    SurfaceData::make_cylinder(
-                        6,
-                        1.0,
-                        1.0,
-                        false,
-                        &UnitQuaternion::from_axis_angle(&Vector3::x_axis(), 90.0f32.to_radians())
-                            .to_homogeneous(),
-                    ),
-                ))
-                .with_material(SharedMaterial::new({
-                    let mut material = Material::standard();
-                    Log::verify(material.set_property(
-                        &ImmutableString::new("diffuseColor"),
-                        PropertyValue::Color(Color::from_rgba(255, 255, 255, 120)),
-                    ));
-                    material
-                }))
-                .build()])
-                .with_render_path(RenderPath::Forward)
-                .build(&mut scene.graph);
-            }
-            ShotEffect::Rail => {
-                let effect = effects::create_rail(
-                    &mut scene.graph,
-                    resource_manager,
-                    begin,
-                    hit_point,
-                    Color::opaque(255, 0, 0),
-                );
-                scene.graph[effect].set_script(Some(Script::new(ShotTrail::new(5.0))));
-            }
-        }
-
-        hit
-    }
-
     pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
         definition::DEFINITIONS.map.get(&kind).unwrap()
     }
@@ -513,8 +291,6 @@ impl Weapon {
         resource_manager: &ResourceManager,
         direction: Option<Vector3<f32>>,
         sound_manager: &SoundManager,
-        actors: &[Handle<Node>],
-        script_message_sender: &ScriptMessageSender,
     ) {
         self.last_shot_time = elapsed_time;
 
@@ -553,50 +329,21 @@ impl Weapon {
             self.muzzle_flash_timer = 0.075;
         }
 
-        let position = self.shot_position(&scene.graph);
+        let shot_position = self.shot_position(&scene.graph);
         let direction = direction
             .unwrap_or_else(|| self.shot_direction(&scene.graph))
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
-        let ignored_collider = scene
-            .graph
-            .find_up_map(self_handle, &mut |n| {
-                n.script()
-                    .and_then(|s| s.query_component_ref::<Character>())
-            })
-            .map(|(_, c)| c.capsule_collider)
-            .unwrap_or_default();
-
-        match self.projectile {
-            WeaponProjectile::Projectile(ref projectile) => {
-                if let Some(model) = projectile {
-                    Projectile::add_to_scene(
-                        model,
-                        scene,
-                        direction,
-                        position,
-                        self_handle,
-                        Default::default(),
-                    );
-                }
-            }
-            WeaponProjectile::Ray { damage } => {
-                Self::shoot_ray(
-                    scene,
-                    resource_manager,
-                    actors,
-                    self_handle,
-                    position,
-                    position + direction.scale(1000.0),
-                    damage,
-                    self.definition.shot_effect,
-                    sound_manager,
-                    self.definition.base_critical_shot_probability,
-                    script_message_sender,
-                    ignored_collider,
-                );
-            }
+        if let Some(model) = self.projectile.as_ref() {
+            Projectile::spawn(
+                model,
+                scene,
+                direction,
+                shot_position,
+                self_handle,
+                Default::default(),
+            );
         }
     }
 }
@@ -660,8 +407,6 @@ impl ScriptTrait for Weapon {
                     ctx.resource_manager,
                     direction,
                     &level.sound_manager,
-                    &level.actors,
-                    ctx.message_sender,
                 );
             }
         }

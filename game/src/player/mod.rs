@@ -550,7 +550,7 @@ impl Player {
                     if let Ok(grenade) = block_on(
                         resource_manager.request_model("data/models/grenade/grenade_proj.rgs"),
                     ) {
-                        Projectile::add_to_scene(
+                        Projectile::spawn(
                             &grenade,
                             scene,
                             direction,

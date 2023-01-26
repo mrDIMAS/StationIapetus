@@ -1,10 +1,11 @@
+use crate::weapon::projectile::Projectile;
 use crate::{
     character::{character_ref, try_get_character_ref},
     current_level_ref,
     sound::SoundManager,
-    weapon::{definition::ShotEffect, projectile::Damage},
-    Player, Weapon,
+    Player,
 };
+use fyrox::resource::model::Model;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -18,7 +19,6 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
@@ -28,7 +28,7 @@ use fyrox::{
         node::{Node, TypeUuidProvider},
         Scene,
     },
-    script::{ScriptContext, ScriptMessageSender, ScriptTrait},
+    script::{ScriptContext, ScriptTrait},
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
@@ -214,11 +214,7 @@ impl ScriptTrait for Turret {
                                 ctx.handle,
                                 ctx.scene,
                                 target_position,
-                                &level_ref.actors,
-                                ctx.resource_manager,
                                 &level_ref.sound_manager,
-                                ctx.message_sender,
-                                *self.collider,
                             );
                             self.barrel_index += 1;
                             if self.barrel_index >= self.barrels.len() as u32 {
@@ -232,11 +228,7 @@ impl ScriptTrait for Turret {
                                 ctx.handle,
                                 ctx.scene,
                                 target_position,
-                                &level_ref.actors,
-                                ctx.resource_manager,
                                 &level_ref.sound_manager,
-                                ctx.message_sender,
-                                *self.collider,
                             );
                         }
                     }
@@ -293,6 +285,9 @@ pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
 
+    #[visit(optional)]
+    projectile: Option<Model>,
+
     #[reflect(hidden)]
     initial_position: Vector3<f32>,
 
@@ -306,30 +301,22 @@ impl Barrel {
         owner_handle: Handle<Node>,
         scene: &mut Scene,
         target_position: Vector3<f32>,
-        actors: &[Handle<Node>],
-        resource_manager: &ResourceManager,
         sound_manager: &SoundManager,
-        script_message_sender: &ScriptMessageSender,
-        turret_collider: Handle<Node>,
     ) {
         self.offset = Vector3::new(-20.0, 0.0, 0.0);
 
         let shot_position = scene.graph[self.shoot_point].global_position();
 
-        Weapon::shoot_ray(
-            scene,
-            resource_manager,
-            actors,
-            owner_handle,
-            shot_position,
-            target_position,
-            Damage::Point(10.0),
-            ShotEffect::Beam,
-            sound_manager,
-            0.01,
-            script_message_sender,
-            turret_collider,
-        );
+        if let Some(projectile) = self.projectile.as_ref() {
+            Projectile::spawn(
+                projectile,
+                scene,
+                target_position - shot_position,
+                shot_position,
+                owner_handle,
+                Default::default(),
+            );
+        }
 
         let sounds = [
             "data/sounds/turret_shot_1.ogg",

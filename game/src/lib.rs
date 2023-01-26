@@ -26,6 +26,7 @@ use crate::{
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::{ui::DoorUiContainer, Door},
+    effects::{beam::Beam, rail::Rail},
     elevator::{call_button::CallButton, ui::CallButtonUiContainer, Elevator},
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
@@ -776,7 +777,9 @@ impl PluginConstructor for GameConstructor {
             .add::<Elevator>("Elevator")
             .add::<CallButton>("Call Button")
             .add::<Projectile>("Projectile")
-            .add::<LaserSight>("LaserSight");
+            .add::<LaserSight>("LaserSight")
+            .add::<Rail>("Rail")
+            .add::<Beam>("Beam");
     }
 
     fn create_instance(

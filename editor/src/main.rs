@@ -1,8 +1,6 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
-use station_iapetus::weapon::projectile::Damage;
-use station_iapetus::weapon::WeaponProjectile;
 use station_iapetus::{
     bot::BotKind,
     character::{Character, HitBox},
@@ -16,7 +14,7 @@ use station_iapetus::{
         turret::{Barrel, Hostility, ShootMode},
     },
     player::camera::CameraController,
-    weapon::definition::WeaponKind,
+    weapon::{definition::WeaponKind, projectile::Damage},
     GameConstructor,
 };
 
@@ -39,7 +37,6 @@ fn main() {
     editors.register_inheritable_enum::<ItemKind, _>();
     editors.register_inheritable_enum::<BotKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
-    editors.register_inheritable_enum::<WeaponProjectile, _>();
     editors.register_inheritable_enum::<Damage, _>();
     editors.register_inheritable_enum::<TriggerKind, _>();
     editors.register_inheritable_inspectable::<Inventory>();
