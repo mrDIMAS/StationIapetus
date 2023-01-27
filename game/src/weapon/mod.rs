@@ -1,7 +1,6 @@
 //! Weapon related stuff.
 
 use crate::{
-    character::HitBox,
     current_level_ref,
     sound::SoundManager,
     weapon::{
@@ -25,19 +24,15 @@ use fyrox::{
     rand::seq::SliceRandom,
     resource::model::Model,
     scene::{
-        graph::{
-            physics::{FeatureId, Intersection},
-            Graph,
-        },
+        graph::Graph,
         node::{Node, TypeUuidProvider},
         Scene,
     },
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
-    utils::{self, log::Log},
+    utils::log::Log,
 };
-use std::hash::{Hash, Hasher};
 
 pub mod definition;
 pub mod projectile;
@@ -102,38 +97,6 @@ impl Default for Weapon {
         }
     }
 }
-
-#[derive(Clone, Debug)]
-pub struct Hit {
-    pub hit_actor: Handle<Node>, // Can be None if level geometry was hit.
-    pub shooter_actor: Handle<Node>,
-    pub position: Vector3<f32>,
-    pub normal: Vector3<f32>,
-    pub collider: Handle<Node>,
-    pub feature: FeatureId,
-    pub hit_box: Option<HitBox>,
-    pub query_buffer: Vec<Intersection>,
-}
-
-impl PartialEq for Hit {
-    fn eq(&self, other: &Self) -> bool {
-        self.hit_actor == other.hit_actor
-            && self.shooter_actor == other.shooter_actor
-            && self.position == other.position
-            && self.normal == other.normal
-            && self.collider == other.collider
-            && self.feature == other.feature
-            && self.hit_box == other.hit_box
-    }
-}
-
-impl Hash for Hit {
-    fn hash<H: Hasher>(&self, state: &mut H) {
-        utils::hash_as_bytes(self, state);
-    }
-}
-
-impl Eq for Hit {}
 
 impl Weapon {
     pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
