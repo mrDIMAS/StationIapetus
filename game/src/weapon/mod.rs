@@ -67,9 +67,6 @@ pub struct Weapon {
     #[visit(optional)]
     projectile: Option<Model>,
 
-    #[visit(optional)]
-    laser_sight: Handle<Node>,
-
     #[reflect(hidden)]
     owner: Handle<Node>,
 
@@ -101,7 +98,6 @@ impl Default for Weapon {
             flash_light: Default::default(),
             flash_light_enabled: false,
             projectile: None,
-            laser_sight: Default::default(),
             self_handle: Default::default(),
         }
     }
@@ -175,10 +171,6 @@ impl Weapon {
 
     pub fn switch_flash_light(&mut self) {
         self.flash_light_enabled = !self.flash_light_enabled;
-    }
-
-    pub fn laser_sight(&mut self) -> Handle<Node> {
-        self.laser_sight
     }
 
     pub fn can_shoot(&self, elapsed_time: f32) -> bool {

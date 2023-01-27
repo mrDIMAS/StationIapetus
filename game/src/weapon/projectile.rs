@@ -506,10 +506,10 @@ impl ScriptTrait for Projectile {
                         ColliderShape::Trimesh(_)
                     ) && intersection.position.coords.metric_distance(&hit.position) < 2.0
                     {
-                        Decal::add_to_graph(
+                        Decal::spawn(
                             &mut ctx.scene.graph,
                             intersection.position.coords,
-                            -hit.normal,
+                            hit.normal,
                             Handle::NONE,
                             Color::opaque(255, 255, 255),
                             Vector3::new(0.45, 0.45, 0.2),
