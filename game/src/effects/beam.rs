@@ -36,7 +36,7 @@ impl TypeUuidProvider for Beam {
 impl ScriptTrait for Beam {
     fn on_init(&mut self, context: &mut ScriptContext) {
         let node = &context.scene.graph[context.handle];
-        let origin = dbg!(node.global_position());
+        let origin = node.global_position();
         let dir = node.look_vector();
 
         let physics = &mut context.scene.graph.physics;

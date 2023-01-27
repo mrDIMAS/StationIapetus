@@ -1,19 +1,18 @@
 //! Weapon related stuff.
 
 use crate::{
-    character::{character_ref, HitBox},
+    character::HitBox,
     current_level_ref,
     sound::SoundManager,
     weapon::{
         definition::{WeaponDefinition, WeaponKind},
         projectile::Projectile,
     },
-    CollisionGroups,
 };
 use fyrox::{
     core::{
-        algebra::{Matrix3, Point3, Vector3},
-        math::{ray::Ray, Matrix4Ext},
+        algebra::{Matrix3, Vector3},
+        math::Matrix4Ext,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -26,9 +25,8 @@ use fyrox::{
     rand::seq::SliceRandom,
     resource::model::Model,
     scene::{
-        collider::{BitMask, InteractionGroups},
         graph::{
-            physics::{FeatureId, Intersection, RayCastOptions},
+            physics::{FeatureId, Intersection},
             Graph,
         },
         node::{Node, TypeUuidProvider},
@@ -142,102 +140,6 @@ impl Hash for Hit {
 impl Eq for Hit {}
 
 impl Weapon {
-    /// Checks intersection of given ray with actors and environment.
-    pub fn ray_hit(
-        begin: Vector3<f32>,
-        end: Vector3<f32>,
-        shooter: Handle<Node>,
-        actors: &[Handle<Node>],
-        graph: &mut Graph,
-        ignored_collider: Handle<Node>,
-    ) -> Option<Hit> {
-        if begin == end {
-            return None;
-        }
-
-        let physics = &mut graph.physics;
-        let ray = Ray::from_two_points(begin, end);
-
-        // TODO: Avoid allocation.
-        let mut query_buffer = Vec::default();
-
-        physics.cast_ray(
-            RayCastOptions {
-                ray_origin: Point3::from(ray.origin),
-                ray_direction: ray.dir,
-                max_len: ray.dir.norm(),
-                groups: InteractionGroups::new(
-                    BitMask(0xFFFF),
-                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
-                ),
-                sort_results: true,
-            },
-            &mut query_buffer,
-        );
-
-        // List of hits sorted by distance from ray origin.
-        if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
-            let mut is_hitbox_hit = false;
-
-            // Check if there was an intersection with an actor.
-            'actor_loop: for &actor_handle in actors.iter() {
-                let character = character_ref(actor_handle, graph);
-                for hit_box in character.hit_boxes.iter() {
-                    if hit_box.collider == hit.collider {
-                        is_hitbox_hit = true;
-
-                        // Ignore intersections with owners.
-                        if shooter == actor_handle {
-                            continue 'actor_loop;
-                        }
-
-                        return Some(Hit {
-                            hit_actor: actor_handle,
-                            shooter_actor: shooter,
-                            position: hit.position.coords,
-                            normal: hit.normal,
-                            collider: hit.collider,
-                            feature: hit.feature,
-                            hit_box: Some(*hit_box),
-                            query_buffer,
-                        });
-                    }
-                }
-
-                // If none of hit boxes is hit, then check if we hit actor's capsule.
-                if character.capsule_collider == hit.collider {
-                    return Some(Hit {
-                        hit_actor: actor_handle,
-                        shooter_actor: shooter,
-                        position: hit.position.coords,
-                        normal: hit.normal,
-                        collider: hit.collider,
-                        feature: hit.feature,
-                        hit_box: None,
-                        query_buffer,
-                    });
-                }
-            }
-
-            if is_hitbox_hit {
-                None
-            } else {
-                Some(Hit {
-                    hit_actor: Handle::NONE,
-                    shooter_actor: shooter,
-                    position: hit.position.coords,
-                    normal: hit.normal,
-                    collider: hit.collider,
-                    feature: hit.feature,
-                    hit_box: None,
-                    query_buffer,
-                })
-            }
-        } else {
-            None
-        }
-    }
-
     pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
         definition::DEFINITIONS.map.get(&kind).unwrap()
     }

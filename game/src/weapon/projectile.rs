@@ -1,17 +1,20 @@
 use crate::{
-    character::try_get_character_ref,
-    character::{character_ref, Character, CharacterMessage, CharacterMessageData, DamageDealer},
+    character::{
+        character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
+        DamageDealer,
+    },
     current_level_ref, game_ref,
     level::decal::Decal,
     weapon::Hit,
-    Turret, Weapon,
+    CollisionGroups, Turret, Weapon,
 };
 use fyrox::{
     core::{
+        algebra::Point3,
         algebra::Vector3,
         color::Color,
         futures::executor::block_on,
-        math::{vector_to_quat, Vector3Ext},
+        math::{ray::Ray, vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
@@ -20,8 +23,8 @@ use fyrox::{
     impl_component_provider,
     resource::model::Model,
     scene::{
-        collider::{Collider, ColliderShape},
-        graph::physics::FeatureId,
+        collider::{BitMask, Collider, ColliderShape, InteractionGroups},
+        graph::{physics::FeatureId, physics::RayCastOptions, Graph},
         node::{Node, TypeUuidProvider},
         rigidbody::RigidBody,
         sound::SoundBufferResource,
@@ -172,6 +175,95 @@ impl Projectile {
     }
 }
 
+fn ray_hit(
+    begin: Vector3<f32>,
+    end: Vector3<f32>,
+    shooter: Handle<Node>,
+    actors: &[Handle<Node>],
+    graph: &mut Graph,
+    ignored_collider: Handle<Node>,
+) -> Option<Hit> {
+    if begin == end {
+        return None;
+    }
+
+    let physics = &mut graph.physics;
+    let ray = Ray::from_two_points(begin, end);
+
+    // TODO: Avoid allocation.
+    let mut query_buffer = Vec::default();
+
+    physics.cast_ray(
+        RayCastOptions {
+            ray_origin: Point3::from(ray.origin),
+            ray_direction: ray.dir,
+            max_len: ray.dir.norm(),
+            groups: InteractionGroups::new(
+                BitMask(0xFFFF),
+                BitMask(!(CollisionGroups::ActorCapsule as u32)),
+            ),
+            sort_results: true,
+        },
+        &mut query_buffer,
+    );
+
+    // List of hits sorted by distance from ray origin.
+    if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
+        // Check if there was an intersection with an actor.
+        'actor_loop: for &actor_handle in actors.iter() {
+            let character = character_ref(actor_handle, graph);
+
+            // Check hit boxes first.
+            for hit_box in character.hit_boxes.iter() {
+                if hit_box.collider == hit.collider {
+                    // Ignore intersections with owners.
+                    if shooter == actor_handle {
+                        continue 'actor_loop;
+                    }
+
+                    return Some(Hit {
+                        hit_actor: actor_handle,
+                        shooter_actor: shooter,
+                        position: hit.position.coords,
+                        normal: hit.normal,
+                        collider: hit.collider,
+                        feature: hit.feature,
+                        hit_box: Some(*hit_box),
+                        query_buffer,
+                    });
+                }
+            }
+
+            // If none of hit boxes is hit, then check if we hit actor's capsule.
+            if character.capsule_collider == hit.collider {
+                return Some(Hit {
+                    hit_actor: actor_handle,
+                    shooter_actor: shooter,
+                    position: hit.position.coords,
+                    normal: hit.normal,
+                    collider: hit.collider,
+                    feature: hit.feature,
+                    hit_box: None,
+                    query_buffer,
+                });
+            }
+        }
+
+        Some(Hit {
+            hit_actor: Handle::NONE,
+            shooter_actor: shooter,
+            position: hit.position.coords,
+            normal: hit.normal,
+            collider: hit.collider,
+            feature: hit.feature,
+            hit_box: None,
+            query_buffer,
+        })
+    } else {
+        None
+    }
+}
+
 impl ScriptTrait for Projectile {
     fn on_init(&mut self, context: &mut ScriptContext) {
         let node = &mut context.scene.graph[context.handle];
@@ -235,7 +327,7 @@ impl ScriptTrait for Projectile {
         let mut hit = None;
 
         if self.use_ray_casting {
-            hit = Weapon::ray_hit(
+            hit = ray_hit(
                 self.last_position,
                 position,
                 self.owner,
