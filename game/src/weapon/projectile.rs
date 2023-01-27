@@ -6,7 +6,7 @@ use crate::{
     current_level_ref, game_ref,
     level::decal::Decal,
     weapon::Hit,
-    CollisionGroups, Turret, Weapon,
+    CollisionGroups, Weapon,
 };
 use fyrox::{
     core::{
@@ -109,6 +109,10 @@ pub struct Projectile {
     #[visit(optional)]
     damage: Damage,
 
+    #[visit(optional)]
+    #[reflect(min_value = 0.0, max_value = 1.0)]
+    critical_hit_probability: f32,
+
     // A handle to collider of the projectile. It is used as a cache to prevent searching for it
     // every frame.
     #[visit(skip)]
@@ -138,6 +142,7 @@ impl Default for Projectile {
             appear_effect: None,
             one_frame: false,
             damage: Default::default(),
+            critical_hit_probability: 0.025,
             collider: Default::default(),
         }
     }
@@ -403,20 +408,6 @@ impl ScriptTrait for Projectile {
                 .damage
                 .scale(hit.hit_box.map_or(1.0, |h| h.damage_factor));
 
-            let critical_shot_probability =
-                ctx.scene
-                    .graph
-                    .try_get(self.owner)
-                    .map_or(0.0, |owner_node| {
-                        if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
-                            weapon.definition.base_critical_shot_probability
-                        } else if owner_node.has_script::<Turret>() {
-                            0.01
-                        } else {
-                            0.0
-                        }
-                    });
-
             match damage {
                 Damage::Splash { radius, amount } => {
                     let level = current_level_ref(ctx.plugins).unwrap();
@@ -435,7 +426,7 @@ impl ScriptTrait for Projectile {
                                     hitbox: None,
                                     /// TODO: Maybe collect all hitboxes?
                                     amount,
-                                    critical_shot_probability,
+                                    critical_hit_probability: self.critical_hit_probability,
                                 },
                             });
                         }
@@ -450,7 +441,7 @@ impl ScriptTrait for Projectile {
                             },
                             hitbox: hit.hit_box,
                             amount,
-                            critical_shot_probability,
+                            critical_hit_probability: self.critical_hit_probability,
                         },
                     });
                 }

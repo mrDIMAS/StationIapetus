@@ -102,7 +102,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                                 [self.attack_animation_index as usize]
                                 .damage
                                 .amount(),
-                            critical_shot_probability: 0.0,
+                            critical_hit_probability: 0.0,
                         },
                     });
 

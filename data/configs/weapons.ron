@@ -15,7 +15,6 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 4.0),
             h_recoil: (-1.0, 1.0),
-            base_critical_shot_probability: 0.028
         ),
         Ak47: (
             model: "data/models/ak47/ak47.rgs",
@@ -31,7 +30,6 @@
             ammo_consumption_per_shot: 2,
             v_recoil: (-2.0, 5.0),
             h_recoil: (-1.0, 1.0),
-            base_critical_shot_probability: 0.025
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.rgs",
@@ -43,7 +41,6 @@
             ammo_consumption_per_shot: 4,
             v_recoil: (-0.3, 1.0),
             h_recoil: (-1.0, 1.0),
-            base_critical_shot_probability: 0.01
         ),
         Glock: (
             model: "data/models/glock/glock.rgs",
@@ -59,7 +56,6 @@
             ammo_consumption_per_shot: 1,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
-            base_critical_shot_probability: 0.03
         ),
         RailGun: (
             model: "data/models/rail_gun/rail_gun.rgs",
@@ -71,7 +67,6 @@
             ammo_consumption_per_shot: 10,
             v_recoil: (-1.0, 3.0),
             h_recoil: (-1.0, 1.0),
-            base_critical_shot_probability: 0.06
         )
     }
 )

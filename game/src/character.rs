@@ -63,7 +63,7 @@ pub enum CharacterMessageData {
         /// Numeric value of damage.
         amount: f32,
         /// Only takes effect iff damage was applied to a head hit box!
-        critical_shot_probability: f32,
+        critical_hit_probability: f32,
     },
     SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),

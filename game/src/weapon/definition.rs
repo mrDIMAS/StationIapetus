@@ -59,7 +59,6 @@ pub struct WeaponDefinition {
     pub ammo_consumption_per_shot: u32,
     pub v_recoil: (f32, f32),
     pub h_recoil: (f32, f32),
-    pub base_critical_shot_probability: f32,
 }
 
 impl WeaponDefinition {

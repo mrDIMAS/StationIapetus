@@ -456,7 +456,7 @@ impl ScriptTrait for Bot {
                     dealer,
                     amount,
                     hitbox,
-                    critical_shot_probability,
+                    critical_hit_probability: critical_shot_probability,
                 } => {
                     if let Some((character_handle, character)) =
                         dealer.as_character(&ctx.scene.graph)
