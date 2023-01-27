@@ -8,6 +8,7 @@ use crate::{
         projectile::Projectile,
     },
 };
+use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector3},
@@ -60,6 +61,9 @@ pub struct Weapon {
     flash_light_enabled: bool,
 
     #[visit(optional)]
+    shoot_interval: InheritableVariable<f32>,
+
+    #[visit(optional)]
     projectile: Option<Model>,
 
     #[reflect(hidden)]
@@ -92,6 +96,7 @@ impl Default for Weapon {
             shot_light: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: false,
+            shoot_interval: 0.15.into(),
             projectile: None,
             self_handle: Default::default(),
         }
@@ -137,7 +142,7 @@ impl Weapon {
     }
 
     pub fn can_shoot(&self, elapsed_time: f32) -> bool {
-        elapsed_time - self.last_shot_time >= self.definition.shoot_interval
+        elapsed_time - self.last_shot_time >= *self.shoot_interval
     }
 
     fn shoot(

@@ -8,7 +8,6 @@
                 "data/sounds/enfield_l85_shot_2.wav",
                 "data/sounds/enfield_l85_shot_3.wav"
             ],
-            shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
@@ -23,7 +22,6 @@
                 "data/sounds/akm_shot_2.wav",
                 "data/sounds/akm_shot_3.wav",
             ],
-            shoot_interval: 0.15,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
@@ -34,7 +32,6 @@
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.rgs",
             shot_sounds: ["data/sounds/plasma_shot.ogg"],
-            shoot_interval: 0.25,
             yaw_correction: -4.0,
             pitch_correction: -12.0,
             ammo_indicator_offset: (-0.09, 0.03, 0.0),
@@ -49,7 +46,6 @@
                 "data/sounds/glock_shot_2.wav",
                 "data/sounds/glock_shot_3.wav"
             ],
-            shoot_interval: 0.21,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),
@@ -60,7 +56,6 @@
         RailGun: (
             model: "data/models/rail_gun/rail_gun.rgs",
             shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
-            shoot_interval: 2.0,
             yaw_correction: -10.0,
             pitch_correction: -4.0,
             ammo_indicator_offset: (-0.15, -0.0, 0.0),
