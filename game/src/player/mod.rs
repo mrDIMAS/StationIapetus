@@ -773,9 +773,8 @@ impl Player {
                 .unwrap_or(false);
 
             if aiming {
-                let ammo_indicator_offset = weapon_ref(current_weapon_handle, &scene.graph)
-                    .definition
-                    .ammo_indicator_offset();
+                let ammo_indicator_offset =
+                    *weapon_ref(current_weapon_handle, &scene.graph).ammo_indicator_offset;
                 let weapon_display = &mut scene.graph[self.weapon_display];
                 weapon_display.set_visibility(true);
                 weapon_display
@@ -784,9 +783,8 @@ impl Player {
 
                 let current_weapon = weapon_ref(current_weapon_handle, &scene.graph);
                 if self.controller.shoot && current_weapon.can_shoot(elapsed_time) {
-                    let ammo_per_shot = weapon_ref(current_weapon_handle, &scene.graph)
-                        .definition
-                        .ammo_consumption_per_shot;
+                    let ammo_per_shot =
+                        *weapon_ref(current_weapon_handle, &scene.graph).ammo_consumption_per_shot;
 
                     if self
                         .inventory
@@ -804,9 +802,9 @@ impl Player {
                         );
 
                         self.v_recoil
-                            .set_target(current_weapon.definition.gen_v_recoil_angle());
+                            .set_target(current_weapon.gen_v_recoil_angle());
                         self.h_recoil
-                            .set_target(current_weapon.definition.gen_h_recoil_angle());
+                            .set_target(current_weapon.gen_h_recoil_angle());
 
                         if let Some(camera_controller) = scene
                             .graph
@@ -839,10 +837,7 @@ impl Player {
         if self.controller.aim {
             let (pitch_correction, yaw_correction) =
                 if let Some(weapon) = try_weapon_ref(self.current_weapon(), &scene.graph) {
-                    (
-                        weapon.definition.pitch_correction,
-                        weapon.definition.yaw_correction,
-                    )
+                    (*weapon.pitch_correction, *weapon.yaw_correction)
                 } else {
                     (-12.0f32, -4.0f32)
                 };

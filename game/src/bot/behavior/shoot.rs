@@ -26,7 +26,7 @@ impl<'a> Behavior<'a> for ShootTarget {
 
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
             if weapon.can_shoot(context.elapsed_time) {
-                let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
+                let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
                 if context
                     .character
@@ -34,12 +34,8 @@ impl<'a> Behavior<'a> for ShootTarget {
                     .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
                     == ammo_per_shot
                 {
-                    context
-                        .v_recoil
-                        .set_target(weapon.definition.gen_v_recoil_angle());
-                    context
-                        .h_recoil
-                        .set_target(weapon.definition.gen_h_recoil_angle());
+                    context.v_recoil.set_target(weapon.gen_v_recoil_angle());
+                    context.h_recoil.set_target(weapon.gen_h_recoil_angle());
 
                     context.script_message_sender.send_to_target(
                         weapon_handle,
@@ -76,7 +72,7 @@ impl<'a> Behavior<'a> for CanShootTarget {
         {
             let weapon_handle = *weapon;
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
-            let ammo_per_shot = weapon.definition.ammo_consumption_per_shot;
+            let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
             if context.restoration_time <= 0.0
                 && context.definition.can_use_weapons

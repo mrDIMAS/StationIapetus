@@ -8,21 +8,21 @@ use crate::{
         projectile::Projectile,
     },
 };
-use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
-        algebra::{Matrix3, Vector3},
+        algebra::{Matrix3, Vector2, Vector3},
         math::Matrix4Ext,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
-    rand::seq::SliceRandom,
+    rand::{seq::SliceRandom, Rng},
     resource::model::Model,
     scene::{
         graph::Graph,
@@ -64,6 +64,24 @@ pub struct Weapon {
     shoot_interval: InheritableVariable<f32>,
 
     #[visit(optional)]
+    pub yaw_correction: InheritableVariable<f32>,
+
+    #[visit(optional)]
+    pub pitch_correction: InheritableVariable<f32>,
+
+    #[visit(optional)]
+    pub ammo_indicator_offset: InheritableVariable<Vector3<f32>>,
+
+    #[visit(optional)]
+    pub ammo_consumption_per_shot: InheritableVariable<u32>,
+
+    #[visit(optional)]
+    pub v_recoil: InheritableVariable<Vector2<f32>>,
+
+    #[visit(optional)]
+    pub h_recoil: InheritableVariable<Vector2<f32>>,
+
+    #[visit(optional)]
     projectile: Option<Model>,
 
     #[reflect(hidden)]
@@ -99,6 +117,12 @@ impl Default for Weapon {
             shoot_interval: 0.15.into(),
             projectile: None,
             self_handle: Default::default(),
+            yaw_correction: (-4.0).into(),
+            pitch_correction: (-12.0).into(),
+            ammo_indicator_offset: Vector3::new(-0.09, 0.03, 0.0).into(),
+            ammo_consumption_per_shot: 2.into(),
+            v_recoil: Vector2::new(-2.0, 4.0).into(),
+            h_recoil: Vector2::new(-1.0, 1.0).into(),
         }
     }
 }
@@ -143,6 +167,16 @@ impl Weapon {
 
     pub fn can_shoot(&self, elapsed_time: f32) -> bool {
         elapsed_time - self.last_shot_time >= *self.shoot_interval
+    }
+
+    pub fn gen_v_recoil_angle(&self) -> f32 {
+        fyrox::rand::thread_rng()
+            .gen_range(self.v_recoil.x.to_radians()..self.v_recoil.y.to_radians())
+    }
+
+    pub fn gen_h_recoil_angle(&self) -> f32 {
+        fyrox::rand::thread_rng()
+            .gen_range(self.h_recoil.x.to_radians()..self.h_recoil.y.to_radians())
     }
 
     fn shoot(

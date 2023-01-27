@@ -8,12 +8,6 @@
                 "data/sounds/enfield_l85_shot_2.wav",
                 "data/sounds/enfield_l85_shot_3.wav"
             ],
-            yaw_correction: -4.0,
-            pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0),
-            ammo_consumption_per_shot: 2,
-            v_recoil: (-2.0, 4.0),
-            h_recoil: (-1.0, 1.0),
         ),
         Ak47: (
             model: "data/models/ak47/ak47.rgs",
@@ -22,22 +16,10 @@
                 "data/sounds/akm_shot_2.wav",
                 "data/sounds/akm_shot_3.wav",
             ],
-            yaw_correction: -4.0,
-            pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0),
-            ammo_consumption_per_shot: 2,
-            v_recoil: (-2.0, 5.0),
-            h_recoil: (-1.0, 1.0),
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.rgs",
             shot_sounds: ["data/sounds/plasma_shot.ogg"],
-            yaw_correction: -4.0,
-            pitch_correction: -12.0,
-            ammo_indicator_offset: (-0.09, 0.03, 0.0),
-            ammo_consumption_per_shot: 4,
-            v_recoil: (-0.3, 1.0),
-            h_recoil: (-1.0, 1.0),
         ),
         Glock: (
             model: "data/models/glock/glock.rgs",
@@ -46,22 +28,10 @@
                 "data/sounds/glock_shot_2.wav",
                 "data/sounds/glock_shot_3.wav"
             ],
-            yaw_correction: -10.0,
-            pitch_correction: -4.0,
-            ammo_indicator_offset: (-0.15, -0.0, 0.0),
-            ammo_consumption_per_shot: 1,
-            v_recoil: (-1.0, 3.0),
-            h_recoil: (-1.0, 1.0),
         ),
         RailGun: (
             model: "data/models/rail_gun/rail_gun.rgs",
             shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
-            yaw_correction: -10.0,
-            pitch_correction: -4.0,
-            ammo_indicator_offset: (-0.15, -0.0, 0.0),
-            ammo_consumption_per_shot: 10,
-            v_recoil: (-1.0, 3.0),
-            h_recoil: (-1.0, 1.0),
         )
     }
 )

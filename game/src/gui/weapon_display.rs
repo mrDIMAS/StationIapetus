@@ -109,7 +109,7 @@ impl WeaponDisplay {
     pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
         let ammo = if let Some(weapon) = try_weapon_ref(player.current_weapon(), graph) {
             let total_ammo = player.inventory().item_count(ItemKind::Ammo);
-            total_ammo / weapon.definition.ammo_consumption_per_shot
+            total_ammo / *weapon.ammo_consumption_per_shot
         } else {
             0
         };
