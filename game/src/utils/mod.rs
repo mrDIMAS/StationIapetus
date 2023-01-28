@@ -7,6 +7,8 @@ use fyrox::{
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
         pool::Handle,
+        reflect::prelude::*,
+        visitor::prelude::*,
     },
     engine::resource_manager::ResourceManager,
     rand,
@@ -191,3 +193,7 @@ pub fn fetch_animation_container_mut(
         .unwrap()
         .animations_mut()
 }
+
+// To bypass https://github.com/FyroxEngine/Fyrox/issues/357.
+#[derive(Reflect, Clone, Default, Visit, Debug, PartialEq)]
+pub struct ModelProxy(pub Option<Model>);

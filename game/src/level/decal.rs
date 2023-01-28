@@ -126,6 +126,8 @@ impl Decal {
             graph.link_nodes(decal, parent);
         }
 
+        graph.update_hierarchical_data_for_descendants(decal);
+
         decal
     }
 

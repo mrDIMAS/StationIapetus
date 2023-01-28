@@ -1,5 +1,6 @@
 //! Weapon related stuff.
 
+use crate::utils::ModelProxy;
 use crate::{
     current_level_ref,
     sound::SoundManager,
@@ -8,20 +9,18 @@ use crate::{
         projectile::Projectile,
     },
 };
+use fyrox::core::math::vector_to_quat;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
         math::Matrix4Ext,
         pool::Handle,
         reflect::prelude::*,
-        sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
-    material::{shader::SamplerFallback, PropertyValue},
     rand::{seq::SliceRandom, Rng},
     resource::model::Model,
     scene::{
@@ -32,7 +31,6 @@ use fyrox::{
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
-    utils::log::Log,
 };
 
 pub mod definition;
@@ -53,10 +51,7 @@ pub enum WeaponMessageData {
 pub struct Weapon {
     kind: WeaponKind,
     shot_point: Handle<Node>,
-    muzzle_flash: Handle<Node>,
-    shot_light: Handle<Node>,
     shot_position: Vector3<f32>,
-    muzzle_flash_timer: f32,
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
 
@@ -84,6 +79,9 @@ pub struct Weapon {
     #[visit(optional)]
     projectile: Option<Model>,
 
+    #[visit(optional)]
+    shot_vfx: InheritableVariable<Vec<ModelProxy>>,
+
     #[reflect(hidden)]
     owner: Handle<Node>,
 
@@ -108,10 +106,7 @@ impl Default for Weapon {
             last_shot_time: 0.0,
             shot_position: Vector3::default(),
             owner: Handle::NONE,
-            muzzle_flash_timer: 0.0,
             definition: Self::definition(WeaponKind::M4),
-            muzzle_flash: Default::default(),
-            shot_light: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: false,
             shoot_interval: 0.15.into(),
@@ -123,6 +118,7 @@ impl Default for Weapon {
             ammo_consumption_per_shot: 2.into(),
             v_recoil: Vector2::new(-2.0, 4.0).into(),
             h_recoil: Vector2::new(-1.0, 1.0).into(),
+            shot_vfx: Default::default(),
         }
     }
 }
@@ -184,52 +180,46 @@ impl Weapon {
         self_handle: Handle<Node>,
         scene: &mut Scene,
         elapsed_time: f32,
-        resource_manager: &ResourceManager,
         direction: Option<Vector3<f32>>,
         sound_manager: &SoundManager,
     ) {
         self.last_shot_time = elapsed_time;
-
-        let position = self.shot_position(&scene.graph);
-
-        if let Some(random_shot_sound) = self
-            .definition
-            .shot_sounds
-            .choose(&mut fyrox::rand::thread_rng())
-        {
-            sound_manager.play_sound(&mut scene.graph, random_shot_sound, position, 1.0, 5.0, 3.0);
-        }
-
-        if self.muzzle_flash.is_some() {
-            let muzzle_flash = &mut scene.graph[self.muzzle_flash];
-            muzzle_flash.set_visibility(true);
-            for surface in muzzle_flash.as_mesh_mut().surfaces_mut() {
-                let textures = [
-                    "data/particles/muzzle_01.png",
-                    "data/particles/muzzle_02.png",
-                    "data/particles/muzzle_03.png",
-                    "data/particles/muzzle_04.png",
-                    "data/particles/muzzle_05.png",
-                ];
-                Log::verify(surface.material().lock().set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(resource_manager.request_texture(
-                            textures.choose(&mut fyrox::rand::thread_rng()).unwrap(),
-                        )),
-                        fallback: SamplerFallback::White,
-                    },
-                ));
-            }
-            scene.graph[self.shot_light].set_visibility(true);
-            self.muzzle_flash_timer = 0.075;
-        }
 
         let shot_position = self.shot_position(&scene.graph);
         let direction = direction
             .unwrap_or_else(|| self.shot_direction(&scene.graph))
             .try_normalize(std::f32::EPSILON)
             .unwrap_or_else(Vector3::z);
+
+        if let Some(random_shot_sound) = self
+            .definition
+            .shot_sounds
+            .choose(&mut fyrox::rand::thread_rng())
+        {
+            sound_manager.play_sound(
+                &mut scene.graph,
+                random_shot_sound,
+                shot_position,
+                1.0,
+                5.0,
+                3.0,
+            );
+        }
+
+        if let Some(vfx) = self.shot_vfx.choose(&mut fyrox::rand::thread_rng()) {
+            if let Some(model) = vfx.0.as_ref() {
+                let vfx_instance = model.instantiate(scene);
+
+                scene.graph[vfx_instance]
+                    .local_transform_mut()
+                    .set_position(shot_position)
+                    .set_rotation(vector_to_quat(direction));
+
+                scene
+                    .graph
+                    .update_hierarchical_data_for_descendants(vfx_instance);
+            }
+        }
 
         if let Some(model) = self.projectile.as_ref() {
             Projectile::spawn(
@@ -272,12 +262,6 @@ impl ScriptTrait for Weapon {
         let node = &mut ctx.scene.graph[ctx.handle];
         self.shot_position = node.global_position();
 
-        self.muzzle_flash_timer -= ctx.dt;
-        if self.muzzle_flash_timer <= 0.0 && self.muzzle_flash.is_some() {
-            ctx.scene.graph[self.muzzle_flash].set_visibility(false);
-            ctx.scene.graph[self.shot_light].set_visibility(false);
-        }
-
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
             flash_light.set_visibility(self.flash_light_enabled);
         }
@@ -300,7 +284,6 @@ impl ScriptTrait for Weapon {
                     ctx.handle,
                     ctx.scene,
                     ctx.elapsed_time,
-                    ctx.resource_manager,
                     direction,
                     &level.sound_manager,
                 );

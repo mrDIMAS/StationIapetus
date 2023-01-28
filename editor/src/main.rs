@@ -1,6 +1,7 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
 use fyroxed_base::{Editor, StartupData};
+use station_iapetus::utils::ModelProxy;
 use station_iapetus::{
     bot::BotKind,
     character::{Character, HitBox},
@@ -49,6 +50,7 @@ fn main() {
     editors.register_inheritable_vec_collection::<HitBox>();
     editors.register_inheritable_vec_collection::<DefaultWeapon>();
     editors.register_inheritable_vec_collection::<ItemEntry>();
+    editors.register_inheritable_vec_collection::<ModelProxy>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)
