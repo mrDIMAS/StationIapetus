@@ -50,7 +50,6 @@ pub enum WeaponMessageData {
 pub struct Weapon {
     kind: WeaponKind,
     shot_point: Handle<Node>,
-    shot_position: Vector3<f32>,
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
 
@@ -106,7 +105,6 @@ impl Default for Weapon {
             kind: WeaponKind::M4,
             shot_point: Handle::NONE,
             last_shot_time: 0.0,
-            shot_position: Vector3::default(),
             owner: Handle::NONE,
             definition: Self::definition(WeaponKind::M4),
             flash_light: Default::default(),
@@ -254,9 +252,6 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let node = &mut ctx.scene.graph[ctx.handle];
-        self.shot_position = node.global_position();
-
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
             flash_light.set_visibility(self.flash_light_enabled);
         }
