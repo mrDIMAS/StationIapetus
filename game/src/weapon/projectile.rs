@@ -5,7 +5,7 @@ use crate::{
     },
     current_level_ref, game_ref,
     level::decal::Decal,
-    CollisionGroups, Weapon,
+    utils, CollisionGroups, Weapon,
 };
 use fyrox::{
     core::{
@@ -32,7 +32,6 @@ use fyrox::{
         Scene,
     },
     script::{ScriptContext, ScriptTrait},
-    utils,
 };
 use serde::Deserialize;
 use std::hash::{Hash, Hasher};
@@ -98,7 +97,7 @@ impl PartialEq for Hit {
 
 impl Hash for Hit {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        utils::hash_as_bytes(self, state);
+        fyrox::utils::hash_as_bytes(self, state);
     }
 }
 
@@ -317,17 +316,12 @@ impl ScriptTrait for Projectile {
         }
 
         if let Some(appear_effect) = self.appear_effect.as_ref() {
-            let root = appear_effect.instantiate(context.scene);
-
-            context.scene.graph[root]
-                .local_transform_mut()
-                .set_position(current_position)
-                .set_rotation(vector_to_quat(self.dir));
-
-            context
-                .scene
-                .graph
-                .update_hierarchical_data_for_descendants(root);
+            utils::instantiate_prefab(
+                appear_effect,
+                context.scene,
+                current_position,
+                vector_to_quat(self.dir),
+            );
         }
     }
 
@@ -489,11 +483,12 @@ impl ScriptTrait for Projectile {
                     "data/models/bullet_impact.rgs"
                 },
             )) {
-                let instance = effect_prefab.instantiate(ctx.scene);
-                ctx.scene.graph[instance]
-                    .local_transform_mut()
-                    .set_position(hit.position)
-                    .set_rotation(vector_to_quat(hit.normal));
+                utils::instantiate_prefab(
+                    &effect_prefab,
+                    ctx.scene,
+                    hit.position,
+                    vector_to_quat(hit.normal),
+                );
             }
 
             if let Some(impact_sound) = self.impact_sound.as_ref() {

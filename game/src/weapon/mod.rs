@@ -1,19 +1,19 @@
 //! Weapon related stuff.
 
-use crate::utils::ModelProxy;
 use crate::{
     current_level_ref,
     sound::SoundManager,
+    utils,
+    utils::ResourceProxy,
     weapon::{
         definition::{WeaponDefinition, WeaponKind},
         projectile::Projectile,
     },
 };
-use fyrox::core::math::vector_to_quat;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
-        math::Matrix4Ext,
+        math::{vector_to_quat, Matrix4Ext},
         pool::Handle,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
@@ -80,7 +80,10 @@ pub struct Weapon {
     projectile: Option<Model>,
 
     #[visit(optional)]
-    shot_vfx: InheritableVariable<Vec<ModelProxy>>,
+    #[reflect(
+        description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
+    )]
+    shot_vfx: InheritableVariable<Vec<ResourceProxy<Model>>>,
 
     #[reflect(hidden)]
     owner: Handle<Node>,
@@ -188,7 +191,7 @@ impl Weapon {
         let shot_position = self.shot_position(&scene.graph);
         let direction = direction
             .unwrap_or_else(|| self.shot_direction(&scene.graph))
-            .try_normalize(std::f32::EPSILON)
+            .try_normalize(f32::EPSILON)
             .unwrap_or_else(Vector3::z);
 
         if let Some(random_shot_sound) = self
@@ -206,19 +209,12 @@ impl Weapon {
             );
         }
 
-        if let Some(vfx) = self.shot_vfx.choose(&mut fyrox::rand::thread_rng()) {
-            if let Some(model) = vfx.0.as_ref() {
-                let vfx_instance = model.instantiate(scene);
-
-                scene.graph[vfx_instance]
-                    .local_transform_mut()
-                    .set_position(shot_position)
-                    .set_rotation(vector_to_quat(direction));
-
-                scene
-                    .graph
-                    .update_hierarchical_data_for_descendants(vfx_instance);
-            }
+        if let Some(vfx) = self
+            .shot_vfx
+            .choose(&mut fyrox::rand::thread_rng())
+            .and_then(|vfx| vfx.0.as_ref())
+        {
+            utils::instantiate_prefab(vfx, scene, shot_position, vector_to_quat(direction));
         }
 
         if let Some(model) = self.projectile.as_ref() {

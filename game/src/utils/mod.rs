@@ -26,6 +26,7 @@ use fyrox::{
     utils::log::Log,
 };
 use std::collections::HashMap;
+use std::fmt::Debug;
 
 pub mod model_map;
 
@@ -196,4 +197,25 @@ pub fn fetch_animation_container_mut(
 
 // To bypass https://github.com/FyroxEngine/Fyrox/issues/357.
 #[derive(Reflect, Clone, Default, Visit, Debug, PartialEq)]
-pub struct ModelProxy(pub Option<Model>);
+pub struct ResourceProxy<T>(pub Option<T>)
+where
+    T: Reflect + Clone + Default + Visit + Debug + PartialEq;
+
+/// Instantiates a prefab and places it at specified position and orientation in global coordinates.
+pub fn instantiate_prefab(
+    prefab: &Model,
+    scene: &mut Scene,
+    position: Vector3<f32>,
+    orientation: UnitQuaternion<f32>,
+) -> Handle<Node> {
+    let root = prefab.instantiate(scene);
+
+    scene.graph[root]
+        .local_transform_mut()
+        .set_position(position)
+        .set_rotation(orientation);
+
+    scene.graph.update_hierarchical_data_for_descendants(root);
+
+    root
+}
