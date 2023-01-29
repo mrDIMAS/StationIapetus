@@ -3,7 +3,6 @@
 use crate::{
     current_level_ref,
     sound::SoundManager,
-    utils,
     utils::ResourceProxy,
     weapon::{
         definition::{WeaponDefinition, WeaponKind},
@@ -214,7 +213,7 @@ impl Weapon {
             .choose(&mut fyrox::rand::thread_rng())
             .and_then(|vfx| vfx.0.as_ref())
         {
-            utils::instantiate_prefab(vfx, scene, shot_position, vector_to_quat(direction));
+            vfx.instantiate_at(scene, shot_position, vector_to_quat(direction));
         }
 
         if let Some(model) = self.projectile.as_ref() {

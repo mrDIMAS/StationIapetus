@@ -5,7 +5,7 @@ use crate::{
     },
     current_level_ref, game_ref,
     level::decal::Decal,
-    utils, CollisionGroups, Weapon,
+    CollisionGroups, Weapon,
 };
 use fyrox::{
     core::{
@@ -316,12 +316,7 @@ impl ScriptTrait for Projectile {
         }
 
         if let Some(appear_effect) = self.appear_effect.as_ref() {
-            utils::instantiate_prefab(
-                appear_effect,
-                context.scene,
-                current_position,
-                vector_to_quat(self.dir),
-            );
+            appear_effect.instantiate_at(context.scene, current_position, vector_to_quat(self.dir));
         }
     }
 
@@ -483,12 +478,7 @@ impl ScriptTrait for Projectile {
                     "data/models/bullet_impact.rgs"
                 },
             )) {
-                utils::instantiate_prefab(
-                    &effect_prefab,
-                    ctx.scene,
-                    hit.position,
-                    vector_to_quat(hit.normal),
-                );
+                effect_prefab.instantiate_at(ctx.scene, hit.position, vector_to_quat(hit.normal));
             }
 
             if let Some(impact_sound) = self.impact_sound.as_ref() {

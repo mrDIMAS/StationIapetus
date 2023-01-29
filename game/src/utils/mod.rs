@@ -200,22 +200,3 @@ pub fn fetch_animation_container_mut(
 pub struct ResourceProxy<T>(pub Option<T>)
 where
     T: Reflect + Clone + Default + Visit + Debug + PartialEq;
-
-/// Instantiates a prefab and places it at specified position and orientation in global coordinates.
-pub fn instantiate_prefab(
-    prefab: &Model,
-    scene: &mut Scene,
-    position: Vector3<f32>,
-    orientation: UnitQuaternion<f32>,
-) -> Handle<Node> {
-    let root = prefab.instantiate(scene);
-
-    scene.graph[root]
-        .local_transform_mut()
-        .set_position(position)
-        .set_rotation(orientation);
-
-    scene.graph.update_hierarchical_data_for_descendants(root);
-
-    root
-}

@@ -1,7 +1,6 @@
 //! Editor with your game connected to it as a plugin.
-use fyrox::event_loop::EventLoop;
+use fyrox::{event_loop::EventLoop, resource::model::Model, scene::sound::SoundBufferResource};
 use fyroxed_base::{Editor, StartupData};
-use station_iapetus::utils::ResourceProxy;
 use station_iapetus::{
     bot::BotKind,
     character::{Character, HitBox},
@@ -15,6 +14,7 @@ use station_iapetus::{
         turret::{Barrel, Hostility, ShootMode},
     },
     player::camera::CameraController,
+    utils::ResourceProxy,
     weapon::{definition::WeaponKind, projectile::Damage},
     GameConstructor,
 };
@@ -50,7 +50,8 @@ fn main() {
     editors.register_inheritable_vec_collection::<HitBox>();
     editors.register_inheritable_vec_collection::<DefaultWeapon>();
     editors.register_inheritable_vec_collection::<ItemEntry>();
-    editors.register_inheritable_vec_collection::<ResourceProxy>();
+    editors.register_inheritable_vec_collection::<ResourceProxy<Model>>();
+    editors.register_inheritable_vec_collection::<ResourceProxy<SoundBufferResource>>();
 
     editor.add_game_plugin(GameConstructor);
     editor.run(event_loop)
