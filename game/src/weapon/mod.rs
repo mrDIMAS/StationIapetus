@@ -1,8 +1,6 @@
 //! Weapon related stuff.
 
 use crate::{
-    current_level_ref,
-    sound::SoundManager,
     utils::ResourceProxy,
     weapon::{
         definition::{WeaponDefinition, WeaponKind},
@@ -181,7 +179,6 @@ impl Weapon {
         scene: &mut Scene,
         elapsed_time: f32,
         direction: Option<Vector3<f32>>,
-        sound_manager: &SoundManager,
     ) {
         self.last_shot_time = elapsed_time;
 
@@ -190,21 +187,6 @@ impl Weapon {
             .unwrap_or_else(|| self.shot_direction(&scene.graph))
             .try_normalize(f32::EPSILON)
             .unwrap_or_else(Vector3::z);
-
-        if let Some(random_shot_sound) = self
-            .definition
-            .shot_sounds
-            .choose(&mut fyrox::rand::thread_rng())
-        {
-            sound_manager.play_sound(
-                &mut scene.graph,
-                random_shot_sound,
-                shot_position,
-                1.0,
-                5.0,
-                3.0,
-            );
-        }
 
         if let Some(vfx) = self
             .shot_vfx
@@ -268,15 +250,7 @@ impl ScriptTrait for Weapon {
             }
 
             if let WeaponMessageData::Shoot { direction } = msg.data {
-                let level = current_level_ref(ctx.plugins).unwrap();
-
-                self.shoot(
-                    ctx.handle,
-                    ctx.scene,
-                    ctx.elapsed_time,
-                    direction,
-                    &level.sound_manager,
-                );
+                self.shoot(ctx.handle, ctx.scene, ctx.elapsed_time, direction);
             }
         }
     }

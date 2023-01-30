@@ -2,36 +2,18 @@
     map: {
         M4: (
             model: "data/models/m4/m4.rgs",
-            shot_sounds: [
-                // Not M4 sounds, but ok.
-                "data/sounds/enfield_l85_shot_1.wav",
-                "data/sounds/enfield_l85_shot_2.wav",
-                "data/sounds/enfield_l85_shot_3.wav"
-            ],
         ),
         Ak47: (
             model: "data/models/ak47/ak47.rgs",
-            shot_sounds: [
-                "data/sounds/akm_shot_1.wav",
-                "data/sounds/akm_shot_2.wav",
-                "data/sounds/akm_shot_3.wav",
-            ],
         ),
         PlasmaRifle: (
             model: "data/models/plasma_rifle/plasma_rifle.rgs",
-            shot_sounds: ["data/sounds/plasma_shot.ogg"],
         ),
         Glock: (
             model: "data/models/glock/glock.rgs",
-            shot_sounds: [
-                "data/sounds/glock_shot_1.wav",
-                "data/sounds/glock_shot_2.wav",
-                "data/sounds/glock_shot_3.wav"
-            ],
         ),
         RailGun: (
             model: "data/models/rail_gun/rail_gun.rgs",
-            shot_sounds: [ "data/sounds/railgun_shot.ogg" ],
         )
     }
 )

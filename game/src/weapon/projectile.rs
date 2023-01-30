@@ -5,6 +5,7 @@ use crate::{
     },
     current_level_ref, game_ref,
     level::decal::Decal,
+    utils::ResourceProxy,
     CollisionGroups, Weapon,
 };
 use fyrox::{
@@ -19,6 +20,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     impl_component_provider,
+    rand::seq::SliceRandom,
     resource::model::Model,
     scene::{
         collider::{BitMask, Collider, ColliderShape, InteractionGroups},
@@ -136,6 +138,12 @@ pub struct Projectile {
 
     #[visit(optional)]
     #[reflect(
+        description = "Random prefab will be instantiated from the list when the projectile is just appeared (spawned)."
+    )]
+    random_appear_effects: Vec<ResourceProxy<Model>>,
+
+    #[visit(optional)]
+    #[reflect(
         description = "Limit lifetime of the projectile just one update frame. Useful for ray-based projectiles."
     )]
     one_frame: bool,
@@ -174,6 +182,7 @@ impl Default for Projectile {
             impact_effect: None,
             impact_sound: None,
             appear_effect: None,
+            random_appear_effects: Default::default(),
             one_frame: false,
             damage: Default::default(),
             critical_hit_probability: 0.025,
@@ -304,8 +313,8 @@ fn ray_hit(
 }
 
 impl ScriptTrait for Projectile {
-    fn on_init(&mut self, context: &mut ScriptContext) {
-        let node = &mut context.scene.graph[context.handle];
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        let node = &mut ctx.scene.graph[ctx.handle];
 
         let current_position = node.global_position();
 
@@ -316,7 +325,15 @@ impl ScriptTrait for Projectile {
         }
 
         if let Some(appear_effect) = self.appear_effect.as_ref() {
-            appear_effect.instantiate_at(context.scene, current_position, vector_to_quat(self.dir));
+            appear_effect.instantiate_at(ctx.scene, current_position, vector_to_quat(self.dir));
+        }
+
+        if let Some(vfx) = self
+            .random_appear_effects
+            .choose(&mut fyrox::rand::thread_rng())
+            .and_then(|vfx| vfx.0.as_ref())
+        {
+            vfx.instantiate_at(ctx.scene, current_position, vector_to_quat(self.dir));
         }
     }
 

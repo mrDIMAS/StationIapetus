@@ -51,7 +51,6 @@ impl WeaponKind {
 #[derive(Deserialize, Debug)]
 pub struct WeaponDefinition {
     pub model: String,
-    pub shot_sounds: Vec<String>,
 }
 
 #[derive(Deserialize, Default)]
