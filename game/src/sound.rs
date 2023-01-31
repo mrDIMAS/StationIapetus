@@ -186,7 +186,7 @@ impl SoundManager {
     pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
         let reverb = ReverbEffectBuilder::new(
             BaseEffectBuilder::new()
-                .with_name("Reverb".to_string())
+                .with_name("Primary".to_string())
                 .with_gain(0.7),
         )
         .with_wet(0.5)
