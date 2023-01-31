@@ -184,11 +184,15 @@ pub struct SoundManager {
 
 impl SoundManager {
     pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
-        let reverb = ReverbEffectBuilder::new(BaseEffectBuilder::new().with_gain(0.7))
-            .with_wet(0.5)
-            .with_dry(0.5)
-            .with_decay_time(3.0)
-            .build(&mut scene.graph.sound_context);
+        let reverb = ReverbEffectBuilder::new(
+            BaseEffectBuilder::new()
+                .with_name("Reverb".to_string())
+                .with_gain(0.7),
+        )
+        .with_wet(0.5)
+        .with_dry(0.5)
+        .with_decay_time(3.0)
+        .build(&mut scene.graph.sound_context);
 
         let sound_base = SoundBase::load();
 
