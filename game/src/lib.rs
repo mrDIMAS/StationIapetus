@@ -233,10 +233,6 @@ impl Game {
 
         let (tx, rx) = mpsc::channel();
 
-        context
-            .sound_engine
-            .set_sound_gain(sound_config.master_volume);
-
         let message_sender = MessageSender { sender: tx };
         let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
         let inventory_interface = InventoryInterface::new(message_sender.clone());
@@ -538,6 +534,16 @@ impl Game {
         self.door_ui_container.update(ctx.dt);
         self.call_button_ui_container.update(ctx.dt);
 
+        for scene in ctx.scenes.iter_mut() {
+            scene
+                .graph
+                .sound_context
+                .state()
+                .bus_graph_mut()
+                .primary_bus_mut()
+                .set_gain(self.sound_config.master_volume);
+        }
+
         self.handle_messages(ctx);
 
         self.update_statistics(0.0, ctx);
@@ -610,13 +616,13 @@ impl Game {
                             scene
                                 .graph
                                 .sound_context
+                                .state()
                                 .set_renderer(fyrox::scene::sound::Renderer::Default);
                         }
                     }
                 }
                 Message::SetMasterVolume(volume) => {
                     self.sound_config.master_volume = *volume;
-                    context.sound_engine.set_sound_gain(*volume);
                 }
                 Message::SaveConfig => {
                     match Config::save(

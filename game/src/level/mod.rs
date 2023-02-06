@@ -51,6 +51,7 @@ impl Level {
             scene
                 .graph
                 .sound_context
+                .state()
                 .set_renderer(fyrox::scene::sound::Renderer::Default);
         }
 
@@ -85,6 +86,7 @@ impl Level {
             scene
                 .graph
                 .sound_context
+                .state()
                 .set_renderer(fyrox::scene::sound::Renderer::Default);
         }
 

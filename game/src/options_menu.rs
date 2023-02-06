@@ -784,7 +784,6 @@ impl OptionsMenu {
                 self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
                 changed = true;
             } else if message.destination() == self.reset_audio_settings {
-                context.sound_engine.set_sound_gain(1.0);
                 self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
                 changed = true;
             }

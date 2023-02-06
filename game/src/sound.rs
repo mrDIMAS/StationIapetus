@@ -1,4 +1,5 @@
-use fyrox::scene::sound::SoundBufferResource;
+use fyrox::scene::sound::reverb::Reverb;
+use fyrox::scene::sound::{Effect, SoundBufferResource};
 use fyrox::{
     core::{
         algebra::Vector3, futures::executor::block_on, pool::Handle, sstorage::ImmutableString,
@@ -11,10 +12,7 @@ use fyrox::{
         graph::{physics::FeatureId, Graph},
         mesh::Mesh,
         node::Node,
-        sound::{
-            effect::{BaseEffectBuilder, Effect, EffectInput, ReverbEffectBuilder},
-            SoundBuilder, Status,
-        },
+        sound::{SoundBuilder, Status},
         transform::TransformBuilder,
         Scene,
     },
@@ -176,7 +174,6 @@ impl SoundMap {
 
 #[derive(Default)]
 pub struct SoundManager {
-    reverb: Handle<Effect>,
     sound_base: SoundBase,
     sound_map: SoundMap,
     resource_manager: Option<ResourceManager>,
@@ -184,20 +181,21 @@ pub struct SoundManager {
 
 impl SoundManager {
     pub fn new(scene: &mut Scene, resource_manager: ResourceManager) -> Self {
-        let reverb = ReverbEffectBuilder::new(
-            BaseEffectBuilder::new()
-                .with_name("Primary".to_string())
-                .with_gain(0.7),
-        )
-        .with_wet(0.5)
-        .with_dry(0.5)
-        .with_decay_time(3.0)
-        .build(&mut scene.graph.sound_context);
+        let mut reverb = Reverb::new();
+        reverb.set_dry(0.5);
+        reverb.set_wet(0.5);
+        reverb.set_decay_time(3.0);
+        scene
+            .graph
+            .sound_context
+            .state()
+            .bus_graph_mut()
+            .primary_bus_mut()
+            .add_effect(Effect::Reverb(reverb));
 
         let sound_base = SoundBase::load();
 
         Self {
-            reverb,
             sound_map: SoundMap::new(scene, &sound_base),
             sound_base,
             resource_manager: Some(resource_manager),
@@ -213,7 +211,7 @@ impl SoundManager {
         rolloff_factor: f32,
         radius: f32,
     ) {
-        let sound = SoundBuilder::new(
+        SoundBuilder::new(
             BaseBuilder::new().with_local_transform(
                 TransformBuilder::new()
                     .with_local_position(position)
@@ -227,15 +225,6 @@ impl SoundManager {
         .with_radius(radius)
         .with_rolloff_factor(rolloff_factor)
         .build(graph);
-
-        graph
-            .sound_context
-            .effect_mut(self.reverb)
-            .inputs_mut()
-            .push(EffectInput {
-                sound,
-                filter: None,
-            });
     }
 
     pub fn play_sound<P: AsRef<Path>>(

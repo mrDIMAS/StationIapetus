@@ -152,9 +152,11 @@ pub fn use_hrtf(context: &mut SoundContext) {
     let hrtf_sphere =
         fyrox::scene::sound::HrirSphere::from_file("data/sounds/hrtf.bin", sound::SAMPLE_RATE)
             .unwrap();
-    context.set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
-        fyrox::scene::sound::HrtfRenderer::new(hrtf_sphere),
-    ));
+    context
+        .state()
+        .set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
+            fyrox::scene::sound::HrtfRenderer::new(hrtf_sphere),
+        ));
 }
 
 pub fn create_play_animation_state(
