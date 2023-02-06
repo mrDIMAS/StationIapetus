@@ -202,23 +202,18 @@ impl Character {
     }
 
     pub fn on_weapon_message(&mut self, weapon_message: &WeaponMessage, graph: &mut Graph) {
-        match weapon_message.data {
-            WeaponMessageData::Removed => {
-                let removed_weapon = weapon_message.weapon;
-                let current_weapon = self.current_weapon();
+        if let WeaponMessageData::Removed = weapon_message.data {
+            let removed_weapon = weapon_message.weapon;
+            let current_weapon = self.current_weapon();
 
-                if let Some(i) = self.weapons.iter().position(|&w| w == removed_weapon) {
-                    self.weapons.remove(i);
-                }
-
-                if current_weapon == removed_weapon {
-                    if !self.weapons.is_empty() {
-                        self.current_weapon = 0;
-                        self.set_current_weapon_enabled(true, graph);
-                    }
-                }
+            if let Some(i) = self.weapons.iter().position(|&w| w == removed_weapon) {
+                self.weapons.remove(i);
             }
-            _ => (),
+
+            if current_weapon == removed_weapon && !self.weapons.is_empty() {
+                self.current_weapon = 0;
+                self.set_current_weapon_enabled(true, graph);
+            }
         }
     }
 

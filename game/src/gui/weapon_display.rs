@@ -116,14 +116,14 @@ impl WeaponDisplay {
         self.ui.send_message(TextMessage::text(
             self.ammo,
             MessageDirection::ToWidget,
-            format!("{}", ammo),
+            format!("{ammo}"),
         ));
 
         let grenades = player.inventory().item_count(ItemKind::Grenade);
         self.ui.send_message(TextMessage::text(
             self.grenades,
             MessageDirection::ToWidget,
-            format!("{}", grenades),
+            format!("{grenades}"),
         ));
     }
 

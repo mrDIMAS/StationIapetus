@@ -205,7 +205,7 @@ impl Item {
         DEFINITIONS
             .map
             .get(&kind)
-            .unwrap_or_else(|| panic!("No definition for {:?} weapon!", kind))
+            .unwrap_or_else(|| panic!("No definition for {kind:?} weapon!"))
     }
 
     pub fn add_to_scene(

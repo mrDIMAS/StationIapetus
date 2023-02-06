@@ -442,8 +442,7 @@ impl Player {
                     }
                 } else {
                     Log::warn(format!(
-                        "Unable to get call button {:?}!",
-                        call_button_handle
+                        "Unable to get call button {call_button_handle:?}!"
                     ));
                 }
             }

@@ -215,7 +215,7 @@ impl Game {
                     Ok(_) => {
                         Log::warn("Graphics settings were applied correctly!");
                     }
-                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {:?}", e)),
+                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {e:?}")),
                 }
 
                 control_scheme = config.controls;
@@ -224,8 +224,7 @@ impl Game {
                 Log::writeln(
                     MessageKind::Error,
                     format!(
-                        "Failed to load config. Recovering to default values... Reason: {:?}",
-                        e
+                        "Failed to load config. Recovering to default values... Reason: {e:?}"
                     ),
                 );
             }
@@ -565,11 +564,11 @@ impl Game {
                 }
                 Message::SaveGame => match self.save_game(context) {
                     Ok(_) => Log::info("Successfully saved"),
-                    Err(e) => Log::err(format!("Failed to make a save, reason: {}", e)),
+                    Err(e) => Log::err(format!("Failed to make a save, reason: {e}")),
                 },
                 Message::LoadGame => {
                     if let Err(e) = self.load_game(context) {
-                        Log::err(format!("Failed to load saved game. Reason: {:?}", e));
+                        Log::err(format!("Failed to load saved game. Reason: {e:?}"));
                     }
                 }
                 Message::LoadNextLevel => {
@@ -636,7 +635,7 @@ impl Game {
                         }
                         Err(e) => Log::writeln(
                             MessageKind::Error,
-                            format!("Failed to save settings. Reason: {:?}", e),
+                            format!("Failed to save settings. Reason: {e:?}"),
                         ),
                     }
                 }

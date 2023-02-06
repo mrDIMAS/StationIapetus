@@ -76,7 +76,7 @@ impl BodyImpactHandler {
                     });
             }
         } else {
-            Log::warn(format!("[Impact Handler]: invalid handle {}!", handle))
+            Log::warn(format!("[Impact Handler]: invalid handle {handle}!"))
         }
     }
 

@@ -807,7 +807,7 @@ impl OptionsMenu {
             if let Err(err) = context.renderer.set_quality_settings(&settings) {
                 Log::writeln(
                     MessageKind::Error,
-                    format!("Failed to set renderer quality settings! Reason: {:?}", err),
+                    format!("Failed to set renderer quality settings! Reason: {err:?}"),
                 );
             }
         }

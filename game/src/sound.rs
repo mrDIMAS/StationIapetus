@@ -294,8 +294,7 @@ impl SoundManager {
                         MessageKind::Warning,
                         format!(
                             "Unable to play environment sound: there \
-                                is no respective mapping for {:?} sound kind!",
-                            sound_kind
+                                is no respective mapping for {sound_kind:?} sound kind!"
                         ),
                     );
                 }
@@ -304,8 +303,7 @@ impl SoundManager {
                     MessageKind::Warning,
                     format!(
                         "Unable to play environment sound: there \
-                                is no respective mapping for {:?} material!",
-                        material
+                                is no respective mapping for {material:?} material!"
                     ),
                 );
             }

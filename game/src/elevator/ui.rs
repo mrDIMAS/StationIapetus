@@ -71,7 +71,7 @@ impl CallButtonUi {
                                 .with_font(font.clone())
                                 .with_horizontal_text_alignment(HorizontalAlignment::Center)
                                 .with_vertical_text_alignment(VerticalAlignment::Center)
-                                .with_text(format!("Floor {}", floor))
+                                .with_text(format!("Floor {floor}"))
                                 .build(ctx);
                                 floor_text
                             })

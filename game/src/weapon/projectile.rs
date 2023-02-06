@@ -527,7 +527,7 @@ impl ScriptTrait for Projectile {
             );
 
             // Add blood splatter on a surface behind an actor that was shot.
-            if try_get_character_ref(hit.hit_actor, &mut ctx.scene.graph).is_some() {
+            if try_get_character_ref(hit.hit_actor, &ctx.scene.graph).is_some() {
                 for intersection in hit.query_buffer.iter() {
                     if matches!(
                         ctx.scene.graph[intersection.collider].as_collider().shape(),
