@@ -25,7 +25,7 @@ use fyrox::{
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
-        math::{self, SmoothAngle, Vector3Ext},
+        math::SmoothAngle,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -129,7 +129,6 @@ pub struct Player {
     spine_pitch: SmoothAngle,
     spine: Handle<Node>,
     hips: Handle<Node>,
-    move_speed: f32,
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
     weapon_origin: Handle<Node>,
@@ -137,7 +136,6 @@ pub struct Player {
     target_run_factor: f32,
     in_air_time: f32,
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
-    target_velocity: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
     journal_display: Handle<Node>,
@@ -192,7 +190,6 @@ impl Default for Player {
                 target: 0.0,
                 speed: 10.0,
             },
-            move_speed: 0.65,
             spine_pitch: SmoothAngle {
                 angle: 0.0,
                 target: 0.0,
@@ -213,7 +210,6 @@ impl Default for Player {
             velocity: Default::default(),
             run_factor: Default::default(),
             target_run_factor: Default::default(),
-            target_velocity: Default::default(),
             weapon_display: Default::default(),
             last_health: 100.0,
             health_color_gradient: make_color_gradient(),
@@ -252,7 +248,6 @@ impl Clone for Player {
             spine_pitch: self.spine_pitch.clone(),
             spine: self.spine,
             hips: self.hips,
-            move_speed: self.move_speed,
             weapon_yaw_correction: self.weapon_yaw_correction.clone(),
             weapon_pitch_correction: self.weapon_pitch_correction.clone(),
             weapon_origin: self.weapon_origin,
@@ -260,7 +255,6 @@ impl Clone for Player {
             target_run_factor: self.target_run_factor,
             in_air_time: self.in_air_time,
             velocity: self.velocity,
-            target_velocity: self.target_velocity,
             weapon_display: self.weapon_display,
             inventory_display: self.inventory_display,
             journal_display: self.journal_display,
@@ -441,9 +435,7 @@ impl Player {
                         }
                     }
                 } else {
-                    Log::warn(format!(
-                        "Unable to get call button {call_button_handle:?}!"
-                    ));
+                    Log::warn(format!("Unable to get call button {call_button_handle:?}!"));
                 }
             }
 
@@ -563,50 +555,23 @@ impl Player {
         }
     }
 
-    fn update_velocity(&mut self, scene: &Scene, can_move: bool, dt: f32) {
+    fn update_velocity(&mut self, scene: &Scene, dt: f32) {
         // We're using model pivot's angles for movement instead of rigid body, because
         // camera controller is attached to the body and we'd rotate rigid body, the
         // camera would rotate too, but we don't want this.
-        let model_pivot = &scene.graph[self.model_pivot];
+        let transform = &scene.graph[self.model].global_transform();
 
-        let look_vector = model_pivot
-            .look_vector()
-            .try_normalize(std::f32::EPSILON)
-            .unwrap_or_else(Vector3::z);
-
-        let side_vector = model_pivot
-            .side_vector()
-            .try_normalize(std::f32::EPSILON)
-            .unwrap_or_else(Vector3::x);
-
-        self.target_velocity = Vector3::default();
-
-        if self.controller.walk_right {
-            self.target_velocity -= side_vector;
+        if let Some(root_motion) = scene.graph[self.state_machine.machine_handle]
+            .query_component_ref::<AnimationBlendingStateMachine>()
+            .unwrap()
+            .machine()
+            .pose()
+            .root_motion()
+        {
+            self.velocity = transform
+                .transform_vector(&root_motion.delta_position)
+                .scale(1.0 / dt);
         }
-        if self.controller.walk_left {
-            self.target_velocity += side_vector;
-        }
-        if self.controller.walk_forward {
-            self.target_velocity += look_vector;
-        }
-        if self.controller.walk_backward {
-            self.target_velocity -= look_vector;
-        }
-
-        let speed = if can_move {
-            math::lerpf(self.move_speed, self.move_speed * 4.0, self.run_factor) * dt
-        } else {
-            0.0
-        };
-
-        self.target_velocity = self
-            .target_velocity
-            .try_normalize(f32::EPSILON)
-            .map(|v| v.scale(speed))
-            .unwrap_or_default();
-
-        self.velocity.follow(&self.target_velocity, 0.15);
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
@@ -1313,7 +1278,7 @@ impl ScriptTrait for Player {
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
             let can_move = self.can_move(&ctx.scene.graph);
-            self.update_velocity(ctx.scene, can_move, ctx.dt);
+            self.update_velocity(ctx.scene, ctx.dt);
             let new_y_vel = self.handle_jump_signal(ctx.scene, ctx.dt);
             self.handle_weapon_grab_signal(ctx.scene, ctx.handle, ctx.message_sender);
             self.handle_put_back_weapon_end_signal(ctx.scene);
@@ -1322,16 +1287,12 @@ impl ScriptTrait for Player {
             let body = ctx.scene.graph[self.body].as_rigid_body_mut();
             body.set_ang_vel(Default::default());
             if let Some(new_y_vel) = new_y_vel {
-                body.set_lin_vel(Vector3::new(
-                    self.velocity.x / ctx.dt,
-                    new_y_vel / ctx.dt,
-                    self.velocity.z / ctx.dt,
-                ));
+                body.set_lin_vel(Vector3::new(self.velocity.x, new_y_vel, self.velocity.z));
             } else {
                 body.set_lin_vel(Vector3::new(
-                    self.velocity.x / ctx.dt,
+                    self.velocity.x,
                     body.lin_vel().y,
-                    self.velocity.z / ctx.dt,
+                    self.velocity.z,
                 ));
             }
 
@@ -1358,7 +1319,6 @@ impl ScriptTrait for Player {
 
                 self.model_yaw.set_target(angle.to_radians()).update(ctx.dt);
 
-                let mut additional_hips_rotation = Default::default();
                 if self.controller.aim {
                     ctx.scene.graph[self.model_sub_pivot]
                         .local_transform_mut()
@@ -1377,8 +1337,13 @@ impl ScriptTrait for Player {
                                 -(self.model_yaw.angle + 37.5f32.to_radians()),
                             ),
                     );
-                    additional_hips_rotation =
-                        UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.model_yaw.angle);
+
+                    ctx.scene.graph[self.hips]
+                        .local_transform_mut()
+                        .set_rotation(UnitQuaternion::from_axis_angle(
+                            &Vector3::y_axis(),
+                            self.model_yaw.angle,
+                        ));
                 } else {
                     ctx.scene.graph[self.model_sub_pivot]
                         .local_transform_mut()
@@ -1396,20 +1361,6 @@ impl ScriptTrait for Player {
                             ) * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
                         );
                 }
-
-                ctx.scene.graph[self.hips]
-                    .local_transform_mut()
-                    .set_rotation(
-                        additional_hips_rotation
-                            * UnitQuaternion::from_axis_angle(
-                                &Vector3::x_axis(),
-                                math::lerpf(
-                                    5.0f32.to_radians(),
-                                    17.0f32.to_radians(),
-                                    self.run_factor,
-                                ),
-                            ),
-                    );
 
                 let walk_dir = if self.controller.aim && self.controller.walk_backward {
                     -1.0
