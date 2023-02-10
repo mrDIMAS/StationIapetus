@@ -561,10 +561,10 @@ impl Player {
         // camera would rotate too, but we don't want this.
         let transform = &scene.graph[self.model].global_transform();
 
-        if let Some(root_motion) = scene.graph[self.state_machine.machine_handle]
-            .query_component_ref::<AnimationBlendingStateMachine>()
+        if let Some(root_motion) = self
+            .state_machine
+            .lower_body_layer(&scene.graph)
             .unwrap()
-            .machine()
             .pose()
             .root_motion()
         {
