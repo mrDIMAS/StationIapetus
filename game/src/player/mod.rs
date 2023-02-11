@@ -555,10 +555,7 @@ impl Player {
         }
     }
 
-    fn update_velocity(&mut self, scene: &Scene, dt: f32) {
-        // We're using model pivot's angles for movement instead of rigid body, because
-        // camera controller is attached to the body and we'd rotate rigid body, the
-        // camera would rotate too, but we don't want this.
+    fn update_velocity(&mut self, scene: &mut Scene, dt: f32) {
         let transform = &scene.graph[self.model].global_transform();
 
         if let Some(root_motion) = self
@@ -572,6 +569,20 @@ impl Player {
                 .transform_vector(&root_motion.delta_position)
                 .scale(1.0 / dt);
         }
+
+        let new_y_vel = self.handle_jump_signal(scene, dt);
+
+        let body = scene.graph[self.body].as_rigid_body_mut();
+
+        body.set_ang_vel(Default::default());
+
+        let velocity = if let Some(new_y_vel) = new_y_vel {
+            Vector3::new(self.velocity.x, new_y_vel, self.velocity.z)
+        } else {
+            Vector3::new(self.velocity.x, body.lin_vel().y, self.velocity.z)
+        };
+
+        body.set_lin_vel(velocity);
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
@@ -1279,22 +1290,9 @@ impl ScriptTrait for Player {
 
             let can_move = self.can_move(&ctx.scene.graph);
             self.update_velocity(ctx.scene, ctx.dt);
-            let new_y_vel = self.handle_jump_signal(ctx.scene, ctx.dt);
             self.handle_weapon_grab_signal(ctx.scene, ctx.handle, ctx.message_sender);
             self.handle_put_back_weapon_end_signal(ctx.scene);
             self.handle_toss_grenade_signal(Default::default(), ctx.scene, ctx.resource_manager);
-
-            let body = ctx.scene.graph[self.body].as_rigid_body_mut();
-            body.set_ang_vel(Default::default());
-            if let Some(new_y_vel) = new_y_vel {
-                body.set_lin_vel(Vector3::new(self.velocity.x, new_y_vel, self.velocity.z));
-            } else {
-                body.set_lin_vel(Vector3::new(
-                    self.velocity.x,
-                    body.lin_vel().y,
-                    self.velocity.z,
-                ));
-            }
 
             if self.controller.aim {
                 self.spine_pitch.set_target(self.controller.pitch);
