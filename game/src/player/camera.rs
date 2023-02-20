@@ -105,32 +105,16 @@ impl TypeUuidProvider for CameraController {
 
 impl ScriptTrait for CameraController {
     fn on_update(&mut self, context: &mut ScriptContext) {
-        let (is_walking, is_running, is_aiming, yaw, pitch) = context
+        let (is_aiming, yaw, pitch) = context
             .scene
             .graph
             .try_get(self.player)
             .and_then(|p| p.try_get_script::<Player>())
-            .map(|p| {
-                (
-                    p.is_walking(),
-                    p.is_running(context.scene),
-                    p.is_aiming(),
-                    p.controller.yaw,
-                    p.controller.pitch,
-                )
-            })
+            .map(|p| (p.is_aiming(), p.controller.yaw, p.controller.pitch))
             .unwrap_or_default();
 
-        if is_walking {
-            let (kx, ky) = if is_running { (8.0, 13.0) } else { (5.0, 10.0) };
-
-            self.target_camera_offset.x = 0.015 * (context.elapsed_time * kx).cos();
-            self.target_camera_offset.y = 0.015 * (context.elapsed_time * ky).sin();
-        } else {
-            self.target_camera_offset.x = 0.0;
-            self.target_camera_offset.y = 0.0;
-        }
-
+        self.target_camera_offset.x = 0.0;
+        self.target_camera_offset.y = 0.0;
         self.target_camera_offset.z = if is_aiming { 0.2 } else { 0.8 };
 
         self.update_shake(context.dt);
