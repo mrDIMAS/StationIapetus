@@ -18,6 +18,8 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
+use fyrox::core::algebra::Vector2;
+use fyrox::core::math::Vector2Ext;
 use fyrox::{
     animation::machine,
     core::{
@@ -147,6 +149,9 @@ pub struct Player {
     rig_light: Handle<Node>,
     machine: Handle<Node>,
 
+    local_velocity: Vector2<f32>,
+    target_local_velocity: Vector2<f32>,
+
     #[visit(optional)]
     animation_player: Handle<Node>,
 
@@ -230,8 +235,10 @@ impl Default for Player {
             model_sub_pivot: Default::default(),
             animation_player: Default::default(),
             machine: Default::default(),
+            local_velocity: Default::default(),
             state_machine: Default::default(),
             script_message_sender: None,
+            target_local_velocity: Default::default(),
         }
     }
 }
@@ -270,8 +277,10 @@ impl Clone for Player {
             controller: Default::default(),
             animation_player: self.animation_player,
             machine: self.machine,
+            local_velocity: self.local_velocity,
             state_machine: self.state_machine.clone(),
             script_message_sender: self.script_message_sender.clone(),
+            target_local_velocity: self.target_local_velocity,
         }
     }
 }
@@ -456,8 +465,7 @@ impl Player {
             if let Some(layer) = self.state_machine.lower_body_layer(&scene.graph) {
                 let active_transition = layer.active_transition();
                 if event.name == StateMachine::JUMP_SIGNAL
-                    && (active_transition == self.state_machine.idle_to_jump
-                        || active_transition == self.state_machine.walk_to_jump
+                    && (active_transition == self.state_machine.walk_to_jump
                         || layer.active_state() == self.state_machine.jump_state)
                 {
                     new_y_vel = Some(3.0 * dt);
@@ -673,6 +681,7 @@ impl Player {
             toss_grenade: self.controller.toss_grenade,
             change_weapon: self.weapon_change_direction != RequiredWeapon::None,
             scene,
+            local_velocity: self.local_velocity,
         });
 
         self.state_machine.handle_animation_events(
@@ -1240,6 +1249,32 @@ impl ScriptTrait for Player {
 
         let game = game_ref(ctx.plugins);
         let level = current_level_ref(ctx.plugins).unwrap();
+
+        self.target_local_velocity = Vector2::default();
+        if self.controller.walk_forward
+            || (!self.controller.aim && (self.controller.walk_left || self.controller.walk_right))
+        {
+            self.target_local_velocity.y = if self.controller.run { 1.0 } else { 0.5 };
+        }
+        if self.controller.walk_backward {
+            self.target_local_velocity.y = if self.controller.aim {
+                -1.0
+            } else if self.controller.run {
+                1.0
+            } else {
+                0.5
+            };
+        }
+        if self.controller.aim {
+            if self.controller.walk_left {
+                self.target_local_velocity.x = -1.0;
+            }
+            if self.controller.walk_right {
+                self.target_local_velocity.x = 1.0;
+            }
+        }
+
+        self.local_velocity.follow(&self.target_local_velocity, 0.1);
 
         if let Some(upper_body_layer) = self
             .state_machine

@@ -1,4 +1,5 @@
 use crate::{character::Character, sound::SoundManager, utils};
+use fyrox::core::algebra::Vector2;
 use fyrox::{
     animation::{
         machine::{MachineLayer, Parameter, State, Transition},
@@ -33,6 +34,7 @@ pub struct StateMachineInput<'a> {
     pub should_be_stunned: bool,
     pub machine: Handle<Node>,
     pub scene: &'a mut Scene,
+    pub local_velocity: Vector2<f32>,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -50,7 +52,6 @@ pub struct StateMachine {
     pub fall_state: Handle<State>,
     pub land_state: Handle<State>,
     pub walk_to_jump: Handle<Transition>,
-    pub idle_to_jump: Handle<Transition>,
     pub aim_state: Handle<State>,
     pub toss_grenade_state: Handle<State>,
     pub put_back_state: Handle<State>,
@@ -99,7 +100,6 @@ impl StateMachine {
             fall_state: lower_body.find_state_by_name_ref("Fall")?.0,
             land_state: lower_body.find_state_by_name_ref("Land")?.0,
             walk_to_jump: lower_body.find_transition_by_name_ref("WalkToJump")?.0,
-            idle_to_jump: lower_body.find_transition_by_name_ref("IdleToJump")?.0,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,
             toss_grenade_state: upper_body.find_state_by_name_ref("TossGrenade")?.0,
             put_back_state: upper_body.find_state_by_name_ref("PutBack")?.0,
@@ -215,6 +215,7 @@ impl StateMachine {
             should_be_stunned,
             machine,
             scene,
+            local_velocity,
         } = input;
 
         let animation_player = scene
@@ -273,7 +274,8 @@ impl StateMachine {
             .set_parameter(
                 "GrenadeTossed",
                 Parameter::Rule(toss_grenade_animation_ended),
-            );
+            )
+            .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity));
     }
 
     pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {
