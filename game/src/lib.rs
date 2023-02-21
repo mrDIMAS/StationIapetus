@@ -223,9 +223,7 @@ impl Game {
             Err(e) => {
                 Log::writeln(
                     MessageKind::Error,
-                    format!(
-                        "Failed to load config. Recovering to default values... Reason: {e:?}"
-                    ),
+                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
                 );
             }
         }
@@ -526,7 +524,6 @@ impl Game {
             ctx.scenes[level.scene].enabled = !self.menu.is_visible(ctx.user_interface);
         }
 
-        self.menu.scene.update(ctx, ctx.dt);
         self.weapon_display.update(ctx.dt);
         self.inventory_interface.update(ctx.dt);
         self.item_display.update(ctx.dt);

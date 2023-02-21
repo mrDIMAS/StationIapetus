@@ -1,13 +1,9 @@
 use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
-    options_menu::OptionsMenu, utils::create_camera, MessageSender,
+    options_menu::OptionsMenu, MessageSender,
 };
 use fyrox::{
-    core::{
-        algebra::{UnitQuaternion, Vector3},
-        color::Color,
-        pool::Handle,
-    },
+    core::{color::Color, pool::Handle},
     event::{Event, WindowEvent},
     gui::{
         button::{ButtonBuilder, ButtonMessage},
@@ -42,8 +38,6 @@ pub struct Menu {
 
 pub struct MenuScene {
     pub scene: Handle<Scene>,
-    iapetus: Handle<Node>,
-    angle: f32,
     pub music: Handle<Node>,
 }
 
@@ -73,44 +67,10 @@ impl MenuScene {
             .with_gain(sound_config.music_volume)
             .build(&mut scene.graph);
 
-        let position = scene
-            .graph
-            .find_from_root(&mut |n| n.tag() == "CameraPoint")
-            .unwrap()
-            .1
-            .global_position();
-
-        create_camera(
-            context.resource_manager.clone(),
-            position,
-            &mut scene.graph,
-            200.0,
-        )
-        .await;
-
         Self {
             music,
-            angle: 0.0,
-            iapetus: scene
-                .graph
-                .find_from_root(&mut |n| n.tag() == "Iapetus")
-                .unwrap()
-                .0,
             scene: context.scenes.add(scene),
         }
-    }
-
-    pub fn update(&mut self, engine: &mut PluginContext, dt: f32) {
-        let scene = &mut engine.scenes[self.scene];
-
-        self.angle += 0.18 * dt;
-
-        scene.graph[self.iapetus]
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::y_axis(),
-                self.angle.to_radians(),
-            ));
     }
 }
 

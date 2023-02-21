@@ -10,23 +10,18 @@ use fyrox::{
         reflect::prelude::*,
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
     rand,
-    resource::{model::Model, texture::TextureWrapMode},
+    resource::model::Model,
     scene::{
         animation::AnimationPlayer,
-        base::BaseBuilder,
-        camera::{CameraBuilder, SkyBoxBuilder},
         graph::Graph,
         node::Node,
-        sound::{self, context::SoundContext, listener::ListenerBuilder},
-        transform::TransformBuilder,
+        sound::{self, context::SoundContext},
         Scene,
     },
     utils::log::Log,
 };
-use std::collections::HashMap;
-use std::fmt::Debug;
+use std::{collections::HashMap, fmt::Debug};
 
 pub mod model_map;
 
@@ -94,58 +89,6 @@ impl BodyImpactHandler {
     pub fn is_affected(&self, handle: Handle<Node>) -> bool {
         self.additional_rotations.contains_key(&handle)
     }
-}
-
-/// Creates a camera at given position with a skybox.
-pub async fn create_camera(
-    resource_manager: ResourceManager,
-    position: Vector3<f32>,
-    graph: &mut Graph,
-    z_far: f32,
-) -> Handle<Node> {
-    // Load skybox textures in parallel.
-    let (front, back, left, right, top, bottom) = fyrox::core::futures::join!(
-        resource_manager.request_texture("data/textures/skyboxes/space/front.png"),
-        resource_manager.request_texture("data/textures/skyboxes/space/back.png"),
-        resource_manager.request_texture("data/textures/skyboxes/space/left.png"),
-        resource_manager.request_texture("data/textures/skyboxes/space/right.png"),
-        resource_manager.request_texture("data/textures/skyboxes/space/top.png"),
-        resource_manager.request_texture("data/textures/skyboxes/space/bottom.png")
-    );
-
-    // Unwrap everything.
-    let skybox = SkyBoxBuilder {
-        front: Some(front.unwrap()),
-        back: Some(back.unwrap()),
-        left: Some(left.unwrap()),
-        right: Some(right.unwrap()),
-        top: Some(top.unwrap()),
-        bottom: Some(bottom.unwrap()),
-    }
-    .build()
-    .unwrap();
-
-    // Set S and T coordinate wrap mode, ClampToEdge will remove any possible seams on edges
-    // of the skybox.
-    if let Some(skybox_texture) = skybox.cubemap() {
-        let mut data = skybox_texture.data_ref();
-        data.set_s_wrap_mode(TextureWrapMode::ClampToEdge);
-        data.set_t_wrap_mode(TextureWrapMode::ClampToEdge);
-    }
-
-    // Camera is our eyes in the world - you won't see anything without it.
-    CameraBuilder::new(
-        BaseBuilder::new()
-            .with_children(&[ListenerBuilder::new(BaseBuilder::new()).build(graph)])
-            .with_local_transform(
-                TransformBuilder::new()
-                    .with_local_position(position)
-                    .build(),
-            ),
-    )
-    .with_z_far(z_far)
-    .with_skybox(skybox)
-    .build(graph)
 }
 
 pub fn use_hrtf(context: &mut SoundContext) {
