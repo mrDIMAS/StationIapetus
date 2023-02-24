@@ -42,69 +42,72 @@ fn calculate_movement_speed_factor(
 impl<'a> Behavior<'a> for MoveToTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
-        context.movement_speed_factor = calculate_movement_speed_factor(
-            context.upper_body_machine,
-            &context.character.hit_boxes,
-            context.impact_handler,
-            context.scene,
-            context.animation_player,
+    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+        ctx.movement_speed_factor = calculate_movement_speed_factor(
+            ctx.upper_body_machine,
+            &ctx.character.hit_boxes,
+            ctx.impact_handler,
+            ctx.scene,
+            ctx.animation_player,
         );
 
-        let body = context.scene.graph[context.character.body].as_rigid_body_mut();
+        let transform = &ctx.scene.graph[ctx.model].global_transform();
+
+        let body = ctx.scene.graph[ctx.character.body].as_rigid_body_mut();
         let position = body.global_position();
 
-        *context.target_move_speed = context.definition.walk_speed * context.movement_speed_factor;
+        *ctx.target_move_speed = ctx.definition.walk_speed * ctx.movement_speed_factor;
 
-        context.agent.set_speed(context.move_speed);
-        let navmesh = context.scene.navmeshes.iter_mut().next().unwrap();
-        context.agent.set_position(position);
+        ctx.agent.set_speed(ctx.move_speed);
+        let navmesh = ctx.scene.navmeshes.iter_mut().next().unwrap();
+        ctx.agent.set_position(position);
 
-        if let Some(target) = context.target.as_ref() {
-            context.agent.set_target(target.position);
-            let _ = context.agent.update(context.dt, navmesh);
+        if let Some(target) = ctx.target.as_ref() {
+            ctx.agent.set_target(target.position);
+            let _ = ctx.agent.update(ctx.dt, navmesh);
         }
 
         let has_reached_destination =
-            context.agent.target().metric_distance(&position) <= self.min_distance;
+            ctx.agent.target().metric_distance(&position) <= self.min_distance;
+
         if has_reached_destination {
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         } else {
-            let mut vel = (context.agent.position() - position).scale(1.0 / context.dt);
-            vel.y = body.lin_vel().y;
-            body.set_lin_vel(vel);
+            if let Some(root_motion) = ctx.lower_body_machine.machine.pose().root_motion() {
+                let velocity = transform
+                    .transform_vector(&root_motion.delta_position)
+                    .scale(1.0 / ctx.dt);
+
+                let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
+                body.set_lin_vel(velocity);
+            }
         }
 
         // Emit step sounds from walking animation.
-        if context.lower_body_machine.is_walking() {
-            let animations_container = utils::fetch_animation_container_mut(
-                &mut context.scene.graph,
-                context.animation_player,
-            );
+        if ctx.lower_body_machine.is_walking() {
+            let animations_container =
+                utils::fetch_animation_container_mut(&mut ctx.scene.graph, ctx.animation_player);
 
             let mut events = animations_container
-                .get_mut(context.lower_body_machine.walk_animation)
+                .get_mut(ctx.lower_body_machine.walk_animation)
                 .take_events();
 
             while let Some(event) = events.pop_front() {
                 if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
-                    let begin = context.scene.graph[context.model].global_position()
-                        + Vector3::new(0.0, 0.5, 0.0);
+                    let begin =
+                        ctx.scene.graph[ctx.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
 
-                    context.character.footstep_ray_check(
-                        begin,
-                        context.scene,
-                        context.sound_manager,
-                    );
+                    ctx.character
+                        .footstep_ray_check(begin, ctx.scene, ctx.sound_manager);
                 }
             }
         }
 
         if has_reached_destination {
-            context.is_moving = false;
+            ctx.is_moving = false;
             Status::Success
         } else {
-            context.is_moving = true;
+            ctx.is_moving = true;
             Status::Running
         }
     }

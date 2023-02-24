@@ -166,6 +166,7 @@ impl UpperBodyMachine {
             let leg_node = scene.graph.find_by_name(model, leg_name).unwrap().0;
             layer_mask.merge(LayerMask::from_hierarchy(&scene.graph, leg_node));
         }
+        layer_mask.add(hips);
         root_layer.set_mask(layer_mask);
 
         let (_, aim_state) = if let Some(aim_animation_resource) = aim_animation_resource.clone() {

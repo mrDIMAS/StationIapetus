@@ -1,4 +1,5 @@
 use crate::{bot::BotDefinition, utils, utils::create_play_animation_state};
+use fyrox::animation::RootMotionSettings;
 use fyrox::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
@@ -47,6 +48,7 @@ impl LowerBodyMachine {
         definition: &BotDefinition,
         model: Handle<Node>,
         animation_player: Handle<Node>,
+        hips: Handle<Node>,
         scene: &mut Scene,
     ) -> Self {
         let (
@@ -116,7 +118,17 @@ impl LowerBodyMachine {
             .set_enabled(false)
             .set_speed(1.0);
 
-        animations_container[walk_animation]
+        let walk_animation_ref = &mut animations_container[walk_animation];
+
+        walk_animation_ref.set_root_motion_settings(Some(RootMotionSettings {
+            node: hips,
+            ignore_x_movement: false,
+            ignore_y_movement: true,
+            ignore_z_movement: false,
+            ignore_rotations: true,
+        }));
+
+        walk_animation_ref
             .add_signal(AnimationSignal {
                 id: Self::STEP_SIGNAL,
                 name: "Step1".to_string(),

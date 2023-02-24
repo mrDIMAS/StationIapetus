@@ -20,7 +20,7 @@
             ],
             scream_animation: "data/models/mutant/animations/scream.fbx",
             idle_animation: "data/models/mutant/animations/idle.fbx",
-            walk_animation: "data/models/mutant/animations/walk.fbx",
+            walk_animation: "data/models/mutant/animations/run.fbx",
             aim_animation: "", // Empty because cannot use weapons.
             dying_animation: "data/models/mutant/animations/dying.fbx",
             weapon_hand_name: "mixamorig:RightHand",

@@ -99,8 +99,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        let look_dir =
-            ctx.target.clone().unwrap().position - ctx.character.position(&ctx.scene.graph);
+        let look_dir = ctx.agent.target() - ctx.character.position(&ctx.scene.graph);
 
         let aimed_horizontally =
             self.aim_horizontally(look_dir, ctx.scene, ctx.model, ctx.dt, ctx.character.body);

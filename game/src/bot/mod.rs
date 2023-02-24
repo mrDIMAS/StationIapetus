@@ -362,11 +362,19 @@ impl ScriptTrait for Bot {
     fn on_init(&mut self, context: &mut ScriptContext) {
         self.definition = Self::get_definition(self.kind);
 
+        let hips = context
+            .scene
+            .graph
+            .find_by_name(context.handle, &self.definition.hips)
+            .map(|(h, _)| h)
+            .unwrap_or_default();
+
         self.lower_body_machine = block_on(LowerBodyMachine::new(
             context.resource_manager.clone(),
             self.definition,
             self.model,
             self.animation_player,
+            hips,
             context.scene,
         ));
         self.upper_body_machine = block_on(UpperBodyMachine::new(
