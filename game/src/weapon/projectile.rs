@@ -1,3 +1,4 @@
+use crate::character::DamagePosition;
 use crate::{
     character::{
         character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
@@ -370,6 +371,8 @@ impl ScriptTrait for Projectile {
 
         let position = ctx.scene.graph[ctx.handle].global_position();
 
+        let direction = position - self.last_position;
+
         let mut hit = None;
 
         if self.use_ray_casting {
@@ -468,6 +471,10 @@ impl ScriptTrait for Projectile {
                                     /// TODO: Maybe collect all hitboxes?
                                     amount,
                                     critical_hit_probability: self.critical_hit_probability,
+                                    position: Some(DamagePosition {
+                                        point: hit.position,
+                                        direction,
+                                    }),
                                 },
                             });
                         }
@@ -483,6 +490,10 @@ impl ScriptTrait for Projectile {
                             hitbox: hit.hit_box,
                             amount,
                             critical_hit_probability: self.critical_hit_probability,
+                            position: Some(DamagePosition {
+                                point: hit.position,
+                                direction,
+                            }),
                         },
                     });
                 }

@@ -51,6 +51,12 @@ impl DamageDealer {
     }
 }
 
+#[derive(Clone, Copy)]
+pub struct DamagePosition {
+    pub point: Vector3<f32>,
+    pub direction: Vector3<f32>,
+}
+
 pub enum CharacterMessageData {
     BeganAiming,
     EndedAiming,
@@ -64,6 +70,7 @@ pub enum CharacterMessageData {
         amount: f32,
         /// Only takes effect iff damage was applied to a head hit box!
         critical_hit_probability: f32,
+        position: Option<DamagePosition>,
     },
     SelectWeapon(WeaponKind),
     AddWeapon(WeaponKind),
@@ -71,11 +78,6 @@ pub enum CharacterMessageData {
     DropItems {
         item: ItemKind,
         count: u32,
-    },
-    HandleImpact {
-        handle: Handle<Node>,
-        impact_point: Vector3<f32>,
-        direction: Vector3<f32>,
     },
 }
 

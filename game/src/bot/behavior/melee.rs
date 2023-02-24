@@ -103,6 +103,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                                 .damage
                                 .amount(),
                             critical_hit_probability: 0.0,
+                            position: None,
                         },
                     });
 

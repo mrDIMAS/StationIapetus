@@ -40,6 +40,7 @@ impl ScriptTrait for DeathZone {
                         hitbox: None,
                         amount: 99999.0,
                         critical_hit_probability: 0.0,
+                        position: None,
                     },
                 })
             }

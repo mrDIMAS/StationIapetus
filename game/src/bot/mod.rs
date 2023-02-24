@@ -457,6 +457,7 @@ impl ScriptTrait for Bot {
                     amount,
                     hitbox,
                     critical_hit_probability: critical_shot_probability,
+                    position,
                 } => {
                     if let Some((character_handle, character)) =
                         dealer.as_character(&ctx.scene.graph)
@@ -474,6 +475,15 @@ impl ScriptTrait for Bot {
                             self.damage(amount * 1000.0);
 
                             self.blow_up_head(&mut ctx.scene.graph);
+                        }
+
+                        if let Some(position) = position {
+                            self.impact_handler.handle_impact(
+                                ctx.scene,
+                                hitbox.bone,
+                                position.point,
+                                position.direction,
+                            );
                         }
                     }
 
@@ -497,14 +507,6 @@ impl ScriptTrait for Bot {
                             );
                         }
                     }
-                }
-                CharacterMessageData::HandleImpact {
-                    handle,
-                    impact_point,
-                    direction,
-                } => {
-                    self.impact_handler
-                        .handle_impact(ctx.scene, handle, impact_point, direction);
                 }
                 _ => (),
             }
