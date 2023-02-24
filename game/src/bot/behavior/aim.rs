@@ -32,12 +32,12 @@ impl Default for AimOnTarget {
             yaw: SmoothAngle {
                 angle: f32::NAN, // Nan means undefined.
                 target: 0.0,
-                speed: 180.0f32.to_radians(),
+                speed: 270.0f32.to_radians(),
             },
             pitch: SmoothAngle {
                 angle: 0.0,
                 target: 0.0,
-                speed: 180.0f32.to_radians(),
+                speed: 270.0f32.to_radians(),
             },
             spine: Default::default(),
         }
