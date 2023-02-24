@@ -56,8 +56,6 @@ impl<'a> Behavior<'a> for MoveToTarget {
         let body = ctx.scene.graph[ctx.character.body].as_rigid_body_mut();
         let position = body.global_position();
 
-        *ctx.target_move_speed = ctx.definition.walk_speed * ctx.movement_speed_factor;
-
         ctx.agent.set_speed(ctx.move_speed);
         let navmesh = ctx.scene.navmeshes.iter_mut().next().unwrap();
         ctx.agent.set_position(position);

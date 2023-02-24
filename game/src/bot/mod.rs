@@ -132,8 +132,6 @@ pub struct Bot {
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
     spine: Handle<Node>,
-    move_speed: f32,
-    target_move_speed: f32,
     threaten_timeout: f32,
     #[visit(optional)]
     animation_player: Handle<Node>,
@@ -174,8 +172,6 @@ impl Default for Bot {
             v_recoil: Default::default(),
             h_recoil: Default::default(),
             spine: Default::default(),
-            move_speed: 0.0,
-            target_move_speed: 0.0,
             threaten_timeout: 0.0,
             animation_player: Default::default(),
         }
@@ -554,8 +550,7 @@ impl ScriptTrait for Bot {
                 restoration_time: self.restoration_time,
                 v_recoil: &mut self.v_recoil,
                 h_recoil: &mut self.h_recoil,
-                target_move_speed: &mut self.target_move_speed,
-                move_speed: self.move_speed,
+                move_speed: self.definition.walk_speed,
                 threaten_timeout: &mut self.threaten_timeout,
                 sound_manager: &level.sound_manager,
                 script_message_sender: ctx.message_sender,
@@ -581,7 +576,6 @@ impl ScriptTrait for Bot {
         }
 
         self.restoration_time -= ctx.dt;
-        self.move_speed += (self.target_move_speed - self.move_speed) * 0.1;
         self.threaten_timeout -= ctx.dt;
 
         self.check_doors(ctx.scene, &level.doors_container);

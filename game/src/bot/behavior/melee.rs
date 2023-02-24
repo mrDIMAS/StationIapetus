@@ -48,6 +48,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
         {
             // HACK: setting this to false messes up animation, so set speed to 0.0.
             attack_animation.set_enabled(true).set_speed(0.0).rewind();
+            attack_animation.events_mut().clear();
 
             self.attack_animation_index = fyrox::core::rand::thread_rng()
                 .gen_range(0..context.upper_body_machine.attack_animations.len())
@@ -79,15 +80,16 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
         // Apply damage to target from melee attack
         if let Some(target) = context.target.as_ref() {
             while let Some(event) = attack_animation_events.pop_front() {
+                let active_state = context
+                    .upper_body_machine
+                    .machine
+                    .layers()
+                    .first()
+                    .unwrap()
+                    .active_state();
+
                 if event.signal_id == UpperBodyMachine::HIT_SIGNAL
-                    && context
-                        .upper_body_machine
-                        .machine
-                        .layers()
-                        .first()
-                        .unwrap()
-                        .active_state()
-                        == context.upper_body_machine.attack_state
+                    && active_state == context.upper_body_machine.attack_state
                     && !can_shoot(context.upper_body_machine, context.definition)
                 {
                     context.script_message_sender.send_global(CharacterMessage {

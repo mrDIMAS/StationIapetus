@@ -388,9 +388,11 @@ impl UpperBodyMachine {
         let animations_container_ref =
             utils::fetch_animation_container_ref(&scene.graph, animations_player);
 
-        let attack_animation_ended = animations_container_ref
-            [self.attack_animations[input.attack_animation_index as usize]]
-            .has_ended();
+        let attack_animation = &animations_container_ref
+            [self.attack_animations[input.attack_animation_index as usize]];
+        let attack_animation_ended = attack_animation.has_ended()
+            || !attack_animation.is_enabled()
+            || attack_animation.speed() == 0.0;
 
         self.machine
             .set_parameter(
