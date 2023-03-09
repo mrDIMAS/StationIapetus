@@ -172,6 +172,19 @@ impl DeathScreen {
         }
     }
 
+    pub fn resize(&self, ui: &UserInterface, width: f32, height: f32) {
+        ui.send_message(WidgetMessage::width(
+            self.root,
+            MessageDirection::ToWidget,
+            width,
+        ));
+        ui.send_message(WidgetMessage::height(
+            self.root,
+            MessageDirection::ToWidget,
+            height,
+        ));
+    }
+
     pub fn handle_ui_message(&mut self, message: &UiMessage) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {

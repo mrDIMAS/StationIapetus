@@ -1,4 +1,5 @@
 use crate::control_scheme::ControlScheme;
+use fyrox::engine::GraphicsContext;
 use fyrox::{plugin::PluginContext, renderer::QualitySettings};
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
@@ -33,6 +34,7 @@ pub struct Config {
 pub enum ConfigError {
     Io(std::io::Error),
     Ron(ron::Error),
+    Custom(String),
 }
 
 impl From<std::io::Error> for ConfigError {
@@ -61,14 +63,19 @@ impl Config {
         sound_config: SoundConfig,
         show_debug_info: bool,
     ) -> Result<(), ConfigError> {
-        let config = Self {
-            graphics_settings: context.renderer.get_quality_settings(),
-            controls: control_scheme,
-            sound: sound_config,
-            show_debug_info,
-        };
-        let file = File::create(Self::PATH)?;
-        ron::ser::to_writer_pretty(file, &config, PrettyConfig::default())?;
-        Ok(())
+        if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+            let config = Self {
+                graphics_settings: graphics_context.renderer.get_quality_settings(),
+                controls: control_scheme,
+                sound: sound_config,
+                show_debug_info,
+            };
+            let file = File::create(Self::PATH)?;
+            ron::ser::to_writer_pretty(file, &config, PrettyConfig::default())?;
+
+            Ok(())
+        } else {
+            Err(ConfigError::Custom("No graphics context!".to_string()))
+        }
     }
 }

@@ -2,6 +2,7 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, MessageSender,
 };
+use fyrox::engine::InitializedGraphicsContext;
 use fyrox::{
     core::{color::Color, pool::Handle},
     event::{Event, WindowEvent},
@@ -83,8 +84,6 @@ impl Menu {
         show_debug_info: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let frame_size = context.renderer.get_frame_size();
-
         let scene = MenuScene::new(context, sound_config).await;
 
         let ctx = &mut context.user_interface.build_ctx();
@@ -97,8 +96,8 @@ impl Menu {
         let btn_quit_game;
         let root: Handle<UiNode> = GridBuilder::new(
             WidgetBuilder::new()
-                .with_width(frame_size.0 as f32)
-                .with_height(frame_size.1 as f32)
+                .with_width(100.0)
+                .with_height(100.0)
                 .with_child({
                     btn_load_test_bed = ButtonBuilder::new(
                         WidgetBuilder::new()
@@ -233,6 +232,15 @@ impl Menu {
                 MessageDirection::ToWidget,
             ));
         }
+    }
+
+    pub fn on_graphics_context_initialized(
+        &mut self,
+        ui: &mut UserInterface,
+        graphics_context: &InitializedGraphicsContext,
+    ) {
+        self.options_menu
+            .update_video_mode_list(ui, graphics_context);
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {

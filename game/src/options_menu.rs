@@ -5,6 +5,8 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::engine::{GraphicsContext, InitializedGraphicsContext};
+use fyrox::gui::UserInterface;
 use fyrox::{
     core::{algebra::Vector2, pool::Handle},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
@@ -166,22 +168,9 @@ impl OptionsMenu {
         show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let video_modes: Vec<VideoMode> = if let Some(monitor) = engine.window.current_monitor() {
-            monitor
-                .video_modes()
-                .filter(|vm| {
-                    vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
-                })
-                .collect()
-        } else {
-            vec![]
-        };
-
         let ctx = &mut engine.user_interface.build_ctx();
 
         let common_row = Row::strict(36.0);
-
-        let settings = engine.renderer.get_quality_settings();
 
         let margin = Thickness::uniform(2.0);
 
@@ -224,36 +213,19 @@ impl OptionsMenu {
                                             .with_margin(margin),
                                     )
                                     .with_selected(0)
-                                    .with_items({
-                                        let mut modes =
-                                            vec![DecoratorBuilder::new(BorderBuilder::new(
-                                                WidgetBuilder::new().with_child(
-                                                    TextBuilder::new(WidgetBuilder::new())
-                                                        .with_text("Windowed")
-                                                        .build(ctx),
-                                                ),
-                                            ))
-                                            .build(ctx)];
-                                        modes.extend(video_modes.iter().map(|video_mode| {
-                                            make_video_mode_item(video_mode, ctx)
-                                        }));
-                                        modes
-                                    })
                                     .build(ctx);
                                     video_mode
                                 })
                                 // Spot Shadows Enabled
                                 .with_child(make_text_mark("Spot Shadows", 1, ctx))
                                 .with_child({
-                                    spot_shadows =
-                                        create_check_box(ctx, 1, 1, settings.spot_shadows_enabled);
+                                    spot_shadows = create_check_box(ctx, 1, 1, false);
                                     spot_shadows
                                 })
                                 // Soft Spot Shadows
                                 .with_child(make_text_mark("Soft Spot Shadows", 2, ctx))
                                 .with_child({
-                                    soft_spot_shadows =
-                                        create_check_box(ctx, 2, 1, settings.spot_soft_shadows);
+                                    soft_spot_shadows = create_check_box(ctx, 2, 1, false);
                                     soft_spot_shadows
                                 })
                                 // Spot Shadows Distance
@@ -264,7 +236,7 @@ impl OptionsMenu {
                                         ScrollBarData {
                                             min: 1.0,
                                             max: 15.0,
-                                            value: settings.spot_shadows_distance,
+                                            value: 0.0,
                                             step: 0.25,
                                             row: 3,
                                             column: 1,
@@ -278,15 +250,13 @@ impl OptionsMenu {
                                 // Point Shadows Enabled
                                 .with_child(make_text_mark("Point Shadows", 4, ctx))
                                 .with_child({
-                                    point_shadows =
-                                        create_check_box(ctx, 4, 1, settings.point_shadows_enabled);
+                                    point_shadows = create_check_box(ctx, 4, 1, false);
                                     point_shadows
                                 })
                                 // Soft Point Shadows
                                 .with_child(make_text_mark("Soft Point Shadows", 5, ctx))
                                 .with_child({
-                                    soft_point_shadows =
-                                        create_check_box(ctx, 5, 1, settings.point_soft_shadows);
+                                    soft_point_shadows = create_check_box(ctx, 5, 1, false);
                                     soft_point_shadows
                                 })
                                 // Point Shadows Distance
@@ -297,7 +267,7 @@ impl OptionsMenu {
                                         ScrollBarData {
                                             min: 1.0,
                                             max: 15.0,
-                                            value: settings.point_shadows_distance,
+                                            value: 0.0,
                                             step: 0.25,
                                             row: 6,
                                             column: 1,
@@ -310,36 +280,29 @@ impl OptionsMenu {
                                 })
                                 .with_child(make_text_mark("Use Light Scatter", 7, ctx))
                                 .with_child({
-                                    use_light_scatter =
-                                        create_check_box(ctx, 7, 1, settings.light_scatter_enabled);
+                                    use_light_scatter = create_check_box(ctx, 7, 1, false);
                                     use_light_scatter
                                 })
                                 .with_child(make_text_mark("FXAA", 8, ctx))
                                 .with_child({
-                                    fxaa = create_check_box(ctx, 8, 1, settings.fxaa);
+                                    fxaa = create_check_box(ctx, 8, 1, false);
                                     fxaa
                                 })
                                 .with_child(make_text_mark("SSAO", 9, ctx))
                                 .with_child({
-                                    ssao = create_check_box(ctx, 9, 1, settings.fxaa);
+                                    ssao = create_check_box(ctx, 9, 1, false);
                                     ssao
                                 })
                                 .with_child(make_text_mark("Point Shadows Quality", 10, ctx))
                                 .with_child({
-                                    point_shadows_quality = make_shadows_quality_drop_down(
-                                        ctx,
-                                        10,
-                                        shadows_quality(settings.point_shadow_map_size),
-                                    );
+                                    point_shadows_quality =
+                                        make_shadows_quality_drop_down(ctx, 10, shadows_quality(0));
                                     point_shadows_quality
                                 })
                                 .with_child(make_text_mark("Spot Shadows Quality", 11, ctx))
                                 .with_child({
-                                    spot_shadows_quality = make_shadows_quality_drop_down(
-                                        ctx,
-                                        11,
-                                        shadows_quality(settings.spot_shadow_map_size),
-                                    );
+                                    spot_shadows_quality =
+                                        make_shadows_quality_drop_down(ctx, 11, shadows_quality(0));
                                     spot_shadows_quality
                                 })
                                 .with_child(make_text_mark("Show Debug Info", 12, ctx))
@@ -548,7 +511,7 @@ impl OptionsMenu {
             soft_point_shadows,
             point_shadow_distance,
             spot_shadow_distance,
-            available_video_modes: video_modes,
+            available_video_modes: Default::default(),
             control_scheme_buttons,
             active_control_button: None,
             mouse_sens,
@@ -573,7 +536,6 @@ impl OptionsMenu {
         sound_config: &SoundConfig,
     ) {
         let ui = &mut engine.user_interface;
-        let settings = engine.renderer.get_quality_settings();
 
         let sync_check_box = |handle: Handle<UiNode>, value: bool| {
             ui.send_message(CheckBoxMessage::checked(
@@ -582,16 +544,6 @@ impl OptionsMenu {
                 Some(value),
             ));
         };
-        sync_check_box(self.spot_shadows, settings.spot_shadows_enabled);
-        sync_check_box(self.soft_spot_shadows, settings.spot_soft_shadows);
-        sync_check_box(self.point_shadows, settings.point_shadows_enabled);
-        sync_check_box(self.soft_point_shadows, settings.point_soft_shadows);
-        sync_check_box(self.use_light_scatter, settings.light_scatter_enabled);
-        sync_check_box(self.ssao, settings.use_ssao);
-        sync_check_box(self.fxaa, settings.fxaa);
-        sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
-        sync_check_box(self.use_hrtf, sound_config.use_hrtf);
-        sync_check_box(self.show_debug_info, show_debug_info);
 
         let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
             ui.send_message(ScrollBarMessage::value(
@@ -600,8 +552,26 @@ impl OptionsMenu {
                 value,
             ));
         };
-        sync_scroll_bar(self.point_shadow_distance, settings.point_shadows_distance);
-        sync_scroll_bar(self.spot_shadow_distance, settings.spot_shadows_distance);
+
+        if let GraphicsContext::Initialized(ref graphics_context) = engine.graphics_context {
+            let settings = graphics_context.renderer.get_quality_settings();
+
+            sync_check_box(self.spot_shadows, settings.spot_shadows_enabled);
+            sync_check_box(self.soft_spot_shadows, settings.spot_soft_shadows);
+            sync_check_box(self.point_shadows, settings.point_shadows_enabled);
+            sync_check_box(self.soft_point_shadows, settings.point_soft_shadows);
+            sync_check_box(self.use_light_scatter, settings.light_scatter_enabled);
+            sync_check_box(self.ssao, settings.use_ssao);
+            sync_check_box(self.fxaa, settings.fxaa);
+
+            sync_scroll_bar(self.point_shadow_distance, settings.point_shadows_distance);
+            sync_scroll_bar(self.spot_shadow_distance, settings.spot_shadows_distance);
+        }
+
+        sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
+        sync_check_box(self.use_hrtf, sound_config.use_hrtf);
+        sync_check_box(self.show_debug_info, show_debug_info);
+
         sync_scroll_bar(self.mouse_sens, control_scheme.mouse_sens);
         sync_scroll_bar(self.sound_volume, sound_config.master_volume);
         sync_scroll_bar(self.music_volume, sound_config.music_volume);
@@ -619,6 +589,47 @@ impl OptionsMenu {
                 ));
             }
         }
+    }
+
+    pub fn update_video_mode_list(
+        &mut self,
+        ui: &mut UserInterface,
+        graphics_context: &InitializedGraphicsContext,
+    ) {
+        let video_modes: Vec<VideoMode> =
+            if let Some(monitor) = graphics_context.window.current_monitor() {
+                monitor
+                    .video_modes()
+                    .filter(|vm| {
+                        vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
+                    })
+                    .collect()
+            } else {
+                vec![]
+            };
+
+        let ctx = &mut ui.build_ctx();
+        let mut modes = vec![DecoratorBuilder::new(BorderBuilder::new(
+            WidgetBuilder::new().with_child(
+                TextBuilder::new(WidgetBuilder::new())
+                    .with_text("Windowed")
+                    .build(ctx),
+            ),
+        ))
+        .build(ctx)];
+        modes.extend(
+            video_modes
+                .iter()
+                .map(|video_mode| make_video_mode_item(video_mode, ctx)),
+        );
+
+        ui.send_message(DropdownListMessage::items(
+            self.video_mode,
+            MessageDirection::ToWidget,
+            modes,
+        ));
+
+        self.available_video_modes = video_modes;
     }
 
     pub fn process_input_event(
@@ -692,7 +703,13 @@ impl OptionsMenu {
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
     ) {
-        let old_settings = context.renderer.get_quality_settings();
+        let old_settings =
+            if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+                graphics_context.renderer.get_quality_settings()
+            } else {
+                Default::default()
+            };
+
         let mut settings = old_settings;
 
         let mut changed = false;
@@ -718,15 +735,17 @@ impl OptionsMenu {
             }
         } else if let Some(DropdownListMessage::SelectionChanged(Some(index))) = message.data() {
             if message.destination() == self.video_mode {
-                // -1 here because we have Windowed item in the list.
-                if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
-                    context
-                        .window
-                        .set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
-                    changed = true;
-                } else {
-                    context.window.set_fullscreen(None);
-                    changed = true;
+                if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context
+                {
+                    let window = &graphics_context.window;
+                    // -1 here because we have Windowed item in the list.
+                    if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
+                        window.set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
+                        changed = true;
+                    } else {
+                        window.set_fullscreen(None);
+                        changed = true;
+                    }
                 }
             } else if message.destination() == self.spot_shadows_quality {
                 settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
@@ -804,11 +823,14 @@ impl OptionsMenu {
         }
 
         if settings != old_settings {
-            if let Err(err) = context.renderer.set_quality_settings(&settings) {
-                Log::writeln(
-                    MessageKind::Error,
-                    format!("Failed to set renderer quality settings! Reason: {err:?}"),
-                );
+            if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context
+            {
+                if let Err(err) = graphics_context.renderer.set_quality_settings(&settings) {
+                    Log::writeln(
+                        MessageKind::Error,
+                        format!("Failed to set renderer quality settings! Reason: {err:?}"),
+                    );
+                }
             }
         }
 

@@ -44,6 +44,8 @@ use crate::{
     utils::use_hrtf,
     weapon::{projectile::Projectile, sight::LaserSight, Weapon},
 };
+use fyrox::engine::GraphicsContext;
+use fyrox::gui::UserInterface;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -168,15 +170,6 @@ impl MessageSender {
 
 impl Game {
     pub fn new(override_scene: Handle<Scene>, mut context: PluginContext) -> Self {
-        let inner_size = if let Some(primary_monitor) = context.window.primary_monitor() {
-            let mut monitor_dimensions = primary_monitor.size();
-            monitor_dimensions.height = (monitor_dimensions.height as f32 * 0.7) as u32;
-            monitor_dimensions.width = (monitor_dimensions.width as f32 * 0.7) as u32;
-            monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor())
-        } else {
-            LogicalSize::new(1024.0, 768.0)
-        };
-
         let font = SharedFont::new(
             fyrox::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
@@ -195,10 +188,6 @@ impl Game {
             .unwrap(),
         );
 
-        context.window.set_title("Station Iapetus");
-        context.window.set_resizable(true);
-        context.window.set_inner_size(inner_size);
-
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();
         let mut show_debug_info = false;
@@ -207,17 +196,6 @@ impl Game {
             Ok(config) => {
                 show_debug_info = config.show_debug_info;
                 sound_config = config.sound;
-
-                match context
-                    .renderer
-                    .set_quality_settings(&config.graphics_settings)
-                {
-                    Ok(_) => {
-                        Log::warn("Graphics settings were applied correctly!");
-                    }
-                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {e:?}")),
-                }
-
                 control_scheme = config.controls;
             }
             Err(e) => {
@@ -254,11 +232,7 @@ impl Game {
 
         let mut game = Game {
             show_debug_info,
-            loading_screen: LoadingScreen::new(
-                &mut context.user_interface.build_ctx(),
-                inner_size.width,
-                inner_size.height,
-            ),
+            loading_screen: LoadingScreen::new(&mut context.user_interface.build_ctx()),
             running: true,
             menu: fyrox::core::futures::executor::block_on(Menu::new(
                 &mut context,
@@ -328,28 +302,32 @@ impl Game {
     }
 
     fn render_offscreen(&mut self, context: &mut PluginContext) {
-        Log::verify(context.renderer.render_ui_to_texture(
-            self.weapon_display.render_target.clone(),
-            &mut self.weapon_display.ui,
-        ));
+        if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
+            let renderer = &mut graphics_context.renderer;
 
-        Log::verify(context.renderer.render_ui_to_texture(
-            self.inventory_interface.render_target.clone(),
-            &mut self.inventory_interface.ui,
-        ));
+            Log::verify(renderer.render_ui_to_texture(
+                self.weapon_display.render_target.clone(),
+                &mut self.weapon_display.ui,
+            ));
 
-        Log::verify(context.renderer.render_ui_to_texture(
-            self.item_display.render_target.clone(),
-            &mut self.item_display.ui,
-        ));
+            Log::verify(renderer.render_ui_to_texture(
+                self.inventory_interface.render_target.clone(),
+                &mut self.inventory_interface.ui,
+            ));
 
-        Log::verify(context.renderer.render_ui_to_texture(
-            self.journal_display.render_target.clone(),
-            &mut self.journal_display.ui,
-        ));
+            Log::verify(renderer.render_ui_to_texture(
+                self.item_display.render_target.clone(),
+                &mut self.item_display.ui,
+            ));
 
-        self.door_ui_container.render(context.renderer);
-        self.call_button_ui_container.render(context.renderer);
+            Log::verify(renderer.render_ui_to_texture(
+                self.journal_display.render_target.clone(),
+                &mut self.journal_display.ui,
+            ));
+
+            self.door_ui_container.render(renderer);
+            self.call_button_ui_container.render(renderer);
+        }
     }
 
     fn debug_render(&mut self, context: &mut PluginContext) {
@@ -476,23 +454,24 @@ impl Game {
         self.menu.set_visible(context, visible);
     }
 
-    pub fn is_any_menu_visible(&self, context: &mut PluginContext) -> bool {
+    pub fn is_any_menu_visible(&self, context: &PluginContext) -> bool {
         self.menu.is_visible(context.user_interface)
             || self.death_screen.is_visible(context.user_interface)
             || self.final_screen.is_visible(context.user_interface)
     }
 
     pub fn update(&mut self, ctx: &mut PluginContext) {
-        let window = ctx.window;
+        if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+            let window = &graphics_context.window;
+            window.set_cursor_visible(self.is_any_menu_visible(ctx));
+            let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
+                CursorGrabMode::Confined
+            } else {
+                CursorGrabMode::None
+            });
+        }
 
         self.render_offscreen(ctx);
-
-        window.set_cursor_visible(self.is_any_menu_visible(ctx));
-        let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
-            CursorGrabMode::Confined
-        } else {
-            CursorGrabMode::None
-        });
 
         if let Some(load_context) = self.load_context.clone() {
             if let Some(mut load_context) = load_context.try_lock() {
@@ -676,37 +655,39 @@ impl Game {
     }
 
     pub fn update_statistics(&mut self, elapsed: f64, context: &mut PluginContext) {
-        if self.show_debug_info {
-            self.debug_string.clear();
-            use std::fmt::Write;
-            write!(
-                self.debug_string,
-                "Up time: {:.1}\n{}{}\n{}",
-                elapsed,
-                context.renderer.get_statistics(),
-                if let Some(level) = self.level.as_ref() {
-                    context.scenes[level.scene].performance_statistics.clone()
-                } else {
-                    Default::default()
-                },
-                context.performance_statistics,
-            )
-            .unwrap();
+        let ui = &mut *context.user_interface;
 
-            context.user_interface.send_message(TextMessage::text(
-                self.debug_text,
-                MessageDirection::ToWidget,
-                self.debug_string.clone(),
-            ));
+        if self.show_debug_info {
+            if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+                self.debug_string.clear();
+                use std::fmt::Write;
+                write!(
+                    self.debug_string,
+                    "Up time: {:.1}\n{}{}\n{}",
+                    elapsed,
+                    graphics_context.renderer.get_statistics(),
+                    if let Some(level) = self.level.as_ref() {
+                        context.scenes[level.scene].performance_statistics.clone()
+                    } else {
+                        Default::default()
+                    },
+                    context.performance_statistics,
+                )
+                .unwrap();
+
+                ui.send_message(TextMessage::text(
+                    self.debug_text,
+                    MessageDirection::ToWidget,
+                    self.debug_string.clone(),
+                ));
+            }
         }
 
-        context
-            .user_interface
-            .send_message(WidgetMessage::visibility(
-                self.debug_text,
-                MessageDirection::ToWidget,
-                self.show_debug_info,
-            ));
+        ui.send_message(WidgetMessage::visibility(
+            self.debug_text,
+            MessageDirection::ToWidget,
+            self.show_debug_info,
+        ));
     }
 
     fn process_dispatched_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
@@ -734,6 +715,11 @@ impl Game {
                 }
             }
         }
+    }
+
+    pub fn on_window_resized(&mut self, ui: &UserInterface, width: f32, height: f32) {
+        self.loading_screen.resize(ui, width, height);
+        self.death_screen.resize(ui, width, height);
     }
 
     pub fn process_input_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
@@ -802,43 +788,75 @@ impl Plugin for Game {
         }
     }
 
+    fn on_graphics_context_initialized(
+        &mut self,
+        mut context: PluginContext,
+        _control_flow: &mut ControlFlow,
+    ) {
+        let graphics_context = context.graphics_context.as_initialized_mut();
+
+        let inner_size = if let Some(primary_monitor) = graphics_context.window.primary_monitor() {
+            let mut monitor_dimensions = primary_monitor.size();
+            monitor_dimensions.height = (monitor_dimensions.height as f32 * 0.7) as u32;
+            monitor_dimensions.width = (monitor_dimensions.width as f32 * 0.7) as u32;
+            monitor_dimensions.to_logical::<f32>(primary_monitor.scale_factor())
+        } else {
+            LogicalSize::new(1024.0, 768.0)
+        };
+
+        let window = &graphics_context.window;
+        window.set_title("Station Iapetus");
+        window.set_resizable(true);
+        window.set_inner_size(inner_size);
+
+        // Re-load config here as well.
+        match Config::load() {
+            Ok(config) => {
+                match graphics_context
+                    .renderer
+                    .set_quality_settings(&config.graphics_settings)
+                {
+                    Ok(_) => {
+                        Log::warn("Graphics settings were applied correctly!");
+                    }
+                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {e:?}")),
+                }
+            }
+            Err(e) => {
+                Log::writeln(
+                    MessageKind::Error,
+                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
+                );
+            }
+        }
+
+        self.menu
+            .on_graphics_context_initialized(context.user_interface, graphics_context);
+
+        self.on_window_resized(context.user_interface, inner_size.width, inner_size.height);
+
+        self.menu.sync_to_model(&mut context, self.level.is_some());
+    }
+
     fn on_os_event(
         &mut self,
         event: &Event<()>,
-        mut context: PluginContext,
+        mut ctx: PluginContext,
         control_flow: &mut ControlFlow,
     ) {
-        self.process_input_event(event, &mut context);
+        self.process_input_event(event, &mut ctx);
 
         if let Event::WindowEvent { event, .. } = event {
             match event {
                 WindowEvent::CloseRequested => {
-                    self.destroy_level(&mut context);
+                    self.destroy_level(&mut ctx);
                     *control_flow = ControlFlow::Exit
                 }
-                WindowEvent::Resized(new_size) => {
-                    context.user_interface.send_message(WidgetMessage::width(
-                        self.loading_screen.root,
-                        MessageDirection::ToWidget,
-                        new_size.width as f32,
-                    ));
-                    context.user_interface.send_message(WidgetMessage::height(
-                        self.loading_screen.root,
-                        MessageDirection::ToWidget,
-                        new_size.height as f32,
-                    ));
-
-                    context.user_interface.send_message(WidgetMessage::width(
-                        self.death_screen.root,
-                        MessageDirection::ToWidget,
-                        new_size.width as f32,
-                    ));
-                    context.user_interface.send_message(WidgetMessage::height(
-                        self.death_screen.root,
-                        MessageDirection::ToWidget,
-                        new_size.height as f32,
-                    ));
-                }
+                WindowEvent::Resized(new_size) => self.on_window_resized(
+                    ctx.user_interface,
+                    new_size.width as f32,
+                    new_size.height as f32,
+                ),
                 _ => (),
             }
         }
