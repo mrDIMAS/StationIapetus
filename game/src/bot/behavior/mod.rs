@@ -107,6 +107,7 @@ pub struct BehaviorContext<'a> {
     pub sound_manager: &'a SoundManager,
     pub animation_player: Handle<Node>,
     pub script_message_sender: &'a ScriptMessageSender,
+    pub navmesh: Handle<Node>,
 
     // Output
     pub attack_animation_index: usize,

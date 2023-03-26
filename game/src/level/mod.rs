@@ -2,6 +2,7 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
+use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
     core::{math::PositionProvider, pool::Handle, visitor::prelude::*},
     engine::resource_manager::ResourceManager,
@@ -26,6 +27,7 @@ pub struct Level {
     pub items: ItemContainer,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
+    pub navmesh: Handle<Node>,
 
     #[visit(skip)]
     pub sound_manager: SoundManager,
@@ -59,7 +61,14 @@ impl Level {
             .graph
             .update(Default::default(), 0.0, Default::default());
 
+        let navmesh = scene
+            .graph
+            .find_from_root(&mut |n| n.cast::<NavigationalMesh>().is_some())
+            .map(|t| t.0)
+            .unwrap_or_default();
+
         Self {
+            navmesh,
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
@@ -102,7 +111,14 @@ impl Level {
             .graph
             .update(Default::default(), 0.0, Default::default());
 
+        let navmesh = scene
+            .graph
+            .find_from_root(&mut |n| n.cast::<NavigationalMesh>().is_some())
+            .map(|t| t.0)
+            .unwrap_or_default();
+
         let level = Self {
+            navmesh,
             player: Default::default(),
             actors: Default::default(),
             items: Default::default(),
@@ -144,7 +160,12 @@ impl Level {
 
         scene.graph.physics.draw(drawing_context);
 
-        for navmesh in scene.navmeshes.iter() {
+        if let Some(navmesh) = scene
+            .graph
+            .try_get_of_type::<NavigationalMesh>(self.navmesh)
+        {
+            let navmesh = navmesh.navmesh_ref();
+
             for pt in navmesh.vertices() {
                 for neighbour in pt.neighbours() {
                     drawing_context.add_line(scene::debug::Line {

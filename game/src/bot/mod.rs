@@ -554,6 +554,7 @@ impl ScriptTrait for Bot {
                 threaten_timeout: &mut self.threaten_timeout,
                 sound_manager: &level.sound_manager,
                 script_message_sender: ctx.message_sender,
+                navmesh: level.navmesh,
 
                 // Output
                 animation_player: self.animation_player,

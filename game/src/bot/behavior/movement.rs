@@ -4,6 +4,7 @@ use crate::{
     utils,
     utils::BodyImpactHandler,
 };
+use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     scene::{node::Node, Scene},
@@ -53,16 +54,25 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let transform = &ctx.scene.graph[ctx.model].global_transform();
 
-        let body = ctx.scene.graph[ctx.character.body].as_rigid_body_mut();
+        let mut multiborrow_context = ctx.scene.graph.begin_multi_borrow::<2>();
+
+        let body = multiborrow_context
+            .try_get(ctx.character.body)
+            .unwrap()
+            .as_rigid_body_mut();
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        let navmesh = ctx.scene.navmeshes.iter_mut().next().unwrap();
-        ctx.agent.set_position(position);
+        if let Some(navmesh) = multiborrow_context
+            .try_get(ctx.navmesh)
+            .and_then(|n| n.cast_mut::<NavigationalMesh>())
+        {
+            ctx.agent.set_position(position);
 
-        if let Some(target) = ctx.target.as_ref() {
-            ctx.agent.set_target(target.position);
-            let _ = ctx.agent.update(ctx.dt, navmesh);
+            if let Some(target) = ctx.target.as_ref() {
+                ctx.agent.set_target(target.position);
+                let _ = ctx.agent.update(ctx.dt, navmesh.navmesh_mut());
+            }
         }
 
         let has_reached_destination =
