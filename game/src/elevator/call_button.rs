@@ -1,21 +1,19 @@
 use crate::{elevator::Elevator, game_mut};
+use fyrox::resource::texture::TextureResource;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     material::{Material, PropertyValue, SharedMaterial},
     resource::texture::Texture,
-    scene::{
-        graph::Graph,
-        mesh::Mesh,
-        node::{Node, TypeUuidProvider},
-    },
+    scene::{graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptTrait},
     utils::log::Log,
 };
@@ -46,7 +44,7 @@ impl CallButton {
         self_handle: Handle<Node>,
         graph: &mut Graph,
         resource_manager: ResourceManager,
-        texture: Texture,
+        texture: TextureResource,
     ) {
         let screens = graph
             .traverse_handle_iter(self_handle)
@@ -68,7 +66,9 @@ impl CallButton {
                 Log::verify(material.set_property(
                     &ImmutableString::new("emissionTexture"),
                     PropertyValue::Sampler {
-                        value: Some(resource_manager.request_texture("data/ui/white_pixel.bmp")),
+                        value: Some(
+                            resource_manager.request::<Texture, _>("data/ui/white_pixel.bmp"),
+                        ),
                         fallback: Default::default(),
                     },
                 ));

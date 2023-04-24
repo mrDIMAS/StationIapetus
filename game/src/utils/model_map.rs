@@ -1,8 +1,9 @@
-use fyrox::{engine::resource_manager::ResourceManager, resource::model::Model};
+use fyrox::resource::model::ModelResource;
+use fyrox::{asset::manager::ResourceManager, resource::model::Model};
 use std::{collections::HashMap, ops::Index, path::Path};
 
 pub struct ModelMap {
-    pub map: HashMap<String, Model>,
+    pub map: HashMap<String, ModelResource>,
 }
 
 impl ModelMap {
@@ -15,14 +16,14 @@ impl ModelMap {
             map: fyrox::core::futures::future::join_all(
                 paths
                     .into_iter()
-                    .map(|path| resource_manager.request_model(path))
+                    .map(|path| resource_manager.request::<Model, _>(path))
                     .collect::<Vec<_>>(),
             )
             .await
             .into_iter()
             .map(|r| {
                 let resource = r.unwrap();
-                let key = resource.state().path().to_string_lossy().into_owned();
+                let key = resource.path().to_string_lossy().into_owned();
                 (key, resource)
             })
             .collect::<HashMap<_, _>>(),
@@ -31,7 +32,7 @@ impl ModelMap {
 }
 
 impl<T: AsRef<str>> Index<T> for ModelMap {
-    type Output = Model;
+    type Output = ModelResource;
 
     fn index(&self, index: T) -> &Self::Output {
         self.map.get(index.as_ref()).unwrap()

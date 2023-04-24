@@ -18,35 +18,32 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
-use fyrox::core::algebra::Vector2;
-use fyrox::core::math::Vector2Ext;
+use fyrox::resource::model::{Model, ModelResourceExtension};
+use fyrox::resource::texture::TextureResource;
 use fyrox::{
     animation::machine,
+    asset::manager::ResourceManager,
     core::{
-        algebra::{UnitQuaternion, Vector3},
+        algebra::{UnitQuaternion, Vector2, Vector3},
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
         math::SmoothAngle,
+        math::Vector2Ext,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
     resource::texture::Texture,
     scene::{
-        animation::absm::AnimationBlendingStateMachine,
-        base::BaseBuilder,
-        graph::Graph,
-        light::BaseLight,
-        node::{Node, TypeUuidProvider},
-        sprite::SpriteBuilder,
-        Scene,
+        animation::absm::AnimationBlendingStateMachine, base::BaseBuilder, graph::Graph,
+        light::BaseLight, node::Node, sprite::SpriteBuilder, Scene,
     },
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
@@ -298,7 +295,7 @@ impl Player {
         resource_manager: ResourceManager,
     ) -> Handle<Node> {
         let player = resource_manager
-            .request_model("data/models/agent/agent.rgs")
+            .request::<Model, _>("data/models/agent/agent.rgs")
             .await
             .unwrap()
             .instantiate(scene);
@@ -547,7 +544,8 @@ impl Player {
 
                 if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
                     if let Ok(grenade) = block_on(
-                        resource_manager.request_model("data/models/grenade/grenade_proj.rgs"),
+                        resource_manager
+                            .request::<Model, _>("data/models/grenade/grenade_proj.rgs"),
                     ) {
                         Projectile::spawn(
                             &grenade,
@@ -872,10 +870,10 @@ impl Player {
     pub fn resolve(
         &mut self,
         scene: &mut Scene,
-        display_texture: Texture,
-        inventory_texture: Texture,
-        item_texture: Texture,
-        journal_texture: Texture,
+        display_texture: TextureResource,
+        inventory_texture: TextureResource,
+        item_texture: TextureResource,
+        journal_texture: TextureResource,
     ) {
         Log::verify(
             scene.graph[self.weapon_display]

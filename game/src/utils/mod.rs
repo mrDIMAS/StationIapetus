@@ -11,7 +11,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     rand,
-    resource::model::Model,
+    resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         animation::AnimationPlayer,
         graph::Graph,
@@ -103,7 +103,7 @@ pub fn use_hrtf(context: &mut SoundContext) {
 }
 
 pub fn create_play_animation_state(
-    animation_resource: Model,
+    animation_resource: ModelResource,
     name: &str,
     layer: &mut MachineLayer,
     scene: &mut Scene,

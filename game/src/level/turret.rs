@@ -1,11 +1,10 @@
-use crate::weapon::projectile::Projectile;
 use crate::{
     character::{character_ref, try_get_character_ref},
     current_level_ref,
     sound::SoundManager,
+    weapon::projectile::Projectile,
     Player,
 };
-use fyrox::resource::model::Model;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -18,14 +17,16 @@ use fyrox::{
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
+        TypeUuidProvider,
     },
     impl_component_provider,
+    resource::model::ModelResource,
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
         debug::SceneDrawingContext,
         graph::physics::RayCastOptions,
         light::BaseLight,
-        node::{Node, TypeUuidProvider},
+        node::Node,
         Scene,
     },
     script::{ScriptContext, ScriptTrait},
@@ -286,7 +287,7 @@ pub struct Barrel {
     shoot_point: Handle<Node>,
 
     #[visit(optional)]
-    projectile: Option<Model>,
+    projectile: Option<ModelResource>,
 
     #[reflect(hidden)]
     initial_position: Vector3<f32>,
@@ -359,7 +360,8 @@ impl Turret {
         );
         let projection_matrix =
             Matrix4::new_perspective(16.0 / 9.0, 90.0f32.to_radians(), 0.1, 5.0);
-        self.frustum = Frustum::from(projection_matrix * view_matrix).unwrap();
+        self.frustum =
+            Frustum::from_view_projection_matrix(projection_matrix * view_matrix).unwrap();
     }
 
     fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {

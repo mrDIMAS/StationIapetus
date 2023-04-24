@@ -1,5 +1,8 @@
 use crate::{block_on, current_level_mut, weapon::definition::WeaponKind};
+use fyrox::resource::model::{Model, ModelResourceExtension};
+use fyrox::resource::texture::Texture;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, Vector3},
         color::Color,
@@ -8,18 +11,13 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     lazy_static::lazy_static,
     scene::{
-        base::BaseBuilder,
-        collider::ColliderShape,
-        graph::physics::RayCastOptions,
-        graph::Graph,
-        node::{Node, TypeUuidProvider},
-        sprite::SpriteBuilder,
-        Scene,
+        base::BaseBuilder, collider::ColliderShape, graph::physics::RayCastOptions, graph::Graph,
+        node::Node, sprite::SpriteBuilder, Scene,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
@@ -131,7 +129,7 @@ impl ScriptTrait for Item {
             .with_color(Color::from_rgba(255, 255, 255, 160))
             .with_texture(
                 ctx.resource_manager
-                    .request_texture("data/particles/star_09.png"),
+                    .request::<Texture, _>("data/particles/star_09.png"),
             )
             .build(&mut ctx.scene.graph);
 
@@ -244,9 +242,10 @@ impl Item {
             position
         };
 
-        let item = block_on(resource_manager.request_model(&Self::get_definition(kind).model))
-            .unwrap()
-            .instantiate(scene);
+        let item =
+            block_on(resource_manager.request::<Model, _>(&Self::get_definition(kind).model))
+                .unwrap()
+                .instantiate(scene);
 
         let item_ref = &mut scene.graph[item];
 

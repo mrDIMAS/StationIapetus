@@ -1,10 +1,11 @@
 use fyrox::gui::UserInterface;
+use fyrox::resource::texture::TextureResource;
 use fyrox::{core::pool::Handle, renderer::Renderer, resource::texture::Texture, utils::log::Log};
 use std::collections::HashMap;
 
 pub trait InteractiveUi {
     fn ui(&mut self) -> &mut UserInterface;
-    fn texture(&self) -> Texture;
+    fn texture(&self) -> TextureResource;
     fn update(&mut self, dt: f32);
 }
 
@@ -27,7 +28,7 @@ impl<T, U> UiContainer<T, U>
 where
     U: InteractiveUi,
 {
-    pub fn add(&mut self, entity_handle: Handle<T>, ui: U) -> Texture {
+    pub fn add(&mut self, entity_handle: Handle<T>, ui: U) -> TextureResource {
         let texture = ui.texture();
         self.map.insert(entity_handle, ui);
         texture

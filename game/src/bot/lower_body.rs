@@ -1,16 +1,17 @@
 use crate::{bot::BotDefinition, utils, utils::create_play_animation_state};
 use fyrox::animation::RootMotionSettings;
+use fyrox::resource::model::Model;
 use fyrox::{
     animation::{
         machine::{Machine, Parameter, State, Transition},
         Animation, AnimationSignal,
     },
+    asset::manager::ResourceManager,
     core::{
         pool::Handle,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
     scene::{node::Node, Scene},
 };
 
@@ -57,10 +58,10 @@ impl LowerBodyMachine {
             scream_animation_resource,
             dying_animation_resource,
         ) = fyrox::core::futures::join!(
-            resource_manager.request_model(&definition.idle_animation,),
-            resource_manager.request_model(&definition.walk_animation,),
-            resource_manager.request_model(&definition.scream_animation,),
-            resource_manager.request_model(&definition.dying_animation,),
+            resource_manager.request::<Model, _>(&definition.idle_animation,),
+            resource_manager.request::<Model, _>(&definition.walk_animation,),
+            resource_manager.request::<Model, _>(&definition.scream_animation,),
+            resource_manager.request::<Model, _>(&definition.dying_animation,),
         );
 
         let mut machine = Machine::new();

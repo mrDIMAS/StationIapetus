@@ -46,6 +46,8 @@ use crate::{
 };
 use fyrox::engine::GraphicsContext;
 use fyrox::gui::UserInterface;
+use fyrox::resource::texture::TextureResource;
+use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -143,7 +145,7 @@ pub struct LoadContext {
     level: Option<(Level, Scene)>,
 }
 
-pub fn create_display_material(display_texture: Texture) -> Arc<Mutex<Material>> {
+pub fn create_display_material(display_texture: TextureResource) -> Arc<Mutex<Material>> {
     let mut material = Material::standard();
 
     Log::verify(material.set_property(
@@ -371,8 +373,13 @@ impl Game {
         Log::info("Trying to load a save file...");
 
         let scene = block_on(
-            SceneLoader::load("Scene", context.serialization_context.clone(), &mut visitor)?
-                .finish(context.resource_manager.clone()),
+            SceneLoader::load(
+                "Scene",
+                context.serialization_context.clone(),
+                context.resource_manager.clone(),
+                &mut visitor,
+            )?
+            .finish(),
         );
 
         let mut level = Level::default();
@@ -639,7 +646,7 @@ impl Game {
                 }
                 Message::Play2DSound { path, gain } => {
                     if let Ok(buffer) = fyrox::core::futures::executor::block_on(
-                        context.resource_manager.request_sound_buffer(path),
+                        context.resource_manager.request::<SoundBuffer, _>(path),
                     ) {
                         let menu_scene = &mut context.scenes[self.menu.scene.scene];
                         SoundBuilder::new(BaseBuilder::new())

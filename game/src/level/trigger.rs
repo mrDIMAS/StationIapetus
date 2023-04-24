@@ -4,9 +4,9 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
-    scene::node::TypeUuidProvider,
     script::{ScriptContext, ScriptTrait},
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};

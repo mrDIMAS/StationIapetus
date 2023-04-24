@@ -1,4 +1,6 @@
+use fyrox::resource::texture::TextureResource;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         color::Color,
@@ -7,15 +9,12 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     resource::texture::Texture,
     scene::{
-        base::BaseBuilder,
-        decal::DecalBuilder,
-        graph::Graph,
-        node::{Node, TypeUuidProvider},
+        base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
         transform::TransformBuilder,
     },
     script::{Script, ScriptContext, ScriptTrait},
@@ -78,7 +77,7 @@ impl Decal {
         parent: Handle<Node>,
         color: Color,
         scale: Vector3<f32>,
-        texture: Texture,
+        texture: TextureResource,
     ) -> Handle<Node> {
         let (position, face_towards, scale) = if parent.is_some() {
             let parent_scale = graph.global_scale(parent);
@@ -148,7 +147,8 @@ impl Decal {
             parent,
             color,
             default_scale,
-            resource_manager.request_texture("data/textures/decals/BulletImpact_BaseColor.png"),
+            resource_manager
+                .request::<Texture, _>("data/textures/decals/BulletImpact_BaseColor.png"),
         )
     }
 }

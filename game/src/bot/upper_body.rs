@@ -3,6 +3,7 @@ use crate::{
     utils,
     utils::{create_play_animation_state, model_map::ModelMap},
 };
+use fyrox::resource::model::{ModelResource, ModelResourceExtension};
 use fyrox::{
     animation::{
         machine::{
@@ -12,12 +13,12 @@ use fyrox::{
         value::ValueBinding,
         Animation, AnimationSignal,
     },
+    asset::manager::ResourceManager,
     core::{
         pool::Handle,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
-    engine::resource_manager::ResourceManager,
     resource::model::Model,
     scene::{node::Node, Scene},
 };
@@ -44,7 +45,7 @@ pub struct UpperBodyMachineInput {
 }
 
 pub struct AttackAnimation {
-    resource: Model,
+    resource: ModelResource,
     stick_timestamp: f32,
     timestamp: f32,
     speed: f32,
@@ -150,7 +151,7 @@ impl UpperBodyMachine {
         let aim_animation_resource =
             if definition.can_use_weapons && !definition.aim_animation.is_empty() {
                 resource_manager
-                    .request_model(&definition.aim_animation)
+                    .request::<Model, _>(&definition.aim_animation)
                     .await
                     .ok()
             } else {

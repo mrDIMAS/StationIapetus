@@ -31,7 +31,7 @@ impl FindTarget {
         let projection_matrix =
             Matrix4::new_perspective(16.0 / 9.0, 90.0f32.to_radians(), 0.1, 20.0);
         let view_projection_matrix = projection_matrix * view_matrix;
-        self.frustum = Frustum::from(view_projection_matrix).unwrap();
+        self.frustum = Frustum::from_view_projection_matrix(view_projection_matrix).unwrap();
     }
 }
 

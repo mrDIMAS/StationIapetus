@@ -7,12 +7,12 @@ use fyrox::{
         reflect::{FieldInfo, Reflect},
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
     scene::{
         collider::InteractionGroups,
         graph::physics::RayCastOptions,
-        node::TypeUuidProvider,
         particle_system::{particle::Particle, ParticleSystem},
     },
     script::{ScriptContext, ScriptTrait},

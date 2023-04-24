@@ -9,6 +9,8 @@ use crate::{
     utils::ResourceProxy,
     CollisionGroups, Weapon,
 };
+use fyrox::resource::model::{ModelResource, ModelResourceExtension};
+use fyrox::resource::texture::Texture;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -19,6 +21,7 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
     rand::seq::SliceRandom,
@@ -29,7 +32,7 @@ use fyrox::{
             physics::{FeatureId, Intersection, RayCastOptions},
             Graph,
         },
-        node::{Node, TypeUuidProvider},
+        node::Node,
         rigidbody::RigidBody,
         sound::SoundBufferResource,
         Scene,
@@ -126,7 +129,7 @@ pub struct Projectile {
     speed: Option<f32>,
 
     #[visit(optional)]
-    impact_effect: Option<Model>,
+    impact_effect: Option<ModelResource>,
 
     #[visit(optional)]
     impact_sound: Option<SoundBufferResource>,
@@ -135,13 +138,13 @@ pub struct Projectile {
     #[reflect(
         description = "A prefab that will be instantiated when the projectile is just appeared (spawned)."
     )]
-    appear_effect: Option<Model>,
+    appear_effect: Option<ModelResource>,
 
     #[visit(optional)]
     #[reflect(
         description = "Random prefab will be instantiated from the list when the projectile is just appeared (spawned)."
     )]
-    random_appear_effects: Vec<ResourceProxy<Model>>,
+    random_appear_effects: Vec<ResourceProxy<ModelResource>>,
 
     #[visit(optional)]
     #[reflect(
@@ -194,7 +197,7 @@ impl Default for Projectile {
 
 impl Projectile {
     pub fn spawn(
-        resource: &Model,
+        resource: &ModelResource,
         scene: &mut Scene,
         dir: Vector3<f32>,
         position: Vector3<f32>,
@@ -499,7 +502,7 @@ impl ScriptTrait for Projectile {
                 }
             }
 
-            if let Ok(effect_prefab) = block_on(ctx.resource_manager.request_model(
+            if let Ok(effect_prefab) = block_on(ctx.resource_manager.request::<Model, _>(
                 if hit.hit_actor.is_some() {
                     "data/models/blood_splatter.rgs"
                 } else {
@@ -552,7 +555,7 @@ impl ScriptTrait for Projectile {
                             Handle::NONE,
                             Color::opaque(255, 255, 255),
                             Vector3::new(0.45, 0.45, 0.2),
-                            ctx.resource_manager.request_texture(
+                            ctx.resource_manager.request::<Texture, _>(
                                 "data/textures/decals/BloodSplatter_BaseColor.png",
                             ),
                         );

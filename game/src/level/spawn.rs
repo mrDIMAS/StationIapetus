@@ -2,15 +2,15 @@ use crate::{
     character::{CharacterMessage, CharacterMessageData},
     weapon::definition::WeaponKind,
 };
+use fyrox::resource::model::{ModelResource, ModelResourceExtension};
 use fyrox::{
     core::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
-    resource::model::Model,
-    scene::node::TypeUuidProvider,
     script::{ScriptContext, ScriptTrait},
     utils::log::Log,
 };
@@ -21,7 +21,7 @@ pub struct DefaultWeapon(WeaponKind);
 #[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct CharacterSpawnPoint {
     default_weapons: Vec<DefaultWeapon>,
-    prefab: Option<Model>,
+    prefab: Option<ModelResource>,
 }
 
 impl_component_provider!(CharacterSpawnPoint);

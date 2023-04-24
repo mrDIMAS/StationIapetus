@@ -14,7 +14,9 @@ use crate::{
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::projectile::Damage,
 };
+use fyrox::resource::model::{Model, ModelResourceExtension};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
@@ -26,8 +28,8 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     lazy_static::lazy_static,
     rand,
@@ -39,7 +41,7 @@ use fyrox::{
             physics::{Intersection, RayCastOptions},
             Graph,
         },
-        node::{Node, TypeUuidProvider},
+        node::Node,
         rigidbody::RigidBody,
         Scene,
     },
@@ -246,10 +248,11 @@ impl Bot {
         position: Vector3<f32>,
         rotation: UnitQuaternion<f32>,
     ) -> Handle<Node> {
-        let bot =
-            block_on(resource_manager.request_model(Self::get_definition(kind).model.clone()))
-                .unwrap()
-                .instantiate(scene);
+        let bot = block_on(
+            resource_manager.request::<Model, _>(Self::get_definition(kind).model.clone()),
+        )
+        .unwrap()
+        .instantiate(scene);
 
         let node = &mut scene.graph[bot];
 

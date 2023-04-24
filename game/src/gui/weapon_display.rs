@@ -1,7 +1,8 @@
 use crate::{level::item::ItemKind, player::Player, weapon::try_weapon_ref};
+use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
-    engine::resource_manager::ResourceManager,
     gui::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
@@ -20,7 +21,7 @@ use std::path::Path;
 
 pub struct WeaponDisplay {
     pub ui: UserInterface,
-    pub render_target: Texture,
+    pub render_target: TextureResource,
     ammo: Handle<UiNode>,
     grenades: Handle<UiNode>,
 }
@@ -32,7 +33,8 @@ impl WeaponDisplay {
     pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target =
+            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let ammo;
         let grenades;
@@ -49,7 +51,7 @@ impl WeaponDisplay {
                             .on_column(0),
                     )
                     .with_texture(utils::into_gui_texture(
-                        resource_manager.request_texture(Path::new("data/ui/ammo_icon.png")),
+                        resource_manager.request::<Texture, _>(Path::new("data/ui/ammo_icon.png")),
                     ))
                     .build(&mut ui.build_ctx()),
                 )
@@ -74,7 +76,7 @@ impl WeaponDisplay {
                             .on_column(0),
                     )
                     .with_texture(utils::into_gui_texture(
-                        resource_manager.request_texture(Path::new("data/ui/grenade.png")),
+                        resource_manager.request::<Texture, _>(Path::new("data/ui/grenade.png")),
                     ))
                     .build(&mut ui.build_ctx()),
                 )

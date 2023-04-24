@@ -2,10 +2,11 @@ use crate::{
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
+use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::scene::node::Node;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
-    engine::resource_manager::ResourceManager,
     gui::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
@@ -21,7 +22,7 @@ use fyrox::{
 
 pub struct DoorUi {
     pub ui: UserInterface,
-    pub render_target: Texture,
+    pub render_target: TextureResource,
     text: Handle<UiNode>,
 }
 
@@ -30,7 +31,7 @@ impl InteractiveUi for DoorUi {
         &mut self.ui
     }
 
-    fn texture(&self) -> Texture {
+    fn texture(&self) -> TextureResource {
         self.render_target.clone()
     }
 
@@ -49,7 +50,8 @@ impl DoorUi {
 
     pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target =
+            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let ctx = &mut ui.build_ctx();
 
@@ -67,7 +69,7 @@ impl DoorUi {
                             .on_column(0),
                     )
                     .with_texture(into_gui_texture(
-                        resource_manager.request_texture("data/ui/triangles.png"),
+                        resource_manager.request::<Texture, _>("data/ui/triangles.png"),
                     ))
                     .build(ctx),
                 )
@@ -134,7 +136,7 @@ impl DoorUiContainer {
         font: SharedFont,
         resource_manager: ResourceManager,
         door_handle: Handle<Node>,
-    ) -> Texture {
+    ) -> TextureResource {
         self.add(door_handle, DoorUi::new(font, resource_manager))
     }
 }

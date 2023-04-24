@@ -7,6 +7,7 @@ use crate::{
         projectile::Projectile,
     },
 };
+use fyrox::resource::model::ModelResourceExtension;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -16,15 +17,12 @@ use fyrox::{
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
     rand::{seq::SliceRandom, Rng},
-    resource::model::Model,
-    scene::{
-        graph::Graph,
-        node::{Node, TypeUuidProvider},
-        Scene,
-    },
+    resource::model::ModelResource,
+    scene::{graph::Graph, node::Node, Scene},
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
@@ -73,13 +71,13 @@ pub struct Weapon {
     pub h_recoil: InheritableVariable<Vector2<f32>>,
 
     #[visit(optional)]
-    projectile: Option<Model>,
+    projectile: Option<ModelResource>,
 
     #[visit(optional)]
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
-    shot_vfx: InheritableVariable<Vec<ResourceProxy<Model>>>,
+    shot_vfx: InheritableVariable<Vec<ResourceProxy<ModelResource>>>,
 
     #[reflect(hidden)]
     owner: Handle<Node>,

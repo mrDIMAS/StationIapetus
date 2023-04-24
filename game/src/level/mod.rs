@@ -2,10 +2,11 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
+use fyrox::resource::model::{Model, ModelResourceExtension};
 use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{math::PositionProvider, pool::Handle, visitor::prelude::*},
-    engine::resource_manager::ResourceManager,
     plugin::PluginContext,
     scene::{self, node::Node, Scene},
 };
@@ -100,7 +101,7 @@ impl Level {
         }
 
         let map_model = resource_manager
-            .request_model(Path::new(&map))
+            .request::<Model, _>(Path::new(&map))
             .await
             .unwrap();
 

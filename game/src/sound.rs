@@ -1,10 +1,10 @@
 use fyrox::scene::sound::reverb::Reverb;
-use fyrox::scene::sound::{Effect, SoundBufferResource};
+use fyrox::scene::sound::{Effect, SoundBuffer, SoundBufferResource};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::Vector3, futures::executor::block_on, pool::Handle, sstorage::ImmutableString,
     },
-    engine::resource_manager::ResourceManager,
     material::PropertyValue,
     rand::{self, seq::SliceRandom},
     scene::{
@@ -114,8 +114,8 @@ impl SoundMap {
                                     .lock()
                                     .property_ref(&ImmutableString::new("diffuseTexture"))
                                 {
-                                    let state = diffuse_texture.state();
-                                    match state.path().canonicalize() {
+                                    let path = diffuse_texture.path();
+                                    match path.canonicalize() {
                                         Ok(path) => {
                                             if let Some(&material) =
                                                 sound_base.texture_to_material.get(&*path)
@@ -145,7 +145,7 @@ impl SoundMap {
                                                 format!(
                                                     "[Sound Manager]: Failed to \
                                             canonicalize path {}! Reason: {}",
-                                                    state.path().display(),
+                                                    path.display(),
                                                     e
                                                 ),
                                             );
@@ -240,7 +240,7 @@ impl SoundManager {
             self.resource_manager
                 .as_ref()
                 .unwrap()
-                .request_sound_buffer(path.as_ref()),
+                .request::<SoundBuffer, _>(path.as_ref()),
         ) {
             self.play_sound_buffer(graph, &buffer, position, gain, rolloff_factor, radius)
         } else {

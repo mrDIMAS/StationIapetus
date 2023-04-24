@@ -8,11 +8,12 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider, rand,
     scene::{
         graph::physics::{Intersection, RayCastOptions},
-        node::{Node, TypeUuidProvider},
+        node::Node,
         Scene,
     },
     script::{ScriptContext, ScriptTrait},

@@ -1,5 +1,7 @@
 use crate::{character::character_ref, current_level_mut, game_mut};
+use fyrox::resource::texture::TextureResource;
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::Vector3,
         color::Color,
@@ -9,8 +11,8 @@ use fyrox::{
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
+        TypeUuidProvider,
     },
-    engine::resource_manager::ResourceManager,
     impl_component_provider,
     material::{Material, PropertyValue, SharedMaterial},
     resource::texture::Texture,
@@ -18,7 +20,7 @@ use fyrox::{
         graph::Graph,
         light::BaseLight,
         mesh::Mesh,
-        node::{Node, NodeHandle, TypeUuidProvider},
+        node::{Node, NodeHandle},
         rigidbody::RigidBody,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
@@ -338,7 +340,7 @@ impl Door {
         &self,
         graph: &mut Graph,
         resource_manager: ResourceManager,
-        texture: Texture,
+        texture: TextureResource,
     ) {
         for &node_handle in &self.screens {
             if let Some(mesh) = graph[*node_handle].cast_mut::<Mesh>() {
@@ -355,7 +357,9 @@ impl Door {
                 Log::verify(material.set_property(
                     &ImmutableString::new("emissionTexture"),
                     PropertyValue::Sampler {
-                        value: Some(resource_manager.request_texture("data/ui/white_pixel.bmp")),
+                        value: Some(
+                            resource_manager.request::<Texture, _>("data/ui/white_pixel.bmp"),
+                        ),
                         fallback: Default::default(),
                     },
                 ));

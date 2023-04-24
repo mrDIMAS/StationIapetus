@@ -16,6 +16,7 @@ use fyrox::{
     core::{
         reflect::Reflect,
         uuid::{uuid, Uuid},
+        TypeUuidProvider,
     },
     impl_component_provider,
     material::PropertyValue,
@@ -23,7 +24,7 @@ use fyrox::{
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
         light::BaseLight,
-        node::{Node, TypeUuidProvider},
+        node::Node,
     },
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
     utils::log::Log,

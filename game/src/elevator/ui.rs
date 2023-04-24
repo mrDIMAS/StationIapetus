@@ -2,6 +2,7 @@ use crate::{
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
+use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -18,7 +19,7 @@ use fyrox::{
 
 pub struct CallButtonUi {
     pub ui: UserInterface,
-    pub render_target: Texture,
+    pub render_target: TextureResource,
     floor_text: Handle<UiNode>,
     text: Handle<UiNode>,
 }
@@ -28,7 +29,7 @@ impl InteractiveUi for CallButtonUi {
         &mut self.ui
     }
 
-    fn texture(&self) -> Texture {
+    fn texture(&self) -> TextureResource {
         self.render_target.clone()
     }
 
@@ -47,7 +48,8 @@ impl CallButtonUi {
 
     pub fn new(font: SharedFont, floor: u32) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target =
+            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let ctx = &mut ui.build_ctx();
 
@@ -130,7 +132,7 @@ impl CallButtonUiContainer {
         font: SharedFont,
         call_button_handle: Handle<Node>,
         floor: u32,
-    ) -> Texture {
+    ) -> TextureResource {
         self.add(call_button_handle, CallButtonUi::new(font, floor))
     }
 }

@@ -1,7 +1,8 @@
 use crate::level::item::{Item, ItemKind};
+use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
-    engine::resource_manager::ResourceManager,
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -18,7 +19,7 @@ use fyrox::{
 
 pub struct ItemDisplay {
     pub ui: UserInterface,
-    pub render_target: Texture,
+    pub render_target: TextureResource,
     item_image: Handle<UiNode>,
     item_name: Handle<UiNode>,
 }
@@ -30,7 +31,8 @@ impl ItemDisplay {
     pub fn new(font: SharedFont) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target =
+            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let item_image;
         let item_name;
@@ -98,7 +100,7 @@ impl ItemDisplay {
             self.item_image,
             MessageDirection::ToWidget,
             Some(fyrox::utils::into_gui_texture(
-                resource_manager.request_texture(&definition.preview),
+                resource_manager.request::<Texture, _>(&definition.preview),
             )),
         ));
     }

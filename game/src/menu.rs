@@ -3,6 +3,7 @@ use crate::{
     options_menu::OptionsMenu, MessageSender,
 };
 use fyrox::engine::InitializedGraphicsContext;
+use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
     core::{color::Color, pool::Handle},
     event::{Event, WindowEvent},
@@ -47,17 +48,20 @@ impl MenuScene {
         let mut scene = SceneLoader::from_file(
             "data/levels/menu.rgs",
             context.serialization_context.clone(),
+            context.resource_manager.clone(),
         )
         .await
         .unwrap()
-        .finish(context.resource_manager.clone())
+        .finish()
         .await;
 
         scene.ambient_lighting_color = Color::opaque(20, 20, 20);
 
         let buffer = context
             .resource_manager
-            .request_sound_buffer("data/music/Pura Sombar - Tongues falling from an opened sky.ogg")
+            .request::<SoundBuffer, _>(
+                "data/music/Pura Sombar - Tongues falling from an opened sky.ogg",
+            )
             .await
             .unwrap();
 

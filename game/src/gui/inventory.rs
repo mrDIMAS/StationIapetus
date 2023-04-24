@@ -6,9 +6,10 @@ use crate::{
     player::Player,
     MessageSender,
 };
+use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, math, pool::Handle},
-    engine::resource_manager::ResourceManager,
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -36,7 +37,7 @@ use std::{
 
 pub struct InventoryInterface {
     pub ui: UserInterface,
-    pub render_target: Texture,
+    pub render_target: TextureResource,
     items_panel: Handle<UiNode>,
     is_enabled: bool,
     sender: MessageSender,
@@ -153,7 +154,7 @@ impl InventoryItemBuilder {
                                         .on_row(0),
                                 )
                                 .with_texture(fyrox::utils::into_gui_texture(
-                                    resource_manager.request_texture(&definition.preview),
+                                    resource_manager.request::<Texture, _>(&definition.preview),
                                 ))
                                 .build(ctx),
                             )
@@ -221,7 +222,8 @@ impl InventoryInterface {
     pub fn new(sender: MessageSender) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target = Texture::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target =
+            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
 
         let items_panel;
         let item_description;

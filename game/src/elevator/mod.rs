@@ -4,12 +4,10 @@ use fyrox::{
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
+        TypeUuidProvider,
     },
     impl_component_provider,
-    scene::{
-        node::{NodeHandle, TypeUuidProvider},
-        rigidbody::RigidBody,
-    },
+    scene::{node::NodeHandle, rigidbody::RigidBody},
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 

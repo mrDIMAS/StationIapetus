@@ -7,7 +7,9 @@ use crate::{
     weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
     Item, Weapon,
 };
+use fyrox::resource::model::{Model, ModelResourceExtension};
 use fyrox::{
+    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
@@ -15,7 +17,6 @@ use fyrox::{
         reflect::prelude::*,
         visitor::prelude::*,
     },
-    engine::resource_manager::ResourceManager,
     scene::{
         collider::Collider,
         graph::{map::NodeHandleMap, physics::RayCastOptions, Graph},
@@ -235,7 +236,7 @@ impl Character {
             CharacterMessageData::SelectWeapon(kind) => self.select_weapon(*kind, &mut scene.graph),
             CharacterMessageData::AddWeapon(kind) => {
                 let weapon = block_on(
-                    resource_manager.request_model(Weapon::definition(*kind).model.clone()),
+                    resource_manager.request::<Model, _>(Weapon::definition(*kind).model.clone()),
                 )
                 .unwrap()
                 .instantiate(scene);
