@@ -70,7 +70,6 @@ use fyrox::{
     },
     material::{shader::SamplerFallback, Material, PropertyValue},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
-    resource::texture::Texture,
     scene::{
         base::BaseBuilder,
         sound::{SoundBuilder, Status},

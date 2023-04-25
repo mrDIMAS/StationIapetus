@@ -40,7 +40,6 @@ use fyrox::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
-    resource::texture::Texture,
     scene::{
         animation::absm::AnimationBlendingStateMachine, base::BaseBuilder, graph::Graph,
         light::BaseLight, node::Node, sprite::SpriteBuilder, Scene,

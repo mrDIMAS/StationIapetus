@@ -458,64 +458,59 @@ impl ScriptTrait for Bot {
                 &level.sound_manager,
             );
 
-            match char_message.data {
-                CharacterMessageData::Damage {
-                    dealer,
-                    amount,
-                    hitbox,
-                    critical_hit_probability: critical_shot_probability,
-                    position,
-                } => {
-                    if let Some((character_handle, character)) =
-                        dealer.as_character(&ctx.scene.graph)
+            if let CharacterMessageData::Damage {
+                dealer,
+                amount,
+                hitbox,
+                critical_hit_probability: critical_shot_probability,
+                position,
+            } = char_message.data
+            {
+                if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
+                    self.set_target(character_handle, character.position(&ctx.scene.graph));
+                }
+
+                if let Some(hitbox) = hitbox {
+                    // Handle critical head shots.
+                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
+                    if hitbox.is_head
+                        && is_probability_event_occurred(critical_head_shot_probability)
                     {
-                        self.set_target(character_handle, character.position(&ctx.scene.graph));
+                        self.damage(amount * 1000.0);
+
+                        self.blow_up_head(&mut ctx.scene.graph);
                     }
 
-                    if let Some(hitbox) = hitbox {
-                        // Handle critical head shots.
-                        let critical_head_shot_probability =
-                            critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
-                        if hitbox.is_head
-                            && is_probability_event_occurred(critical_head_shot_probability)
-                        {
-                            self.damage(amount * 1000.0);
-
-                            self.blow_up_head(&mut ctx.scene.graph);
-                        }
-
-                        if let Some(position) = position {
-                            self.impact_handler.handle_impact(
-                                ctx.scene,
-                                hitbox.bone,
-                                position.point,
-                                position.direction,
-                            );
-                        }
-                    }
-
-                    // Prevent spamming with grunt sounds.
-                    if self.last_health - self.health > 20.0 && !self.is_dead() {
-                        self.last_health = self.health;
-                        self.restoration_time = 0.8;
-
-                        if let Some(grunt_sound) =
-                            self.definition.pain_sounds.choose(&mut rand::thread_rng())
-                        {
-                            let position = self.position(&ctx.scene.graph);
-
-                            level.sound_manager.play_sound(
-                                &mut ctx.scene.graph,
-                                grunt_sound,
-                                position,
-                                0.8,
-                                1.0,
-                                0.6,
-                            );
-                        }
+                    if let Some(position) = position {
+                        self.impact_handler.handle_impact(
+                            ctx.scene,
+                            hitbox.bone,
+                            position.point,
+                            position.direction,
+                        );
                     }
                 }
-                _ => (),
+
+                // Prevent spamming with grunt sounds.
+                if self.last_health - self.health > 20.0 && !self.is_dead() {
+                    self.last_health = self.health;
+                    self.restoration_time = 0.8;
+
+                    if let Some(grunt_sound) =
+                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
+                    {
+                        let position = self.position(&ctx.scene.graph);
+
+                        level.sound_manager.play_sound(
+                            &mut ctx.scene.graph,
+                            grunt_sound,
+                            position,
+                            0.8,
+                            1.0,
+                            0.6,
+                        );
+                    }
+                }
             }
         } else if let Some(weapon_message) = message.downcast_ref() {
             self.character

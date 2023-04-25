@@ -21,7 +21,6 @@ use fyrox::{
         UiNode, UserInterface,
     },
     lazy_static::lazy_static,
-    resource::texture::Texture,
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};

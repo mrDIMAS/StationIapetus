@@ -80,15 +80,13 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         if has_reached_destination {
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
-        } else {
-            if let Some(root_motion) = ctx.lower_body_machine.machine.pose().root_motion() {
-                let velocity = transform
-                    .transform_vector(&root_motion.delta_position)
-                    .scale(1.0 / ctx.dt);
+        } else if let Some(root_motion) = ctx.lower_body_machine.machine.pose().root_motion() {
+            let velocity = transform
+                .transform_vector(&root_motion.delta_position)
+                .scale(1.0 / ctx.dt);
 
-                let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
-                body.set_lin_vel(velocity);
-            }
+            let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
+            body.set_lin_vel(velocity);
         }
 
         // Emit step sounds from walking animation.

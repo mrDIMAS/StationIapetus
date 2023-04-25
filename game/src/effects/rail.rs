@@ -79,7 +79,6 @@ impl ScriptTrait for Rail {
         {
             particle_system.set_particles(
                 (0..total_particles)
-                    .into_iter()
                     .map(|i| {
                         let t = i as f32 / total_particles as f32;
 

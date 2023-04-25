@@ -40,8 +40,9 @@ pub mod movement;
 pub mod shoot;
 pub mod threat;
 
-#[derive(Debug, PartialEq, Visit, Clone)]
+#[derive(Debug, PartialEq, Visit, Clone, Default)]
 pub enum Action {
+    #[default]
     Unknown,
     IsDead(IsDead),
     StayDead(StayDead),
@@ -54,12 +55,6 @@ pub enum Action {
     ShootTarget(ShootTarget),
     NeedsThreatenTarget(NeedsThreatenTarget),
     ThreatenTarget(ThreatenTarget),
-}
-
-impl Default for Action {
-    fn default() -> Self {
-        Action::Unknown
-    }
 }
 
 impl<'a> Behavior<'a> for Action {

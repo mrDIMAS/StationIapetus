@@ -13,7 +13,6 @@ use fyrox::{
         ttf::SharedFont,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
-    resource::texture::Texture,
     scene::node::Node,
 };
 
