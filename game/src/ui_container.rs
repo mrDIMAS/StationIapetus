@@ -1,6 +1,9 @@
-use fyrox::gui::UserInterface;
-use fyrox::resource::texture::TextureResource;
-use fyrox::{core::pool::Handle, renderer::Renderer, utils::log::Log};
+use fyrox::{
+    core::{log::Log, pool::Handle},
+    gui::UserInterface,
+    renderer::Renderer,
+    resource::texture::TextureResource,
+};
 use std::collections::HashMap;
 
 pub trait InteractiveUi {

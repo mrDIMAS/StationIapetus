@@ -18,8 +18,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
-use fyrox::resource::model::{Model, ModelResourceExtension};
-use fyrox::resource::texture::TextureResource;
 use fyrox::{
     animation::machine,
     asset::manager::ResourceManager,
@@ -28,6 +26,7 @@ use fyrox::{
         color::Color,
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
+        log::Log,
         math::SmoothAngle,
         math::Vector2Ext,
         pool::Handle,
@@ -40,6 +39,10 @@ use fyrox::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
+    resource::{
+        model::{Model, ModelResourceExtension},
+        texture::TextureResource,
+    },
     scene::{
         animation::absm::AnimationBlendingStateMachine, base::BaseBuilder, graph::Graph,
         light::BaseLight, node::Node, sprite::SpriteBuilder, Scene,
@@ -48,7 +51,6 @@ use fyrox::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
         ScriptMessageSender, ScriptTrait,
     },
-    utils::log::Log,
 };
 use std::ops::{Deref, DerefMut};
 

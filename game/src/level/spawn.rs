@@ -2,17 +2,17 @@ use crate::{
     character::{CharacterMessage, CharacterMessageData},
     weapon::definition::WeaponKind,
 };
-use fyrox::resource::model::{ModelResource, ModelResourceExtension};
 use fyrox::{
     core::{
+        log::Log,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
         TypeUuidProvider,
     },
     impl_component_provider,
+    resource::model::{ModelResource, ModelResourceExtension},
     script::{ScriptContext, ScriptTrait},
-    utils::log::Log,
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]

@@ -5,10 +5,13 @@ use crate::{
     message::Message,
     MessageSender,
 };
-use fyrox::engine::{GraphicsContext, InitializedGraphicsContext};
-use fyrox::gui::UserInterface;
 use fyrox::{
-    core::{algebra::Vector2, pool::Handle},
+    core::{
+        algebra::Vector2,
+        log::{Log, MessageKind},
+        pool::Handle,
+    },
+    engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
     gui::{
         border::BorderBuilder,
@@ -24,12 +27,12 @@ use fyrox::{
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
         window::{WindowBuilder, WindowTitle},
-        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        VerticalAlignment,
     },
     monitor::VideoMode,
     plugin::PluginContext,
     renderer::ShadowMapPrecision,
-    utils::log::{Log, MessageKind},
     window::Fullscreen,
 };
 

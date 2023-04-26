@@ -44,19 +44,17 @@ use crate::{
     utils::use_hrtf,
     weapon::{projectile::Projectile, sight::LaserSight, Weapon},
 };
-use fyrox::engine::GraphicsContext;
-use fyrox::gui::UserInterface;
-use fyrox::resource::texture::TextureResource;
-use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
     core::{
         futures::executor::block_on,
+        log::{Log, MessageKind},
         parking_lot::Mutex,
         pool::Handle,
         sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
+    engine::GraphicsContext,
     event::{ElementState, Event, VirtualKeyCode, WindowEvent},
     event_loop::ControlFlow,
     gui::{
@@ -66,19 +64,17 @@ use fyrox::{
         text::{TextBuilder, TextMessage},
         ttf::{Font, SharedFont},
         widget::{WidgetBuilder, WidgetMessage},
-        UiNode,
+        UiNode, UserInterface,
     },
     material::{shader::SamplerFallback, Material, PropertyValue},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
+    resource::texture::TextureResource,
     scene::{
         base::BaseBuilder,
-        sound::{SoundBuilder, Status},
+        sound::{SoundBuffer, SoundBuilder, Status},
         Scene, SceneLoader,
     },
-    utils::{
-        log::{Log, MessageKind},
-        translate_event,
-    },
+    utils::translate_event,
     window::CursorGrabMode,
 };
 use std::{

@@ -1,9 +1,11 @@
-use fyrox::scene::sound::reverb::Reverb;
-use fyrox::scene::sound::{Effect, SoundBuffer, SoundBufferResource};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
-        algebra::Vector3, futures::executor::block_on, pool::Handle, sstorage::ImmutableString,
+        algebra::Vector3,
+        futures::executor::block_on,
+        log::{Log, MessageKind},
+        pool::Handle,
+        sstorage::ImmutableString,
     },
     material::PropertyValue,
     rand::{self, seq::SliceRandom},
@@ -12,11 +14,10 @@ use fyrox::{
         graph::{physics::FeatureId, Graph},
         mesh::Mesh,
         node::Node,
-        sound::{SoundBuilder, Status},
+        sound::{reverb::Reverb, Effect, SoundBuffer, SoundBufferResource, SoundBuilder, Status},
         transform::TransformBuilder,
         Scene,
     },
-    utils::log::{Log, MessageKind},
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf};

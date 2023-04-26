@@ -1,8 +1,8 @@
 use crate::{elevator::Elevator, game_mut};
-use fyrox::resource::texture::TextureResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
+        log::Log,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -12,10 +12,9 @@ use fyrox::{
     },
     impl_component_provider,
     material::{Material, PropertyValue, SharedMaterial},
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::{graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptTrait},
-    utils::log::Log,
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 

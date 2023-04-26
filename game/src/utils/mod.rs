@@ -6,6 +6,7 @@ use fyrox::{
     asset::core::rand::Rng,
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
+        log::Log,
         pool::Handle,
         reflect::prelude::*,
         visitor::prelude::*,
@@ -19,7 +20,6 @@ use fyrox::{
         sound::{self, context::SoundContext},
         Scene,
     },
-    utils::log::Log,
 };
 use std::{collections::HashMap, fmt::Debug};
 

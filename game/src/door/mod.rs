@@ -1,10 +1,10 @@
 use crate::{character::character_ref, current_level_mut, game_mut};
-use fyrox::resource::texture::TextureResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
         algebra::Vector3,
         color::Color,
+        log::Log,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -15,7 +15,7 @@ use fyrox::{
     },
     impl_component_provider,
     material::{Material, PropertyValue, SharedMaterial},
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::{
         graph::Graph,
         light::BaseLight,
@@ -24,7 +24,6 @@ use fyrox::{
         rigidbody::RigidBody,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
-    utils::log::Log,
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 

@@ -7,15 +7,14 @@ use fyrox::{
         algebra::{Point3, Vector3},
         arrayvec::ArrayVec,
         color::Color,
+        log::Log,
         math::{lerpf, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
-        sstorage::ImmutableString,
-        visitor::prelude::*,
-    },
-    core::{
         reflect::Reflect,
+        sstorage::ImmutableString,
         uuid::{uuid, Uuid},
+        visitor::prelude::*,
         TypeUuidProvider,
     },
     impl_component_provider,
@@ -27,7 +26,6 @@ use fyrox::{
         node::Node,
     },
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
-    utils::log::Log,
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
