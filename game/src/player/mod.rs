@@ -1253,7 +1253,11 @@ impl ScriptTrait for Player {
         if self.controller.walk_forward
             || (!self.controller.aim && (self.controller.walk_left || self.controller.walk_right))
         {
-            self.target_local_velocity.y = if self.controller.run { 1.0 } else { 0.5 };
+            self.target_local_velocity.y = if self.controller.run && !self.controller.aim {
+                1.0
+            } else {
+                0.5
+            };
         }
         if self.controller.walk_backward {
             self.target_local_velocity.y = if self.controller.aim {
