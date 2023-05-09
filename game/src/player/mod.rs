@@ -27,8 +27,7 @@ use fyrox::{
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
         log::Log,
-        math::SmoothAngle,
-        math::Vector2Ext,
+        math::{SmoothAngle, Vector2Ext, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
@@ -136,6 +135,8 @@ pub struct Player {
     target_run_factor: f32,
     in_air_time: f32,
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
+    #[visit(optional)]
+    jump_inertia: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
     journal_display: Handle<Node>,
@@ -211,6 +212,7 @@ impl Default for Player {
             },
             in_air_time: Default::default(),
             velocity: Default::default(),
+            jump_inertia: Default::default(),
             run_factor: Default::default(),
             target_run_factor: Default::default(),
             weapon_display: Default::default(),
@@ -260,6 +262,7 @@ impl Clone for Player {
             target_run_factor: self.target_run_factor,
             in_air_time: self.in_air_time,
             velocity: self.velocity,
+            jump_inertia: self.jump_inertia,
             weapon_display: self.weapon_display,
             inventory_display: self.inventory_display,
             journal_display: self.journal_display,
@@ -466,7 +469,7 @@ impl Player {
                     && (active_transition == self.state_machine.walk_to_jump
                         || layer.active_state() == self.state_machine.jump_state)
                 {
-                    new_y_vel = Some(3.0 * dt);
+                    new_y_vel = Some(0.064 / dt);
                 }
             }
         }
@@ -577,19 +580,22 @@ impl Player {
                 .scale(1.0 / dt);
         }
 
-        let new_y_vel = self.handle_jump_signal(scene, dt);
+        let jump_y_velocity = self.handle_jump_signal(scene, dt);
 
         let body = scene.graph[self.body].as_rigid_body_mut();
 
         body.set_ang_vel(Default::default());
+        body.set_lin_vel(Vector3::new(
+            self.velocity.x + self.jump_inertia.x,
+            jump_y_velocity.unwrap_or_else(|| body.lin_vel().y),
+            self.velocity.z + self.jump_inertia.z,
+        ));
 
-        let velocity = if let Some(new_y_vel) = new_y_vel {
-            Vector3::new(self.velocity.x, new_y_vel, self.velocity.z)
+        if self.has_ground_contact(&scene.graph) && self.in_air_time > 0.3 {
+            self.jump_inertia = Default::default();
         } else {
-            Vector3::new(self.velocity.x, body.lin_vel().y, self.velocity.z)
-        };
-
-        body.set_lin_vel(velocity);
+            self.jump_inertia.follow(&Vector3::default(), 0.025);
+        }
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
@@ -1105,6 +1111,8 @@ impl ScriptTrait for Player {
                         .get_mut(self.state_machine.jump_animation)
                         .set_enabled(true)
                         .rewind();
+
+                    self.jump_inertia = self.velocity;
                 }
 
                 self.controller.jump = state == ElementState::Pressed && can_jump;
