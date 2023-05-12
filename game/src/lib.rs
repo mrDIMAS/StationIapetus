@@ -467,8 +467,6 @@ impl Game {
             });
         }
 
-        self.render_offscreen(ctx);
-
         if let Some(load_context) = self.load_context.clone() {
             if let Some(mut load_context) = load_context.try_lock() {
                 if let Some((mut level, scene)) = load_context.level.take() {
@@ -784,6 +782,30 @@ impl Plugin for Game {
         }
     }
 
+    fn on_os_event(
+        &mut self,
+        event: &Event<()>,
+        mut ctx: PluginContext,
+        control_flow: &mut ControlFlow,
+    ) {
+        self.process_input_event(event, &mut ctx);
+
+        if let Event::WindowEvent { event, .. } = event {
+            match event {
+                WindowEvent::CloseRequested => {
+                    self.destroy_level(&mut ctx);
+                    *control_flow = ControlFlow::Exit
+                }
+                WindowEvent::Resized(new_size) => self.on_window_resized(
+                    ctx.user_interface,
+                    new_size.width as f32,
+                    new_size.height as f32,
+                ),
+                _ => (),
+            }
+        }
+    }
+
     fn on_graphics_context_initialized(
         &mut self,
         mut context: PluginContext,
@@ -834,28 +856,8 @@ impl Plugin for Game {
         self.menu.sync_to_model(&mut context, self.level.is_some());
     }
 
-    fn on_os_event(
-        &mut self,
-        event: &Event<()>,
-        mut ctx: PluginContext,
-        control_flow: &mut ControlFlow,
-    ) {
-        self.process_input_event(event, &mut ctx);
-
-        if let Event::WindowEvent { event, .. } = event {
-            match event {
-                WindowEvent::CloseRequested => {
-                    self.destroy_level(&mut ctx);
-                    *control_flow = ControlFlow::Exit
-                }
-                WindowEvent::Resized(new_size) => self.on_window_resized(
-                    ctx.user_interface,
-                    new_size.width as f32,
-                    new_size.height as f32,
-                ),
-                _ => (),
-            }
-        }
+    fn before_rendering(&mut self, mut context: PluginContext, control_flow: &mut ControlFlow) {
+        self.render_offscreen(&mut context);
     }
 
     fn on_ui_message(
