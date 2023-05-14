@@ -17,7 +17,7 @@ use station_iapetus::{
     },
     player::camera::CameraController,
     utils::ResourceProxy,
-    weapon::{definition::WeaponKind, projectile::Damage},
+    weapon::{projectile::Damage, CombatWeaponKind},
     GameConstructor,
 };
 
@@ -36,9 +36,9 @@ fn main() {
     editors.register_inheritable_enum::<DoorDirection, _>();
     editors.register_inheritable_enum::<Hostility, _>();
     editors.register_inheritable_enum::<ShootMode, _>();
-    editors.register_inheritable_enum::<WeaponKind, _>();
     editors.register_inheritable_enum::<ItemKind, _>();
     editors.register_inheritable_enum::<BotKind, _>();
+    editors.register_inheritable_enum::<CombatWeaponKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<Damage, _>();
     editors.register_inheritable_enum::<TriggerKind, _>();

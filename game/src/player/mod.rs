@@ -9,15 +9,16 @@ use crate::{
     inventory::Inventory,
     level::item::ItemKind,
     message::Message,
-    player::state_machine::{CombatWeaponKind, StateMachine, StateMachineInput},
+    player::state_machine::{StateMachine, StateMachineInput},
     sound::SoundManager,
     utils,
     weapon::{
-        definition::WeaponKind, projectile::Projectile, try_weapon_mut, try_weapon_ref, weapon_ref,
+        projectile::Projectile, try_weapon_mut, try_weapon_ref, weapon_ref, CombatWeaponKind,
         WeaponMessage, WeaponMessageData,
     },
     CameraController, Elevator, Game, Item,
 };
+use fyrox::resource::model::ModelResource;
 use fyrox::{
     animation::machine,
     asset::manager::ResourceManager,
@@ -38,10 +39,7 @@ use fyrox::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
-    resource::{
-        model::{Model, ModelResourceExtension},
-        texture::TextureResource,
-    },
+    resource::{model::Model, texture::TextureResource},
     scene::{
         animation::absm::AnimationBlendingStateMachine, base::BaseBuilder, graph::Graph,
         light::BaseLight, node::Node, sprite::SpriteBuilder, Scene,
@@ -88,16 +86,16 @@ impl DerefMut for Player {
     }
 }
 
-#[derive(Copy, Clone, PartialEq, Eq, Visit, Debug)]
+#[derive(Clone, PartialEq, Eq, Visit, Debug)]
 pub enum RequiredWeapon {
     None,
     Next,
     Previous,
-    Specific(WeaponKind),
+    Specific(ModelResource),
 }
 
 impl RequiredWeapon {
-    fn is_none(self) -> bool {
+    fn is_none(&self) -> bool {
         matches!(self, RequiredWeapon::None)
     }
 }
@@ -113,7 +111,7 @@ pub struct PlayerPersistentData {
     pub inventory: Inventory,
     pub health: f32,
     pub current_weapon: u32,
-    pub weapons: Vec<WeaponKind>,
+    pub weapons: Vec<ModelResource>,
 }
 
 #[derive(Visit, Reflect, Debug)]
@@ -150,6 +148,15 @@ pub struct Player {
 
     local_velocity: Vector2<f32>,
     target_local_velocity: Vector2<f32>,
+
+    #[visit(optional)]
+    ak47_weapon: Option<ModelResource>,
+    #[visit(optional)]
+    m4_weapon: Option<ModelResource>,
+    #[visit(optional)]
+    glock_weapon: Option<ModelResource>,
+    #[visit(optional)]
+    plasma_gun_weapon: Option<ModelResource>,
 
     #[visit(optional)]
     animation_player: Handle<Node>,
@@ -239,6 +246,10 @@ impl Default for Player {
             state_machine: Default::default(),
             script_message_sender: None,
             target_local_velocity: Default::default(),
+            ak47_weapon: None,
+            m4_weapon: None,
+            glock_weapon: None,
+            plasma_gun_weapon: None,
         }
     }
 }
@@ -273,7 +284,7 @@ impl Clone for Player {
             v_recoil: self.v_recoil.clone(),
             h_recoil: self.h_recoil.clone(),
             rig_light: self.rig_light,
-            weapon_change_direction: self.weapon_change_direction,
+            weapon_change_direction: self.weapon_change_direction.clone(),
             journal: Default::default(),
             controller: Default::default(),
             animation_player: self.animation_player,
@@ -282,6 +293,10 @@ impl Clone for Player {
             state_machine: self.state_machine.clone(),
             script_message_sender: self.script_message_sender.clone(),
             target_local_velocity: self.target_local_velocity,
+            ak47_weapon: self.ak47_weapon.clone(),
+            m4_weapon: self.m4_weapon.clone(),
+            glock_weapon: self.glock_weapon.clone(),
+            plasma_gun_weapon: self.plasma_gun_weapon.clone(),
         }
     }
 }
@@ -294,21 +309,6 @@ fn make_color_gradient() -> ColorGradient {
 }
 
 impl Player {
-    pub async fn add_to_scene(
-        scene: &mut Scene,
-        resource_manager: ResourceManager,
-    ) -> Handle<Node> {
-        let player = resource_manager
-            .request::<Model, _>("data/models/agent/agent.rgs")
-            .await
-            .unwrap()
-            .instantiate(scene);
-
-        assert!(scene.graph[player].has_script::<Player>());
-
-        player
-    }
-
     pub fn persistent_data(&self, graph: &Graph) -> PlayerPersistentData {
         PlayerPersistentData {
             inventory: self.inventory.clone(),
@@ -317,7 +317,7 @@ impl Player {
             weapons: self
                 .weapons
                 .iter()
-                .map(|w| weapon_ref(*w, graph).kind())
+                .filter_map(|w| graph[*w].resource())
                 .collect::<Vec<_>>(),
         }
     }
@@ -489,16 +489,16 @@ impl Player {
             .take_events();
         while let Some(event) = events.pop_front() {
             if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
-                match self.weapon_change_direction {
+                match &self.weapon_change_direction {
                     RequiredWeapon::None => (),
                     RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
                     RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
-                    RequiredWeapon::Specific(kind) => {
+                    RequiredWeapon::Specific(weapon_resource) => {
                         script_message_sender.send_to_target(
                             self_handle,
                             CharacterMessage {
                                 character: self_handle,
-                                data: CharacterMessageData::SelectWeapon(kind),
+                                data: CharacterMessageData::SelectWeapon(weapon_resource.clone()),
                             },
                         );
                     }
@@ -600,13 +600,7 @@ impl Player {
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
         if let Some(current_weapon) = try_weapon_ref(self.current_weapon(), graph) {
-            match current_weapon.kind() {
-                WeaponKind::M4
-                | WeaponKind::Ak47
-                | WeaponKind::PlasmaRifle
-                | WeaponKind::RailGun => CombatWeaponKind::Rifle,
-                WeaponKind::Glock => CombatWeaponKind::Pistol,
-            }
+            current_weapon.weapon_type
         } else {
             CombatWeaponKind::Pistol
         }
@@ -955,23 +949,6 @@ impl ScriptTrait for Player {
             .with_size(0.1)
             .build(&mut context.scene.graph);
 
-        // Add default weapons.
-        for weapon in [
-            WeaponKind::Glock,
-            WeaponKind::M4,
-            WeaponKind::Ak47,
-            WeaponKind::PlasmaRifle,
-            WeaponKind::RailGun,
-        ] {
-            context.message_sender.send_to_target(
-                context.handle,
-                CharacterMessage {
-                    character: context.handle,
-                    data: CharacterMessageData::AddWeapon(weapon),
-                },
-            );
-        }
-
         self.inventory.add_item(ItemKind::Grenade, 10);
 
         let level = current_level_mut(context.plugins).unwrap();
@@ -1075,8 +1052,11 @@ impl ScriptTrait for Player {
             && animations_container[self.state_machine.grab_animation].has_ended()
             && self.weapons.len() > 1;
 
-        let current_weapon_kind =
-            try_weapon_ref(self.current_weapon(), &context.scene.graph).map(|weapon| weapon.kind());
+        let current_weapon_kind = context
+            .scene
+            .graph
+            .try_get(self.current_weapon())
+            .and_then(|node| node.resource());
 
         let mut weapon_change_direction = None;
 
@@ -1127,21 +1107,28 @@ impl ScriptTrait for Player {
                     }
                 }
             } else if button == control_scheme.grab_ak47.button && can_change_weapon {
-                if current_weapon_kind.map_or(false, |k| k != WeaponKind::Ak47) {
-                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Ak47));
+                if current_weapon_kind != self.ak47_weapon {
+                    if let Some(ak47_weapon) = self.ak47_weapon.clone() {
+                        weapon_change_direction = Some(RequiredWeapon::Specific(ak47_weapon));
+                    }
                 }
             } else if button == control_scheme.grab_m4.button && can_change_weapon {
-                if current_weapon_kind.map_or(false, |k| k != WeaponKind::M4) {
-                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::M4));
+                if current_weapon_kind != self.m4_weapon {
+                    if let Some(m4_weapon) = self.m4_weapon.clone() {
+                        weapon_change_direction = Some(RequiredWeapon::Specific(m4_weapon));
+                    }
                 }
             } else if button == control_scheme.grab_plasma_gun.button && can_change_weapon {
-                if current_weapon_kind.map_or(false, |k| k != WeaponKind::PlasmaRifle) {
-                    weapon_change_direction =
-                        Some(RequiredWeapon::Specific(WeaponKind::PlasmaRifle));
+                if current_weapon_kind != self.plasma_gun_weapon {
+                    if let Some(plasma_gun_weapon) = self.plasma_gun_weapon.clone() {
+                        weapon_change_direction = Some(RequiredWeapon::Specific(plasma_gun_weapon));
+                    }
                 }
             } else if button == control_scheme.grab_pistol.button && can_change_weapon {
-                if current_weapon_kind.map_or(false, |k| k != WeaponKind::Glock) {
-                    weapon_change_direction = Some(RequiredWeapon::Specific(WeaponKind::Glock));
+                if current_weapon_kind != self.glock_weapon {
+                    if let Some(glock_weapon) = self.glock_weapon.clone() {
+                        weapon_change_direction = Some(RequiredWeapon::Specific(glock_weapon));
+                    }
                 }
             } else if button == control_scheme.next_weapon.button {
                 if state == ElementState::Pressed

@@ -1,13 +1,11 @@
-use crate::weapon::{WeaponMessage, WeaponMessageData};
 use crate::{
     block_on,
     inventory::Inventory,
     level::item::{item_mut, ItemKind},
     sound::{SoundKind, SoundManager},
-    weapon::{definition::WeaponKind, weapon_mut, weapon_ref},
+    weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::resource::model::{Model, ModelResourceExtension};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -17,6 +15,7 @@ use fyrox::{
         reflect::prelude::*,
         visitor::prelude::*,
     },
+    resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
         graph::{map::NodeHandleMap, physics::RayCastOptions, Graph},
@@ -73,8 +72,8 @@ pub enum CharacterMessageData {
         critical_hit_probability: f32,
         position: Option<DamagePosition>,
     },
-    SelectWeapon(WeaponKind),
-    AddWeapon(WeaponKind),
+    SelectWeapon(ModelResource),
+    AddWeapon(ModelResource),
     PickupItem(Handle<Node>),
     DropItems {
         item: ItemKind,
@@ -233,22 +232,25 @@ impl Character {
             CharacterMessageData::Damage { amount, .. } => {
                 self.damage(*amount);
             }
-            CharacterMessageData::SelectWeapon(kind) => self.select_weapon(*kind, &mut scene.graph),
-            CharacterMessageData::AddWeapon(kind) => {
-                let weapon = block_on(
-                    resource_manager.request::<Model, _>(Weapon::definition(*kind).model.clone()),
-                )
-                .unwrap()
-                .instantiate(scene);
+            CharacterMessageData::SelectWeapon(weapon_resource) => {
+                self.select_weapon(weapon_resource.clone(), &mut scene.graph)
+            }
+            CharacterMessageData::AddWeapon(weapon_resource) => {
+                let weapon = block_on(weapon_resource.clone())
+                    .unwrap()
+                    .instantiate(scene);
 
                 // Root node must have Weapon script.
                 assert!(scene.graph[weapon].has_script::<Weapon>());
 
-                weapon_mut(weapon, &mut scene.graph).set_owner(self_handle);
+                let weapon_script = weapon_mut(weapon, &mut scene.graph);
+
+                weapon_script.set_owner(self_handle);
+                self.inventory_mut()
+                    .add_item(weapon_script.associated_item, 1);
 
                 self.add_weapon(weapon, &mut scene.graph);
                 scene.graph.link_nodes(weapon, self.weapon_pivot());
-                self.inventory_mut().add_item(kind.associated_item(), 1);
             }
             &CharacterMessageData::PickupItem(item_handle) => {
                 let position = scene.graph[item_handle].global_position();
@@ -275,12 +277,13 @@ impl Character {
                     | ItemKind::M4
                     | ItemKind::Glock
                     | ItemKind::RailGun => {
-                        let weapon_kind = kind.associated_weapon().unwrap();
+                        let weapon_resource = kind.associated_weapon(resource_manager).unwrap();
 
                         let mut found = false;
                         for weapon_handle in self.weapons.iter() {
-                            let weapon = weapon_ref(*weapon_handle, &scene.graph);
-                            if weapon.kind() == weapon_kind {
+                            if scene.graph[*weapon_handle].resource()
+                                == Some(weapon_resource.clone())
+                            {
                                 found = true;
                                 break;
                             }
@@ -293,7 +296,7 @@ impl Character {
                                 self_handle,
                                 CharacterMessage {
                                     character: self_handle,
-                                    data: CharacterMessageData::AddWeapon(weapon_kind),
+                                    data: CharacterMessageData::AddWeapon(weapon_resource),
                                 },
                             );
                         }
@@ -315,9 +318,9 @@ impl Character {
 
                 if self.inventory.try_extract_exact_items(item, count) == count {
                     // Make sure to remove weapons associated with items.
-                    if let Some(weapon_kind) = item.associated_weapon() {
+                    if let Some(weapon_resource) = item.associated_weapon(resource_manager) {
                         for weapon in weapons {
-                            if weapon_ref(weapon, &scene.graph).kind() == weapon_kind {
+                            if scene.graph[weapon].resource() == Some(weapon_resource.clone()) {
                                 scene.graph.remove_node(weapon);
                             }
                         }
@@ -330,11 +333,11 @@ impl Character {
         }
     }
 
-    pub fn select_weapon(&mut self, weapon: WeaponKind, graph: &mut Graph) {
+    pub fn select_weapon(&mut self, weapon: ModelResource, graph: &mut Graph) {
         if let Some(index) = self
             .weapons
             .iter()
-            .position(|&w| weapon_ref(w, graph).kind() == weapon)
+            .position(|&w| graph[w].resource() == Some(weapon.clone()))
         {
             for &other_weapon in self.weapons.iter() {
                 graph[other_weapon].set_enabled(false);

@@ -428,6 +428,7 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player: &mut Player,
         player_handle: Handle<Node>,
+        resource_manager: &ResourceManager,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -472,7 +473,7 @@ impl InventoryInterface {
                                             self.sender.send(Message::SyncInventory);
                                         }
                                     } else if let Some(associated_weapon) =
-                                        item.item.associated_weapon()
+                                        item.item.associated_weapon(resource_manager)
                                     {
                                         player
                                             .script_message_sender

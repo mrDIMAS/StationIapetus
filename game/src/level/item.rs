@@ -1,6 +1,5 @@
-use crate::{block_on, current_level_mut, weapon::definition::WeaponKind};
-use fyrox::resource::model::{Model, ModelResourceExtension};
-use fyrox::resource::texture::Texture;
+use crate::{block_on, current_level_mut};
+use fyrox::resource::model::ModelResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -15,6 +14,10 @@ use fyrox::{
     },
     impl_component_provider,
     lazy_static::lazy_static,
+    resource::{
+        model::{Model, ModelResourceExtension},
+        texture::Texture,
+    },
     scene::{
         base::BaseBuilder, collider::ColliderShape, graph::physics::RayCastOptions, graph::Graph,
         node::Node, sprite::SpriteBuilder, Scene,
@@ -65,13 +68,21 @@ impl Default for ItemKind {
 }
 
 impl ItemKind {
-    pub fn associated_weapon(&self) -> Option<WeaponKind> {
+    pub fn associated_weapon(&self, resource_manager: &ResourceManager) -> Option<ModelResource> {
         match self {
-            ItemKind::PlasmaGun => Some(WeaponKind::PlasmaRifle),
-            ItemKind::Ak47 => Some(WeaponKind::Ak47),
-            ItemKind::M4 => Some(WeaponKind::M4),
-            ItemKind::Glock => Some(WeaponKind::Glock),
-            ItemKind::RailGun => Some(WeaponKind::RailGun),
+            ItemKind::PlasmaGun => Some(
+                resource_manager.request::<Model, _>("data/models/plasma_rifle/plasma_rifle.rgs"),
+            ),
+            ItemKind::Ak47 => {
+                Some(resource_manager.request::<Model, _>("data/models/ak47/ak47.rgs"))
+            }
+            ItemKind::M4 => Some(resource_manager.request::<Model, _>("data/models/m4/m4.rgs")),
+            ItemKind::Glock => {
+                Some(resource_manager.request::<Model, _>("data/models/glock/glock.rgs"))
+            }
+            ItemKind::RailGun => {
+                Some(resource_manager.request::<Model, _>("data/models/rail_gun/rail_gun.rgs"))
+            }
             ItemKind::Medkit
             | ItemKind::Medpack
             | ItemKind::Ammo

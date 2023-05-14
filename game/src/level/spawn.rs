@@ -1,7 +1,4 @@
-use crate::{
-    character::{CharacterMessage, CharacterMessageData},
-    weapon::definition::WeaponKind,
-};
+use crate::character::{CharacterMessage, CharacterMessageData};
 use fyrox::{
     core::{
         log::Log,
@@ -16,7 +13,7 @@ use fyrox::{
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
-pub struct DefaultWeapon(WeaponKind);
+pub struct DefaultWeapon(Option<ModelResource>);
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct CharacterSpawnPoint {
@@ -53,13 +50,15 @@ impl ScriptTrait for CharacterSpawnPoint {
 
             // Give some default weapons.
             for weapon in self.default_weapons.iter() {
-                ctx.message_sender.send_to_target(
-                    character_root_node_handle,
-                    CharacterMessage {
-                        character: character_root_node_handle,
-                        data: CharacterMessageData::AddWeapon(weapon.0),
-                    },
-                )
+                if let Some(model) = weapon.0.clone() {
+                    ctx.message_sender.send_to_target(
+                        character_root_node_handle,
+                        CharacterMessage {
+                            character: character_root_node_handle,
+                            data: CharacterMessageData::AddWeapon(model),
+                        },
+                    )
+                }
             }
         } else {
             Log::warn("Prefab is not set, nothing to spawn!")

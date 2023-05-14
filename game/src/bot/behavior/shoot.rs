@@ -76,12 +76,6 @@ impl<'a> Behavior<'a> for CanShootTarget {
 
             if context.restoration_time <= 0.0
                 && context.definition.can_use_weapons
-                && context
-                    .character
-                    .inventory
-                    .items()
-                    .iter()
-                    .any(|i| i.kind.associated_weapon().is_some())
                 && context.character.inventory.item_count(ItemKind::Ammo) >= ammo_per_shot
             {
                 Status::Success

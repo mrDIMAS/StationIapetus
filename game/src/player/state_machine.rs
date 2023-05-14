@@ -1,11 +1,13 @@
-use crate::{character::Character, sound::SoundManager, utils};
-use fyrox::core::algebra::Vector2;
+use crate::{character::Character, sound::SoundManager, utils, weapon::CombatWeaponKind};
 use fyrox::{
     animation::{
         machine::{MachineLayer, Parameter, State, Transition},
         Animation,
     },
-    core::{algebra::Vector3, pool::Handle},
+    core::{
+        algebra::{Vector2, Vector3},
+        pool::Handle,
+    },
     scene::{
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
         graph::Graph,
@@ -13,13 +15,6 @@ use fyrox::{
         Scene,
     },
 };
-
-#[derive(Eq, PartialEq, Copy, Clone)]
-#[repr(u32)]
-pub enum CombatWeaponKind {
-    Pistol = 0,
-    Rifle = 1,
-}
 
 pub struct StateMachineInput<'a> {
     pub is_walking: bool,

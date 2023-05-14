@@ -484,6 +484,8 @@ impl Game {
 
                     // Reset update lag to prevent lag after scene is loaded.
                     *ctx.lag = 0.0;
+
+                    Log::info("Level was loaded successfully!");
                 } else {
                     self.loading_screen.set_progress(
                         ctx.user_interface,
@@ -702,6 +704,7 @@ impl Game {
                             &self.control_scheme,
                             player_ref,
                             player_handle,
+                            context.resource_manager,
                         );
                         self.journal_display
                             .process_os_event(&event, &self.control_scheme);
@@ -856,7 +859,7 @@ impl Plugin for Game {
         self.menu.sync_to_model(&mut context, self.level.is_some());
     }
 
-    fn before_rendering(&mut self, mut context: PluginContext, control_flow: &mut ControlFlow) {
+    fn before_rendering(&mut self, mut context: PluginContext, _control_flow: &mut ControlFlow) {
         self.render_offscreen(&mut context);
     }
 

@@ -1,13 +1,6 @@
 //! Weapon related stuff.
 
-use crate::{
-    utils::ResourceProxy,
-    weapon::{
-        definition::{WeaponDefinition, WeaponKind},
-        projectile::Projectile,
-    },
-};
-use fyrox::resource::model::ModelResourceExtension;
+use crate::{level::item::ItemKind, utils::ResourceProxy, weapon::projectile::Projectile};
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -21,14 +14,14 @@ use fyrox::{
     },
     impl_component_provider,
     rand::{seq::SliceRandom, Rng},
-    resource::model::ModelResource,
+    resource::model::{ModelResource, ModelResourceExtension},
     scene::{graph::Graph, node::Node, Scene},
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
 };
+use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
-pub mod definition;
 pub mod projectile;
 pub mod sight;
 
@@ -42,9 +35,17 @@ pub enum WeaponMessageData {
     Removed,
 }
 
+#[derive(
+    Eq, PartialEq, Copy, Clone, Debug, Reflect, Visit, AsRefStr, EnumString, EnumVariantNames,
+)]
+#[repr(u32)]
+pub enum CombatWeaponKind {
+    Pistol = 0,
+    Rifle = 1,
+}
+
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Weapon {
-    kind: WeaponKind,
     shot_point: Handle<Node>,
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
@@ -74,6 +75,12 @@ pub struct Weapon {
     projectile: Option<ModelResource>,
 
     #[visit(optional)]
+    pub weapon_type: CombatWeaponKind,
+
+    #[visit(optional)]
+    pub associated_item: ItemKind,
+
+    #[visit(optional)]
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
@@ -88,21 +95,15 @@ pub struct Weapon {
 
     #[reflect(hidden)]
     #[visit(skip)]
-    pub definition: &'static WeaponDefinition,
-
-    #[reflect(hidden)]
-    #[visit(skip)]
     self_handle: Handle<Node>,
 }
 
 impl Default for Weapon {
     fn default() -> Self {
         Self {
-            kind: WeaponKind::M4,
             shot_point: Handle::NONE,
             last_shot_time: 0.0,
             owner: Handle::NONE,
-            definition: Self::definition(WeaponKind::M4),
             flash_light: Default::default(),
             flash_light_enabled: false,
             shoot_interval: 0.15.into(),
@@ -115,15 +116,13 @@ impl Default for Weapon {
             v_recoil: Vector2::new(-2.0, 4.0).into(),
             h_recoil: Vector2::new(-1.0, 1.0).into(),
             shot_vfx: Default::default(),
+            weapon_type: CombatWeaponKind::Pistol,
+            associated_item: Default::default(),
         }
     }
 }
 
 impl Weapon {
-    pub fn definition(kind: WeaponKind) -> &'static WeaponDefinition {
-        definition::DEFINITIONS.map.get(&kind).unwrap()
-    }
-
     pub fn shot_position(&self, graph: &Graph) -> Vector3<f32> {
         if self.shot_point.is_some() {
             graph[self.shot_point].global_position()
@@ -135,10 +134,6 @@ impl Weapon {
 
     pub fn shot_direction(&self, graph: &Graph) -> Vector3<f32> {
         graph[self.self_handle].look_vector().normalize()
-    }
-
-    pub fn kind(&self) -> WeaponKind {
-        self.kind
     }
 
     pub fn world_basis(&self, graph: &Graph) -> Matrix3<f32> {
@@ -217,7 +212,6 @@ impl TypeUuidProvider for Weapon {
 
 impl ScriptTrait for Weapon {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
-        self.definition = Self::definition(self.kind);
         self.self_handle = ctx.handle;
 
         ctx.message_dispatcher
