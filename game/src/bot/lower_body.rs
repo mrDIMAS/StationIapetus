@@ -219,7 +219,7 @@ impl LowerBodyMachine {
         animation_player: Handle<Node>,
     ) {
         let animations_container =
-            utils::fetch_animation_container_ref(&scene.graph, animation_player);
+            utils::fetch_animation_container_mut(&mut scene.graph, animation_player);
 
         self.machine
             .set_parameter(Self::IDLE_TO_WALK, Parameter::Rule(input.walk))

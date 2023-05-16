@@ -387,7 +387,7 @@ impl UpperBodyMachine {
         animations_player: Handle<Node>,
     ) {
         let animations_container_ref =
-            utils::fetch_animation_container_ref(&scene.graph, animations_player);
+            utils::fetch_animation_container_mut(&mut scene.graph, animations_player);
 
         let attack_animation = &animations_container_ref
             [self.attack_animations[input.attack_animation_index as usize]];
