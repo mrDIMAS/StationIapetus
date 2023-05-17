@@ -1,5 +1,7 @@
 use crate::bot::state_machine::StateMachine;
+use crate::bot::BotHostility;
 use crate::sound::SoundManager;
+use crate::utils::ResourceProxy;
 use crate::{
     bot::{
         behavior::{
@@ -11,12 +13,13 @@ use crate::{
             shoot::{CanShootTarget, ShootTarget},
             threat::{NeedsThreatenTarget, ThreatenTarget},
         },
-        BotDefinition, BotKind, Target,
+        Target,
     },
     character::Character,
     utils::BodyImpactHandler,
     MessageSender,
 };
+use fyrox::scene::sound::SoundBufferResource;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
@@ -86,9 +89,7 @@ pub struct BehaviorContext<'a> {
     pub elapsed_time: f32,
     pub state_machine: &'a StateMachine,
     pub target: &'a mut Option<Target>,
-    pub definition: &'static BotDefinition,
     pub character: &'a mut Character,
-    pub kind: BotKind,
     pub agent: &'a mut NavmeshAgent,
     pub impact_handler: &'a BodyImpactHandler,
     pub model: Handle<Node>,
@@ -101,6 +102,10 @@ pub struct BehaviorContext<'a> {
     pub animation_player: Handle<Node>,
     pub script_message_sender: &'a ScriptMessageSender,
     pub navmesh: Handle<Node>,
+    pub hostility: BotHostility,
+    pub v_aim_angle_hack: f32,
+    pub can_use_weapons: bool,
+    pub attack_sounds: &'a [ResourceProxy<SoundBufferResource>],
 
     // Output
     pub attack_animation_index: usize,
@@ -117,7 +122,7 @@ pub struct BotBehavior {
 }
 
 impl BotBehavior {
-    pub fn new(spine: Handle<Node>, definition: &BotDefinition) -> Self {
+    pub fn new(spine: Handle<Node>, close_combat_distance: f32) -> Self {
         let mut tree = BehaviorTree::new();
 
         let entry = CompositeNode::new_selector(vec![
@@ -154,7 +159,7 @@ impl BotBehavior {
                             .add_to(&mut tree),
                             CompositeNode::new_sequence(vec![
                                 LeafNode::new(Action::MoveToTarget(MoveToTarget {
-                                    min_distance: definition.close_combat_distance,
+                                    min_distance: close_combat_distance,
                                 }))
                                 .add_to(&mut tree),
                                 LeafNode::new(Action::CanMeleeAttack(CanMeleeAttack))

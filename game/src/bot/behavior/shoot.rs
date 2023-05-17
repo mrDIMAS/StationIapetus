@@ -75,7 +75,7 @@ impl<'a> Behavior<'a> for CanShootTarget {
             let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
             if context.restoration_time <= 0.0
-                && context.definition.can_use_weapons
+                && context.can_use_weapons
                 && context.character.inventory.item_count(ItemKind::Ammo) >= ammo_per_shot
             {
                 Status::Success

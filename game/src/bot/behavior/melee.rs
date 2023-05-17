@@ -1,14 +1,13 @@
-use crate::bot::state_machine::StateMachine;
-use crate::character::DamageDealer;
 use crate::{
-    bot::{behavior::BehaviorContext, BotDefinition},
-    character::{CharacterMessage, CharacterMessageData},
+    bot::{behavior::BehaviorContext, state_machine::StateMachine},
+    character::{CharacterMessage, CharacterMessageData, DamageDealer},
     utils,
 };
-use fyrox::scene::graph::Graph;
 use fyrox::{
     asset::core::rand::prelude::IteratorRandom,
     core::visitor::prelude::*,
+    rand::Rng,
+    scene::graph::Graph,
     utils::behavior::{Behavior, Status},
 };
 
@@ -18,13 +17,13 @@ pub struct DoMeleeAttack {
     attack_animation_index: u32,
 }
 
-fn can_shoot(state_machine: &StateMachine, graph: &Graph, definition: &BotDefinition) -> bool {
+fn can_shoot(state_machine: &StateMachine, graph: &Graph, can_use_weapons: bool) -> bool {
     state_machine
         .upper_body_layer(graph)
         .map_or(false, |layer| {
             layer.active_state() == state_machine.aim_state
         })
-        && definition.can_use_weapons
+        && can_use_weapons
 }
 
 impl<'a> Behavior<'a> for DoMeleeAttack {
@@ -36,11 +35,6 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
             let active_state = upper_body_layer.active_state();
             let current_attack_animation =
                 context.state_machine.attack_animations[self.attack_animation_index as usize];
-
-            let animations_container = utils::fetch_animation_container_ref(
-                &context.scene.graph,
-                context.animation_player,
-            );
 
             if upper_body_layer.active_state() == context.state_machine.attack_state {
                 self.attack_timeout = 0.3;
@@ -64,7 +58,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                             && !can_shoot(
                                 context.state_machine,
                                 &context.scene.graph,
-                                context.definition,
+                                context.can_use_weapons,
                             )
                         {
                             context.script_message_sender.send_global(CharacterMessage {
@@ -81,14 +75,13 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                             });
 
                             if let Some(attack_sound) = context
-                                .definition
                                 .attack_sounds
                                 .iter()
                                 .choose(&mut fyrox::rand::thread_rng())
                             {
-                                context.sound_manager.play_sound(
+                                context.sound_manager.try_play_sound_buffer(
                                     &mut context.scene.graph,
-                                    attack_sound,
+                                    attack_sound.0.as_ref(),
                                     self_position,
                                     1.0,
                                     1.0,
@@ -100,6 +93,10 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                 }
             } else if self.attack_timeout <= 0.0 {
                 context.is_attacking = true;
+
+                self.attack_animation_index = fyrox::core::rand::thread_rng()
+                    .gen_range(0..context.state_machine.attack_animations.len())
+                    as u32;
             }
 
             self.attack_timeout -= context.dt;

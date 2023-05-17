@@ -111,7 +111,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
             look_dir,
             &mut ctx.scene.graph,
             ctx.dt,
-            ctx.definition.v_aim_angle_hack.to_radians(),
+            ctx.v_aim_angle_hack.to_radians(),
         );
 
         if aimed_horizontally && aimed_vertically {

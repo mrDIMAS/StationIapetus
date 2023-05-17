@@ -4,7 +4,7 @@ use fyrox::{
 };
 use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
-    bot::BotKind,
+    bot::BotHostility,
     character::{Character, HitBox},
     door::{DoorDirection, DoorState},
     elevator::call_button::CallButtonKind,
@@ -37,11 +37,11 @@ fn main() {
     editors.register_inheritable_enum::<Hostility, _>();
     editors.register_inheritable_enum::<ShootMode, _>();
     editors.register_inheritable_enum::<ItemKind, _>();
-    editors.register_inheritable_enum::<BotKind, _>();
     editors.register_inheritable_enum::<CombatWeaponKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<Damage, _>();
     editors.register_inheritable_enum::<TriggerKind, _>();
+    editors.register_inheritable_enum::<BotHostility, _>();
     editors.register_inheritable_inspectable::<Inventory>();
     editors.register_inheritable_inspectable::<ItemEntry>();
     editors.register_inheritable_inspectable::<Barrel>();

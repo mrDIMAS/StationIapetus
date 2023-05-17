@@ -4,12 +4,7 @@ use fyrox::{
         Animation,
     },
     core::pool::Handle,
-    scene::{
-        animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
-        graph::Graph,
-        node::Node,
-        Scene,
-    },
+    scene::{animation::absm::AnimationBlendingStateMachine, graph::Graph, node::Node, Scene},
 };
 
 pub struct StateMachineInput {

@@ -203,6 +203,22 @@ impl SoundManager {
         }
     }
 
+    pub fn try_play_sound_buffer(
+        &self,
+        graph: &mut Graph,
+        buffer: Option<&SoundBufferResource>,
+        position: Vector3<f32>,
+        gain: f32,
+        rolloff_factor: f32,
+        radius: f32,
+    ) {
+        if let Some(buffer) = buffer {
+            self.play_sound_buffer(graph, buffer, position, gain, rolloff_factor, radius)
+        } else {
+            Log::warn("Failed to play a sound!")
+        }
+    }
+
     pub fn play_sound_buffer(
         &self,
         graph: &mut Graph,

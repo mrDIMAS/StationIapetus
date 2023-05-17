@@ -9,16 +9,14 @@ use crate::{
     game_ref,
     inventory::{Inventory, ItemEntry},
     level::item::ItemKind,
-    utils::{self, is_probability_event_occurred, BodyImpactHandler},
+    utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
     weapon::WeaponMessage,
 };
 use fyrox::{
-    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
         color::Color,
-        futures::executor::block_on,
         math::SmoothAngle,
         pool::Handle,
         rand::{seq::IteratorRandom, Rng},
@@ -27,11 +25,8 @@ use fyrox::{
         visitor::{Visit, VisitResult, Visitor},
         TypeUuidProvider,
     },
-    impl_component_provider,
-    lazy_static::lazy_static,
-    rand,
+    impl_component_provider, rand,
     rand::prelude::SliceRandom,
-    resource::model::{Model, ModelResourceExtension},
     scene::{
         self,
         debug::SceneDrawingContext,
@@ -41,6 +36,7 @@ use fyrox::{
         },
         node::Node,
         rigidbody::RigidBody,
+        sound::SoundBufferResource,
         Scene,
     },
     script::{
@@ -49,11 +45,7 @@ use fyrox::{
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
 use serde::Deserialize;
-use std::{
-    collections::HashMap,
-    fs::File,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 mod behavior;
@@ -63,7 +55,9 @@ mod state_machine;
     Deserialize,
     Copy,
     Clone,
+    PartialOrd,
     PartialEq,
+    Ord,
     Eq,
     Hash,
     Debug,
@@ -73,24 +67,6 @@ mod state_machine;
     EnumString,
     EnumVariantNames,
 )]
-#[repr(i32)]
-pub enum BotKind {
-    Mutant = 0,
-    Parasite = 1,
-    Zombie = 2,
-}
-
-impl BotKind {
-    pub fn description(self) -> &'static str {
-        match self {
-            BotKind::Mutant => "Mutant",
-            BotKind::Parasite => "Parasite",
-            BotKind::Zombie => "Zombie",
-        }
-    }
-}
-
-#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Debug)]
 #[repr(u32)]
 pub enum BotHostility {
     Everyone = 0,
@@ -108,12 +84,8 @@ pub struct Target {
 pub struct Bot {
     #[reflect(hidden)]
     target: Option<Target>,
-    pub kind: BotKind,
     model: Handle<Node>,
     character: Character,
-    #[visit(skip)]
-    #[reflect(hidden)]
-    pub definition: &'static BotDefinition,
     #[reflect(hidden)]
     #[visit(skip)]
     state_machine: StateMachine,
@@ -132,9 +104,29 @@ pub struct Bot {
     spine: Handle<Node>,
     threaten_timeout: f32,
     #[visit(optional)]
+    head: Handle<Node>,
+    #[visit(optional)]
     animation_player: Handle<Node>,
     #[visit(optional)]
     absm: Handle<Node>,
+    #[visit(optional)]
+    pub walk_speed: f32,
+    #[visit(optional)]
+    pub v_aim_angle_hack: f32,
+    #[visit(optional)]
+    pub can_use_weapons: bool,
+    #[visit(optional)]
+    pub close_combat_distance: f32,
+    #[visit(optional)]
+    pub pain_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    #[visit(optional)]
+    pub scream_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    #[visit(optional)]
+    pub idle_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    #[visit(optional)]
+    pub attack_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    #[visit(optional)]
+    pub hostility: BotHostility,
 }
 
 impl_component_provider!(Bot, character: Character);
@@ -157,10 +149,8 @@ impl Default for Bot {
     fn default() -> Self {
         Self {
             character: Default::default(),
-            kind: BotKind::Mutant,
             model: Default::default(),
             target: Default::default(),
-            definition: Self::get_definition(BotKind::Mutant),
             state_machine: Default::default(),
             restoration_time: 0.0,
             hips: Default::default(),
@@ -172,87 +162,23 @@ impl Default for Bot {
             h_recoil: Default::default(),
             spine: Default::default(),
             threaten_timeout: 0.0,
+            head: Default::default(),
             animation_player: Default::default(),
             absm: Default::default(),
+            walk_speed: 1.2,
+            v_aim_angle_hack: 0.0,
+            can_use_weapons: false,
+            close_combat_distance: 1.0,
+            pain_sounds: Default::default(),
+            scream_sounds: Default::default(),
+            idle_sounds: Default::default(),
+            attack_sounds: Default::default(),
+            hostility: BotHostility::Player,
         }
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct BotDefinition {
-    pub scale: f32,
-    pub health: f32,
-    pub walk_speed: f32,
-    pub weapon_scale: f32,
-    pub model: String,
-    pub weapon_hand_name: String,
-    pub left_leg_name: String,
-    pub right_leg_name: String,
-    pub spine: String,
-    pub head_name: String,
-    pub hips: String,
-    pub v_aim_angle_hack: f32,
-    pub can_use_weapons: bool,
-    pub close_combat_distance: f32,
-    pub pain_sounds: Vec<String>,
-    pub scream_sounds: Vec<String>,
-    pub idle_sounds: Vec<String>,
-    pub attack_sounds: Vec<String>,
-    pub hostility: BotHostility,
-
-    // Animations.
-    pub idle_animation: String,
-    pub scream_animation: String,
-    pub walk_animation: String,
-    pub aim_animation: String,
-    pub dying_animation: String,
-}
-
-#[derive(Deserialize, Default)]
-pub struct BotDefinitionsContainer {
-    map: HashMap<BotKind, BotDefinition>,
-}
-
-impl BotDefinitionsContainer {
-    pub fn new() -> Self {
-        let file = File::open("data/configs/bots.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
-    }
-}
-
-lazy_static! {
-    static ref DEFINITIONS: BotDefinitionsContainer = BotDefinitionsContainer::new();
-}
-
 impl Bot {
-    pub fn get_definition(kind: BotKind) -> &'static BotDefinition {
-        DEFINITIONS.map.get(&kind).unwrap()
-    }
-
-    pub fn add_to_scene(
-        scene: &mut Scene,
-        kind: BotKind,
-        resource_manager: &ResourceManager,
-        position: Vector3<f32>,
-        rotation: UnitQuaternion<f32>,
-    ) -> Handle<Node> {
-        let bot = block_on(
-            resource_manager.request::<Model, _>(Self::get_definition(kind).model.clone()),
-        )
-        .unwrap()
-        .instantiate(scene);
-
-        let node = &mut scene.graph[bot];
-
-        assert!(node.has_script::<Bot>());
-
-        node.local_transform_mut()
-            .set_position(position)
-            .set_rotation(rotation);
-
-        bot
-    }
-
     #[allow(clippy::unnecessary_to_owned)] // false positive
     fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
         if let Some(target) = self.target.as_ref() {
@@ -338,10 +264,6 @@ impl Bot {
             }
         }
     }
-
-    pub fn resolve(&mut self) {
-        self.definition = Self::get_definition(self.kind);
-    }
 }
 
 impl TypeUuidProvider for Bot {
@@ -352,8 +274,6 @@ impl TypeUuidProvider for Bot {
 
 impl ScriptTrait for Bot {
     fn on_init(&mut self, context: &mut ScriptContext) {
-        self.definition = Self::get_definition(self.kind);
-
         self.state_machine = StateMachine::new(self.absm, &context.scene.graph).unwrap();
 
         let possible_item = [
@@ -371,7 +291,7 @@ impl ScriptTrait for Bot {
                 Default::default()
             };
 
-        if self.definition.can_use_weapons {
+        if self.can_use_weapons {
             items.push(ItemEntry {
                 kind: ItemKind::Ammo,
                 amount: rand::thread_rng().gen_range(32..96),
@@ -382,9 +302,9 @@ impl ScriptTrait for Bot {
 
         self.agent = NavmeshAgentBuilder::new()
             .with_position(context.scene.graph[context.handle].global_position())
-            .with_speed(self.definition.walk_speed)
+            .with_speed(self.walk_speed)
             .build();
-        self.behavior = BotBehavior::new(self.spine, self.definition);
+        self.behavior = BotBehavior::new(self.spine, self.close_combat_distance);
 
         current_level_mut(context.plugins)
             .unwrap()
@@ -393,7 +313,6 @@ impl ScriptTrait for Bot {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
-        self.definition = Self::get_definition(self.kind);
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
         ctx.message_dispatcher
@@ -467,14 +386,12 @@ impl ScriptTrait for Bot {
                     self.last_health = self.health;
                     self.restoration_time = 0.8;
 
-                    if let Some(grunt_sound) =
-                        self.definition.pain_sounds.choose(&mut rand::thread_rng())
-                    {
+                    if let Some(grunt_sound) = self.pain_sounds.choose(&mut rand::thread_rng()) {
                         let position = self.position(&ctx.scene.graph);
 
-                        level.sound_manager.play_sound(
+                        level.sound_manager.try_play_sound_buffer(
                             &mut ctx.scene.graph,
-                            grunt_sound,
+                            grunt_sound.0.as_ref(),
                             position,
                             0.8,
                             1.0,
@@ -509,22 +426,23 @@ impl ScriptTrait for Bot {
                 elapsed_time: ctx.elapsed_time,
                 state_machine: &self.state_machine,
                 target: &mut self.target,
-                definition: self.definition,
                 character: &mut self.character,
-                kind: self.kind,
                 agent: &mut self.agent,
                 impact_handler: &self.impact_handler,
                 model: self.model,
                 restoration_time: self.restoration_time,
                 v_recoil: &mut self.v_recoil,
                 h_recoil: &mut self.h_recoil,
-                move_speed: self.definition.walk_speed,
+                move_speed: self.walk_speed,
                 threaten_timeout: &mut self.threaten_timeout,
                 sound_manager: &level.sound_manager,
                 script_message_sender: ctx.message_sender,
                 navmesh: level.navmesh,
 
                 // Output
+                hostility: self.hostility,
+                v_aim_angle_hack: self.v_aim_angle_hack,
+                can_use_weapons: self.can_use_weapons,
                 animation_player: self.animation_player,
                 attack_animation_index: 0,
                 movement_speed_factor: 1.0,
@@ -532,6 +450,7 @@ impl ScriptTrait for Bot {
                 is_attacking: false,
                 is_aiming_weapon: false,
                 is_screaming: false,
+                attack_sounds: &self.attack_sounds,
             };
 
             self.behavior.tree.tick(&mut behavior_ctx);
@@ -575,13 +494,8 @@ impl ScriptTrait for Bot {
         );
 
         if self.head_exploded {
-            if let Some((head, _)) = ctx
-                .scene
-                .graph
-                .find_by_name(self.model, &self.definition.head_name)
-            {
-                ctx.scene.graph[head]
-                    .local_transform_mut()
+            if let Some(head) = ctx.scene.graph.try_get_mut(self.head) {
+                head.local_transform_mut()
                     .set_scale(Vector3::new(0.0, 0.0, 0.0));
             }
         }

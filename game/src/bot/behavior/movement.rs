@@ -1,5 +1,4 @@
-use crate::bot::state_machine::StateMachine;
-use crate::{bot::behavior::BehaviorContext, character::HitBox, utils, utils::BodyImpactHandler};
+use crate::{bot::behavior::BehaviorContext, character::HitBox, utils::BodyImpactHandler};
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
     scene::navmesh::NavigationalMesh,
