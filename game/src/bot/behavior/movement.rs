@@ -1,13 +1,9 @@
-use crate::{
-    bot::{behavior::BehaviorContext, lower_body::LowerBodyMachine, upper_body::UpperBodyMachine},
-    character::HitBox,
-    utils,
-    utils::BodyImpactHandler,
-};
-use fyrox::scene::navmesh::NavigationalMesh;
+use crate::bot::state_machine::StateMachine;
+use crate::{bot::behavior::BehaviorContext, character::HitBox, utils, utils::BodyImpactHandler};
 use fyrox::{
-    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
-    scene::{node::Node, Scene},
+    core::{algebra::Vector3, visitor::prelude::*},
+    scene::navmesh::NavigationalMesh,
+    scene::Scene,
     utils::behavior::{Behavior, Status},
 };
 
@@ -17,17 +13,11 @@ pub struct MoveToTarget {
 }
 
 fn calculate_movement_speed_factor(
-    upper_body_machine: &UpperBodyMachine,
     hit_boxes: &[HitBox],
     impact_handler: &BodyImpactHandler,
     scene: &Scene,
-    animation_player: Handle<Node>,
 ) -> f32 {
-    let mut k = if upper_body_machine.should_stick_to_target(scene, animation_player) {
-        2.0
-    } else {
-        1.0
-    };
+    let mut k = 1.0;
 
     // Slowdown bot according to damaged body parts.
     for hitbox in hit_boxes.iter() {
@@ -45,14 +35,17 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
         ctx.movement_speed_factor = calculate_movement_speed_factor(
-            ctx.upper_body_machine,
             &ctx.character.hit_boxes,
             ctx.impact_handler,
             ctx.scene,
-            ctx.animation_player,
         );
 
         let transform = &ctx.scene.graph[ctx.model].global_transform();
+
+        let delta_position = ctx
+            .state_machine
+            .lower_body_layer(&ctx.scene.graph)
+            .and_then(|layer| layer.pose().root_motion().map(|rm| rm.delta_position));
 
         let mut multiborrow_context = ctx.scene.graph.begin_multi_borrow::<2>();
 
@@ -80,9 +73,9 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         if has_reached_destination {
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
-        } else if let Some(root_motion) = ctx.lower_body_machine.machine.pose().root_motion() {
+        } else if let Some(delta_position) = delta_position {
             let velocity = transform
-                .transform_vector(&root_motion.delta_position)
+                .transform_vector(&delta_position)
                 .scale(1.0 / ctx.dt);
 
             let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
@@ -90,16 +83,18 @@ impl<'a> Behavior<'a> for MoveToTarget {
         }
 
         // Emit step sounds from walking animation.
-        if ctx.lower_body_machine.is_walking() {
+        /*
+        if ctx.state_machine.is_walking(&ctx.scene.graph) {
             let animations_container =
                 utils::fetch_animation_container_mut(&mut ctx.scene.graph, ctx.animation_player);
+
 
             let mut events = animations_container
                 .get_mut(ctx.lower_body_machine.walk_animation)
                 .take_events();
 
             while let Some(event) = events.pop_front() {
-                if event.signal_id == LowerBodyMachine::STEP_SIGNAL {
+                if event.name == StateMachine::STEP_SIGNAL {
                     let begin =
                         ctx.scene.graph[ctx.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
 
@@ -107,7 +102,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
                         .footstep_ray_check(begin, ctx.scene, ctx.sound_manager);
                 }
             }
-        }
+        }*/
 
         if has_reached_destination {
             ctx.is_moving = false;

@@ -1,3 +1,4 @@
+use crate::bot::state_machine::StateMachine;
 use crate::sound::SoundManager;
 use crate::{
     bot::{
@@ -10,8 +11,6 @@ use crate::{
             shoot::{CanShootTarget, ShootTarget},
             threat::{NeedsThreatenTarget, ThreatenTarget},
         },
-        lower_body::LowerBodyMachine,
-        upper_body::UpperBodyMachine,
         BotDefinition, BotKind, Target,
     },
     character::Character,
@@ -85,8 +84,7 @@ pub struct BehaviorContext<'a> {
     pub sender: &'a MessageSender,
     pub dt: f32,
     pub elapsed_time: f32,
-    pub upper_body_machine: &'a UpperBodyMachine,
-    pub lower_body_machine: &'a LowerBodyMachine,
+    pub state_machine: &'a StateMachine,
     pub target: &'a mut Option<Target>,
     pub definition: &'static BotDefinition,
     pub character: &'a mut Character,

@@ -1,9 +1,7 @@
-use crate::weapon::WeaponMessage;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
-        lower_body::{LowerBodyMachine, LowerBodyMachineInput},
-        upper_body::{UpperBodyMachine, UpperBodyMachineInput},
+        state_machine::{StateMachine, StateMachineInput},
     },
     character::{Character, CharacterMessage, CharacterMessageData},
     current_level_mut, current_level_ref,
@@ -12,9 +10,8 @@ use crate::{
     inventory::{Inventory, ItemEntry},
     level::item::ItemKind,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
-    weapon::projectile::Damage,
+    weapon::WeaponMessage,
 };
-use fyrox::resource::model::{Model, ModelResourceExtension};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -34,6 +31,7 @@ use fyrox::{
     lazy_static::lazy_static,
     rand,
     rand::prelude::SliceRandom,
+    resource::model::{Model, ModelResourceExtension},
     scene::{
         self,
         debug::SceneDrawingContext,
@@ -59,8 +57,7 @@ use std::{
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 mod behavior;
-mod lower_body;
-mod upper_body;
+mod state_machine;
 
 #[derive(
     Deserialize,
@@ -118,9 +115,8 @@ pub struct Bot {
     #[reflect(hidden)]
     pub definition: &'static BotDefinition,
     #[reflect(hidden)]
-    lower_body_machine: LowerBodyMachine,
-    #[reflect(hidden)]
-    upper_body_machine: UpperBodyMachine,
+    #[visit(skip)]
+    state_machine: StateMachine,
     pub restoration_time: f32,
     hips: Handle<Node>,
     #[reflect(hidden)]
@@ -137,6 +133,8 @@ pub struct Bot {
     threaten_timeout: f32,
     #[visit(optional)]
     animation_player: Handle<Node>,
+    #[visit(optional)]
+    absm: Handle<Node>,
 }
 
 impl_component_provider!(Bot, character: Character);
@@ -163,8 +161,7 @@ impl Default for Bot {
             model: Default::default(),
             target: Default::default(),
             definition: Self::get_definition(BotKind::Mutant),
-            lower_body_machine: Default::default(),
-            upper_body_machine: Default::default(),
+            state_machine: Default::default(),
             restoration_time: 0.0,
             hips: Default::default(),
             agent: Default::default(),
@@ -176,17 +173,9 @@ impl Default for Bot {
             spine: Default::default(),
             threaten_timeout: 0.0,
             animation_player: Default::default(),
+            absm: Default::default(),
         }
     }
-}
-
-#[derive(Deserialize, Debug)]
-pub struct AttackAnimationDefinition {
-    path: String,
-    stick_timestamp: f32,
-    timestamp: f32,
-    damage: Damage,
-    speed: f32,
 }
 
 #[derive(Deserialize, Debug)]
@@ -214,7 +203,6 @@ pub struct BotDefinition {
     // Animations.
     pub idle_animation: String,
     pub scream_animation: String,
-    pub attack_animations: Vec<AttackAnimationDefinition>,
     pub walk_animation: String,
     pub aim_animation: String,
     pub dying_animation: String,
@@ -309,9 +297,14 @@ impl Bot {
     }
 
     pub fn can_be_removed(&self, scene: &Scene) -> bool {
-        utils::fetch_animation_container_ref(&scene.graph, self.animation_player)
-            .get(self.upper_body_machine.dying_animation)
-            .has_ended()
+        if let Some(upper_body_layer) = self.state_machine.upper_body_layer(&scene.graph) {
+            let animations =
+                utils::fetch_animation_container_ref(&scene.graph, self.animation_player);
+            upper_body_layer
+                .is_all_animations_of_state_ended(self.state_machine.dead_state, animations)
+        } else {
+            false
+        }
     }
 
     pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
@@ -361,29 +354,7 @@ impl ScriptTrait for Bot {
     fn on_init(&mut self, context: &mut ScriptContext) {
         self.definition = Self::get_definition(self.kind);
 
-        let hips = context
-            .scene
-            .graph
-            .find_by_name(context.handle, &self.definition.hips)
-            .map(|(h, _)| h)
-            .unwrap_or_default();
-
-        self.lower_body_machine = block_on(LowerBodyMachine::new(
-            context.resource_manager.clone(),
-            self.definition,
-            self.model,
-            self.animation_player,
-            hips,
-            context.scene,
-        ));
-        self.upper_body_machine = block_on(UpperBodyMachine::new(
-            context.resource_manager.clone(),
-            self.definition,
-            self.model,
-            context.scene,
-            self.hips,
-            self.animation_player,
-        ));
+        self.state_machine = StateMachine::new(self.absm, &context.scene.graph).unwrap();
 
         let possible_item = [
             (ItemKind::Ammo, 10),
@@ -536,8 +507,7 @@ impl ScriptTrait for Bot {
                 sender: &game.message_sender,
                 dt: ctx.dt,
                 elapsed_time: ctx.elapsed_time,
-                upper_body_machine: &self.upper_body_machine,
-                lower_body_machine: &self.lower_body_machine,
+                state_machine: &self.state_machine,
                 target: &mut self.target,
                 definition: self.definition,
                 character: &mut self.character,
@@ -579,30 +549,17 @@ impl ScriptTrait for Bot {
 
         self.check_doors(ctx.scene, &level.doors_container);
 
-        self.lower_body_machine.apply(
+        self.state_machine.apply(
             ctx.scene,
-            ctx.dt,
-            LowerBodyMachineInput {
+            StateMachineInput {
                 walk: is_moving,
                 scream: is_screaming,
                 dead: self.is_dead(),
                 movement_speed_factor,
-            },
-            self.animation_player,
-        );
-
-        self.upper_body_machine.apply(
-            ctx.scene,
-            ctx.dt,
-            UpperBodyMachineInput {
                 attack: is_attacking,
-                walk: is_moving,
-                scream: is_screaming,
-                dead: self.is_dead(),
-                aim: is_aiming,
                 attack_animation_index: attack_animation_index as u32,
+                aim: is_aiming,
             },
-            self.animation_player,
         );
         self.impact_handler.update_and_apply(ctx.dt, ctx.scene);
 
