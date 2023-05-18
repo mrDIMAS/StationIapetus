@@ -1,4 +1,6 @@
+use crate::inventory::Inventory;
 use crate::{character::character_ref, current_level_mut, game_mut};
+use fyrox::resource::model::ModelResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -90,6 +92,9 @@ pub struct Door {
     )]
     #[visit(optional)]
     open_offset_amount: InheritableVariable<f32>,
+
+    #[visit(optional)]
+    key_item: InheritableVariable<Option<ModelResource>>,
 
     #[reflect(hidden)]
     #[visit(skip)]
@@ -370,7 +375,17 @@ impl Door {
         }
     }
 
-    pub fn try_open(&mut self, has_key: bool) {
+    pub fn try_open(&mut self, inventory: Option<&Inventory>) {
+        let mut has_key = false;
+
+        if let Some(inventory) = inventory {
+            if let Some(key_item) = self.key_item.as_ref() {
+                if inventory.item_count(key_item) > 0 {
+                    has_key = true;
+                }
+            }
+        }
+
         self.open_request = Some(OpenRequest { has_key });
     }
 }

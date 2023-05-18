@@ -621,8 +621,7 @@ impl Game {
                         let player_ref = context.scenes[level.scene].graph[level.player]
                             .try_get_script::<Player>()
                             .unwrap();
-                        self.inventory_interface
-                            .sync_to_model(context.resource_manager.clone(), player_ref);
+                        self.inventory_interface.sync_to_model(player_ref);
                     }
                 }
                 Message::SyncJournal => {
@@ -704,7 +703,6 @@ impl Game {
                             &self.control_scheme,
                             player_ref,
                             player_handle,
-                            context.resource_manager,
                         );
                         self.journal_display
                             .process_os_event(&event, &self.control_scheme);

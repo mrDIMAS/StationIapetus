@@ -1,20 +1,10 @@
-use crate::level::item::ItemKind;
 use fyrox::core::{reflect::prelude::*, visitor::prelude::*};
+use fyrox::resource::model::ModelResource;
 
 #[derive(Default, Debug, Clone, Visit, Reflect)]
 pub struct ItemEntry {
-    pub kind: ItemKind,
+    pub resource: Option<ModelResource>,
     pub amount: u32,
-}
-
-impl ItemEntry {
-    pub fn kind(&self) -> ItemKind {
-        self.kind
-    }
-
-    pub fn amount(&self) -> u32 {
-        self.amount
-    }
 }
 
 #[derive(Default, Clone, Visit, Reflect, Debug)]
@@ -31,21 +21,25 @@ impl Inventory {
         Self { items }
     }
 
-    pub fn add_item(&mut self, item: ItemKind, count: u32) {
+    pub fn add_item(&mut self, item: &ModelResource, count: u32) {
         assert_ne!(count, 0);
 
         if let Some(item) = self.entry_mut(item) {
             item.amount += count;
         } else {
             self.items.push(ItemEntry {
-                kind: item,
+                resource: Some(item.clone()),
                 amount: count,
             })
         }
     }
 
-    pub fn try_extract_exact_items(&mut self, item: ItemKind, amount: u32) -> u32 {
-        if let Some(position) = self.items.iter().position(|i| i.kind == item) {
+    pub fn try_extract_exact_items(&mut self, item: &ModelResource, amount: u32) -> u32 {
+        if let Some(position) = self
+            .items
+            .iter()
+            .position(|i| i.resource.as_ref() == Some(item))
+        {
             let item = &mut self.items[position];
 
             if item.amount >= amount {
@@ -66,7 +60,7 @@ impl Inventory {
         &self.items
     }
 
-    pub fn item_count(&self, item: ItemKind) -> u32 {
+    pub fn item_count(&self, item: &ModelResource) -> u32 {
         if let Some(item) = self.entry(item) {
             item.amount
         } else {
@@ -74,15 +68,15 @@ impl Inventory {
         }
     }
 
-    fn entry(&self, item: ItemKind) -> Option<&ItemEntry> {
-        self.items.iter().find(|i| i.kind == item)
+    fn entry(&self, item: &ModelResource) -> Option<&ItemEntry> {
+        self.items
+            .iter()
+            .find(|i| i.resource.as_ref() == Some(item))
     }
 
-    fn entry_mut(&mut self, item: ItemKind) -> Option<&mut ItemEntry> {
-        self.items.iter_mut().find(|i| i.kind == item)
-    }
-
-    pub fn has_key(&self) -> bool {
-        self.item_count(ItemKind::MasterKey) > 0
+    fn entry_mut(&mut self, item: &ModelResource) -> Option<&mut ItemEntry> {
+        self.items
+            .iter_mut()
+            .find(|i| i.resource.as_ref() == Some(item))
     }
 }

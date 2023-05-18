@@ -1,6 +1,6 @@
 //! Weapon related stuff.
 
-use crate::{level::item::ItemKind, utils::ResourceProxy, weapon::projectile::Projectile};
+use crate::{utils::ResourceProxy, weapon::projectile::Projectile};
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -78,7 +78,10 @@ pub struct Weapon {
     pub weapon_type: CombatWeaponKind,
 
     #[visit(optional)]
-    pub associated_item: ItemKind,
+    pub ammo_item: InheritableVariable<Option<ModelResource>>,
+
+    #[visit(optional)]
+    pub associated_item: InheritableVariable<Option<ModelResource>>,
 
     #[visit(optional)]
     #[reflect(
@@ -117,12 +120,26 @@ impl Default for Weapon {
             h_recoil: Vector2::new(-1.0, 1.0).into(),
             shot_vfx: Default::default(),
             weapon_type: CombatWeaponKind::Pistol,
+            ammo_item: Default::default(),
             associated_item: Default::default(),
         }
     }
 }
 
 impl Weapon {
+    pub fn from_resource<F, R>(model_resource: &ModelResource, func: F) -> R
+    where
+        F: FnOnce(Option<&Weapon>) -> R,
+    {
+        let data = model_resource.data_ref();
+        let graph = &data.get_scene().graph;
+        func(
+            graph
+                .try_get(graph.get_root())
+                .and_then(|n| n.try_get_script::<Weapon>()),
+        )
+    }
+
     pub fn shot_position(&self, graph: &Graph) -> Vector3<f32> {
         if self.shot_point.is_some() {
             graph[self.shot_point].global_position()

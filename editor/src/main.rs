@@ -10,7 +10,7 @@ use station_iapetus::{
     elevator::call_button::CallButtonKind,
     inventory::{Inventory, ItemEntry},
     level::{
-        item::ItemKind,
+        item::ItemAction,
         spawn::DefaultWeapon,
         trigger::TriggerKind,
         turret::{Barrel, Hostility, ShootMode},
@@ -36,12 +36,12 @@ fn main() {
     editors.register_inheritable_enum::<DoorDirection, _>();
     editors.register_inheritable_enum::<Hostility, _>();
     editors.register_inheritable_enum::<ShootMode, _>();
-    editors.register_inheritable_enum::<ItemKind, _>();
     editors.register_inheritable_enum::<CombatWeaponKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<Damage, _>();
     editors.register_inheritable_enum::<TriggerKind, _>();
     editors.register_inheritable_enum::<BotHostility, _>();
+    editors.register_inheritable_enum::<ItemAction, _>();
     editors.register_inheritable_inspectable::<Inventory>();
     editors.register_inheritable_inspectable::<ItemEntry>();
     editors.register_inheritable_inspectable::<Barrel>();

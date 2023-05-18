@@ -1,7 +1,5 @@
-use crate::level::item::{Item, ItemKind};
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
+use crate::level::item::Item;
 use fyrox::{
-    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
         border::BorderBuilder,
@@ -14,7 +12,10 @@ use fyrox::{
         widget::WidgetBuilder,
         HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
-    resource::texture::Texture,
+    resource::{
+        model::ModelResource,
+        texture::{TextureResource, TextureResourceExtension},
+    },
 };
 
 pub struct ItemDisplay {
@@ -87,22 +88,25 @@ impl ItemDisplay {
         }
     }
 
-    pub fn sync_to_model(&self, resource_manager: ResourceManager, item: ItemKind, count: u32) {
-        let definition = Item::get_definition(item);
+    pub fn sync_to_model(&self, item: ModelResource, count: u32) {
+        Item::from_resource(&item, |item| {
+            if let Some(item_script) = item {
+                self.ui.send_message(TextMessage::text(
+                    self.item_name,
+                    MessageDirection::ToWidget,
+                    format!("{}-{}", *item_script.name, count),
+                ));
 
-        self.ui.send_message(TextMessage::text(
-            self.item_name,
-            MessageDirection::ToWidget,
-            format!("{}-{}", definition.name, count),
-        ));
-
-        self.ui.send_message(ImageMessage::texture(
-            self.item_image,
-            MessageDirection::ToWidget,
-            Some(fyrox::utils::into_gui_texture(
-                resource_manager.request::<Texture, _>(&definition.preview),
-            )),
-        ));
+                self.ui.send_message(ImageMessage::texture(
+                    self.item_image,
+                    MessageDirection::ToWidget,
+                    item_script
+                        .preview
+                        .as_ref()
+                        .map(|tex| fyrox::utils::into_gui_texture(tex.clone())),
+                ));
+            }
+        });
     }
 
     pub fn update(&mut self, delta: f32) {

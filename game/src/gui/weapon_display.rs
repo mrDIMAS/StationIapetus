@@ -1,4 +1,4 @@
-use crate::{level::item::ItemKind, player::Player, weapon::try_weapon_ref};
+use crate::{player::Player, weapon::try_weapon_ref};
 use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
     asset::manager::ResourceManager,
@@ -110,8 +110,12 @@ impl WeaponDisplay {
 
     pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
         let ammo = if let Some(weapon) = try_weapon_ref(player.current_weapon(), graph) {
-            let total_ammo = player.inventory().item_count(ItemKind::Ammo);
-            total_ammo / *weapon.ammo_consumption_per_shot
+            if let Some(ammo_item) = weapon.ammo_item.as_ref() {
+                let total_ammo = player.inventory().item_count(ammo_item);
+                total_ammo / *weapon.ammo_consumption_per_shot
+            } else {
+                0
+            }
         } else {
             0
         };
@@ -121,12 +125,14 @@ impl WeaponDisplay {
             format!("{ammo}"),
         ));
 
-        let grenades = player.inventory().item_count(ItemKind::Grenade);
-        self.ui.send_message(TextMessage::text(
-            self.grenades,
-            MessageDirection::ToWidget,
-            format!("{grenades}"),
-        ));
+        if let Some(grenade_item) = player.grenade_item.as_ref() {
+            let grenades = player.inventory().item_count(grenade_item);
+            self.ui.send_message(TextMessage::text(
+                self.grenades,
+                MessageDirection::ToWidget,
+                format!("{grenades}"),
+            ));
+        }
     }
 
     pub fn update(&mut self, delta: f32) {

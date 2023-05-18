@@ -1,13 +1,12 @@
 use crate::{
     block_on,
     inventory::Inventory,
-    level::item::{item_mut, ItemKind},
+    level::item::ItemAction,
     sound::{SoundKind, SoundManager},
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
 use fyrox::{
-    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
@@ -24,6 +23,7 @@ use fyrox::{
     },
     script::ScriptMessageSender,
 };
+use std::ops::Deref;
 
 #[derive(Copy, Clone)]
 pub struct DamageDealer {
@@ -76,7 +76,7 @@ pub enum CharacterMessageData {
     AddWeapon(ModelResource),
     PickupItem(Handle<Node>),
     DropItems {
-        item: ItemKind,
+        item: ModelResource,
         count: u32,
     },
 }
@@ -97,6 +97,7 @@ pub struct Character {
     pub weapon_pivot: Handle<Node>,
     #[visit(optional)]
     pub hit_boxes: Vec<HitBox>,
+    #[visit(optional)]
     pub inventory: Inventory,
 }
 
@@ -187,19 +188,12 @@ impl Character {
         self.set_current_weapon_enabled(true, graph);
     }
 
-    pub fn use_item(&mut self, kind: ItemKind) {
-        match kind {
-            ItemKind::Medkit => self.heal(40.0),
-            ItemKind::Medpack => self.heal(20.0),
-            // Non-consumable items.
-            ItemKind::Ak47
-            | ItemKind::PlasmaGun
-            | ItemKind::M4
-            | ItemKind::Glock
-            | ItemKind::Ammo
-            | ItemKind::RailGun
-            | ItemKind::Grenade
-            | ItemKind::MasterKey => (),
+    pub fn use_item(&mut self, item: &Item) {
+        match *item.action {
+            ItemAction::None => {}
+            ItemAction::Heal { amount } => {
+                self.heal(amount);
+            }
         }
     }
 
@@ -224,7 +218,6 @@ impl Character {
         message_data: &CharacterMessageData,
         scene: &mut Scene,
         self_handle: Handle<Node>,
-        resource_manager: &ResourceManager,
         script_message_sender: &ScriptMessageSender,
         sound_manager: &SoundManager,
     ) {
@@ -246,20 +239,16 @@ impl Character {
                 let weapon_script = weapon_mut(weapon, &mut scene.graph);
 
                 weapon_script.set_owner(self_handle);
-                self.inventory_mut()
-                    .add_item(weapon_script.associated_item, 1);
+
+                if let Some(associated_item) = weapon_script.associated_item.as_ref() {
+                    self.inventory_mut().add_item(associated_item, 1);
+                }
 
                 self.add_weapon(weapon, &mut scene.graph);
                 scene.graph.link_nodes(weapon, self.weapon_pivot());
             }
             &CharacterMessageData::PickupItem(item_handle) => {
                 let position = scene.graph[item_handle].global_position();
-                let item = item_mut(item_handle, &mut scene.graph);
-
-                let kind = item.get_kind();
-
-                scene.graph.remove_node(item_handle);
-
                 sound_manager.play_sound(
                     &mut scene.graph,
                     "data/sounds/item_pickup.ogg",
@@ -269,64 +258,64 @@ impl Character {
                     2.0,
                 );
 
-                match kind {
-                    ItemKind::Medkit => self.inventory.add_item(ItemKind::Medkit, 1),
-                    ItemKind::Medpack => self.inventory.add_item(ItemKind::Medpack, 1),
-                    ItemKind::Ak47
-                    | ItemKind::PlasmaGun
-                    | ItemKind::M4
-                    | ItemKind::Glock
-                    | ItemKind::RailGun => {
-                        let weapon_resource = kind.associated_weapon(resource_manager).unwrap();
+                let item_node = &mut scene.graph[item_handle];
+                let item_resource = item_node.resource().as_ref().unwrap().clone();
+                item_node.set_enabled(false);
 
-                        let mut found = false;
-                        for weapon_handle in self.weapons.iter() {
-                            if scene.graph[*weapon_handle].resource()
-                                == Some(weapon_resource.clone())
-                            {
-                                found = true;
-                                break;
+                let item = item_node.try_get_script_mut::<Item>().unwrap();
+
+                if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
+                    let mut found = false;
+                    for weapon_handle in self.weapons.iter() {
+                        if scene.graph[*weapon_handle].resource() == Some(associated_weapon.clone())
+                        {
+                            found = true;
+                            break;
+                        }
+                    }
+                    if found {
+                        Weapon::from_resource(&associated_weapon, |weapon| {
+                            if let Some(associated_weapon) = weapon {
+                                if let Some(ammo_item) = associated_weapon.ammo_item.as_ref() {
+                                    self.inventory.add_item(ammo_item, 24);
+                                }
                             }
-                        }
-                        if found {
-                            self.inventory.add_item(ItemKind::Ammo, 24);
-                        } else {
-                            // Finally if actor does not have such weapon, give new one to him.
-                            script_message_sender.send_to_target(
-                                self_handle,
-                                CharacterMessage {
-                                    character: self_handle,
-                                    data: CharacterMessageData::AddWeapon(weapon_resource),
-                                },
-                            );
-                        }
-                    }
-                    ItemKind::Ammo => {
-                        self.inventory.add_item(ItemKind::Ammo, 24);
-                    }
-                    ItemKind::Grenade => {
-                        self.inventory.add_item(ItemKind::Grenade, 1);
-                    }
-                    ItemKind::MasterKey => {
-                        self.inventory.add_item(ItemKind::MasterKey, 1);
+                        });
+                    } else {
+                        // Finally if actor does not have such weapon, give new one to him.
+                        script_message_sender.send_to_target(
+                            self_handle,
+                            CharacterMessage {
+                                character: self_handle,
+                                data: CharacterMessageData::AddWeapon(associated_weapon.clone()),
+                            },
+                        );
                     }
                 }
+
+                self.inventory.add_item(&item_resource, 1);
             }
-            &CharacterMessageData::DropItems { item, count } => {
+            CharacterMessageData::DropItems { item, count } => {
                 let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
                 let weapons = self.weapons().to_vec();
 
-                if self.inventory.try_extract_exact_items(item, count) == count {
+                if self.inventory.try_extract_exact_items(&item, *count) == *count {
                     // Make sure to remove weapons associated with items.
-                    if let Some(weapon_resource) = item.associated_weapon(resource_manager) {
-                        for weapon in weapons {
-                            if scene.graph[weapon].resource() == Some(weapon_resource.clone()) {
-                                scene.graph.remove_node(weapon);
+                    Item::from_resource(&item, |item| {
+                        if let Some(item) = item {
+                            if let Some(weapon_resource) = item.associated_weapon.as_ref() {
+                                for &weapon in weapons.iter() {
+                                    if scene.graph[weapon].resource()
+                                        == Some(weapon_resource.clone())
+                                    {
+                                        scene.graph.remove_node(weapon);
+                                    }
+                                }
                             }
                         }
-                    }
+                    });
 
-                    Item::add_to_scene(scene, resource_manager.clone(), item, drop_position, true);
+                    Item::add_to_scene(scene, item.clone(), drop_position, true);
                 }
             }
             _ => (),

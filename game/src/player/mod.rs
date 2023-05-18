@@ -7,7 +7,6 @@ use crate::{
     game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
-    level::item::ItemKind,
     message::Message,
     player::state_machine::{StateMachine, StateMachineInput},
     sound::SoundManager,
@@ -18,7 +17,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item,
 };
-use fyrox::resource::model::ModelResource;
 use fyrox::{
     animation::machine,
     asset::manager::ResourceManager,
@@ -33,13 +31,17 @@ use fyrox::{
         reflect::prelude::*,
         sstorage::ImmutableString,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::prelude::*,
         TypeUuidProvider,
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
     material::{shader::SamplerFallback, PropertyValue},
-    resource::{model::Model, texture::TextureResource},
+    resource::{
+        model::{Model, ModelResource},
+        texture::TextureResource,
+    },
     scene::{
         animation::absm::AnimationBlendingStateMachine, base::BaseBuilder, graph::Graph,
         light::BaseLight, node::Node, sprite::SpriteBuilder, Scene,
@@ -181,6 +183,9 @@ pub struct Player {
     #[visit(skip)]
     #[reflect(hidden)]
     pub script_message_sender: Option<ScriptMessageSender>,
+
+    #[visit(optional)]
+    pub grenade_item: InheritableVariable<Option<ModelResource>>,
 }
 
 impl Default for Player {
@@ -250,6 +255,7 @@ impl Default for Player {
             m4_weapon: None,
             glock_weapon: None,
             plasma_gun_weapon: None,
+            grenade_item: Default::default(),
         }
     }
 }
@@ -297,6 +303,7 @@ impl Clone for Player {
             m4_weapon: self.m4_weapon.clone(),
             glock_weapon: self.glock_weapon.clone(),
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
+            grenade_item: self.grenade_item.clone(),
         }
     }
 }
@@ -330,7 +337,6 @@ impl Player {
         &mut self,
         game: &mut Game,
         scene: &mut Scene,
-        resource_manager: &ResourceManager,
         self_handle: Handle<Node>,
         script_message_sender: &ScriptMessageSender,
     ) {
@@ -344,11 +350,9 @@ impl Player {
 
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
-                    game.item_display.sync_to_model(
-                        resource_manager.clone(),
-                        item.get_kind(),
-                        item.stack_size,
-                    );
+                    if let Some(resource) = item_node.resource() {
+                        game.item_display.sync_to_model(resource, item.stack_size);
+                    }
 
                     if self.controller.action {
                         script_message_sender.send_to_target(
@@ -384,8 +388,7 @@ impl Player {
                 let door = door_mut(door_handle, &mut scene.graph);
                 let close_enough = self_position.metric_distance(&door.initial_position()) < 1.25;
                 if close_enough {
-                    let has_key = self.inventory.has_key();
-                    door.try_open(has_key);
+                    door.try_open(Some(&self.inventory));
                 }
             }
         }
@@ -546,19 +549,21 @@ impl Player {
                     .map(|c| scene.graph[c.camera()].look_vector())
                     .unwrap_or_default();
 
-                if self.inventory.try_extract_exact_items(ItemKind::Grenade, 1) == 1 {
-                    if let Ok(grenade) = block_on(
-                        resource_manager
-                            .request::<Model, _>("data/models/grenade/grenade_proj.rgs"),
-                    ) {
-                        Projectile::spawn(
-                            &grenade,
-                            scene,
-                            direction,
-                            position,
-                            self_handle,
-                            direction.scale(15.0),
-                        );
+                if let Some(grenade_item) = self.grenade_item.deref().clone() {
+                    if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
+                        if let Ok(grenade) = block_on(
+                            resource_manager
+                                .request::<Model, _>("data/models/grenade/grenade_proj.rgs"),
+                        ) {
+                            Projectile::spawn(
+                                &grenade,
+                                scene,
+                                direction,
+                                position,
+                                self_handle,
+                                direction.scale(15.0),
+                            );
+                        }
                     }
                 }
             }
@@ -769,32 +774,34 @@ impl Player {
                     let ammo_per_shot =
                         *weapon_ref(current_weapon_handle, &scene.graph).ammo_consumption_per_shot;
 
-                    if self
-                        .inventory
-                        .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
-                        == ammo_per_shot
-                    {
-                        script_message_sender.send_to_target(
-                            current_weapon_handle,
-                            WeaponMessage {
-                                weapon: current_weapon_handle,
-                                data: WeaponMessageData::Shoot {
-                                    direction: Default::default(),
-                                },
-                            },
-                        );
-
-                        self.v_recoil
-                            .set_target(current_weapon.gen_v_recoil_angle());
-                        self.h_recoil
-                            .set_target(current_weapon.gen_h_recoil_angle());
-
-                        if let Some(camera_controller) = scene
-                            .graph
-                            .try_get_mut(self.camera_controller)
-                            .and_then(|c| c.try_get_script_mut::<CameraController>())
+                    if let Some(ammo_item) = current_weapon.ammo_item.as_ref() {
+                        if self
+                            .inventory
+                            .try_extract_exact_items(ammo_item, ammo_per_shot)
+                            == ammo_per_shot
                         {
-                            camera_controller.request_shake_camera();
+                            script_message_sender.send_to_target(
+                                current_weapon_handle,
+                                WeaponMessage {
+                                    weapon: current_weapon_handle,
+                                    data: WeaponMessageData::Shoot {
+                                        direction: Default::default(),
+                                    },
+                                },
+                            );
+
+                            self.v_recoil
+                                .set_target(current_weapon.gen_v_recoil_angle());
+                            self.h_recoil
+                                .set_target(current_weapon.gen_h_recoil_angle());
+
+                            if let Some(camera_controller) = scene
+                                .graph
+                                .try_get_mut(self.camera_controller)
+                                .and_then(|c| c.try_get_script_mut::<CameraController>())
+                            {
+                                camera_controller.request_shake_camera();
+                            }
                         }
                     }
                 }
@@ -949,7 +956,9 @@ impl ScriptTrait for Player {
             .with_size(0.1)
             .build(&mut context.scene.graph);
 
-        self.inventory.add_item(ItemKind::Grenade, 10);
+        if let Some(grenade_item) = self.grenade_item.deref().clone() {
+            self.inventory.add_item(&grenade_item, 10);
+        }
 
         let level = current_level_mut(context.plugins).unwrap();
 
@@ -1142,18 +1151,20 @@ impl ScriptTrait for Player {
                     weapon_change_direction = Some(RequiredWeapon::Previous);
                 }
             } else if button == control_scheme.toss_grenade.button {
-                if self.inventory.item_count(ItemKind::Grenade) > 0 {
-                    self.controller.toss_grenade = state == ElementState::Pressed;
-                    if state == ElementState::Pressed {
-                        let animations_container = utils::fetch_animation_container_mut(
-                            &mut context.scene.graph,
-                            self.animation_player,
-                        );
+                if let Some(grenade_item) = self.grenade_item.as_ref() {
+                    if self.inventory.item_count(grenade_item) > 0 {
+                        self.controller.toss_grenade = state == ElementState::Pressed;
+                        if state == ElementState::Pressed {
+                            let animations_container = utils::fetch_animation_container_mut(
+                                &mut context.scene.graph,
+                                self.animation_player,
+                            );
 
-                        animations_container
-                            .get_mut(self.state_machine.toss_grenade_animation)
-                            .set_enabled(true)
-                            .rewind();
+                            animations_container
+                                .get_mut(self.state_machine.toss_grenade_animation)
+                                .set_enabled(true)
+                                .rewind();
+                        }
                     }
                 }
             } else if button == control_scheme.shoot.button {
@@ -1226,7 +1237,6 @@ impl ScriptTrait for Player {
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
-                ctx.resource_manager,
                 ctx.message_sender,
                 &level.sound_manager,
             );
@@ -1442,7 +1452,6 @@ impl ScriptTrait for Player {
             self.check_items(
                 game_mut(ctx.plugins),
                 ctx.scene,
-                ctx.resource_manager,
                 ctx.handle,
                 ctx.message_sender,
             );

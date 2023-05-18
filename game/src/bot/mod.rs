@@ -7,8 +7,6 @@ use crate::{
     current_level_mut, current_level_ref,
     door::{door_mut, door_ref, DoorContainer},
     game_ref,
-    inventory::{Inventory, ItemEntry},
-    level::item::ItemKind,
     utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
     weapon::WeaponMessage,
 };
@@ -19,7 +17,6 @@ use fyrox::{
         color::Color,
         math::SmoothAngle,
         pool::Handle,
-        rand::{seq::IteratorRandom, Rng},
         reflect::prelude::*,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
@@ -211,8 +208,8 @@ impl Bot {
                         if let Some(rigid_body) = scene.graph[child].cast::<RigidBody>() {
                             for collider in rigid_body.children().to_vec() {
                                 if collider == intersection.collider {
-                                    let has_key = self.inventory.has_key();
-                                    door_mut(door_handle, &mut scene.graph).try_open(has_key);
+                                    door_mut(door_handle, &mut scene.graph)
+                                        .try_open(Some(&self.inventory));
                                 }
                             }
                         }
@@ -276,30 +273,6 @@ impl ScriptTrait for Bot {
     fn on_init(&mut self, context: &mut ScriptContext) {
         self.state_machine = StateMachine::new(self.absm, &context.scene.graph).unwrap();
 
-        let possible_item = [
-            (ItemKind::Ammo, 10),
-            (ItemKind::Medkit, 1),
-            (ItemKind::Medpack, 1),
-        ];
-        let mut items =
-            if let Some((item, count)) = possible_item.iter().choose(&mut rand::thread_rng()) {
-                vec![ItemEntry {
-                    kind: *item,
-                    amount: *count,
-                }]
-            } else {
-                Default::default()
-            };
-
-        if self.can_use_weapons {
-            items.push(ItemEntry {
-                kind: ItemKind::Ammo,
-                amount: rand::thread_rng().gen_range(32..96),
-            });
-        }
-
-        self.inventory = Inventory::from_inner(items);
-
         self.agent = NavmeshAgentBuilder::new()
             .with_position(context.scene.graph[context.handle].global_position())
             .with_speed(self.walk_speed)
@@ -343,7 +316,6 @@ impl ScriptTrait for Bot {
                 &char_message.data,
                 ctx.scene,
                 ctx.handle,
-                ctx.resource_manager,
                 ctx.message_sender,
                 &level.sound_manager,
             );

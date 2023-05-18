@@ -1,14 +1,12 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     control_scheme::{ControlButton, ControlScheme},
-    level::item::{Item, ItemKind},
+    level::item::Item,
     message::Message,
     player::Player,
     MessageSender,
 };
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
-    asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, math, pool::Handle},
     gui::{
         border::BorderBuilder,
@@ -27,7 +25,10 @@ use fyrox::{
         BuildContext, Control, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
         VerticalAlignment,
     },
-    resource::texture::Texture,
+    resource::{
+        model::ModelResource,
+        texture::{TextureResource, TextureResourceExtension},
+    },
     scene::node::Node,
 };
 use std::{
@@ -49,7 +50,7 @@ pub struct InventoryInterface {
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
-    item: ItemKind,
+    item: ModelResource,
     #[allow(dead_code)]
     count: Handle<UiNode>,
 }
@@ -131,80 +132,82 @@ impl InventoryItemBuilder {
         self
     }
 
-    pub fn build(
-        self,
-        item: ItemKind,
-        resource_manager: ResourceManager,
-        ctx: &mut BuildContext,
-    ) -> Handle<UiNode> {
-        let definition = Item::get_definition(item);
-
-        let count;
-        let body = BorderBuilder::new(
-            WidgetBuilder::new()
-                .with_margin(Thickness::uniform(1.0))
-                .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
-                .with_child(
-                    GridBuilder::new(
-                        WidgetBuilder::new()
-                            .with_child(
-                                ImageBuilder::new(
-                                    WidgetBuilder::new()
-                                        .with_margin(Thickness::uniform(1.0))
-                                        .on_row(0),
-                                )
-                                .with_texture(fyrox::utils::into_gui_texture(
-                                    resource_manager.request::<Texture, _>(&definition.preview),
-                                ))
-                                .build(ctx),
-                            )
-                            .with_child(
-                                StackPanelBuilder::new(
-                                    WidgetBuilder::new()
-                                        .on_row(1)
-                                        .with_child(
-                                            TextBuilder::new(WidgetBuilder::new())
-                                                .with_horizontal_text_alignment(
-                                                    HorizontalAlignment::Center,
-                                                )
-                                                .with_vertical_text_alignment(
-                                                    VerticalAlignment::Center,
-                                                )
-                                                .with_text(&definition.name)
-                                                .build(ctx),
+    pub fn build(self, item_resource: &ModelResource, ctx: &mut BuildContext) -> Handle<UiNode> {
+        let builder = self.widget_builder;
+        Item::from_resource(item_resource, move |item| {
+            if let Some(item) = item {
+                let count;
+                let body = BorderBuilder::new(
+                    WidgetBuilder::new()
+                        .with_margin(Thickness::uniform(1.0))
+                        .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
+                        .with_child(
+                            GridBuilder::new(
+                                WidgetBuilder::new()
+                                    .with_child(
+                                        ImageBuilder::new(
+                                            WidgetBuilder::new()
+                                                .with_margin(Thickness::uniform(1.0))
+                                                .on_row(0),
                                         )
-                                        .with_child({
-                                            count = TextBuilder::new(WidgetBuilder::new())
-                                                .with_horizontal_text_alignment(
-                                                    HorizontalAlignment::Center,
+                                        .with_opt_texture(
+                                            item.preview
+                                                .as_ref()
+                                                .map(|i| fyrox::utils::into_gui_texture(i.clone())),
+                                        )
+                                        .build(ctx),
+                                    )
+                                    .with_child(
+                                        StackPanelBuilder::new(
+                                            WidgetBuilder::new()
+                                                .on_row(1)
+                                                .with_child(
+                                                    TextBuilder::new(WidgetBuilder::new())
+                                                        .with_horizontal_text_alignment(
+                                                            HorizontalAlignment::Center,
+                                                        )
+                                                        .with_vertical_text_alignment(
+                                                            VerticalAlignment::Center,
+                                                        )
+                                                        .with_text((*item.name).clone())
+                                                        .build(ctx),
                                                 )
-                                                .with_vertical_text_alignment(
-                                                    VerticalAlignment::Center,
-                                                )
-                                                .with_text(format!("x{}", self.count))
-                                                .build(ctx);
-                                            count
-                                        }),
-                                )
-                                .build(ctx),
-                            ),
-                    )
-                    .add_row(Row::stretch())
-                    .add_row(Row::auto())
-                    .add_column(Column::stretch())
-                    .build(ctx),
-                ),
-        )
-        .build(ctx);
+                                                .with_child({
+                                                    count = TextBuilder::new(WidgetBuilder::new())
+                                                        .with_horizontal_text_alignment(
+                                                            HorizontalAlignment::Center,
+                                                        )
+                                                        .with_vertical_text_alignment(
+                                                            VerticalAlignment::Center,
+                                                        )
+                                                        .with_text(format!("x{}", self.count))
+                                                        .build(ctx);
+                                                    count
+                                                }),
+                                        )
+                                        .build(ctx),
+                                    ),
+                            )
+                            .add_row(Row::stretch())
+                            .add_row(Row::auto())
+                            .add_column(Column::stretch())
+                            .build(ctx),
+                        ),
+                )
+                .build(ctx);
 
-        let item = InventoryItem {
-            widget: self.widget_builder.with_child(body).build(),
-            count,
-            is_selected: false,
-            item,
-        };
+                let item = InventoryItem {
+                    widget: builder.with_child(body).build(),
+                    count,
+                    is_selected: false,
+                    item: item_resource.clone(),
+                };
 
-        ctx.add_node(UiNode::new(item))
+                ctx.add_node(UiNode::new(item))
+            } else {
+                Default::default()
+            }
+        })
     }
 }
 
@@ -329,7 +332,7 @@ impl InventoryInterface {
         }
     }
 
-    pub fn sync_to_model(&mut self, resource_manager: ResourceManager, player: &Player) {
+    pub fn sync_to_model(&mut self, player: &Player) {
         for &child in self.ui.node(self.items_panel).children() {
             self.ui
                 .send_message(WidgetMessage::remove(child, MessageDirection::ToWidget));
@@ -338,20 +341,22 @@ impl InventoryInterface {
         for item in player.inventory().items() {
             let ctx = &mut self.ui.build_ctx();
 
-            let widget = InventoryItemBuilder::new(
-                WidgetBuilder::new()
-                    .with_margin(Thickness::uniform(1.0))
-                    .with_width(70.0)
-                    .with_height(100.0),
-            )
-            .with_count(item.amount() as usize)
-            .build(item.kind(), resource_manager.clone(), ctx);
+            if let Some(resource) = item.resource.as_ref() {
+                let widget = InventoryItemBuilder::new(
+                    WidgetBuilder::new()
+                        .with_margin(Thickness::uniform(1.0))
+                        .with_width(70.0)
+                        .with_height(100.0),
+                )
+                .with_count(item.amount as usize)
+                .build(resource, ctx);
 
-            self.ui.send_message(WidgetMessage::link(
-                widget,
-                MessageDirection::ToWidget,
-                self.items_panel,
-            ));
+                self.ui.send_message(WidgetMessage::link(
+                    widget,
+                    MessageDirection::ToWidget,
+                    self.items_panel,
+                ));
+            }
         }
     }
 
@@ -428,7 +433,6 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player: &mut Player,
         player_handle: Handle<Node>,
-        resource_manager: &ResourceManager,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -462,33 +466,38 @@ impl InventoryInterface {
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
                                 {
-                                    let definition = Item::get_definition(item.item);
-                                    if definition.consumable {
-                                        if player
-                                            .inventory_mut()
-                                            .try_extract_exact_items(item.item, 1)
-                                            == 1
-                                        {
-                                            player.use_item(item.item);
-                                            self.sender.send(Message::SyncInventory);
+                                    let item_resource = &item.item;
+                                    Item::from_resource(item_resource, |item| {
+                                        if let Some(item) = item {
+                                            if *item.consumable {
+                                                if player
+                                                    .inventory_mut()
+                                                    .try_extract_exact_items(item_resource, 1)
+                                                    == 1
+                                                {
+                                                    player.use_item(item);
+                                                    self.sender.send(Message::SyncInventory);
+                                                }
+                                            } else if let Some(associated_weapon) =
+                                                item.associated_weapon.as_ref()
+                                            {
+                                                player
+                                                    .script_message_sender
+                                                    .as_ref()
+                                                    .unwrap()
+                                                    .send_to_target(
+                                                        player_handle,
+                                                        CharacterMessage {
+                                                            character: player_handle,
+                                                            data:
+                                                                CharacterMessageData::SelectWeapon(
+                                                                    associated_weapon.clone(),
+                                                                ),
+                                                        },
+                                                    )
+                                            }
                                         }
-                                    } else if let Some(associated_weapon) =
-                                        item.item.associated_weapon(resource_manager)
-                                    {
-                                        player
-                                            .script_message_sender
-                                            .as_ref()
-                                            .unwrap()
-                                            .send_to_target(
-                                                player_handle,
-                                                CharacterMessage {
-                                                    character: player_handle,
-                                                    data: CharacterMessageData::SelectWeapon(
-                                                        associated_weapon,
-                                                    ),
-                                                },
-                                            )
-                                    }
+                                    });
                                 } else {
                                     unreachable!()
                                 }
@@ -510,7 +519,7 @@ impl InventoryInterface {
                                             CharacterMessage {
                                                 character: player_handle,
                                                 data: CharacterMessageData::DropItems {
-                                                    item: item.item,
+                                                    item: item.item.clone(),
                                                     count: 1,
                                                 },
                                             },
@@ -533,8 +542,6 @@ impl InventoryInterface {
                 if select {
                     if let Some(item) = self.ui.node(message.destination()).cast::<InventoryItem>()
                     {
-                        let definition = Item::get_definition(item.item);
-
                         // Deselect every other item.
                         for &item_handle in self.ui.node(self.items_panel).children() {
                             if item_handle != message.destination() {
@@ -546,11 +553,15 @@ impl InventoryInterface {
                             }
                         }
 
-                        self.ui.send_message(TextMessage::text(
-                            self.item_description,
-                            MessageDirection::ToWidget,
-                            definition.description.clone(),
-                        ));
+                        Item::from_resource(&item.item, |item| {
+                            if let Some(item) = item {
+                                self.ui.send_message(TextMessage::text(
+                                    self.item_description,
+                                    MessageDirection::ToWidget,
+                                    item.description.deref().clone(),
+                                ));
+                            }
+                        });
                     } else {
                         unreachable!();
                     }

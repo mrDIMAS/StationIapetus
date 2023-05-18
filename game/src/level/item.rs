@@ -1,7 +1,5 @@
 use crate::{block_on, current_level_mut};
-use fyrox::resource::model::ModelResource;
 use fyrox::{
-    asset::manager::ResourceManager,
     core::{
         algebra::{Point3, Vector3},
         color::Color,
@@ -9,14 +7,14 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::prelude::*,
         TypeUuidProvider,
     },
     impl_component_provider,
-    lazy_static::lazy_static,
     resource::{
-        model::{Model, ModelResourceExtension},
-        texture::Texture,
+        model::{ModelResource, ModelResourceExtension},
+        texture::{Texture, TextureResource},
     },
     scene::{
         base::BaseBuilder, collider::ColliderShape, graph::physics::RayCastOptions, graph::Graph,
@@ -24,77 +22,21 @@ use fyrox::{
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
-use serde::Deserialize;
-use std::{collections::HashMap, fs::File};
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 #[derive(
-    Copy,
-    Clone,
-    PartialEq,
-    Eq,
-    Debug,
-    Deserialize,
-    Hash,
-    Visit,
-    Reflect,
-    AsRefStr,
-    EnumString,
-    EnumVariantNames,
+    Default, Visit, Reflect, PartialEq, Debug, Clone, AsRefStr, EnumString, EnumVariantNames,
 )]
-pub enum ItemKind {
-    Medkit,
-    Medpack,
-
-    // Ammo
-    Ammo,
-    Grenade,
-
-    // Weapons
-    PlasmaGun,
-    Ak47,
-    M4,
-    Glock,
-    RailGun,
-
-    // Keys
-    MasterKey,
-}
-
-impl Default for ItemKind {
-    fn default() -> Self {
-        Self::Medkit
-    }
-}
-
-impl ItemKind {
-    pub fn associated_weapon(&self, resource_manager: &ResourceManager) -> Option<ModelResource> {
-        match self {
-            ItemKind::PlasmaGun => Some(
-                resource_manager.request::<Model, _>("data/models/plasma_rifle/plasma_rifle.rgs"),
-            ),
-            ItemKind::Ak47 => {
-                Some(resource_manager.request::<Model, _>("data/models/ak47/ak47.rgs"))
-            }
-            ItemKind::M4 => Some(resource_manager.request::<Model, _>("data/models/m4/m4.rgs")),
-            ItemKind::Glock => {
-                Some(resource_manager.request::<Model, _>("data/models/glock/glock.rgs"))
-            }
-            ItemKind::RailGun => {
-                Some(resource_manager.request::<Model, _>("data/models/rail_gun/rail_gun.rgs"))
-            }
-            ItemKind::Medkit
-            | ItemKind::Medpack
-            | ItemKind::Ammo
-            | ItemKind::Grenade
-            | ItemKind::MasterKey => None,
-        }
-    }
+pub enum ItemAction {
+    #[default]
+    None,
+    Heal {
+        amount: f32,
+    },
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Item {
-    kind: ItemKind,
     model: Handle<Node>,
     pub stack_size: u32,
 
@@ -104,20 +46,38 @@ pub struct Item {
     #[reflect(hidden)]
     spark_size_change_dir: f32,
 
-    #[reflect(hidden)]
-    #[visit(skip)]
-    pub definition: &'static ItemDefinition,
+    #[visit(optional)]
+    pub description: InheritableVariable<String>,
+
+    #[visit(optional)]
+    pub name: InheritableVariable<String>,
+
+    #[visit(optional)]
+    pub consumable: InheritableVariable<bool>,
+
+    #[visit(optional)]
+    pub preview: InheritableVariable<Option<TextureResource>>,
+
+    #[visit(optional)]
+    pub associated_weapon: InheritableVariable<Option<ModelResource>>,
+
+    #[visit(optional)]
+    pub action: InheritableVariable<ItemAction>,
 }
 
 impl Default for Item {
     fn default() -> Self {
         Self {
-            kind: ItemKind::Medkit,
             model: Default::default(),
             spark: Default::default(),
             spark_size_change_dir: 1.0,
+            description: Default::default(),
+            name: Default::default(),
+            consumable: Default::default(),
             stack_size: 1,
-            definition: Self::get_definition(ItemKind::Medkit),
+            associated_weapon: Default::default(),
+            preview: Default::default(),
+            action: Default::default(),
         }
     }
 }
@@ -132,8 +92,6 @@ impl TypeUuidProvider for Item {
 
 impl ScriptTrait for Item {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.definition = Self::get_definition(self.kind);
-
         // Create spark from code, since it is the same across all items.
         self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
             .with_size(0.04)
@@ -184,43 +142,23 @@ impl ScriptTrait for Item {
     }
 }
 
-#[derive(Deserialize, Debug)]
-pub struct ItemDefinition {
-    pub model: String,
-    pub description: String,
-    pub name: String,
-    pub consumable: bool,
-    pub preview: String,
-}
-
-#[derive(Deserialize, Default)]
-pub struct ItemDefinitionContainer {
-    map: HashMap<ItemKind, ItemDefinition>,
-}
-
-impl ItemDefinitionContainer {
-    pub fn new() -> Self {
-        let file = File::open("data/configs/items.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
-    }
-}
-
-lazy_static! {
-    static ref DEFINITIONS: ItemDefinitionContainer = ItemDefinitionContainer::new();
-}
-
 impl Item {
-    pub fn get_definition(kind: ItemKind) -> &'static ItemDefinition {
-        DEFINITIONS
-            .map
-            .get(&kind)
-            .unwrap_or_else(|| panic!("No definition for {kind:?} weapon!"))
+    pub fn from_resource<F, R>(model_resource: &ModelResource, func: F) -> R
+    where
+        F: FnOnce(Option<&Item>) -> R,
+    {
+        let data = model_resource.data_ref();
+        let graph = &data.get_scene().graph;
+        func(
+            graph
+                .try_get(graph.get_root())
+                .and_then(|n| n.try_get_script::<Item>()),
+        )
     }
 
     pub fn add_to_scene(
         scene: &mut Scene,
-        resource_manager: ResourceManager,
-        kind: ItemKind,
+        item: ModelResource,
         position: Vector3<f32>,
         adjust_height: bool,
     ) {
@@ -253,20 +191,13 @@ impl Item {
             position
         };
 
-        let item =
-            block_on(resource_manager.request::<Model, _>(&Self::get_definition(kind).model))
-                .unwrap()
-                .instantiate(scene);
+        let item = block_on(item).unwrap().instantiate(scene);
 
         let item_ref = &mut scene.graph[item];
 
         assert!(item_ref.has_script::<Item>());
 
         item_ref.local_transform_mut().set_position(position);
-    }
-
-    pub fn get_kind(&self) -> ItemKind {
-        self.kind
     }
 }
 

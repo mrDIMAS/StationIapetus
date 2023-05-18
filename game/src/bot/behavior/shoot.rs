@@ -1,6 +1,5 @@
 use crate::{
     bot::behavior::BehaviorContext,
-    level::item::ItemKind,
     weapon::{weapon_ref, WeaponMessage, WeaponMessageData},
 };
 use fyrox::{
@@ -28,29 +27,31 @@ impl<'a> Behavior<'a> for ShootTarget {
             if weapon.can_shoot(context.elapsed_time) {
                 let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
-                if context
-                    .character
-                    .inventory
-                    .try_extract_exact_items(ItemKind::Ammo, ammo_per_shot)
-                    == ammo_per_shot
-                {
-                    context.v_recoil.set_target(weapon.gen_v_recoil_angle());
-                    context.h_recoil.set_target(weapon.gen_h_recoil_angle());
+                if let Some(ammo_item) = weapon.ammo_item.as_ref() {
+                    if context
+                        .character
+                        .inventory
+                        .try_extract_exact_items(ammo_item, ammo_per_shot)
+                        == ammo_per_shot
+                    {
+                        context.v_recoil.set_target(weapon.gen_v_recoil_angle());
+                        context.h_recoil.set_target(weapon.gen_h_recoil_angle());
 
-                    context.script_message_sender.send_to_target(
-                        weapon_handle,
-                        WeaponMessage {
-                            weapon: weapon_handle,
-                            data: WeaponMessageData::Shoot {
-                                direction: Default::default(),
+                        context.script_message_sender.send_to_target(
+                            weapon_handle,
+                            WeaponMessage {
+                                weapon: weapon_handle,
+                                data: WeaponMessageData::Shoot {
+                                    direction: Default::default(),
+                                },
                             },
-                        },
-                    );
+                        );
 
-                    return Status::Success;
-                } else {
-                    // Fallback to melee.
-                    return Status::Failure;
+                        return Status::Success;
+                    } else {
+                        // Fallback to melee.
+                        return Status::Failure;
+                    }
                 }
             }
         }
@@ -74,16 +75,16 @@ impl<'a> Behavior<'a> for CanShootTarget {
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
             let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
-            if context.restoration_time <= 0.0
-                && context.can_use_weapons
-                && context.character.inventory.item_count(ItemKind::Ammo) >= ammo_per_shot
-            {
-                Status::Success
-            } else {
-                Status::Failure
+            if let Some(ammo_item) = weapon.ammo_item.as_ref() {
+                if context.restoration_time <= 0.0
+                    && context.can_use_weapons
+                    && context.character.inventory.item_count(ammo_item) >= ammo_per_shot
+                {
+                    return Status::Success;
+                }
             }
-        } else {
-            Status::Failure
         }
+
+        Status::Failure
     }
 }
