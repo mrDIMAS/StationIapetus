@@ -20,14 +20,14 @@ impl<'a> Behavior<'a> for ThreatenTarget {
             if upper_body_layer.active_state() == ctx.state_machine.threaten_state {
                 self.in_progress = true;
                 ctx.character.stand_still(&mut ctx.scene.graph);
-                return Status::Running;
+                Status::Running
             } else if self.in_progress {
                 self.in_progress = false;
                 *ctx.threaten_timeout = rand::thread_rng().gen_range(20.0..60.0);
-                return Status::Success;
+                Status::Success
             } else {
                 ctx.is_screaming = true;
-                return Status::Running;
+                Status::Running
             }
         } else {
             Status::Failure
