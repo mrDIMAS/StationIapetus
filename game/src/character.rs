@@ -248,22 +248,11 @@ impl Character {
                 scene.graph.link_nodes(weapon, self.weapon_pivot());
             }
             &CharacterMessageData::PickupItem(item_handle) => {
-                let position = scene.graph[item_handle].global_position();
-                sound_manager.play_sound(
-                    &mut scene.graph,
-                    "data/sounds/item_pickup.ogg",
-                    position,
-                    1.0,
-                    3.0,
-                    2.0,
-                );
+                let item_node = &scene.graph[item_handle];
+                let item = item_node.try_get_script::<Item>().unwrap();
+                let position = item_node.global_position();
 
-                let item_node = &mut scene.graph[item_handle];
                 let item_resource = item_node.resource().as_ref().unwrap().clone();
-                item_node.set_enabled(false);
-
-                let item = item_node.try_get_script_mut::<Item>().unwrap();
-
                 if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
                     let mut found = false;
                     for weapon_handle in self.weapons.iter() {
@@ -294,6 +283,17 @@ impl Character {
                 }
 
                 self.inventory.add_item(&item_resource, 1);
+
+                sound_manager.play_sound(
+                    &mut scene.graph,
+                    "data/sounds/item_pickup.ogg",
+                    position,
+                    1.0,
+                    3.0,
+                    2.0,
+                );
+
+                scene.graph.remove_node(item_handle);
             }
             CharacterMessageData::DropItems { item, count } => {
                 let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
