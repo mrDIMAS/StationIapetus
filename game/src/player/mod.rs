@@ -350,7 +350,7 @@ impl Player {
 
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
-                    if let Some(resource) = item_node.resource() {
+                    if let Some(resource) = item.self_resource.deref().clone() {
                         game.item_display.sync_to_model(resource, item.stack_size);
                     }
 

@@ -252,7 +252,7 @@ impl Character {
                 let item = item_node.try_get_script::<Item>().unwrap();
                 let position = item_node.global_position();
 
-                let item_resource = item_node.resource().as_ref().unwrap().clone();
+                let item_resource = item.self_resource.deref().clone();
                 if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
                     let mut found = false;
                     for weapon_handle in self.weapons.iter() {
@@ -282,7 +282,9 @@ impl Character {
                     }
                 }
 
-                self.inventory.add_item(&item_resource, 1);
+                if let Some(item_resource) = item_resource {
+                    self.inventory.add_item(&item_resource, 1);
+                }
 
                 sound_manager.play_sound(
                     &mut scene.graph,

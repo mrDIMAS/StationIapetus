@@ -359,7 +359,8 @@ impl Game {
     pub fn load_game(&mut self, context: &mut PluginContext) -> VisitResult {
         Log::info("Attempting load a save...");
 
-        let mut visitor = block_on(Visitor::load_binary(Path::new("save.bin")))?;
+        let path = Path::new("save.bin");
+        let mut visitor = block_on(Visitor::load_binary(path))?;
 
         // Clean up.
         self.destroy_level(context);
@@ -373,6 +374,7 @@ impl Game {
                 context.serialization_context.clone(),
                 context.resource_manager.clone(),
                 &mut visitor,
+                Some(path.to_path_buf()),
             )?
             .finish(),
         );
