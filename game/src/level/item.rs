@@ -1,4 +1,5 @@
 use crate::{block_on, current_level_mut};
+use fyrox::core::log::Log;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -37,14 +38,7 @@ pub enum ItemAction {
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Item {
-    model: Handle<Node>,
-    pub stack_size: u32,
-
-    #[reflect(hidden)]
-    spark: Handle<Node>,
-
-    #[reflect(hidden)]
-    spark_size_change_dir: f32,
+    pub stack_size: InheritableVariable<u32>,
 
     #[visit(optional)]
     pub description: InheritableVariable<String>,
@@ -63,18 +57,23 @@ pub struct Item {
 
     #[visit(optional)]
     pub action: InheritableVariable<ItemAction>,
+
+    #[reflect(hidden)]
+    spark: Handle<Node>,
+
+    #[reflect(hidden)]
+    spark_size_change_dir: f32,
 }
 
 impl Default for Item {
     fn default() -> Self {
         Self {
-            model: Default::default(),
             spark: Default::default(),
             spark_size_change_dir: 1.0,
             description: Default::default(),
             name: Default::default(),
             consumable: Default::default(),
-            stack_size: 1,
+            stack_size: 1.into(),
             associated_weapon: Default::default(),
             preview: Default::default(),
             action: Default::default(),
@@ -158,9 +157,10 @@ impl Item {
 
     pub fn add_to_scene(
         scene: &mut Scene,
-        item: ModelResource,
+        item_resource: ModelResource,
         position: Vector3<f32>,
         adjust_height: bool,
+        stack_size: u32,
     ) {
         let position = if adjust_height {
             let mut intersections = Vec::new();
@@ -191,13 +191,21 @@ impl Item {
             position
         };
 
-        let item = block_on(item).unwrap().instantiate(scene);
+        let item = block_on(item_resource.clone()).unwrap().instantiate(scene);
 
         let item_ref = &mut scene.graph[item];
-
-        assert!(item_ref.has_script::<Item>());
-
         item_ref.local_transform_mut().set_position(position);
+
+        if let Some(item_script) = item_ref.try_get_script_mut::<Item>() {
+            item_script
+                .stack_size
+                .set_value_and_mark_modified(stack_size);
+        } else {
+            Log::err(format!(
+                "Asset {} is not an item asset!",
+                item_resource.path().display()
+            ));
+        }
     }
 }
 

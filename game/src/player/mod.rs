@@ -351,7 +351,7 @@ impl Player {
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
                     if let Some(resource) = item_node.root_resource() {
-                        game.item_display.sync_to_model(resource, item.stack_size);
+                        game.item_display.sync_to_model(resource, *item.stack_size);
                     }
 
                     if self.controller.action {

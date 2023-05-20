@@ -251,6 +251,7 @@ impl Character {
                 let item_node = &scene.graph[item_handle];
                 let item_resource = item_node.root_resource();
                 let item = item_node.try_get_script::<Item>().unwrap();
+                let stack_size = *item.stack_size;
                 let position = item_node.global_position();
 
                 if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
@@ -284,7 +285,7 @@ impl Character {
                 }
 
                 if let Some(item_resource) = item_resource {
-                    self.inventory.add_item(&item_resource, 1);
+                    self.inventory.add_item(&item_resource, stack_size);
                 }
 
                 sound_manager.play_sound(
@@ -318,7 +319,7 @@ impl Character {
                         }
                     });
 
-                    Item::add_to_scene(scene, item.clone(), drop_position, true);
+                    Item::add_to_scene(scene, item.clone(), drop_position, true, *count);
                 }
             }
             _ => (),
