@@ -63,8 +63,6 @@ pub struct Item {
 
     #[visit(optional)]
     pub action: InheritableVariable<ItemAction>,
-
-    pub self_resource: InheritableVariable<Option<ModelResource>>,
 }
 
 impl Default for Item {
@@ -80,7 +78,6 @@ impl Default for Item {
             associated_weapon: Default::default(),
             preview: Default::default(),
             action: Default::default(),
-            self_resource: Default::default(),
         }
     }
 }

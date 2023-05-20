@@ -81,7 +81,9 @@ impl<'a> Behavior<'a> for FindTarget {
             // Check hostility.
             match ctx.hostility {
                 BotHostility::OtherSpecies => {
-                    if character_node.resource() == ctx.scene.graph[ctx.bot_handle].resource() {
+                    if character_node.root_resource()
+                        == ctx.scene.graph[ctx.bot_handle].root_resource()
+                    {
                         continue 'target_loop;
                     }
                 }

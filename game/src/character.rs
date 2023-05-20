@@ -249,14 +249,15 @@ impl Character {
             }
             &CharacterMessageData::PickupItem(item_handle) => {
                 let item_node = &scene.graph[item_handle];
+                let item_resource = item_node.root_resource();
                 let item = item_node.try_get_script::<Item>().unwrap();
                 let position = item_node.global_position();
 
-                let item_resource = item.self_resource.deref().clone();
                 if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
                     let mut found = false;
                     for weapon_handle in self.weapons.iter() {
-                        if scene.graph[*weapon_handle].resource() == Some(associated_weapon.clone())
+                        if scene.graph[*weapon_handle].root_resource()
+                            == Some(associated_weapon.clone())
                         {
                             found = true;
                             break;
@@ -307,7 +308,7 @@ impl Character {
                         if let Some(item) = item {
                             if let Some(weapon_resource) = item.associated_weapon.as_ref() {
                                 for &weapon in weapons.iter() {
-                                    if scene.graph[weapon].resource()
+                                    if scene.graph[weapon].root_resource()
                                         == Some(weapon_resource.clone())
                                     {
                                         scene.graph.remove_node(weapon);
@@ -328,7 +329,7 @@ impl Character {
         if let Some(index) = self
             .weapons
             .iter()
-            .position(|&w| graph[w].resource() == Some(weapon.clone()))
+            .position(|&w| graph[w].root_resource() == Some(weapon.clone()))
         {
             for &other_weapon in self.weapons.iter() {
                 graph[other_weapon].set_enabled(false);

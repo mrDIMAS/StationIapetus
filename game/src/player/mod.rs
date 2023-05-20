@@ -324,7 +324,7 @@ impl Player {
             weapons: self
                 .weapons
                 .iter()
-                .filter_map(|w| graph[*w].resource())
+                .filter_map(|w| graph[*w].root_resource())
                 .collect::<Vec<_>>(),
         }
     }
@@ -350,7 +350,7 @@ impl Player {
 
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
-                    if let Some(resource) = item.self_resource.deref().clone() {
+                    if let Some(resource) = item_node.root_resource() {
                         game.item_display.sync_to_model(resource, item.stack_size);
                     }
 
@@ -1065,7 +1065,7 @@ impl ScriptTrait for Player {
             .scene
             .graph
             .try_get(self.current_weapon())
-            .and_then(|node| node.resource());
+            .and_then(|node| node.root_resource());
 
         let mut weapon_change_direction = None;
 
