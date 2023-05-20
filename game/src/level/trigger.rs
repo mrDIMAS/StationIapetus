@@ -1,4 +1,4 @@
-use crate::{character::character_ref, current_level_ref, game_ref, message::Message};
+use crate::{character::character_ref, message::Message, Game, Level};
 use fyrox::{
     core::{
         reflect::prelude::*,
@@ -38,11 +38,11 @@ impl TypeUuidProvider for Trigger {
 
 impl ScriptTrait for Trigger {
     fn on_update(&mut self, context: &mut ScriptContext) {
-        let game = game_ref(context.plugins);
+        let game = Game::game_ref(context.plugins);
 
         let position = context.scene.graph[context.handle].global_position();
 
-        if let Some(level) = current_level_ref(context.plugins) {
+        if let Some(level) = Level::try_get(context.plugins) {
             for actor in level.actors.iter() {
                 let actor_position =
                     character_ref(*actor, &context.scene.graph).position(&context.scene.graph);

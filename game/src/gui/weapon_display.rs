@@ -1,4 +1,5 @@
-use crate::{player::Player, weapon::try_weapon_ref};
+use crate::player::Player;
+use crate::weapon::Weapon;
 use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
 use fyrox::{
     asset::manager::ResourceManager,
@@ -109,7 +110,8 @@ impl WeaponDisplay {
     }
 
     pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
-        let ammo = if let Some(weapon) = try_weapon_ref(player.current_weapon(), graph) {
+        let ammo = if let Some(weapon) = graph.try_get_script_of::<Weapon>(player.current_weapon())
+        {
             if let Some(ammo_item) = weapon.ammo_item.as_ref() {
                 let total_ammo = player.inventory().item_count(ammo_item);
                 total_ammo / *weapon.ammo_consumption_per_shot

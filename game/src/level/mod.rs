@@ -1,14 +1,13 @@
 use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
-    sound::SoundManager, utils::use_hrtf, MessageSender,
+    sound::SoundManager, utils::use_hrtf, Game, MessageSender,
 };
-use fyrox::resource::model::{Model, ModelResourceExtension};
-use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{math::PositionProvider, pool::Handle, visitor::prelude::*},
-    plugin::PluginContext,
-    scene::{self, node::Node, Scene},
+    plugin::{Plugin, PluginContext},
+    resource::model::{Model, ModelResourceExtension},
+    scene::{self, navmesh::NavigationalMesh, node::Node, Scene},
 };
 use std::path::Path;
 
@@ -40,6 +39,14 @@ impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/loading_bay.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
     pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
+
+    pub fn try_get(plugins: &[Box<dyn Plugin>]) -> Option<&Level> {
+        Game::game_ref(plugins).level.as_ref()
+    }
+
+    pub fn try_get_mut(plugins: &mut [Box<dyn Plugin>]) -> Option<&mut Level> {
+        Game::game_mut(plugins).level.as_mut()
+    }
 
     pub fn from_existing_scene(
         scene: &mut Scene,

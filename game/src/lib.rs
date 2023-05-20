@@ -114,22 +114,6 @@ pub struct Game {
     smaller_font: SharedFont,
 }
 
-pub fn game_ref(plugins: &[Box<dyn Plugin>]) -> &Game {
-    plugins.first().unwrap().cast::<Game>().unwrap()
-}
-
-pub fn game_mut(plugins: &mut [Box<dyn Plugin>]) -> &mut Game {
-    plugins.first_mut().unwrap().cast_mut::<Game>().unwrap()
-}
-
-pub fn current_level_ref(plugins: &[Box<dyn Plugin>]) -> Option<&Level> {
-    game_ref(plugins).level.as_ref()
-}
-
-pub fn current_level_mut(plugins: &mut [Box<dyn Plugin>]) -> Option<&mut Level> {
-    game_mut(plugins).level.as_mut()
-}
-
 #[repr(u16)]
 pub enum CollisionGroups {
     ActorCapsule = 1 << 0,
@@ -166,6 +150,14 @@ impl MessageSender {
 }
 
 impl Game {
+    pub fn game_ref(plugins: &[Box<dyn Plugin>]) -> &Game {
+        plugins.first().unwrap().cast::<Game>().unwrap()
+    }
+
+    pub fn game_mut(plugins: &mut [Box<dyn Plugin>]) -> &mut Game {
+        plugins.first_mut().unwrap().cast_mut::<Game>().unwrap()
+    }
+
     pub fn new(override_scene: Handle<Scene>, mut context: PluginContext) -> Self {
         let font = SharedFont::new(
             fyrox::core::futures::executor::block_on(Font::from_file(

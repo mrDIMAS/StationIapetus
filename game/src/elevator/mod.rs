@@ -1,4 +1,4 @@
-use crate::current_level_mut;
+use crate::Level;
 use fyrox::{
     core::{
         reflect::prelude::*,
@@ -41,14 +41,14 @@ impl TypeUuidProvider for Elevator {
 
 impl ScriptTrait for Elevator {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        current_level_mut(ctx.plugins)
+        Level::try_get_mut(ctx.plugins)
             .unwrap()
             .elevators
             .push(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
-        if let Some(level) = current_level_mut(ctx.plugins) {
+        if let Some(level) = Level::try_get_mut(ctx.plugins) {
             if let Some(elevator) = level.elevators.iter().position(|h| *h == ctx.node_handle) {
                 level.elevators.remove(elevator);
             }

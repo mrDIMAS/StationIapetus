@@ -1,7 +1,7 @@
 use crate::character::DamageDealer;
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
-    current_level_ref,
+    Level,
 };
 use fyrox::{
     core::{
@@ -28,7 +28,7 @@ impl TypeUuidProvider for DeathZone {
 impl ScriptTrait for DeathZone {
     fn on_update(&mut self, context: &mut ScriptContext) {
         let self_bounds = context.scene.graph[context.handle].world_bounding_box();
-        for &actor in current_level_ref(context.plugins).unwrap().actors.iter() {
+        for &actor in Level::try_get(context.plugins).unwrap().actors.iter() {
             let character_position = context.scene.graph[actor].global_position();
             if self_bounds.is_contains_point(character_position) {
                 context.message_sender.send_global(CharacterMessage {

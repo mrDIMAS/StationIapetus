@@ -1,16 +1,12 @@
-use crate::character::DamagePosition;
 use crate::{
     character::{
         character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
-        DamageDealer, HitBox,
+        DamageDealer, DamagePosition, HitBox,
     },
-    current_level_ref, game_ref,
     level::decal::Decal,
     utils::ResourceProxy,
-    CollisionGroups, Weapon,
+    CollisionGroups, Game, Level, Weapon,
 };
-use fyrox::resource::model::{ModelResource, ModelResourceExtension};
-use fyrox::resource::texture::Texture;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -25,7 +21,10 @@ use fyrox::{
     },
     impl_component_provider,
     rand::seq::SliceRandom,
-    resource::model::Model,
+    resource::{
+        model::{Model, ModelResource, ModelResourceExtension},
+        texture::Texture,
+    },
     scene::{
         collider::{BitMask, Collider, ColliderShape, InteractionGroups},
         graph::{
@@ -353,8 +352,8 @@ impl ScriptTrait for Projectile {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = game_ref(ctx.plugins);
-        let level = current_level_ref(ctx.plugins).unwrap();
+        let game = Game::game_ref(ctx.plugins);
+        let level = Level::try_get(ctx.plugins).unwrap();
 
         // Movement of kinematic projectiles is controlled explicitly.
         if let Some(speed) = self.speed {
@@ -383,7 +382,7 @@ impl ScriptTrait for Projectile {
                 self.last_position,
                 position,
                 self.owner,
-                &current_level_ref(ctx.plugins).unwrap().actors,
+                &Level::try_get(ctx.plugins).unwrap().actors,
                 &mut ctx.scene.graph,
                 // Ignore self collider.
                 self.collider,
@@ -457,7 +456,7 @@ impl ScriptTrait for Projectile {
 
             match damage {
                 Damage::Splash { radius, amount } => {
-                    let level = current_level_ref(ctx.plugins).unwrap();
+                    let level = Level::try_get(ctx.plugins).unwrap();
                     // Just find out actors which must be damaged and re-cast damage message for each.
                     for &actor_handle in level.actors.iter() {
                         let character = character_ref(actor_handle, &ctx.scene.graph);

@@ -1,6 +1,4 @@
-use crate::inventory::Inventory;
-use crate::{character::character_ref, current_level_mut, game_mut};
-use fyrox::resource::model::ModelResource;
+use crate::{character::character_ref, inventory::Inventory, Game, Level};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -17,7 +15,10 @@ use fyrox::{
     },
     impl_component_provider,
     material::{Material, PropertyValue, SharedMaterial},
-    resource::texture::{Texture, TextureResource},
+    resource::{
+        model::ModelResource,
+        texture::{Texture, TextureResource},
+    },
     scene::{
         graph::Graph,
         light::BaseLight,
@@ -128,7 +129,7 @@ impl ScriptTrait for Door {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
-        current_level_mut(ctx.plugins)
+        Level::try_get_mut(ctx.plugins)
             .expect("Level must exist!")
             .doors_container
             .doors
@@ -138,7 +139,7 @@ impl ScriptTrait for Door {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.self_handle = ctx.handle;
 
-        let game = game_mut(ctx.plugins);
+        let game = Game::game_mut(ctx.plugins);
         let texture = game.door_ui_container.create_ui(
             game.smaller_font.clone(),
             ctx.resource_manager.clone(),
@@ -150,7 +151,7 @@ impl ScriptTrait for Door {
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
         // Level can not exist in case if we're changing the level. In this case there is no need
         // to unregister doors anyway, because the registry is already removed.
-        if let Some(level) = current_level_mut(ctx.plugins) {
+        if let Some(level) = Level::try_get_mut(ctx.plugins) {
             if let Some(position) = level
                 .doors_container
                 .doors
@@ -163,7 +164,7 @@ impl ScriptTrait for Door {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = game_mut(ctx.plugins);
+        let game = Game::game_mut(ctx.plugins);
         let level = game.level.as_ref().unwrap();
 
         let speed = 0.55;

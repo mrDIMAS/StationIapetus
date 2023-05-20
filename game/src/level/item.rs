@@ -1,4 +1,4 @@
-use crate::{block_on, current_level_mut};
+use crate::{block_on, Level};
 use fyrox::core::log::Log;
 use fyrox::{
     core::{
@@ -18,8 +18,8 @@ use fyrox::{
         texture::{Texture, TextureResource},
     },
     scene::{
-        base::BaseBuilder, collider::ColliderShape, graph::physics::RayCastOptions, graph::Graph,
-        node::Node, sprite::SpriteBuilder, Scene,
+        base::BaseBuilder, collider::ColliderShape, graph::physics::RayCastOptions, node::Node,
+        sprite::SpriteBuilder, Scene,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
@@ -103,7 +103,7 @@ impl ScriptTrait for Item {
 
         ctx.scene.graph.link_nodes(self.spark, ctx.handle);
 
-        current_level_mut(ctx.plugins)
+        Level::try_get_mut(ctx.plugins)
             .unwrap()
             .items
             .container
@@ -111,7 +111,7 @@ impl ScriptTrait for Item {
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = current_level_mut(context.plugins) {
+        if let Some(level) = Level::try_get_mut(context.plugins) {
             if let Some(index) = level
                 .items
                 .container
@@ -234,12 +234,4 @@ impl ItemContainer {
     pub fn iter(&self) -> impl Iterator<Item = &Handle<Node>> {
         self.container.iter()
     }
-}
-
-pub fn item_ref(handle: Handle<Node>, graph: &Graph) -> &Item {
-    graph[handle].try_get_script::<Item>().unwrap()
-}
-
-pub fn item_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Item {
-    graph[handle].try_get_script_mut::<Item>().unwrap()
 }

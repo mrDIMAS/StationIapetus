@@ -4,11 +4,10 @@ use crate::{
         state_machine::{StateMachine, StateMachineInput},
     },
     character::{Character, CharacterMessage, CharacterMessageData},
-    current_level_mut, current_level_ref,
     door::{door_mut, door_ref, DoorContainer},
-    game_ref,
     utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
     weapon::WeaponMessage,
+    Game, Level,
 };
 use fyrox::{
     core::{
@@ -279,7 +278,7 @@ impl ScriptTrait for Bot {
             .build();
         self.behavior = BotBehavior::new(self.spine, self.close_combat_distance);
 
-        current_level_mut(context.plugins)
+        Level::try_get_mut(context.plugins)
             .unwrap()
             .actors
             .push(context.handle);
@@ -293,7 +292,7 @@ impl ScriptTrait for Bot {
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = current_level_mut(context.plugins) {
+        if let Some(level) = Level::try_get_mut(context.plugins) {
             if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
                 level.actors.remove(position);
             }
@@ -310,7 +309,7 @@ impl ScriptTrait for Bot {
                 return;
             }
 
-            let level = current_level_ref(ctx.plugins).unwrap();
+            let level = Level::try_get(ctx.plugins).unwrap();
 
             self.character.on_character_message(
                 &char_message.data,
@@ -379,8 +378,8 @@ impl ScriptTrait for Bot {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = game_ref(ctx.plugins);
-        let level = current_level_ref(ctx.plugins).unwrap();
+        let game = Game::game_ref(ctx.plugins);
+        let level = Level::try_get(ctx.plugins).unwrap();
 
         let movement_speed_factor;
         let is_attacking;

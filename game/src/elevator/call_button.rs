@@ -1,4 +1,4 @@
-use crate::{elevator::Elevator, game_mut};
+use crate::{elevator::Elevator, Game};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -90,7 +90,7 @@ impl TypeUuidProvider for CallButton {
 
 impl ScriptTrait for CallButton {
     fn on_start(&mut self, context: &mut ScriptContext) {
-        let game = game_mut(context.plugins);
+        let game = Game::game_mut(context.plugins);
 
         let texture = game.call_button_ui_container.create_ui(
             game.smaller_font.clone(),
@@ -107,7 +107,7 @@ impl ScriptTrait for CallButton {
     }
 
     fn on_update(&mut self, context: &mut ScriptContext) {
-        let game = game_mut(context.plugins);
+        let game = Game::game_mut(context.plugins);
 
         if let Some(elevator) = context
             .scene

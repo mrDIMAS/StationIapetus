@@ -1,10 +1,8 @@
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
-    current_level_mut, current_level_ref,
     door::{door_mut, DoorContainer},
     elevator::call_button::{CallButton, CallButtonKind},
-    game_mut, game_ref,
     gui::journal::Journal,
     inventory::Inventory,
     message::Message,
@@ -12,10 +10,10 @@ use crate::{
     sound::SoundManager,
     utils,
     weapon::{
-        projectile::Projectile, try_weapon_mut, try_weapon_ref, weapon_ref, CombatWeaponKind,
-        WeaponMessage, WeaponMessageData,
+        projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
+        WeaponMessageData,
     },
-    CameraController, Elevator, Game, Item,
+    CameraController, Elevator, Game, Item, Level,
 };
 use fyrox::{
     animation::machine,
@@ -604,7 +602,7 @@ impl Player {
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
-        if let Some(current_weapon) = try_weapon_ref(self.current_weapon(), graph) {
+        if let Some(current_weapon) = graph.try_get_script_of::<Weapon>(self.current_weapon()) {
             current_weapon.weapon_type
         } else {
             CombatWeaponKind::Pistol
@@ -825,12 +823,14 @@ impl Player {
 
     fn apply_weapon_angular_correction(&mut self, scene: &mut Scene, can_move: bool, dt: f32) {
         if self.controller.aim {
-            let (pitch_correction, yaw_correction) =
-                if let Some(weapon) = try_weapon_ref(self.current_weapon(), &scene.graph) {
-                    (*weapon.pitch_correction, *weapon.yaw_correction)
-                } else {
-                    (-12.0f32, -4.0f32)
-                };
+            let (pitch_correction, yaw_correction) = if let Some(weapon) = scene
+                .graph
+                .try_get_script_of::<Weapon>(self.current_weapon())
+            {
+                (*weapon.pitch_correction, *weapon.yaw_correction)
+            } else {
+                (-12.0f32, -4.0f32)
+            };
 
             self.weapon_yaw_correction
                 .set_target(yaw_correction.to_radians());
@@ -960,7 +960,7 @@ impl ScriptTrait for Player {
             self.inventory.add_item(&grenade_item, 10);
         }
 
-        let level = current_level_mut(context.plugins).unwrap();
+        let level = Level::try_get_mut(context.plugins).unwrap();
 
         level.actors.push(context.handle);
         // Also register player in special variable to speed up access.
@@ -968,7 +968,7 @@ impl ScriptTrait for Player {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
-        let game = game_ref(ctx.plugins);
+        let game = Game::game_ref(ctx.plugins);
 
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
@@ -989,7 +989,7 @@ impl ScriptTrait for Player {
     }
 
     fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = current_level_mut(context.plugins) {
+        if let Some(level) = Level::try_get_mut(context.plugins) {
             level.player = Handle::NONE;
 
             if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
@@ -999,7 +999,7 @@ impl ScriptTrait for Player {
     }
 
     fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {
-        let game = game_ref(context.plugins);
+        let game = Game::game_ref(context.plugins);
         let control_scheme = &game.control_scheme;
         let sender = &game.message_sender;
 
@@ -1109,8 +1109,10 @@ impl ScriptTrait for Player {
                 self.controller.run = state == ElementState::Pressed;
             } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
-                    if let Some(current_weapon) =
-                        try_weapon_mut(self.current_weapon(), &mut context.scene.graph)
+                    if let Some(current_weapon) = context
+                        .scene
+                        .graph
+                        .try_get_script_of_mut::<Weapon>(self.current_weapon())
                     {
                         current_weapon.switch_flash_light();
                     }
@@ -1231,7 +1233,7 @@ impl ScriptTrait for Player {
                 return;
             }
 
-            let level = current_level_ref(ctx.plugins).unwrap();
+            let level = Level::try_get(ctx.plugins).unwrap();
 
             self.character.on_character_message(
                 &char_message.data,
@@ -1247,12 +1249,12 @@ impl ScriptTrait for Player {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = game_mut(ctx.plugins);
+        let game = Game::game_mut(ctx.plugins);
         game.weapon_display.sync_to_model(self, &ctx.scene.graph);
         game.journal_display.update(ctx.dt, &self.journal);
 
-        let game = game_ref(ctx.plugins);
-        let level = current_level_ref(ctx.plugins).unwrap();
+        let game = Game::game_ref(ctx.plugins);
+        let level = Level::try_get(ctx.plugins).unwrap();
 
         self.target_local_velocity = Vector2::default();
         if self.controller.walk_forward
@@ -1450,7 +1452,7 @@ impl ScriptTrait for Player {
             self.check_elevators(ctx.scene, &level.elevators);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time, ctx.message_sender);
             self.check_items(
-                game_mut(ctx.plugins),
+                Game::game_mut(ctx.plugins),
                 ctx.scene,
                 ctx.handle,
                 ctx.message_sender,
