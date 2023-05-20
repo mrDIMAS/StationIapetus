@@ -278,7 +278,7 @@ impl Character {
                             self_handle,
                             CharacterMessage {
                                 character: self_handle,
-                                data: CharacterMessageData::AddWeapon(associated_weapon.clone()),
+                                data: CharacterMessageData::AddWeapon(associated_weapon),
                             },
                         );
                     }
@@ -303,9 +303,9 @@ impl Character {
                 let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
                 let weapons = self.weapons().to_vec();
 
-                if self.inventory.try_extract_exact_items(&item, *count) == *count {
+                if self.inventory.try_extract_exact_items(item, *count) == *count {
                     // Make sure to remove weapons associated with items.
-                    Item::from_resource(&item, |item| {
+                    Item::from_resource(item, |item| {
                         if let Some(item) = item {
                             if let Some(weapon_resource) = item.associated_weapon.as_ref() {
                                 for &weapon in weapons.iter() {
