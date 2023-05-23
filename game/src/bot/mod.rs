@@ -270,8 +270,6 @@ impl TypeUuidProvider for Bot {
 
 impl ScriptTrait for Bot {
     fn on_init(&mut self, context: &mut ScriptContext) {
-        self.state_machine = StateMachine::new(self.absm, &context.scene.graph).unwrap();
-
         self.agent = NavmeshAgentBuilder::new()
             .with_position(context.scene.graph[context.handle].global_position())
             .with_speed(self.walk_speed)
@@ -285,6 +283,7 @@ impl ScriptTrait for Bot {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.state_machine = StateMachine::new(self.absm, &ctx.scene.graph).unwrap();
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
         ctx.message_dispatcher
