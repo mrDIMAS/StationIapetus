@@ -6,6 +6,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
+use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -91,6 +92,8 @@ pub struct Character {
     pub capsule_collider: Handle<Node>,
     pub body: Handle<Node>,
     pub health: f32,
+    #[visit(optional)]
+    pub max_health: InheritableVariable<f32>,
     pub last_health: f32,
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: u32,
@@ -103,11 +106,13 @@ pub struct Character {
 
 impl Default for Character {
     fn default() -> Self {
+        let max_health = 150.0f32;
         Self {
             capsule_collider: Default::default(),
             body: Default::default(),
-            health: 100.0,
-            last_health: 100.0,
+            health: max_health,
+            max_health: max_health.into(),
+            last_health: max_health,
             weapons: Vec::new(),
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
@@ -160,8 +165,8 @@ impl Character {
     pub fn heal(&mut self, amount: f32) {
         self.health += amount.abs();
 
-        if self.health > 150.0 {
-            self.health = 150.0;
+        if self.health > *self.max_health {
+            self.health = *self.max_health;
         }
     }
 

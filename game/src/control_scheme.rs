@@ -59,6 +59,7 @@ pub struct ControlScheme {
     pub cursor_down: ControlButtonDefinition,
     pub cursor_left: ControlButtonDefinition,
     pub cursor_right: ControlButtonDefinition,
+    pub quick_heal: ControlButtonDefinition,
     pub mouse_sens: f32,
     pub mouse_y_inverse: bool,
 }
@@ -161,6 +162,10 @@ impl Default for ControlScheme {
             cursor_right: ControlButtonDefinition {
                 description: "Cursor Right".to_string(),
                 button: ControlButton::Key(VirtualKeyCode::Right),
+            },
+            quick_heal: ControlButtonDefinition {
+                description: "Quick Heal".to_string(),
+                button: ControlButton::Key(VirtualKeyCode::Q),
             },
             mouse_sens: 0.3,
             mouse_y_inverse: false,

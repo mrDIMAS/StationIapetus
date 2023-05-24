@@ -1,3 +1,4 @@
+use crate::level::item::ItemAction;
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
@@ -641,7 +642,9 @@ impl Player {
 
     fn update_health_cylinder(&self, scene: &mut Scene) {
         let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
-        let color = self.health_color_gradient.get_color(self.health / 100.0);
+        let color = self
+            .health_color_gradient
+            .get_color(self.health / *self.max_health);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
         let mut material = surface.material().lock();
         Log::verify(material.set_property(
@@ -1170,6 +1173,36 @@ impl ScriptTrait for Player {
                                 .get_mut(self.state_machine.toss_grenade_animation)
                                 .set_enabled(true)
                                 .rewind();
+                        }
+                    }
+                }
+            } else if button == control_scheme.quick_heal.button {
+                if state == ElementState::Pressed && self.health < *self.max_health {
+                    let mut min_health = f32::MAX;
+                    let mut suitable_item = None;
+                    for item in self.inventory.items() {
+                        if let Some(resource) = item.resource.as_ref() {
+                            Item::from_resource(resource, |item| {
+                                if let Some(item_ref) = item {
+                                    if let ItemAction::Heal { amount } = *item_ref.action {
+                                        if amount < min_health {
+                                            min_health = amount;
+                                            suitable_item = Some(resource.clone());
+                                        }
+                                    }
+                                }
+                            });
+                        }
+                    }
+                    if let Some(suitable_item) = suitable_item {
+                        if self
+                            .inventory_mut()
+                            .try_extract_exact_items(&suitable_item, 1)
+                            == 1
+                        {
+                            Item::from_resource(&suitable_item, |item| {
+                                self.use_item(item.unwrap());
+                            })
                         }
                     }
                 }
