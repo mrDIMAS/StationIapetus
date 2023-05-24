@@ -342,6 +342,10 @@ impl Player {
         let items = &game.level.as_ref().unwrap().items;
         for &item_handle in items.iter() {
             if let Some(item_node) = scene.graph.try_get(item_handle) {
+                if !item_node.is_globally_enabled() {
+                    continue;
+                }
+
                 let item = item_node.try_get_script::<Item>().unwrap();
                 let self_position = scene.graph[self.body].global_position();
                 let item_position = item_node.global_position();

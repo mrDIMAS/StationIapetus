@@ -297,7 +297,7 @@ impl Character {
                     2.0,
                 );
 
-                scene.graph.remove_node(item_handle);
+                scene.graph[item_handle].set_enabled(false);
             }
             CharacterMessageData::DropItems { item, count } => {
                 let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
