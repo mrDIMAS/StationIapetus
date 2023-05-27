@@ -129,7 +129,6 @@ pub struct Player {
     hips: Handle<Node>,
     weapon_yaw_correction: SmoothAngle,
     weapon_pitch_correction: SmoothAngle,
-    weapon_origin: Handle<Node>,
     run_factor: f32,
     target_run_factor: f32,
     in_air_time: f32,
@@ -194,7 +193,6 @@ impl Default for Player {
             rig_light: Default::default(),
             camera_controller: Default::default(),
             inventory_display: Default::default(),
-            weapon_origin: Default::default(),
             model: Default::default(),
             controller: Default::default(),
             health_cylinder: Default::default(),
@@ -273,7 +271,6 @@ impl Clone for Player {
             hips: self.hips,
             weapon_yaw_correction: self.weapon_yaw_correction.clone(),
             weapon_pitch_correction: self.weapon_pitch_correction.clone(),
-            weapon_origin: self.weapon_origin,
             run_factor: self.run_factor,
             target_run_factor: self.target_run_factor,
             in_air_time: self.in_air_time,
@@ -564,7 +561,7 @@ impl Player {
                                 direction,
                                 position,
                                 self_handle,
-                                direction.scale(15.0),
+                                direction.scale(10.0),
                             );
                         }
                     }

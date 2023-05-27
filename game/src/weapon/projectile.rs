@@ -11,7 +11,6 @@ use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         color::Color,
-        futures::executor::block_on,
         math::{ray::Ray, vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
@@ -22,7 +21,7 @@ use fyrox::{
     impl_component_provider,
     rand::seq::SliceRandom,
     resource::{
-        model::{Model, ModelResource, ModelResourceExtension},
+        model::{ModelResource, ModelResourceExtension},
         texture::Texture,
     },
     scene::{
@@ -127,8 +126,11 @@ pub struct Projectile {
     #[visit(optional)]
     speed: Option<f32>,
 
+    #[visit(optional, rename = "ImpactEffect")]
+    environment_impact_effect: Option<ModelResource>,
+
     #[visit(optional)]
-    impact_effect: Option<ModelResource>,
+    flesh_impact_effect: Option<ModelResource>,
 
     #[visit(optional)]
     impact_sound: Option<SoundBufferResource>,
@@ -181,8 +183,9 @@ impl Default for Projectile {
             initial_velocity: Default::default(),
             last_position: Default::default(),
             use_ray_casting: true,
-            speed: Some(10.0),
-            impact_effect: None,
+            speed: Some(1.0),
+            environment_impact_effect: None,
+            flesh_impact_effect: None,
             impact_sound: None,
             appear_effect: None,
             random_appear_effects: Default::default(),
@@ -357,14 +360,16 @@ impl ScriptTrait for Projectile {
 
         // Movement of kinematic projectiles is controlled explicitly.
         if let Some(speed) = self.speed {
-            let total_velocity = self.dir.scale(speed);
-            ctx.scene.graph[ctx.handle]
-                .local_transform_mut()
-                .offset(total_velocity);
+            if speed != 0.0 {
+                let total_velocity = self.dir.scale(speed);
+                ctx.scene.graph[ctx.handle]
+                    .local_transform_mut()
+                    .offset(total_velocity);
 
-            ctx.scene
-                .graph
-                .update_hierarchical_data_for_descendants(ctx.handle);
+                ctx.scene
+                    .graph
+                    .update_hierarchical_data_for_descendants(ctx.handle);
+            }
         }
 
         // Reduce initial velocity down to zero over time. This is needed because projectile
@@ -443,6 +448,23 @@ impl ScriptTrait for Projectile {
                                     }
                                 }
                             }
+
+                            // Also, handle contacts with environment.
+                            hit = Some(Hit {
+                                hit_actor: Default::default(),
+                                shooter_actor: owner_character,
+                                position: position
+                                    + if self.collider == contact.collider1 {
+                                        point.local_p2
+                                    } else {
+                                        point.local_p1
+                                    },
+                                normal: manifold.normal,
+                                collider: other_collider,
+                                feature: FeatureId::Unknown,
+                                hit_box: None,
+                                query_buffer: vec![],
+                            });
                         }
                     }
                 }
@@ -501,13 +523,11 @@ impl ScriptTrait for Projectile {
                 }
             }
 
-            if let Ok(effect_prefab) = block_on(ctx.resource_manager.request::<Model, _>(
-                if hit.hit_actor.is_some() {
-                    "data/models/blood_splatter.rgs"
-                } else {
-                    "data/models/bullet_impact.rgs"
-                },
-            )) {
+            if let Some(effect_prefab) = if hit.hit_actor.is_some() {
+                self.flesh_impact_effect.as_ref()
+            } else {
+                self.environment_impact_effect.as_ref()
+            } {
                 effect_prefab.instantiate_at(ctx.scene, hit.position, vector_to_quat(hit.normal));
             }
 
