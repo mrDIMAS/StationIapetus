@@ -125,7 +125,12 @@ impl StateMachine {
     ) -> Option<&'a mut MachineLayer> {
         graph
             .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
-            .and_then(|absm| absm.machine_mut().layers_mut().get_mut(idx))
+            .and_then(|absm| {
+                absm.machine_mut()
+                    .get_value_mut_silent()
+                    .layers_mut()
+                    .get_mut(idx)
+            })
     }
 
     #[allow(dead_code)]
@@ -159,7 +164,7 @@ impl StateMachine {
                 .graph
                 .try_get_mut_of_type::<AnimationPlayer>(animation_player)
             {
-                let animations_container = animation_player.animations_mut();
+                let animations_container = animation_player.animations_mut().get_value_mut_silent();
 
                 let mut walk_events = animations_container
                     .get_mut(self.walk_animation)

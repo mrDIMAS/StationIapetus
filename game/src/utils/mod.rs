@@ -138,6 +138,7 @@ pub fn fetch_animation_container_mut(
         .try_get_mut_of_type::<AnimationPlayer>(handle)
         .unwrap()
         .animations_mut()
+        .get_value_mut_silent()
 }
 
 // To bypass https://github.com/FyroxEngine/Fyrox/issues/357.
