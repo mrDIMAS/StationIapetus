@@ -23,6 +23,7 @@ pub struct ItemDisplay {
     pub render_target: TextureResource,
     item_image: Handle<UiNode>,
     item_name: Handle<UiNode>,
+    pub current_item: Option<ModelResource>,
 }
 
 impl ItemDisplay {
@@ -85,28 +86,37 @@ impl ItemDisplay {
             render_target,
             item_image,
             item_name,
+            current_item: None,
         }
     }
 
-    pub fn sync_to_model(&self, item: ModelResource, count: u32) {
-        Item::from_resource(&item, |item| {
-            if let Some(item_script) = item {
-                self.ui.send_message(TextMessage::text(
-                    self.item_name,
-                    MessageDirection::ToWidget,
-                    format!("{}-{}", *item_script.name, count),
-                ));
+    pub fn sync_to_model(&mut self, item: ModelResource, count: u32) {
+        if self
+            .current_item
+            .as_ref()
+            .map_or(true, |current_item| current_item != &item)
+        {
+            self.current_item = Some(item.clone());
 
-                self.ui.send_message(ImageMessage::texture(
-                    self.item_image,
-                    MessageDirection::ToWidget,
-                    item_script
-                        .preview
-                        .as_ref()
-                        .map(|tex| fyrox::utils::into_gui_texture(tex.clone())),
-                ));
-            }
-        });
+            Item::from_resource(&item, |item| {
+                if let Some(item_script) = item {
+                    self.ui.send_message(TextMessage::text(
+                        self.item_name,
+                        MessageDirection::ToWidget,
+                        format!("{}-{}", *item_script.name, count),
+                    ));
+
+                    self.ui.send_message(ImageMessage::texture(
+                        self.item_image,
+                        MessageDirection::ToWidget,
+                        item_script
+                            .preview
+                            .as_ref()
+                            .map(|tex| fyrox::utils::into_gui_texture(tex.clone())),
+                    ));
+                }
+            });
+        }
     }
 
     pub fn update(&mut self, delta: f32) {
