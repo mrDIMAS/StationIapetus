@@ -1,5 +1,6 @@
 //! Weapon related stuff.
 
+use crate::level::item::Item;
 use crate::{utils::ResourceProxy, weapon::projectile::Projectile};
 use fyrox::{
     core::{
@@ -46,6 +47,9 @@ pub enum CombatWeaponKind {
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Weapon {
+    #[visit(optional)]
+    item: Item,
+
     shot_point: Handle<Node>,
     flash_light: Handle<Node>,
     flash_light_enabled: bool,
@@ -81,9 +85,6 @@ pub struct Weapon {
     pub ammo_item: InheritableVariable<Option<ModelResource>>,
 
     #[visit(optional)]
-    pub associated_item: InheritableVariable<Option<ModelResource>>,
-
-    #[visit(optional)]
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
@@ -104,6 +105,7 @@ pub struct Weapon {
 impl Default for Weapon {
     fn default() -> Self {
         Self {
+            item: Default::default(),
             shot_point: Handle::NONE,
             last_shot_time: 0.0,
             owner: Handle::NONE,
@@ -121,7 +123,6 @@ impl Default for Weapon {
             shot_vfx: Default::default(),
             weapon_type: CombatWeaponKind::Pistol,
             ammo_item: Default::default(),
-            associated_item: Default::default(),
         }
     }
 }
@@ -133,11 +134,11 @@ impl Weapon {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(
-            graph
-                .try_get(graph.get_root())
-                .and_then(|n| n.try_get_script::<Weapon>()),
-        )
+        func(graph.try_get_script_component_of::<Weapon>(graph.get_root()))
+    }
+
+    pub fn is_weapon_resource(model_resource: &ModelResource) -> bool {
+        Self::from_resource(model_resource, |w| w.is_some())
     }
 
     pub fn shot_position(&self, graph: &Graph) -> Vector3<f32> {
@@ -219,7 +220,7 @@ impl Weapon {
     }
 }
 
-impl_component_provider!(Weapon);
+impl_component_provider!(Weapon, item: Item);
 
 impl TypeUuidProvider for Weapon {
     fn type_uuid() -> Uuid {
@@ -228,7 +229,13 @@ impl TypeUuidProvider for Weapon {
 }
 
 impl ScriptTrait for Weapon {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        self.item.on_init(ctx);
+    }
+
     fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.item.on_start(ctx);
+
         self.self_handle = ctx.handle;
 
         ctx.message_dispatcher
@@ -236,6 +243,8 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        self.item.on_deinit(ctx);
+
         ctx.message_sender.send_global(WeaponMessage {
             weapon: ctx.node_handle,
             data: WeaponMessageData::Removed,
@@ -243,6 +252,8 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        self.item.on_update(ctx);
+
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
             flash_light.set_visibility(self.flash_light_enabled);
         }
@@ -253,6 +264,8 @@ impl ScriptTrait for Weapon {
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
     ) {
+        self.item.on_message(message, ctx);
+
         if let Some(msg) = message.downcast_ref::<WeaponMessage>() {
             if msg.weapon != ctx.handle {
                 return;

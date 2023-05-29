@@ -344,7 +344,12 @@ impl Player {
                     continue;
                 }
 
-                let item = item_node.try_get_script::<Item>().unwrap();
+                let item = item_node.try_get_script_component::<Item>().unwrap();
+
+                if !item.enabled {
+                    continue;
+                }
+
                 let self_position = scene.graph[self.body].global_position();
                 let item_position = item_node.global_position();
 

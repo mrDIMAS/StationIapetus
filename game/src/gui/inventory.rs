@@ -469,32 +469,33 @@ impl InventoryInterface {
                                     let item_resource = &item.item;
                                     Item::from_resource(item_resource, |item| {
                                         if let Some(item) = item {
-                                            if *item.consumable {
+                                            if item.enabled {
                                                 if player
                                                     .inventory_mut()
                                                     .try_extract_exact_items(item_resource, 1)
                                                     == 1
                                                 {
-                                                    player.use_item(item);
-                                                    self.sender.send(Message::SyncInventory);
-                                                }
-                                            } else if let Some(associated_weapon) =
-                                                item.associated_weapon.as_ref()
-                                            {
-                                                player
-                                                    .script_message_sender
-                                                    .as_ref()
-                                                    .unwrap()
-                                                    .send_to_target(
+                                                    if *item.consumable {
+                                                        player.use_item(item);
+                                                        self.sender.send(Message::SyncInventory);
+                                                    }
+
+                                                    // TODO: Replace with UseItem message
+                                                    player
+                                                        .script_message_sender
+                                                        .as_ref()
+                                                        .unwrap()
+                                                        .send_to_target(
                                                         player_handle,
                                                         CharacterMessage {
                                                             character: player_handle,
                                                             data:
                                                                 CharacterMessageData::SelectWeapon(
-                                                                    associated_weapon.clone(),
+                                                                    item_resource.clone(),
                                                                 ),
                                                         },
-                                                    )
+                                                    );
+                                                }
                                             }
                                         }
                                     });

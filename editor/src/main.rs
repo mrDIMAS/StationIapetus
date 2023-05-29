@@ -10,7 +10,7 @@ use station_iapetus::{
     elevator::call_button::CallButtonKind,
     inventory::{Inventory, ItemEntry},
     level::{
-        item::ItemAction,
+        item::{Item, ItemAction},
         spawn::DefaultWeapon,
         trigger::TriggerKind,
         turret::{Barrel, Hostility, ShootMode},
@@ -48,6 +48,7 @@ fn main() {
     editors.register_inheritable_inspectable::<Character>();
     editors.register_inheritable_inspectable::<CameraController>();
     editors.register_inheritable_inspectable::<HitBox>();
+    editors.register_inheritable_inspectable::<Item>();
     editors.register_inheritable_vec_collection::<Barrel>();
     editors.register_inheritable_vec_collection::<HitBox>();
     editors.register_inheritable_vec_collection::<DefaultWeapon>();

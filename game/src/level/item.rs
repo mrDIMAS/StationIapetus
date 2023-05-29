@@ -53,10 +53,11 @@ pub struct Item {
     pub preview: InheritableVariable<Option<TextureResource>>,
 
     #[visit(optional)]
-    pub associated_weapon: InheritableVariable<Option<ModelResource>>,
+    pub action: InheritableVariable<ItemAction>,
 
     #[visit(optional)]
-    pub action: InheritableVariable<ItemAction>,
+    #[reflect(hidden)]
+    pub enabled: bool,
 
     #[reflect(hidden)]
     spark: Handle<Node>,
@@ -74,9 +75,9 @@ impl Default for Item {
             name: Default::default(),
             consumable: Default::default(),
             stack_size: 1.into(),
-            associated_weapon: Default::default(),
             preview: Default::default(),
             action: Default::default(),
+            enabled: true,
         }
     }
 }
@@ -148,11 +149,7 @@ impl Item {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(
-            graph
-                .try_get(graph.get_root())
-                .and_then(|n| n.try_get_script::<Item>()),
-        )
+        func(graph.try_get_script_component_of(graph.get_root()))
     }
 
     pub fn add_to_scene(
@@ -196,7 +193,7 @@ impl Item {
         let item_ref = &mut scene.graph[item];
         item_ref.local_transform_mut().set_position(position);
 
-        if let Some(item_script) = item_ref.try_get_script_mut::<Item>() {
+        if let Some(item_script) = item_ref.try_get_script_component_mut::<Item>() {
             item_script
                 .stack_size
                 .set_value_and_mark_modified(stack_size);

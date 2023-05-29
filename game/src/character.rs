@@ -1,18 +1,18 @@
 use crate::{
-    block_on,
     inventory::Inventory,
     level::item::ItemAction,
     sound::{SoundKind, SoundManager},
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::core::variable::InheritableVariable;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
+        log::Log,
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
+        variable::InheritableVariable,
         visitor::prelude::*,
     },
     resource::model::{ModelResource, ModelResourceExtension},
@@ -24,7 +24,6 @@ use fyrox::{
     },
     script::ScriptMessageSender,
 };
-use std::ops::Deref;
 
 #[derive(Copy, Clone)]
 pub struct DamageDealer {
@@ -234,43 +233,55 @@ impl Character {
                 self.select_weapon(weapon_resource.clone(), &mut scene.graph)
             }
             CharacterMessageData::AddWeapon(weapon_resource) => {
-                let weapon = block_on(weapon_resource.clone())
-                    .unwrap()
-                    .instantiate(scene);
+                assert!(weapon_resource.is_ok());
 
-                // Root node must have Weapon script.
-                assert!(scene.graph[weapon].has_script::<Weapon>());
+                if Weapon::is_weapon_resource(weapon_resource) {
+                    let weapon = weapon_resource.instantiate(scene);
 
-                let weapon_script = weapon_mut(weapon, &mut scene.graph);
+                    scene
+                        .graph
+                        .try_get_script_component_of_mut::<Item>(weapon)
+                        .unwrap()
+                        .enabled = false;
 
-                weapon_script.set_owner(self_handle);
+                    let weapon_script = weapon_mut(weapon, &mut scene.graph);
 
-                if let Some(associated_item) = weapon_script.associated_item.as_ref() {
-                    self.inventory_mut().add_item(associated_item, 1);
+                    weapon_script.set_owner(self_handle);
+
+                    self.inventory_mut().add_item(weapon_resource, 1);
+
+                    self.add_weapon(weapon, &mut scene.graph);
+
+                    scene.graph.link_nodes(weapon, self.weapon_pivot());
+                } else {
+                    Log::warn(format!(
+                        "{} is not a weapon resource!",
+                        weapon_resource.path().display()
+                    ));
                 }
-
-                self.add_weapon(weapon, &mut scene.graph);
-                scene.graph.link_nodes(weapon, self.weapon_pivot());
             }
             &CharacterMessageData::PickupItem(item_handle) => {
                 let item_node = &scene.graph[item_handle];
                 let item_resource = item_node.root_resource();
-                let item = item_node.try_get_script::<Item>().unwrap();
+                let item = item_node.try_get_script_component::<Item>().unwrap();
                 let stack_size = *item.stack_size;
                 let position = item_node.global_position();
 
-                if let Some(associated_weapon) = item.associated_weapon.deref().clone() {
-                    let mut found = false;
+                if let Some(item_resource) = item_resource {
+                    self.inventory.add_item(&item_resource, stack_size);
+
+                    // It might be a weapon-like item.
+                    let mut found_weapon = false;
                     for weapon_handle in self.weapons.iter() {
                         if scene.graph[*weapon_handle].root_resource()
-                            == Some(associated_weapon.clone())
+                            == Some(item_resource.clone())
                         {
-                            found = true;
+                            found_weapon = true;
                             break;
                         }
                     }
-                    if found {
-                        Weapon::from_resource(&associated_weapon, |weapon| {
+                    if found_weapon {
+                        Weapon::from_resource(&item_resource, |weapon| {
                             if let Some(associated_weapon) = weapon {
                                 if let Some(ammo_item) = associated_weapon.ammo_item.as_ref() {
                                     self.inventory.add_item(ammo_item, 24);
@@ -283,14 +294,10 @@ impl Character {
                             self_handle,
                             CharacterMessage {
                                 character: self_handle,
-                                data: CharacterMessageData::AddWeapon(associated_weapon),
+                                data: CharacterMessageData::AddWeapon(item_resource),
                             },
                         );
                     }
-                }
-
-                if let Some(item_resource) = item_resource {
-                    self.inventory.add_item(&item_resource, stack_size);
                 }
 
                 sound_manager.play_sound(
@@ -310,19 +317,13 @@ impl Character {
 
                 if self.inventory.try_extract_exact_items(item, *count) == *count {
                     // Make sure to remove weapons associated with items.
-                    Item::from_resource(item, |item| {
-                        if let Some(item) = item {
-                            if let Some(weapon_resource) = item.associated_weapon.as_ref() {
-                                for &weapon in weapons.iter() {
-                                    if scene.graph[weapon].root_resource()
-                                        == Some(weapon_resource.clone())
-                                    {
-                                        scene.graph.remove_node(weapon);
-                                    }
-                                }
-                            }
+                    for &weapon in weapons.iter() {
+                        if scene.graph[weapon].root_resource() == Some(item.clone()) {
+                            dbg!();
+
+                            scene.graph.remove_node(weapon);
                         }
-                    });
+                    }
 
                     Item::add_to_scene(scene, item.clone(), drop_position, true, *count);
                 }
