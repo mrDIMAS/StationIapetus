@@ -319,8 +319,6 @@ impl Character {
                     // Make sure to remove weapons associated with items.
                     for &weapon in weapons.iter() {
                         if scene.graph[weapon].root_resource() == Some(item.clone()) {
-                            dbg!();
-
                             scene.graph.remove_node(weapon);
                         }
                     }

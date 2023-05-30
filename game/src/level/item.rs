@@ -126,14 +126,17 @@ impl ScriptTrait for Item {
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let spark = ctx.scene.graph[self.spark].as_sprite_mut();
-        let new_size = spark.size() + 0.02 * self.spark_size_change_dir * ctx.dt;
-        spark.set_size(new_size);
-        let new_rotation = spark.rotation() + 20.0f32.to_radians() * ctx.dt;
-        spark.set_rotation(new_rotation);
-        if spark.size() >= 0.04 {
-            self.spark_size_change_dir = -1.0;
-        } else if spark.size() < 0.03 {
-            self.spark_size_change_dir = 1.0;
+        spark.set_enabled(self.enabled);
+        if self.enabled {
+            let new_size = spark.size() + 0.02 * self.spark_size_change_dir * ctx.dt;
+            spark.set_size(new_size);
+            let new_rotation = spark.rotation() + 20.0f32.to_radians() * ctx.dt;
+            spark.set_rotation(new_rotation);
+            if spark.size() >= 0.04 {
+                self.spark_size_change_dir = -1.0;
+            } else if spark.size() < 0.03 {
+                self.spark_size_change_dir = 1.0;
+            }
         }
     }
 
