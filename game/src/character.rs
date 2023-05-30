@@ -238,12 +238,6 @@ impl Character {
                 if Weapon::is_weapon_resource(weapon_resource) {
                     let weapon = weapon_resource.instantiate(scene);
 
-                    scene
-                        .graph
-                        .try_get_script_component_of_mut::<Item>(weapon)
-                        .unwrap()
-                        .enabled = false;
-
                     let weapon_script = weapon_mut(weapon, &mut scene.graph);
 
                     weapon_script.set_owner(self_handle);
@@ -271,32 +265,34 @@ impl Character {
                     self.inventory.add_item(&item_resource, stack_size);
 
                     // It might be a weapon-like item.
-                    let mut found_weapon = false;
-                    for weapon_handle in self.weapons.iter() {
-                        if scene.graph[*weapon_handle].root_resource()
-                            == Some(item_resource.clone())
-                        {
-                            found_weapon = true;
-                            break;
-                        }
-                    }
-                    if found_weapon {
-                        Weapon::from_resource(&item_resource, |weapon| {
-                            if let Some(associated_weapon) = weapon {
-                                if let Some(ammo_item) = associated_weapon.ammo_item.as_ref() {
-                                    self.inventory.add_item(ammo_item, 24);
-                                }
+                    if Weapon::is_weapon_resource(&item_resource) {
+                        let mut found_weapon = false;
+                        for weapon_handle in self.weapons.iter() {
+                            if scene.graph[*weapon_handle].root_resource()
+                                == Some(item_resource.clone())
+                            {
+                                found_weapon = true;
+                                break;
                             }
-                        });
-                    } else {
-                        // Finally if actor does not have such weapon, give new one to him.
-                        script_message_sender.send_to_target(
-                            self_handle,
-                            CharacterMessage {
-                                character: self_handle,
-                                data: CharacterMessageData::AddWeapon(item_resource),
-                            },
-                        );
+                        }
+                        if found_weapon {
+                            Weapon::from_resource(&item_resource, |weapon| {
+                                if let Some(associated_weapon) = weapon {
+                                    if let Some(ammo_item) = associated_weapon.ammo_item.as_ref() {
+                                        self.inventory.add_item(ammo_item, 24);
+                                    }
+                                }
+                            });
+                        } else {
+                            // Finally if actor does not have such weapon, give new one to him.
+                            script_message_sender.send_to_target(
+                                self_handle,
+                                CharacterMessage {
+                                    character: self_handle,
+                                    data: CharacterMessageData::AddWeapon(item_resource),
+                                },
+                            );
+                        }
                     }
                 }
 

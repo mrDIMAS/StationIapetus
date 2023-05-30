@@ -252,6 +252,7 @@ impl ScriptTrait for Weapon {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        self.item.enabled = self.owner.is_none();
         self.item.on_update(ctx);
 
         if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {

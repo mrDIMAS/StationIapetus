@@ -469,13 +469,13 @@ impl InventoryInterface {
                                     let item_resource = &item.item;
                                     Item::from_resource(item_resource, |item| {
                                         if let Some(item) = item {
-                                            if item.enabled
-                                                && player
-                                                    .inventory_mut()
-                                                    .try_extract_exact_items(item_resource, 1)
-                                                    == 1
-                                            {
-                                                if *item.consumable {
+                                            if item.enabled {
+                                                if *item.consumable
+                                                    && player
+                                                        .inventory_mut()
+                                                        .try_extract_exact_items(item_resource, 1)
+                                                        == 1
+                                                {
                                                     player.use_item(item);
                                                     self.sender.send(Message::SyncInventory);
                                                 }
