@@ -52,7 +52,7 @@ impl AimOnTarget {
         dt: f32,
         angle_hack: f32,
     ) -> bool {
-        let angle = self.pitch.angle();
+        let pitch = self.pitch.angle();
 
         self.pitch
             .set_target(
@@ -63,7 +63,7 @@ impl AimOnTarget {
         if self.spine.is_some() {
             graph[self.spine]
                 .local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), angle));
+                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
         }
 
         self.pitch.at_target()
@@ -76,19 +76,22 @@ impl AimOnTarget {
         model: Handle<Node>,
         dt: f32,
         body: Handle<Node>,
+        angle_hack: f32,
     ) -> bool {
         if self.yaw.angle.is_nan() {
             let local_look = scene.graph[model].look_vector();
             self.yaw.angle = local_look.x.atan2(local_look.z);
         }
 
-        let angle = self.yaw.angle();
+        let yaw = self.yaw.angle();
 
-        self.yaw.set_target(look_dir.x.atan2(look_dir.z)).update(dt);
+        self.yaw
+            .set_target(look_dir.x.atan2(look_dir.z) + angle_hack)
+            .update(dt);
 
         if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), angle));
+                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw));
         }
 
         self.yaw.at_target()
@@ -105,8 +108,14 @@ impl<'a> Behavior<'a> for AimOnTarget {
             .unwrap_or_else(|| ctx.agent.target())
             - ctx.character.position(&ctx.scene.graph);
 
-        let aimed_horizontally =
-            self.aim_horizontally(look_dir, ctx.scene, ctx.model, ctx.dt, ctx.character.body);
+        let aimed_horizontally = self.aim_horizontally(
+            look_dir,
+            ctx.scene,
+            ctx.model,
+            ctx.dt,
+            ctx.character.body,
+            ctx.h_aim_angle_hack.to_radians(),
+        );
         let aimed_vertically = self.aim_vertically(
             look_dir,
             &mut ctx.scene.graph,

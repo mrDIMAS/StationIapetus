@@ -91,6 +91,11 @@ impl StateMachine {
         self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 
+    pub fn is_in_aim_state(&self, graph: &Graph) -> bool {
+        self.upper_body_layer(graph)
+            .map_or(false, |layer| layer.active_state() == self.aim_state)
+    }
+
     pub fn is_walking(&self, graph: &Graph) -> bool {
         if let Some(lower_body_layer) = self.lower_body_layer(graph) {
             let active_transition = lower_body_layer.active_transition();

@@ -7,7 +7,6 @@ use fyrox::{
     asset::core::rand::prelude::IteratorRandom,
     core::visitor::prelude::*,
     rand::Rng,
-    scene::graph::Graph,
     utils::behavior::{Behavior, Status},
 };
 
@@ -15,15 +14,6 @@ use fyrox::{
 pub struct DoMeleeAttack {
     attack_timeout: f32,
     attack_animation_index: u32,
-}
-
-fn can_shoot(state_machine: &StateMachine, graph: &Graph, can_use_weapons: bool) -> bool {
-    state_machine
-        .upper_body_layer(graph)
-        .map_or(false, |layer| {
-            layer.active_state() == state_machine.aim_state
-        })
-        && can_use_weapons
 }
 
 impl<'a> Behavior<'a> for DoMeleeAttack {
@@ -55,11 +45,7 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
                     while let Some(event) = attack_animation_events.pop_front() {
                         if event.name == StateMachine::HIT_SIGNAL
                             && active_state == context.state_machine.attack_state
-                            && !can_shoot(
-                                context.state_machine,
-                                &context.scene.graph,
-                                context.can_use_weapons,
-                            )
+                            && !context.state_machine.is_in_aim_state(&context.scene.graph)
                         {
                             context.script_message_sender.send_global(CharacterMessage {
                                 character: target.handle,

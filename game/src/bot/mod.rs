@@ -110,7 +110,7 @@ pub struct Bot {
     #[visit(optional)]
     pub v_aim_angle_hack: f32,
     #[visit(optional)]
-    pub can_use_weapons: bool,
+    pub h_aim_angle_hack: f32,
     #[visit(optional)]
     pub close_combat_distance: f32,
     #[visit(optional)]
@@ -163,7 +163,7 @@ impl Default for Bot {
             absm: Default::default(),
             walk_speed: 1.2,
             v_aim_angle_hack: 0.0,
-            can_use_weapons: false,
+            h_aim_angle_hack: 0.0,
             close_combat_distance: 1.0,
             pain_sounds: Default::default(),
             scream_sounds: Default::default(),
@@ -412,7 +412,7 @@ impl ScriptTrait for Bot {
                 // Output
                 hostility: self.hostility,
                 v_aim_angle_hack: self.v_aim_angle_hack,
-                can_use_weapons: self.can_use_weapons,
+                h_aim_angle_hack: self.h_aim_angle_hack,
                 animation_player: self.animation_player,
                 attack_animation_index: 0,
                 movement_speed_factor: 1.0,

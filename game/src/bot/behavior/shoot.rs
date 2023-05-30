@@ -24,7 +24,9 @@ impl<'a> Behavior<'a> for ShootTarget {
             context.is_aiming_weapon = true;
 
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
-            if weapon.can_shoot(context.elapsed_time) {
+            if weapon.can_shoot(context.elapsed_time)
+                && context.state_machine.is_in_aim_state(&context.scene.graph)
+            {
                 let ammo_per_shot = *weapon.ammo_consumption_per_shot;
 
                 if let Some(ammo_item) = weapon.ammo_item.as_ref() {
@@ -77,7 +79,6 @@ impl<'a> Behavior<'a> for CanShootTarget {
 
             if let Some(ammo_item) = weapon.ammo_item.as_ref() {
                 if context.restoration_time <= 0.0
-                    && context.can_use_weapons
                     && context.character.inventory.item_count(ammo_item) >= ammo_per_shot
                 {
                     return Status::Success;

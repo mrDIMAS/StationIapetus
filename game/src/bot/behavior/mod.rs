@@ -1,7 +1,3 @@
-use crate::bot::state_machine::StateMachine;
-use crate::bot::BotHostility;
-use crate::sound::SoundManager;
-use crate::utils::ResourceProxy;
 use crate::{
     bot::{
         behavior::{
@@ -13,17 +9,18 @@ use crate::{
             shoot::{CanShootTarget, ShootTarget},
             threat::{NeedsThreatenTarget, ThreatenTarget},
         },
-        Target,
+        state_machine::StateMachine,
+        BotHostility, Target,
     },
     character::Character,
-    utils::BodyImpactHandler,
+    sound::SoundManager,
+    utils::{BodyImpactHandler, ResourceProxy},
     MessageSender,
 };
-use fyrox::scene::sound::SoundBufferResource;
-use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
-    scene::{node::Node, Scene},
+    scene::{node::Node, sound::SoundBufferResource, Scene},
+    script::ScriptMessageSender,
     utils::{
         behavior::{
             composite::{CompositeNode, CompositeNodeKind},
@@ -103,8 +100,8 @@ pub struct BehaviorContext<'a> {
     pub script_message_sender: &'a ScriptMessageSender,
     pub navmesh: Handle<Node>,
     pub hostility: BotHostility,
+    pub h_aim_angle_hack: f32,
     pub v_aim_angle_hack: f32,
-    pub can_use_weapons: bool,
     pub attack_sounds: &'a [ResourceProxy<SoundBufferResource>],
 
     // Output
