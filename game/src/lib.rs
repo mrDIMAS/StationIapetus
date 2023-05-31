@@ -33,8 +33,8 @@ use crate::{
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     level::{
-        death_zone::DeathZone, decal::Decal, item::Item, spawn::CharacterSpawnPoint,
-        turret::Turret, Level,
+        death_zone::DeathZone, decal::Decal, explosion::Explosion, item::Item,
+        spawn::CharacterSpawnPoint, turret::Turret, Level,
     },
     light::AnimatedLight,
     loading_screen::LoadingScreen,
@@ -756,6 +756,7 @@ impl PluginConstructor for GameConstructor {
             .add::<Projectile>("Projectile")
             .add::<LaserSight>("LaserSight")
             .add::<Rail>("Rail")
+            .add::<Explosion>("Explosion")
             .add::<Beam>("Beam");
     }
 

@@ -13,6 +13,7 @@ use std::path::Path;
 
 pub mod death_zone;
 pub mod decal;
+pub mod explosion;
 pub mod item;
 pub mod spawn;
 pub mod trigger;
