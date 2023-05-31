@@ -52,8 +52,6 @@ impl AimOnTarget {
         dt: f32,
         angle_hack: f32,
     ) -> bool {
-        let pitch = self.pitch.angle();
-
         self.pitch
             .set_target(
                 look_dir.dot(&Vector3::y()).acos() - std::f32::consts::PI / 2.0 + angle_hack,
@@ -63,7 +61,10 @@ impl AimOnTarget {
         if self.spine.is_some() {
             graph[self.spine]
                 .local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
+                .set_rotation(UnitQuaternion::from_axis_angle(
+                    &Vector3::x_axis(),
+                    self.pitch.angle(),
+                ));
         }
 
         self.pitch.at_target()
@@ -83,15 +84,16 @@ impl AimOnTarget {
             self.yaw.angle = local_look.x.atan2(local_look.z);
         }
 
-        let yaw = self.yaw.angle();
-
         self.yaw
             .set_target(look_dir.x.atan2(look_dir.z) + angle_hack)
             .update(dt);
 
         if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw));
+                .set_rotation(UnitQuaternion::from_axis_angle(
+                    &Vector3::y_axis(),
+                    self.yaw.angle(),
+                ));
         }
 
         self.yaw.at_target()
