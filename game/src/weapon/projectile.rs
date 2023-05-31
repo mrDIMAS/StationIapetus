@@ -424,6 +424,13 @@ impl ScriptTrait for Projectile {
                     };
                     for manifold in contact.manifolds {
                         for point in manifold.points {
+                            let contact_world_position = position
+                                + if self.collider == contact.collider1 {
+                                    point.local_p1
+                                } else {
+                                    point.local_p2
+                                };
+
                             for &actor_handle in level.actors.iter() {
                                 let character = character_ref(actor_handle, &ctx.scene.graph);
                                 for hit_box in character.hit_boxes.iter() {
@@ -431,12 +438,7 @@ impl ScriptTrait for Projectile {
                                         hit = Some(Hit {
                                             hit_actor: actor_handle,
                                             shooter_actor: owner_character,
-                                            position: position
-                                                + if self.collider == contact.collider1 {
-                                                    point.local_p2
-                                                } else {
-                                                    point.local_p1
-                                                },
+                                            position: contact_world_position,
                                             normal: manifold.normal,
                                             collider: other_collider,
                                             feature: FeatureId::Unknown,
@@ -453,12 +455,7 @@ impl ScriptTrait for Projectile {
                             hit = Some(Hit {
                                 hit_actor: Default::default(),
                                 shooter_actor: owner_character,
-                                position: position
-                                    + if self.collider == contact.collider1 {
-                                        point.local_p2
-                                    } else {
-                                        point.local_p1
-                                    },
+                                position: contact_world_position,
                                 normal: manifold.normal,
                                 collider: other_collider,
                                 feature: FeatureId::Unknown,
