@@ -6,7 +6,6 @@ use fyroxed_base::{Editor, StartupData};
 use station_iapetus::{
     bot::BotHostility,
     character::{Character, HitBox},
-    door::{DoorDirection, DoorState},
     elevator::call_button::CallButtonKind,
     inventory::{Inventory, ItemEntry},
     level::{
@@ -32,8 +31,6 @@ fn main() {
     );
 
     let editors = &editor.inspector.property_editors;
-    editors.register_inheritable_enum::<DoorState, _>();
-    editors.register_inheritable_enum::<DoorDirection, _>();
     editors.register_inheritable_enum::<Hostility, _>();
     editors.register_inheritable_enum::<ShootMode, _>();
     editors.register_inheritable_enum::<CombatWeaponKind, _>();

@@ -1,9 +1,9 @@
 use crate::{character::character_ref, inventory::Inventory, Game, Level};
 use fyrox::{
+    animation::machine::{Event, Parameter},
     asset::manager::ResourceManager,
     core::{
         algebra::Vector3,
-        color::Color,
         log::Log,
         pool::Handle,
         reflect::prelude::*,
@@ -20,93 +20,53 @@ use fyrox::{
         texture::{Texture, TextureResource},
     },
     scene::{
+        animation::absm::AnimationBlendingStateMachine,
         graph::Graph,
-        light::BaseLight,
         mesh::Mesh,
         node::{Node, NodeHandle},
-        rigidbody::RigidBody,
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
 pub mod ui;
 
-#[derive(
-    Copy, Clone, Eq, PartialEq, Reflect, Visit, Debug, AsRefStr, EnumString, EnumVariantNames,
-)]
-#[repr(u32)]
-pub enum DoorState {
-    Opened = 0,
-    Opening = 1,
-    Closed = 2,
-    Closing = 3,
-    Locked = 4,
-    Broken = 5,
-}
-
-impl Default for DoorState {
-    fn default() -> Self {
-        Self::Closed
-    }
-}
-
-#[derive(
-    Copy, Clone, Reflect, Visit, Debug, AsRefStr, PartialEq, Eq, EnumString, EnumVariantNames,
-)]
-#[repr(C)]
-pub enum DoorDirection {
-    Side,
-    Up,
-}
-
-impl Default for DoorDirection {
-    fn default() -> Self {
-        Self::Side
-    }
-}
-
 #[derive(Debug, Clone, Default)]
 struct OpenRequest {
-    has_key: bool,
+    open: bool,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone)]
 pub struct Door {
-    #[reflect(
-        description = "An array of handles to light sources that indicates state of the door."
-    )]
-    lights: Vec<NodeHandle>,
-
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
     screens: Vec<NodeHandle>,
-
-    #[reflect(
-        description = "A fixed direction of door to open. Given in local coordinates of the door."
-    )]
-    #[visit(optional)]
-    open_direction: InheritableVariable<DoorDirection>,
-
-    #[reflect(
-        description = "Maximum offset along open_direction axis.",
-        min_value = "0.0"
-    )]
-    #[visit(optional)]
-    open_offset_amount: InheritableVariable<f32>,
 
     #[visit(optional)]
     key_item: InheritableVariable<Option<ModelResource>>,
 
-    #[reflect(hidden)]
-    #[visit(skip)]
-    offset: f32,
+    #[visit(optional)]
+    locked: InheritableVariable<bool>,
+
+    #[visit(optional)]
+    opened_state: InheritableVariable<String>,
+
+    #[visit(optional)]
+    opening_state: InheritableVariable<String>,
+
+    #[visit(optional)]
+    closed_state: InheritableVariable<String>,
+
+    #[visit(optional)]
+    closing_state: InheritableVariable<String>,
+
+    #[visit(optional)]
+    locked_state: InheritableVariable<String>,
 
     #[reflect(hidden)]
     #[visit(skip)]
-    state: DoorState,
-
-    #[reflect(hidden)]
     initial_position: Vector3<f32>,
+
+    #[visit(optional)]
+    state_machine: Handle<Node>,
 
     #[reflect(hidden)]
     #[visit(skip)]
@@ -115,6 +75,25 @@ pub struct Door {
     #[reflect(hidden)]
     #[visit(skip)]
     self_handle: Handle<Node>,
+}
+
+impl Default for Door {
+    fn default() -> Self {
+        Self {
+            screens: Default::default(),
+            key_item: Default::default(),
+            locked: Default::default(),
+            opened_state: "Opened".to_string().into(),
+            opening_state: "Open".to_string().into(),
+            closed_state: "Closed".to_string().into(),
+            closing_state: "Close".to_string().into(),
+            locked_state: "Locked".to_string().into(),
+            initial_position: Default::default(),
+            state_machine: Default::default(),
+            open_request: None,
+            self_handle: Default::default(),
+        }
+    }
 }
 
 impl_component_provider!(Door);
@@ -138,6 +117,11 @@ impl ScriptTrait for Door {
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.self_handle = ctx.handle;
+
+        ctx.scene
+            .graph
+            .update_hierarchical_data_for_descendants(ctx.handle);
+        self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
         let game = Game::game_mut(ctx.plugins);
         let texture = game.door_ui_container.create_ui(
@@ -167,16 +151,7 @@ impl ScriptTrait for Door {
         let game = Game::game_mut(ctx.plugins);
         let level = game.level.as_ref().unwrap();
 
-        let speed = 0.55;
-
-        let node = &ctx.scene.graph[ctx.handle];
-        let move_direction = match *self.open_direction {
-            DoorDirection::Side => node.look_vector(),
-            DoorDirection::Up => node.up_vector(),
-        };
-
         let mut closest_actor = None;
-
         let someone_nearby = level.actors.iter().any(|a| {
             let actor_position = character_ref(*a, &ctx.scene.graph).position(&ctx.scene.graph);
             let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
@@ -186,129 +161,78 @@ impl ScriptTrait for Door {
             close_enough
         });
 
-        if !someone_nearby && self.state == DoorState::Opened {
-            self.state = DoorState::Closing;
-            let position = node.global_position();
-            level.sound_manager.play_sound(
-                &mut ctx.scene.graph,
-                "data/sounds/door_close.ogg",
-                position,
-                0.6,
-                1.0,
-                1.0,
-            );
-        }
+        let position = self.actual_position(&ctx.scene.graph);
 
-        if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
-            let text = match self.state {
-                DoorState::Opened => "Opened",
-                DoorState::Opening => "Opening...",
-                DoorState::Closed => {
-                    if someone_nearby {
-                        "Open?"
+        if let Some(state_machine) = ctx
+            .scene
+            .graph
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.state_machine)
+        {
+            let open_request = self.open_request.take();
+
+            let machine = state_machine.machine_mut().get_value_mut_silent();
+            machine
+                .set_parameter("Locked", Parameter::Rule(*self.locked))
+                .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
+                .set_parameter(
+                    "Open",
+                    Parameter::Rule(open_request.as_ref().map_or(false, |r| r.open)),
+                );
+
+            let mut sound = None;
+
+            if let Some(layer) = machine.layers_mut().first_mut() {
+                while let Some(event) = layer.pop_event() {
+                    if let Event::ActiveStateChanged { new, .. } = event {
+                        let new_state_name = layer.state(new).name.as_str();
+
+                        if new_state_name == self.opening_state.as_str() {
+                            sound = Some("data/sounds/door_open.ogg");
+                        } else if new_state_name == self.closing_state.as_str() {
+                            sound = Some("data/sounds/door_close.ogg");
+                        }
+                    }
+                }
+
+                if let Some(current_state) = layer.states().try_borrow(layer.active_state()) {
+                    let text;
+                    if current_state.name == self.opening_state.as_str() {
+                        text = "Opening...";
+                    } else if current_state.name == self.opened_state.as_str() {
+                        text = "Opened";
+                    } else if current_state.name == self.closing_state.as_str() {
+                        text = "Closing..";
+                    } else if current_state.name == self.closed_state.as_str() {
+                        text = if someone_nearby { "Open?" } else { "Closed" };
+                    } else if current_state.name == self.opened_state.as_str() {
+                        text = "Locked";
+
+                        if let Some(open_request) = open_request.as_ref() {
+                            sound = Some(if open_request.open {
+                                "data/sounds/access_granted.ogg"
+                            } else {
+                                "data/sounds/door_deny.ogg"
+                            });
+                        }
                     } else {
-                        "Closed"
+                        text = "Unknown";
+                    };
+
+                    if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
+                        ui.set_text(text.to_owned());
                     }
                 }
-                DoorState::Closing => "Closing..",
-                DoorState::Locked => "Locked",
-                DoorState::Broken => "Broken",
-            };
-
-            ui.set_text(text.to_owned());
-        }
-
-        match self.state {
-            DoorState::Opening => {
-                if self.offset < *self.open_offset_amount {
-                    self.offset += speed * ctx.dt;
-                    if self.offset >= *self.open_offset_amount {
-                        self.state = DoorState::Opened;
-                        self.offset = *self.open_offset_amount;
-                    }
-                }
-
-                self.set_lights_enabled(&mut ctx.scene.graph, false);
             }
-            DoorState::Closing => {
-                if self.offset > 0.0 {
-                    self.offset -= speed * ctx.dt;
-                    if self.offset <= 0.0 {
-                        self.state = DoorState::Closed;
-                        self.offset = 0.0;
-                    }
-                }
 
-                self.set_lights_enabled(&mut ctx.scene.graph, false);
-            }
-            DoorState::Closed => {
-                self.set_lights_enabled(&mut ctx.scene.graph, true);
-                self.set_lights_color(&mut ctx.scene.graph, Color::opaque(0, 200, 0));
-            }
-            DoorState::Locked => {
-                self.set_lights_enabled(&mut ctx.scene.graph, true);
-                self.set_lights_color(&mut ctx.scene.graph, Color::opaque(200, 0, 0));
-            }
-            DoorState::Broken | DoorState::Opened => {
-                self.set_lights_enabled(&mut ctx.scene.graph, false);
-            }
-        };
-
-        if let Some(body) = ctx.scene.graph[ctx.handle].cast_mut::<RigidBody>() {
-            body.local_transform_mut().set_position(
-                self.initial_position
-                    + move_direction
-                        .try_normalize(f32::EPSILON)
-                        .unwrap_or_default()
-                        .scale(self.offset),
-            );
-        }
-
-        if let Some(open_request) = self.open_request.take() {
-            let position = self.actual_position(&ctx.scene.graph);
-
-            if self.state == DoorState::Closed {
-                self.state = DoorState::Opening;
-
+            if let Some(sound) = sound {
                 level.sound_manager.play_sound(
                     &mut ctx.scene.graph,
-                    "data/sounds/door_open.ogg",
+                    sound,
                     position,
                     0.6,
                     1.0,
                     1.0,
                 );
-            } else if self.state == DoorState::Locked {
-                if open_request.has_key {
-                    self.state = DoorState::Opening;
-
-                    level.sound_manager.play_sound(
-                        &mut ctx.scene.graph,
-                        "data/sounds/door_open.ogg",
-                        position,
-                        0.6,
-                        1.0,
-                        1.0,
-                    );
-
-                    level.sound_manager.play_sound(
-                        &mut ctx.scene.graph,
-                        "data/sounds/access_granted.ogg",
-                        position,
-                        1.0,
-                        1.0,
-                        1.0,
-                    );
-                } else {
-                    level.sound_manager.play_sound(
-                        &mut ctx.scene.graph,
-                        "data/sounds/door_deny.ogg",
-                        position,
-                        1.0,
-                        1.0,
-                        1.0,
-                    );
-                }
             }
         }
     }
@@ -319,20 +243,6 @@ impl ScriptTrait for Door {
 }
 
 impl Door {
-    fn set_lights_color(&self, graph: &mut Graph, color: Color) {
-        for &light in self.lights.iter() {
-            if let Some(light_ref) = graph[*light].query_component_mut::<BaseLight>() {
-                light_ref.set_color(color);
-            }
-        }
-    }
-
-    fn set_lights_enabled(&self, graph: &mut Graph, enabled: bool) {
-        for &light in self.lights.iter() {
-            graph[*light].set_visibility(enabled);
-        }
-    }
-
     pub fn initial_position(&self) -> Vector3<f32> {
         self.initial_position
     }
@@ -377,17 +287,19 @@ impl Door {
     }
 
     pub fn try_open(&mut self, inventory: Option<&Inventory>) {
-        let mut has_key = false;
+        let mut open = false;
 
         if let Some(inventory) = inventory {
             if let Some(key_item) = self.key_item.as_ref() {
                 if inventory.item_count(key_item) > 0 {
-                    has_key = true;
+                    open = true;
                 }
+            } else {
+                open = true;
             }
         }
 
-        self.open_request = Some(OpenRequest { has_key });
+        self.open_request = Some(OpenRequest { open });
     }
 }
 
