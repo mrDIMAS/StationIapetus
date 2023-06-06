@@ -528,6 +528,18 @@ impl ScriptTrait for Projectile {
                 effect_prefab.instantiate_at(ctx.scene, hit.position, vector_to_quat(hit.normal));
             }
 
+            if let Some(collider) = ctx.scene.graph.try_get(hit.collider) {
+                if let Some(rigid_body) = ctx
+                    .scene
+                    .graph
+                    .try_get_mut_of_type::<RigidBody>(collider.parent())
+                {
+                    rigid_body
+                        .apply_force_at_point(direction.normalize().scale(50.0), hit.position);
+                    rigid_body.wake_up();
+                }
+            }
+
             if let Some(impact_sound) = self.impact_sound.as_ref() {
                 game.level
                     .as_ref()
