@@ -1,0 +1,253 @@
+(
+    selection: (
+        ignore_back_faces: false,
+        track_selection: true,
+    ),
+    graphics: (
+        quality: (
+            point_shadow_map_size: 1024,
+            point_soft_shadows: true,
+            point_shadows_enabled: true,
+            point_shadows_distance: 15.0,
+            point_shadow_map_precision: Full,
+            spot_shadow_map_size: 1024,
+            spot_soft_shadows: true,
+            spot_shadows_enabled: true,
+            spot_shadows_distance: 15.0,
+            spot_shadow_map_precision: Full,
+            csm_settings: (
+                enabled: true,
+                size: 2048,
+                precision: Full,
+                pcf: true,
+            ),
+            use_ssao: true,
+            ssao_radius: 0.5,
+            light_scatter_enabled: true,
+            fxaa: true,
+            use_parallax_mapping: false,
+            use_bloom: true,
+        ),
+        z_near: 0.025,
+        z_far: 128.0,
+    ),
+    debugging: (
+        show_physics: true,
+        show_bounds: true,
+        show_tbn: false,
+        show_terrains: false,
+        show_light_bounds: true,
+        show_camera_bounds: true,
+        pictogram_size: 0.33,
+        save_scene_in_text_form: false,
+    ),
+    move_mode_settings: (
+        grid_snapping: false,
+        x_snap_step: 0.05,
+        y_snap_step: 0.05,
+        z_snap_step: 0.05,
+    ),
+    rotate_mode_settings: (
+        angle_snapping: false,
+        x_snap_step: 2.5,
+        y_snap_step: 2.5,
+        z_snap_step: 2.5,
+    ),
+    model: (
+        instantiation_scale: [
+            1.0,
+            1.0,
+            1.0,
+        ],
+    ),
+    camera: (
+        speed: 10.0,
+        invert_dragging: false,
+        drag_speed: 0.01,
+        zoom_speed: 1.0,
+        camera_settings: {
+            "data/levels/arrival.rgs": (
+                position: [
+                    0.15541396,
+                    -0.38762867,
+                    -1.287213,
+                ],
+                yaw: 0.12999998,
+                pitch: 0.53,
+            ),
+        },
+    ),
+    navmesh: (
+        draw_all: true,
+        vertex_radius: 0.2,
+    ),
+    key_bindings: (
+        move_forward: Some(W),
+        move_back: Some(S),
+        move_left: Some(A),
+        move_right: Some(D),
+        move_up: Some(Q),
+        move_down: Some(E),
+        speed_up: Some(LControl),
+        slow_down: Some(LShift),
+        undo: Some(
+            code: Z,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        redo: Some(
+            code: Y,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        enable_select_mode: Some(
+            code: Key1,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        enable_move_mode: Some(
+            code: Key2,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        enable_rotate_mode: Some(
+            code: Key3,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        enable_scale_mode: Some(
+            code: Key4,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        enable_navmesh_mode: Some(
+            code: Key5,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        enable_terrain_mode: Some(
+            code: Key6,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        save_scene: Some(
+            code: S,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        load_scene: Some(
+            code: L,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        copy_selection: Some(
+            code: C,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        paste: Some(
+            code: V,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        new_scene: Some(
+            code: N,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        close_scene: Some(
+            code: Q,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: true,
+                system: false,
+            ),
+        ),
+        remove_selection: Some(
+            code: Delete,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+        focus: Some(
+            code: F,
+            modifiers: (
+                alt: false,
+                shift: false,
+                control: false,
+                system: false,
+            ),
+        ),
+    ),
+    recent: (
+        scenes: [
+            "data/levels/arrival.rgs",
+        ],
+    ),
+    windows: (
+        window_position: [
+            604.0,
+            172.0,
+        ],
+        window_size: [
+            951.0,
+            621.0,
+        ],
+    ),
+)
