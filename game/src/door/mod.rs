@@ -118,9 +118,6 @@ impl ScriptTrait for Door {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         self.self_handle = ctx.handle;
 
-        ctx.scene
-            .graph
-            .update_hierarchical_data_for_descendants(ctx.handle);
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
         let game = Game::game_mut(ctx.plugins);

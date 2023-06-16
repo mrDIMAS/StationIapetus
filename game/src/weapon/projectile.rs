@@ -206,24 +206,13 @@ impl Projectile {
         owner: Handle<Node>,
         initial_velocity: Vector3<f32>,
     ) -> Handle<Node> {
-        let instance_handle = resource.instantiate(scene);
+        let instance_handle = resource.instantiate_at(scene, position, vector_to_quat(dir));
 
-        let instance_ref = &mut scene.graph[instance_handle];
-
-        instance_ref
-            .local_transform_mut()
-            .set_position(position)
-            .set_rotation(vector_to_quat(dir));
-
-        if let Some(projectile) = instance_ref.try_get_script_mut::<Projectile>() {
+        if let Some(projectile) = scene.graph[instance_handle].try_get_script_mut::<Projectile>() {
             projectile.initial_velocity = initial_velocity;
             projectile.dir = dir.try_normalize(f32::EPSILON).unwrap_or_else(Vector3::y);
             projectile.owner = owner;
         }
-
-        scene
-            .graph
-            .update_hierarchical_data_for_descendants(instance_handle);
 
         instance_handle
     }

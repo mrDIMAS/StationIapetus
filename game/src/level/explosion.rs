@@ -27,10 +27,6 @@ impl TypeUuidProvider for Explosion {
 
 impl ScriptTrait for Explosion {
     fn on_start(&mut self, context: &mut ScriptContext) {
-        context
-            .scene
-            .graph
-            .update_hierarchical_data_for_descendants(context.handle);
         let node = &context.scene.graph[context.handle];
         let aabb = node.world_bounding_box();
         let center = aabb.center();
