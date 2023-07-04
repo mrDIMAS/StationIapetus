@@ -201,6 +201,8 @@ impl OptionsMenu {
 
         let graphics_tab = TabDefinition {
             header: make_tab_header("Graphics", ctx),
+            can_be_closed: false,
+            user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content(
@@ -338,6 +340,8 @@ impl OptionsMenu {
 
         let sound_tab = TabDefinition {
             header: make_tab_header("Sound", ctx),
+            can_be_closed: false,
+            user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content(
@@ -408,6 +412,8 @@ impl OptionsMenu {
 
         let controls_tab = TabDefinition {
             header: make_tab_header("Controls", ctx),
+            can_be_closed: false,
+            user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content({
