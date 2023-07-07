@@ -1,4 +1,7 @@
-use crate::bot::{behavior::Action, behavior::BehaviorContext};
+use crate::{
+    bot::{behavior::Action, behavior::BehaviorContext},
+    character::{CharacterMessage, CharacterMessageData},
+};
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
@@ -38,6 +41,22 @@ impl<'a> Behavior<'a> for StayDead {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+        // Drop everything in inventory.
+        for item in ctx.character.inventory.items() {
+            if let Some(resource) = item.resource.clone() {
+                ctx.script_message_sender.send_to_target(
+                    ctx.bot_handle,
+                    CharacterMessage {
+                        character: ctx.bot_handle,
+                        data: CharacterMessageData::DropItems {
+                            item: resource,
+                            count: item.amount,
+                        },
+                    },
+                );
+            }
+        }
+
         ctx.character.stand_still(&mut ctx.scene.graph);
 
         Status::Success
