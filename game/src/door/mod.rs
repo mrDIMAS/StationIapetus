@@ -123,6 +123,7 @@ impl ScriptTrait for Door {
         let game = Game::game_mut(ctx.plugins);
         let texture = game.door_ui_container.create_ui(
             game.smaller_font.clone(),
+            game.even_smaller_font.clone(),
             ctx.resource_manager.clone(),
             ctx.handle,
         );
@@ -216,7 +217,7 @@ impl ScriptTrait for Door {
                     };
 
                     if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
-                        ui.set_text(text.to_owned());
+                        ui.update_text(text.to_owned(), &game.control_scheme);
                     }
                 }
             }

@@ -112,6 +112,7 @@ pub struct Game {
     sound_config: SoundConfig,
     show_debug_info: bool,
     smaller_font: SharedFont,
+    even_smaller_font: SharedFont,
 }
 
 #[repr(u16)]
@@ -229,6 +230,7 @@ impl Game {
         let has_level = level.is_some();
 
         let mut game = Game {
+            even_smaller_font,
             show_debug_info,
             loading_screen: LoadingScreen::new(&mut context.user_interface.build_ctx()),
             running: true,

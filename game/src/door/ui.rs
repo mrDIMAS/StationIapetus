@@ -1,14 +1,14 @@
 use crate::{
+    control_scheme::ControlScheme,
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
-use fyrox::scene::node::Node;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
         brush::Brush,
+        formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         text::{TextBuilder, TextMessage},
@@ -16,7 +16,8 @@ use fyrox::{
         widget::WidgetMessage,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource, TextureResourceExtension},
+    scene::node::Node,
     utils::into_gui_texture,
 };
 
@@ -24,6 +25,7 @@ pub struct DoorUi {
     pub ui: UserInterface,
     pub render_target: TextureResource,
     text: Handle<UiNode>,
+    action_text: Handle<UiNode>,
 }
 
 impl InteractiveUi for DoorUi {
@@ -48,7 +50,11 @@ impl DoorUi {
     pub const WIDTH: f32 = 160.0;
     pub const HEIGHT: f32 = 160.0;
 
-    pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
+    pub fn new(
+        font: SharedFont,
+        smaller_font: SharedFont,
+        resource_manager: ResourceManager,
+    ) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
         let render_target =
             TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
@@ -56,6 +62,7 @@ impl DoorUi {
         let ctx = &mut ui.build_ctx();
 
         let text;
+        let action_text;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
@@ -97,10 +104,26 @@ impl DoorUi {
                     .with_font(font)
                     .build(ctx);
                     text
+                })
+                .with_child({
+                    action_text = TextBuilder::new(
+                        WidgetBuilder::new()
+                            .with_foreground(Brush::Solid(Color::GREEN))
+                            .with_vertical_alignment(VerticalAlignment::Center)
+                            .with_horizontal_alignment(HorizontalAlignment::Center)
+                            .on_row(2)
+                            .on_column(0),
+                    )
+                    .with_shadow(true)
+                    .with_wrap(WrapMode::Letter)
+                    .with_font(smaller_font)
+                    .build(ctx);
+                    action_text
                 }),
         )
         .add_column(Column::stretch())
         .add_row(Row::stretch())
+        .add_row(Row::auto())
         .add_row(Row::auto())
         .build(ctx);
 
@@ -108,14 +131,21 @@ impl DoorUi {
             ui,
             render_target,
             text,
+            action_text,
         }
     }
 
-    pub fn set_text(&mut self, text: String) {
+    pub fn update_text(&mut self, text: String, control_scheme: &ControlScheme) {
         self.ui.send_message(TextMessage::text(
             self.text,
             MessageDirection::ToWidget,
             text,
+        ));
+
+        self.ui.send_message(TextMessage::text(
+            self.action_text,
+            MessageDirection::ToWidget,
+            format!("[{}] - Interact", control_scheme.action.button.name()),
         ));
     }
 
@@ -134,9 +164,13 @@ impl DoorUiContainer {
     pub fn create_ui(
         &mut self,
         font: SharedFont,
+        smaller_font: SharedFont,
         resource_manager: ResourceManager,
         door_handle: Handle<Node>,
     ) -> TextureResource {
-        self.add(door_handle, DoorUi::new(font, resource_manager))
+        self.add(
+            door_handle,
+            DoorUi::new(font, smaller_font, resource_manager),
+        )
     }
 }
