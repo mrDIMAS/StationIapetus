@@ -177,6 +177,15 @@ impl Game {
             .unwrap(),
         );
 
+        let even_smaller_font = SharedFont::new(
+            fyrox::core::futures::executor::block_on(Font::from_file(
+                Path::new("data/ui/SquaresBold.ttf"),
+                16.0,
+                Font::default_char_set(),
+            ))
+            .unwrap(),
+        );
+
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();
         let mut show_debug_info = false;
@@ -200,7 +209,7 @@ impl Game {
         let message_sender = MessageSender { sender: tx };
         let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
         let inventory_interface = InventoryInterface::new(message_sender.clone());
-        let item_display = ItemDisplay::new(smaller_font.clone());
+        let item_display = ItemDisplay::new(smaller_font.clone(), even_smaller_font.clone());
         let journal_display = JournalDisplay::new();
 
         let level = if override_scene.is_some() {

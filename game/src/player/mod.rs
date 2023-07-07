@@ -356,7 +356,11 @@ impl Player {
                 let distance = (item_position - self_position).norm();
                 if distance < 0.75 {
                     if let Some(resource) = item_node.root_resource() {
-                        game.item_display.sync_to_model(resource, *item.stack_size);
+                        game.item_display.sync_to_model(
+                            resource,
+                            *item.stack_size,
+                            &game.control_scheme,
+                        );
                     }
 
                     if self.controller.action {
@@ -962,7 +966,7 @@ impl TypeUuidProvider for Player {
 impl ScriptTrait for Player {
     fn on_init(&mut self, context: &mut ScriptContext) {
         self.item_display = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.05))
-            .with_size(0.1)
+            .with_size(0.18)
             .build(&mut context.scene.graph);
 
         if let Some(grenade_item) = self.grenade_item.deref().clone() {
