@@ -106,6 +106,10 @@ pub struct Bot {
     #[visit(optional)]
     absm: Handle<Node>,
     #[visit(optional)]
+    yaw: SmoothAngle,
+    #[visit(optional)]
+    pitch: SmoothAngle,
+    #[visit(optional)]
     pub walk_speed: f32,
     #[visit(optional)]
     pub v_aim_angle_hack: f32,
@@ -170,6 +174,16 @@ impl Default for Bot {
             idle_sounds: Default::default(),
             attack_sounds: Default::default(),
             hostility: BotHostility::Player,
+            yaw: SmoothAngle {
+                angle: f32::NAN, // Nan means undefined.
+                target: 0.0,
+                speed: 270.0f32.to_radians(),
+            },
+            pitch: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: 270.0f32.to_radians(),
+            },
         }
     }
 }
@@ -408,6 +422,8 @@ impl ScriptTrait for Bot {
                 sound_manager: &level.sound_manager,
                 script_message_sender: ctx.message_sender,
                 navmesh: level.navmesh,
+                yaw: &mut self.yaw,
+                pitch: &mut self.pitch,
 
                 // Output
                 hostility: self.hostility,

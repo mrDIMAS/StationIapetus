@@ -10,49 +10,35 @@ use fyrox::{
     utils::behavior::{Behavior, Status},
 };
 
-#[derive(Debug, PartialEq, Visit, Clone)]
+#[derive(Debug, PartialEq, Visit, Clone, Default, Copy)]
+pub enum AimTarget {
+    #[default]
+    SteeringTarget,
+    ActualTarget,
+}
+
+#[derive(Debug, PartialEq, Visit, Clone, Default)]
 pub struct AimOnTarget {
-    yaw: SmoothAngle,
-    pitch: SmoothAngle,
     spine: Handle<Node>,
+    target: AimTarget,
 }
 
 impl AimOnTarget {
-    pub fn new_action(spine: Handle<Node>) -> Action {
-        Action::AimOnTarget(Self {
-            spine,
-            ..Default::default()
-        })
-    }
-}
-
-impl Default for AimOnTarget {
-    fn default() -> Self {
-        Self {
-            yaw: SmoothAngle {
-                angle: f32::NAN, // Nan means undefined.
-                target: 0.0,
-                speed: 270.0f32.to_radians(),
-            },
-            pitch: SmoothAngle {
-                angle: 0.0,
-                target: 0.0,
-                speed: 270.0f32.to_radians(),
-            },
-            spine: Default::default(),
-        }
+    pub fn new_action(spine: Handle<Node>, target: AimTarget) -> Action {
+        Action::AimOnTarget(Self { spine, target })
     }
 }
 
 impl AimOnTarget {
     fn aim_vertically(
         &mut self,
+        pitch: &mut SmoothAngle,
         look_dir: Vector3<f32>,
         graph: &mut Graph,
         dt: f32,
         angle_hack: f32,
     ) -> bool {
-        self.pitch
+        pitch
             .set_target(
                 look_dir.dot(&Vector3::y()).acos() - std::f32::consts::PI / 2.0 + angle_hack,
             )
@@ -63,15 +49,16 @@ impl AimOnTarget {
                 .local_transform_mut()
                 .set_rotation(UnitQuaternion::from_axis_angle(
                     &Vector3::x_axis(),
-                    self.pitch.angle(),
+                    pitch.angle(),
                 ));
         }
 
-        self.pitch.at_target()
+        pitch.at_target()
     }
 
     fn aim_horizontally(
         &mut self,
+        yaw: &mut SmoothAngle,
         look_dir: Vector3<f32>,
         scene: &mut Scene,
         model: Handle<Node>,
@@ -79,24 +66,23 @@ impl AimOnTarget {
         body: Handle<Node>,
         angle_hack: f32,
     ) -> bool {
-        if self.yaw.angle.is_nan() {
+        if yaw.angle.is_nan() {
             let local_look = scene.graph[model].look_vector();
-            self.yaw.angle = local_look.x.atan2(local_look.z);
+            yaw.angle = local_look.x.atan2(local_look.z);
         }
 
-        self.yaw
-            .set_target(look_dir.x.atan2(look_dir.z) + angle_hack)
+        yaw.set_target(look_dir.x.atan2(look_dir.z) + angle_hack)
             .update(dt);
 
         if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
                 .set_rotation(UnitQuaternion::from_axis_angle(
                     &Vector3::y_axis(),
-                    self.yaw.angle(),
+                    yaw.angle(),
                 ));
         }
 
-        self.yaw.at_target()
+        yaw.at_target()
     }
 }
 
@@ -104,13 +90,16 @@ impl<'a> Behavior<'a> for AimOnTarget {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        let look_dir = ctx
-            .agent
-            .steering_target()
-            .unwrap_or_else(|| ctx.agent.target())
-            - ctx.character.position(&ctx.scene.graph);
+        let target_pos = match dbg!(self.target) {
+            AimTarget::SteeringTarget => ctx.agent.steering_target().clone(),
+            AimTarget::ActualTarget => ctx.target.as_ref().map(|t| t.position),
+        }
+        .unwrap_or_else(|| ctx.agent.target());
+
+        let look_dir = target_pos - ctx.character.position(&ctx.scene.graph);
 
         let aimed_horizontally = self.aim_horizontally(
+            ctx.yaw,
             look_dir,
             ctx.scene,
             ctx.model,
@@ -119,6 +108,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
             ctx.h_aim_angle_hack.to_radians(),
         );
         let aimed_vertically = self.aim_vertically(
+            ctx.pitch,
             look_dir,
             &mut ctx.scene.graph,
             ctx.dt,
