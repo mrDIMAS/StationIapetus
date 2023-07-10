@@ -90,7 +90,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        let target_pos = match dbg!(self.target) {
+        let target_pos = match self.target {
             AimTarget::SteeringTarget => ctx.agent.steering_target().clone(),
             AimTarget::ActualTarget => ctx.target.as_ref().map(|t| t.position),
         }

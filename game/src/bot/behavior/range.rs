@@ -1,12 +1,21 @@
-use crate::bot::behavior::BehaviorContext;
+use crate::bot::behavior::{Action, BehaviorContext};
 use fyrox::{
-    core::visitor::prelude::*,
-    utils::behavior::{Behavior, Status},
+    core::{pool::Handle, visitor::prelude::*},
+    utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
 };
 
 #[derive(Default, Debug, PartialEq, Visit, Clone)]
 pub struct IsTargetCloseBy {
     pub min_distance: f32,
+}
+
+impl IsTargetCloseBy {
+    pub fn make(
+        min_distance: f32,
+        tree: &mut BehaviorTree<Action>,
+    ) -> Handle<BehaviorNode<Action>> {
+        LeafNode::new(Action::ReachedTarget(Self { min_distance })).add_to(tree)
+    }
 }
 
 impl<'a> Behavior<'a> for IsTargetCloseBy {

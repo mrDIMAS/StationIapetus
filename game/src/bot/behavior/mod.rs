@@ -22,13 +22,7 @@ use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     scene::{node::Node, sound::SoundBufferResource, Scene},
     script::ScriptMessageSender,
-    utils::{
-        behavior::{
-            composite::CompositeNode, inverter::Inverter, leaf::LeafNode, Behavior, BehaviorTree,
-            Status,
-        },
-        navmesh::NavmeshAgent,
-    },
+    utils::{behavior::*, navmesh::NavmeshAgent},
 };
 
 pub mod aim;
@@ -126,92 +120,104 @@ pub struct BotBehavior {
 impl BotBehavior {
     pub fn new(spine: Handle<Node>, close_combat_distance: f32) -> Self {
         let mut tree = BehaviorTree::new();
+        let bt = &mut tree;
+
+        let dead_seq = sequence([IsDead::new_action(bt), StayDead::new_action(bt)], bt);
+
+        let threaten_seq = sequence(
+            [
+                leaf(
+                    Action::NeedsThreatenTarget(NeedsThreatenTarget::default()),
+                    bt,
+                ),
+                leaf(AimOnTarget::new_action(spine, AimTarget::ActualTarget), bt),
+                leaf(Action::ThreatenTarget(ThreatenTarget::default()), bt),
+            ],
+            bt,
+        );
 
         let shooting_distance = 4.0;
-        let entry = CompositeNode::new_selector(vec![
-            CompositeNode::new_sequence(vec![
-                IsDead::new_action(&mut tree),
-                StayDead::new_action(&mut tree),
-            ])
-            .add_to(&mut tree),
-            CompositeNode::new_sequence(vec![
-                LeafNode::new(Action::FindTarget(FindTarget::default())).add_to(&mut tree),
-                CompositeNode::new_sequence(vec![CompositeNode::new_selector(vec![
-                    CompositeNode::new_sequence(vec![
-                        LeafNode::new(Action::NeedsThreatenTarget(NeedsThreatenTarget::default()))
-                            .add_to(&mut tree),
-                        LeafNode::new(AimOnTarget::new_action(spine, AimTarget::ActualTarget))
-                            .add_to(&mut tree),
-                        LeafNode::new(Action::ThreatenTarget(ThreatenTarget::default()))
-                            .add_to(&mut tree),
-                    ])
-                    .add_to(&mut tree),
-                    CompositeNode::new_sequence(vec![
-                        LeafNode::new(Action::CanShootTarget(CanShootTarget)).add_to(&mut tree),
-                        CompositeNode::new_selector(vec![
-                            CompositeNode::new_sequence(vec![
-                                Inverter::new(
-                                    LeafNode::new(Action::ReachedTarget(IsTargetCloseBy {
+        let shoot_seq = sequence(
+            [
+                leaf(Action::CanShootTarget(CanShootTarget), bt),
+                selector(
+                    [
+                        sequence(
+                            [
+                                inverter(IsTargetCloseBy::make(shooting_distance, bt), bt),
+                                leaf(
+                                    AimOnTarget::new_action(spine, AimTarget::SteeringTarget),
+                                    bt,
+                                ),
+                                leaf(
+                                    Action::MoveToTarget(MoveToTarget {
                                         min_distance: shooting_distance,
-                                    }))
-                                    .add_to(&mut tree),
-                                )
-                                .add_to(&mut tree),
-                                LeafNode::new(AimOnTarget::new_action(
-                                    spine,
-                                    AimTarget::SteeringTarget,
-                                ))
-                                .add_to(&mut tree),
-                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
-                                    min_distance: shooting_distance,
-                                }))
-                                .add_to(&mut tree),
-                            ])
-                            .add_to(&mut tree),
-                            LeafNode::new(AimOnTarget::new_action(spine, AimTarget::ActualTarget))
-                                .add_to(&mut tree),
-                        ])
-                        .add_to(&mut tree),
-                        LeafNode::new(Action::ShootTarget(ShootTarget)).add_to(&mut tree),
-                    ])
-                    .add_to(&mut tree),
-                    CompositeNode::new_sequence(vec![
-                        CompositeNode::new_selector(vec![
-                            CompositeNode::new_sequence(vec![
-                                Inverter::new(
-                                    LeafNode::new(Action::ReachedTarget(IsTargetCloseBy {
+                                    }),
+                                    bt,
+                                ),
+                            ],
+                            bt,
+                        ),
+                        leaf(AimOnTarget::new_action(spine, AimTarget::ActualTarget), bt),
+                    ],
+                    bt,
+                ),
+                leaf(Action::ShootTarget(ShootTarget), bt),
+            ],
+            bt,
+        );
+
+        let melee_seq = sequence(
+            [
+                selector(
+                    [
+                        sequence(
+                            [
+                                inverter(
+                                    leaf(
+                                        Action::ReachedTarget(IsTargetCloseBy {
+                                            min_distance: close_combat_distance,
+                                        }),
+                                        bt,
+                                    ),
+                                    bt,
+                                ),
+                                leaf(
+                                    AimOnTarget::new_action(spine, AimTarget::SteeringTarget),
+                                    bt,
+                                ),
+                                leaf(
+                                    Action::MoveToTarget(MoveToTarget {
                                         min_distance: close_combat_distance,
-                                    }))
-                                    .add_to(&mut tree),
-                                )
-                                .add_to(&mut tree),
-                                LeafNode::new(AimOnTarget::new_action(
-                                    spine,
-                                    AimTarget::SteeringTarget,
-                                ))
-                                .add_to(&mut tree),
-                                LeafNode::new(Action::MoveToTarget(MoveToTarget {
-                                    min_distance: close_combat_distance,
-                                }))
-                                .add_to(&mut tree),
-                            ])
-                            .add_to(&mut tree),
-                            LeafNode::new(AimOnTarget::new_action(spine, AimTarget::ActualTarget))
-                                .add_to(&mut tree),
-                        ])
-                        .add_to(&mut tree),
-                        LeafNode::new(Action::CanMeleeAttack(CanMeleeAttack)).add_to(&mut tree),
-                        LeafNode::new(Action::DoMeleeAttack(DoMeleeAttack::default()))
-                            .add_to(&mut tree),
-                    ])
-                    .add_to(&mut tree),
-                ])
-                .add_to(&mut tree)])
-                .add_to(&mut tree),
-            ])
-            .add_to(&mut tree),
-        ])
-        .add_to(&mut tree);
+                                    }),
+                                    bt,
+                                ),
+                            ],
+                            bt,
+                        ),
+                        leaf(AimOnTarget::new_action(spine, AimTarget::ActualTarget), bt),
+                    ],
+                    bt,
+                ),
+                leaf(Action::CanMeleeAttack(CanMeleeAttack), bt),
+                leaf(Action::DoMeleeAttack(DoMeleeAttack::default()), bt),
+            ],
+            bt,
+        );
+
+        let entry = selector(
+            [
+                dead_seq,
+                sequence(
+                    [
+                        leaf(Action::FindTarget(FindTarget::default()), bt),
+                        sequence([selector([threaten_seq, shoot_seq, melee_seq], bt)], bt),
+                    ],
+                    bt,
+                ),
+            ],
+            bt,
+        );
 
         tree.set_entry_node(entry);
 
