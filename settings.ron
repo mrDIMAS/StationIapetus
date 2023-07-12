@@ -54,11 +54,7 @@
         z_snap_step: 2.5,
     ),
     model: (
-        instantiation_scale: [
-            1.0,
-            1.0,
-            1.0,
-        ],
+        instantiation_scale: (1.0, 1.0, 1.0),
     ),
     camera: (
         speed: 10.0,
@@ -67,22 +63,19 @@
         zoom_speed: 1.0,
         camera_settings: {
             "data/levels/testbed.rgs": (
-                position: [
-                    0.0,
-                    1.0,
-                    -3.0,
-                ],
-                yaw: 0.0,
-                pitch: 0.0,
+                position: (0.0, 1.0, -3.0),
+                yaw: -0.36999997,
+                pitch: 0.06,
             ),
-            "data/models/ak47/ak47.rgs": (
-                position: [
-                    0.0,
-                    1.0,
-                    -3.0,
-                ],
-                yaw: 0.0,
-                pitch: 0.0,
+            "data/models/agent/agent.rgs": (
+                position: (0.0005605668, 0.5210972, 0.6358539),
+                yaw: 3.1199994,
+                pitch: 0.17999999,
+            ),
+            "data/models/kinetic_gun/kinetic_gun.rgs": (
+                position: (-0.18256491, 0.1705651, 0.139737),
+                yaw: 1.3599995,
+                pitch: 0.4800001,
             ),
         },
     ),
@@ -247,108 +240,54 @@
     recent: (
         scenes: [
             "data/levels/testbed.rgs",
-            "data/models/ak47/ak47.rgs",
-            "data/models/grenade/explosion.rgs",
+            "data/models/agent/agent.rgs",
+            "data/models/kinetic_gun/kinetic_gun.rgs",
         ],
     ),
     windows: (
-        window_position: [
-            -8.0,
-            -8.0,
-        ],
-        window_size: [
-            1920.0,
-            1017.0,
-        ],
+        window_position: (-8.0, -8.0),
+        window_size: (1920.0, 1017.0),
         layout: Some((
             floating_windows: [
                 (
                     name: "AnimationEditor",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        946.25006,
-                        365.75,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (946.25006, 365.75),
                 ),
                 (
                     name: "AsbmEditor",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "ParticleSystemPanel",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "CameraPanel",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "AudioPreviewPanel",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "NavmeshPanel",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "DocPanel",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        0.0,
-                        0.0,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (0.0, 0.0),
                 ),
                 (
                     name: "AnimationEditor",
-                    position: [
-                        0.0,
-                        0.0,
-                    ],
-                    size: [
-                        946.25006,
-                        365.75,
-                    ],
+                    position: (0.0, 0.0),
+                    size: (946.25006, 365.75),
                 ),
             ],
             root_tile_descriptor: Some((

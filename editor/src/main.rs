@@ -16,7 +16,7 @@ use station_iapetus::{
     },
     player::camera::CameraController,
     utils::ResourceProxy,
-    weapon::{projectile::Damage, CombatWeaponKind},
+    weapon::{projectile::Damage, CombatWeaponKind, Weapon},
     GameConstructor,
 };
 
@@ -46,6 +46,7 @@ fn main() {
     editors.register_inheritable_inspectable::<CameraController>();
     editors.register_inheritable_inspectable::<HitBox>();
     editors.register_inheritable_inspectable::<Item>();
+    editors.register_inheritable_inspectable::<Weapon>();
     editors.register_inheritable_vec_collection::<Barrel>();
     editors.register_inheritable_vec_collection::<HitBox>();
     editors.register_inheritable_vec_collection::<DefaultWeapon>();

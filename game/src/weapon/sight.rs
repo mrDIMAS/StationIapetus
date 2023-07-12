@@ -1,5 +1,6 @@
 use crate::{
-    character::{Character, CharacterMessage, CharacterMessageData},
+    character::{CharacterMessage, CharacterMessageData},
+    weapon::find_parent_character,
     CollisionGroups,
 };
 use fyrox::{
@@ -75,13 +76,6 @@ const NORMAL_COLOR: Color = Color::from_rgba(0, 162, 232, 200);
 const NORMAL_RADIUS: f32 = 0.0012;
 const ENEMY_KILLED_TIME: f32 = 0.55;
 const HIT_DETECTED_TIME: f32 = 0.4;
-
-fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<Node>, &Character)> {
-    graph.find_up_map(sight, &mut |n| {
-        n.script()
-            .and_then(|n| n.query_component_ref::<Character>())
-    })
-}
 
 impl LaserSight {
     pub fn set_reaction(&mut self, reaction: SightReaction) {

@@ -21,6 +21,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::weapon::kinetic::KineticGun;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -768,7 +769,8 @@ impl PluginConstructor for GameConstructor {
             .add::<LaserSight>("LaserSight")
             .add::<Rail>("Rail")
             .add::<Explosion>("Explosion")
-            .add::<Beam>("Beam");
+            .add::<Beam>("Beam")
+            .add::<KineticGun>("KineticGun");
     }
 
     fn create_instance(

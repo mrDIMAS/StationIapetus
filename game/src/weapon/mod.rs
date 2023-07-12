@@ -1,7 +1,7 @@
 //! Weapon related stuff.
 
-use crate::level::item::Item;
-use crate::{utils::ResourceProxy, weapon::projectile::Projectile};
+use crate::character::Character;
+use crate::{level::item::Item, utils::ResourceProxy, weapon::projectile::Projectile};
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -23,8 +23,16 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
 
+pub mod kinetic;
 pub mod projectile;
 pub mod sight;
+
+fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<Node>, &Character)> {
+    graph.find_up_map(sight, &mut |n| {
+        n.script()
+            .and_then(|n| n.query_component_ref::<Character>())
+    })
+}
 
 pub struct WeaponMessage {
     pub weapon: Handle<Node>,
@@ -284,9 +292,11 @@ impl ScriptTrait for Weapon {
 }
 
 pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {
-    graph.try_get_script_of_mut::<Weapon>(handle).unwrap()
+    graph
+        .try_get_script_component_of_mut::<Weapon>(handle)
+        .unwrap()
 }
 
 pub fn weapon_ref(handle: Handle<Node>, graph: &Graph) -> &Weapon {
-    graph.try_get_script_of::<Weapon>(handle).unwrap()
+    graph.try_get_script_component_of::<Weapon>(handle).unwrap()
 }
