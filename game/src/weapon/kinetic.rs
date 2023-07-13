@@ -3,11 +3,10 @@ use crate::{
     weapon::{find_parent_character, Weapon},
     CollisionGroups, Item,
 };
-use fyrox::scene::rigidbody::RigidBodyType;
 use fyrox::{
     core::{
-        algebra::Point3,
-        math::ray::Ray,
+        algebra::{Point3, Vector3},
+        math::{aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
@@ -18,15 +17,22 @@ use fyrox::{
     event::Event,
     impl_component_provider,
     scene::{
-        collider::{BitMask, InteractionGroups},
+        collider::{BitMask, Collider, InteractionGroups},
         graph::physics::RayCastOptions,
         node::Node,
-        rigidbody::RigidBody,
+        rigidbody::{RigidBody, RigidBodyType},
     },
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
 };
+
+#[derive(Visit, Reflect, Debug, Default, Clone)]
+struct Target {
+    grab_point: Vector3<f32>,
+    node: Handle<Node>,
+    collider: Handle<Node>,
+}
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct KineticGun {
@@ -34,8 +40,8 @@ pub struct KineticGun {
     range: InheritableVariable<f32>,
     #[reflect(hidden)]
     is_active: bool,
-    #[reflect(hidden)]
-    target: Handle<Node>,
+    #[reflect(read_only)]
+    target: Option<Target>,
 }
 
 impl Default for KineticGun {
@@ -116,27 +122,57 @@ impl ScriptTrait for KineticGun {
                             .try_get_of_type::<RigidBody>(collider.parent())
                         {
                             if rigid_body.body_type() == RigidBodyType::Dynamic {
-                                self.target = collider.parent();
+                                self.target = Some(Target {
+                                    node: collider.parent(),
+                                    grab_point: collider
+                                        .global_transform()
+                                        .try_inverse()
+                                        .map(|inv| {
+                                            inv.transform_point(&intersection.position).coords
+                                        })
+                                        .unwrap_or_default(),
+                                    collider: intersection.collider,
+                                });
                             }
                         }
                     }
                 }
             }
 
-            if let Some(target_body) = ctx
-                .scene
-                .graph
-                .try_get_mut_of_type::<RigidBody>(self.target)
-            {
-                let force = (begin - target_body.global_position())
-                    .normalize()
-                    .scale(10.0);
+            if let Some(target) = self.target.as_ref() {
+                if let Some(collider) = ctx.scene.graph.try_get_of_type::<Collider>(target.collider)
+                {
+                    let grab_point = collider
+                        .global_transform()
+                        .transform_point(&Point3::from(target.grab_point))
+                        .coords;
 
-                target_body.apply_force(force);
-                target_body.wake_up();
+                    let aabb = ctx
+                        .scene
+                        .graph
+                        .aabb_of_descendants(target.node)
+                        .unwrap_or_else(|| AxisAlignedBoundingBox::collapsed());
+
+                    if let Some(target_body) = ctx
+                        .scene
+                        .graph
+                        .try_get_mut_of_type::<RigidBody>(target.node)
+                    {
+                        if let Some(dir) = (begin - grab_point).try_normalize(f32::EPSILON) {
+                            let volume = aabb.volume();
+
+                            if volume != 0.0 {
+                                let velocity = dir.scale((0.05 / volume).clamp(0.0, 2.0));
+
+                                target_body.set_lin_vel(velocity);
+                                target_body.wake_up();
+                            }
+                        }
+                    }
+                }
             }
         } else {
-            self.target = Handle::NONE;
+            self.target = None;
         }
     }
 

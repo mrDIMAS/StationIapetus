@@ -62,20 +62,20 @@
         drag_speed: 0.01,
         zoom_speed: 1.0,
         camera_settings: {
+            "data/models/kinetic_gun/kinetic_gun.rgs": (
+                position: (-0.18256491, 0.1705651, 0.139737),
+                yaw: 1.3599995,
+                pitch: 0.4800001,
+            ),
             "data/levels/testbed.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: -0.36999997,
-                pitch: 0.06,
+                position: (-2.7349901, 1.3279907, 3.4583051),
+                yaw: -8.969997,
+                pitch: 0.16079639,
             ),
             "data/models/agent/agent.rgs": (
                 position: (0.0005605668, 0.5210972, 0.6358539),
                 yaw: 3.1199994,
                 pitch: 0.17999999,
-            ),
-            "data/models/kinetic_gun/kinetic_gun.rgs": (
-                position: (-0.18256491, 0.1705651, 0.139737),
-                yaw: 1.3599995,
-                pitch: 0.4800001,
             ),
         },
     ),
@@ -241,7 +241,9 @@
         scenes: [
             "data/levels/testbed.rgs",
             "data/models/agent/agent.rgs",
+            "data/models/barrel/barrel.rgs",
             "data/models/kinetic_gun/kinetic_gun.rgs",
+            "data/models/supply_box/ammo.rgs",
         ],
     ),
     windows: (
