@@ -1,6 +1,6 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
-    weapon::{find_parent_character, Weapon},
+    weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Item,
 };
 use fyrox::{
@@ -37,7 +37,10 @@ struct Target {
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct KineticGun {
     weapon: Weapon,
+    #[visit(optional)]
     range: InheritableVariable<f32>,
+    #[visit(optional)]
+    force: InheritableVariable<f32>,
     #[reflect(hidden)]
     is_active: bool,
     #[reflect(read_only)]
@@ -50,6 +53,7 @@ impl Default for KineticGun {
             weapon: Default::default(),
             is_active: false,
             range: 10.0.into(),
+            force: 7.5.into(),
             target: Default::default(),
         }
     }
@@ -158,16 +162,21 @@ impl ScriptTrait for KineticGun {
                         .graph
                         .try_get_mut_of_type::<RigidBody>(target.node)
                     {
-                        if let Some(dir) = (begin - grab_point).try_normalize(f32::EPSILON) {
-                            let volume = aabb.volume();
+                        let velocity =
+                            if let Some(dir) = (begin - grab_point).try_normalize(f32::EPSILON) {
+                                let volume = aabb.volume();
 
-                            if volume != 0.0 {
-                                let velocity = dir.scale((0.05 / volume).clamp(0.0, 2.0));
+                                if volume != 0.0 {
+                                    dir.scale((0.05 / volume).clamp(0.0, 2.0))
+                                } else {
+                                    Vector3::default()
+                                }
+                            } else {
+                                Vector3::default()
+                            };
 
-                                target_body.set_lin_vel(velocity);
-                                target_body.wake_up();
-                            }
-                        }
+                        target_body.set_lin_vel(velocity);
+                        target_body.wake_up();
                     }
                 }
             }
@@ -183,7 +192,29 @@ impl ScriptTrait for KineticGun {
     ) {
         self.weapon.on_message(message, ctx);
 
-        if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
+        if let Some(msg) = message.downcast_ref::<WeaponMessage>() {
+            if msg.weapon == ctx.handle {
+                if let WeaponMessageData::Shoot { direction } = msg.data {
+                    if let Some(target) = self.target.as_ref() {
+                        let velocity = direction
+                            .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
+                            .scale(*self.force);
+
+                        if let Some(target_body) = ctx
+                            .scene
+                            .graph
+                            .try_get_mut_of_type::<RigidBody>(target.node)
+                        {
+                            target_body.set_lin_vel(velocity);
+                            target_body.wake_up();
+                        }
+                    }
+
+                    self.target = None;
+                    self.is_active = false;
+                }
+            }
+        } else if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
             if let Some((parent_character_handle, _)) =
                 find_parent_character(ctx.handle, &ctx.scene.graph)
             {
