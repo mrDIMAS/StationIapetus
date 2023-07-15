@@ -1,4 +1,3 @@
-use crate::level::item::ItemAction;
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
@@ -6,6 +5,7 @@ use crate::{
     elevator::call_button::{CallButton, CallButtonKind},
     gui::journal::Journal,
     inventory::Inventory,
+    level::item::ItemAction,
     message::Message,
     player::state_machine::{StateMachine, StateMachineInput},
     sound::SoundManager,
@@ -782,37 +782,37 @@ impl Player {
 
                 let current_weapon = weapon_ref(current_weapon_handle, &scene.graph);
                 if self.controller.shoot && current_weapon.can_shoot(elapsed_time) {
-                    let ammo_per_shot =
-                        *weapon_ref(current_weapon_handle, &scene.graph).ammo_consumption_per_shot;
+                    let ammo_per_shot = *current_weapon.ammo_consumption_per_shot;
 
-                    if let Some(ammo_item) = current_weapon.ammo_item.as_ref() {
-                        if self
-                            .inventory
+                    // A weapon could have infinite ammo, in this case ammo item is not specified.
+                    let enough_ammo = current_weapon.ammo_item.as_ref().map_or(true, |ammo_item| {
+                        self.inventory
                             .try_extract_exact_items(ammo_item, ammo_per_shot)
                             == ammo_per_shot
-                        {
-                            script_message_sender.send_to_target(
-                                current_weapon_handle,
-                                WeaponMessage {
-                                    weapon: current_weapon_handle,
-                                    data: WeaponMessageData::Shoot {
-                                        direction: Default::default(),
-                                    },
+                    });
+
+                    if enough_ammo {
+                        script_message_sender.send_to_target(
+                            current_weapon_handle,
+                            WeaponMessage {
+                                weapon: current_weapon_handle,
+                                data: WeaponMessageData::Shoot {
+                                    direction: Default::default(),
                                 },
-                            );
+                            },
+                        );
 
-                            self.v_recoil
-                                .set_target(current_weapon.gen_v_recoil_angle());
-                            self.h_recoil
-                                .set_target(current_weapon.gen_h_recoil_angle());
+                        self.v_recoil
+                            .set_target(current_weapon.gen_v_recoil_angle());
+                        self.h_recoil
+                            .set_target(current_weapon.gen_h_recoil_angle());
 
-                            if let Some(camera_controller) = scene
-                                .graph
-                                .try_get_mut(self.camera_controller)
-                                .and_then(|c| c.try_get_script_mut::<CameraController>())
-                            {
-                                camera_controller.request_shake_camera();
-                            }
+                        if let Some(camera_controller) = scene
+                            .graph
+                            .try_get_mut(self.camera_controller)
+                            .and_then(|c| c.try_get_script_mut::<CameraController>())
+                        {
+                            camera_controller.request_shake_camera();
                         }
                     }
                 }
