@@ -1018,10 +1018,8 @@ impl ScriptTrait for Player {
 
         let button_state = match event {
             Event::WindowEvent { event, .. } => {
-                if let WindowEvent::KeyboardInput { input, .. } = event {
-                    input
-                        .virtual_keycode
-                        .map(|vk| (ControlButton::Key(vk), input.state))
+                if let WindowEvent::KeyboardInput { event: input, .. } = event {
+                    Some((ControlButton::Key(input.physical_key), input.state))
                 } else {
                     None
                 }

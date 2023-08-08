@@ -45,6 +45,7 @@ use crate::{
     utils::use_hrtf,
     weapon::{projectile::Projectile, sight::LaserSight, Weapon},
 };
+use fyrox::keyboard::KeyCode;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -56,7 +57,7 @@ use fyrox::{
     },
     dpi::LogicalSize,
     engine::GraphicsContext,
-    event::{ElementState, Event, VirtualKeyCode, WindowEvent},
+    event::{ElementState, Event, WindowEvent},
     event_loop::ControlFlow,
     gui::{
         button::ButtonMessage,
@@ -727,15 +728,13 @@ impl Game {
         self.process_dispatched_event(event, context);
 
         if let Event::WindowEvent {
-            event: WindowEvent::KeyboardInput { input, .. },
+            event: WindowEvent::KeyboardInput { event: input, .. },
             ..
         } = event
         {
             if let ElementState::Pressed = input.state {
-                if let Some(key) = input.virtual_keycode {
-                    if key == VirtualKeyCode::Escape && self.level.is_some() {
-                        self.set_menu_visible(!self.is_any_menu_visible(context), context);
-                    }
+                if input.physical_key == KeyCode::Escape && self.level.is_some() {
+                    self.set_menu_visible(!self.is_any_menu_visible(context), context);
                 }
             }
         }

@@ -437,7 +437,7 @@ impl InventoryInterface {
         self.ui.process_os_event(os_event);
 
         if self.is_enabled {
-            if let OsEvent::KeyboardInput { button, state } = *os_event {
+            if let OsEvent::KeyboardInput { button, state, .. } = *os_event {
                 if state == ButtonState::Pressed {
                     // TODO: Add support for other input bindings.
                     if let ControlButton::Key(key) = control_scheme.cursor_up.button {

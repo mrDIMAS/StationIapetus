@@ -1,10 +1,10 @@
-use fyrox::event::VirtualKeyCode;
+use fyrox::keyboard::KeyCode;
 use serde::{Deserialize, Serialize};
 
 #[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
 pub enum ControlButton {
     Mouse(u16),
-    Key(VirtualKeyCode),
+    Key(KeyCode),
     WheelUp,
     WheelDown,
 }
@@ -69,23 +69,23 @@ impl Default for ControlScheme {
         Self {
             move_forward: ControlButtonDefinition {
                 description: "Move Forward".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::W),
+                button: ControlButton::Key(KeyCode::KeyW),
             },
             move_backward: ControlButtonDefinition {
                 description: "Move Backward".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::S),
+                button: ControlButton::Key(KeyCode::KeyS),
             },
             move_left: ControlButtonDefinition {
                 description: "Move Left".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::A),
+                button: ControlButton::Key(KeyCode::KeyA),
             },
             move_right: ControlButtonDefinition {
                 description: "Move Right".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::D),
+                button: ControlButton::Key(KeyCode::KeyD),
             },
             jump: ControlButtonDefinition {
                 description: "Jump".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Space),
+                button: ControlButton::Key(KeyCode::Space),
             },
             shoot: ControlButtonDefinition {
                 description: "Shoot".to_string(),
@@ -101,7 +101,7 @@ impl Default for ControlScheme {
             },
             run: ControlButtonDefinition {
                 description: "Run".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::LShift),
+                button: ControlButton::Key(KeyCode::ShiftLeft),
             },
             aim: ControlButtonDefinition {
                 description: "Aim".to_string(),
@@ -109,63 +109,63 @@ impl Default for ControlScheme {
             },
             toss_grenade: ControlButtonDefinition {
                 description: "Toss Grenade".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::G),
+                button: ControlButton::Key(KeyCode::KeyG),
             },
             journal: ControlButtonDefinition {
                 description: "Journal".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::J),
+                button: ControlButton::Key(KeyCode::KeyJ),
             },
             flash_light: ControlButtonDefinition {
                 description: "Flash Light".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::F),
+                button: ControlButton::Key(KeyCode::KeyF),
             },
             grab_pistol: ControlButtonDefinition {
                 description: "Grab Pistol".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key1),
+                button: ControlButton::Key(KeyCode::Digit1),
             },
             grab_ak47: ControlButtonDefinition {
                 description: "Grab AK47".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key2),
+                button: ControlButton::Key(KeyCode::Digit2),
             },
             grab_m4: ControlButtonDefinition {
                 description: "Grab M4".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key3),
+                button: ControlButton::Key(KeyCode::Digit3),
             },
             grab_plasma_gun: ControlButtonDefinition {
                 description: "Grab Plasma Gun".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Key4),
+                button: ControlButton::Key(KeyCode::Digit4),
             },
             inventory: ControlButtonDefinition {
                 description: "Inventory".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::I),
+                button: ControlButton::Key(KeyCode::KeyI),
             },
             action: ControlButtonDefinition {
                 description: "Action".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::E),
+                button: ControlButton::Key(KeyCode::KeyE),
             },
             drop_item: ControlButtonDefinition {
                 description: "Drop Item".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::R),
+                button: ControlButton::Key(KeyCode::KeyR),
             },
             cursor_up: ControlButtonDefinition {
                 description: "Cursor Up".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Up),
+                button: ControlButton::Key(KeyCode::ArrowUp),
             },
             cursor_down: ControlButtonDefinition {
                 description: "Cursor Down".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Down),
+                button: ControlButton::Key(KeyCode::ArrowDown),
             },
             cursor_left: ControlButtonDefinition {
                 description: "Cursor Left".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Left),
+                button: ControlButton::Key(KeyCode::ArrowLeft),
             },
             cursor_right: ControlButtonDefinition {
                 description: "Cursor Right".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Right),
+                button: ControlButton::Key(KeyCode::ArrowRight),
             },
             quick_heal: ControlButtonDefinition {
                 description: "Quick Heal".to_string(),
-                button: ControlButton::Key(VirtualKeyCode::Q),
+                button: ControlButton::Key(KeyCode::KeyQ),
             },
             mouse_sens: 0.3,
             mouse_y_inverse: false,

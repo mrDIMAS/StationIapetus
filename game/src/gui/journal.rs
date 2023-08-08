@@ -198,7 +198,7 @@ impl JournalDisplay {
     pub fn process_os_event(&mut self, os_event: &OsEvent, control_scheme: &ControlScheme) {
         self.ui.process_os_event(os_event);
 
-        if let OsEvent::KeyboardInput { button, state } = *os_event {
+        if let OsEvent::KeyboardInput { button, state, .. } = *os_event {
             if state == ButtonState::Pressed {
                 if let ControlButton::Key(key) = control_scheme.cursor_up.button {
                     if fyrox::utils::translate_key(key) == button {

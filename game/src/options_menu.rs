@@ -663,16 +663,16 @@ impl OptionsMenu {
                         };
                     }
                 }
-                WindowEvent::KeyboardInput { input, .. } => {
-                    if let Some(code) = input.virtual_keycode {
-                        control_button = Some(ControlButton::Key(code));
-                    }
+                WindowEvent::KeyboardInput { event: input, .. } => {
+                    control_button = Some(ControlButton::Key(input.physical_key));
                 }
                 WindowEvent::MouseInput { button, .. } => {
                     let index = match button {
                         MouseButton::Left => 1,
                         MouseButton::Right => 2,
                         MouseButton::Middle => 3,
+                        MouseButton::Back => 4,
+                        MouseButton::Forward => 5,
                         MouseButton::Other(i) => *i,
                     };
 
