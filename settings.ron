@@ -31,6 +31,9 @@
         z_near: 0.025,
         z_far: 128.0,
     ),
+    general: (
+        show_node_removal_dialog: true,
+    ),
     debugging: (
         show_physics: true,
         show_bounds: true,
@@ -61,39 +64,23 @@
         invert_dragging: false,
         drag_speed: 0.01,
         zoom_speed: 1.0,
-        camera_settings: {
-            "data/models/kinetic_gun/kinetic_gun.rgs": (
-                position: (-0.18256491, 0.1705651, 0.139737),
-                yaw: 1.3599995,
-                pitch: 0.4800001,
-            ),
-            "data/levels/testbed.rgs": (
-                position: (-2.7349901, 1.3279907, 3.4583051),
-                yaw: -8.969997,
-                pitch: 0.16079639,
-            ),
-            "data/models/agent/agent.rgs": (
-                position: (0.0005605668, 0.5210972, 0.6358539),
-                yaw: 3.1199994,
-                pitch: 0.17999999,
-            ),
-        },
+        camera_settings: {},
     ),
     navmesh: (
         draw_all: true,
         vertex_radius: 0.2,
     ),
     key_bindings: (
-        move_forward: Some(W),
-        move_back: Some(S),
-        move_left: Some(A),
-        move_right: Some(D),
-        move_up: Some(Q),
-        move_down: Some(E),
-        speed_up: Some(LControl),
-        slow_down: Some(LShift),
+        move_forward: Some(KeyW),
+        move_back: Some(KeyS),
+        move_left: Some(KeyA),
+        move_right: Some(KeyD),
+        move_up: Some(KeyQ),
+        move_down: Some(KeyE),
+        speed_up: Some(ControlLeft),
+        slow_down: Some(ShiftLeft),
         undo: Some(
-            code: Z,
+            code: KeyZ,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -102,7 +89,7 @@
             ),
         ),
         redo: Some(
-            code: Y,
+            code: KeyY,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -111,7 +98,7 @@
             ),
         ),
         enable_select_mode: Some(
-            code: Key1,
+            code: Digit1,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -120,7 +107,7 @@
             ),
         ),
         enable_move_mode: Some(
-            code: Key2,
+            code: Digit2,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -129,7 +116,7 @@
             ),
         ),
         enable_rotate_mode: Some(
-            code: Key3,
+            code: Digit3,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -138,7 +125,7 @@
             ),
         ),
         enable_scale_mode: Some(
-            code: Key4,
+            code: Digit4,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -147,7 +134,7 @@
             ),
         ),
         enable_navmesh_mode: Some(
-            code: Key5,
+            code: Digit5,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -156,7 +143,7 @@
             ),
         ),
         enable_terrain_mode: Some(
-            code: Key6,
+            code: Digit6,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -165,7 +152,7 @@
             ),
         ),
         save_scene: Some(
-            code: S,
+            code: KeyS,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -174,7 +161,7 @@
             ),
         ),
         load_scene: Some(
-            code: L,
+            code: KeyL,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -183,7 +170,7 @@
             ),
         ),
         copy_selection: Some(
-            code: C,
+            code: KeyC,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -192,7 +179,7 @@
             ),
         ),
         paste: Some(
-            code: V,
+            code: KeyV,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -201,7 +188,7 @@
             ),
         ),
         new_scene: Some(
-            code: N,
+            code: KeyN,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -210,7 +197,7 @@
             ),
         ),
         close_scene: Some(
-            code: Q,
+            code: KeyQ,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -228,7 +215,7 @@
             ),
         ),
         focus: Some(
-            code: F,
+            code: KeyF,
             modifiers: (
                 alt: false,
                 shift: false,
@@ -240,109 +227,11 @@
     recent: (
         scenes: [
             "data/levels/testbed.rgs",
-            "data/models/agent/agent.rgs",
-            "data/models/barrel/barrel.rgs",
-            "data/models/kinetic_gun/kinetic_gun.rgs",
-            "data/models/supply_box/ammo.rgs",
         ],
     ),
     windows: (
         window_position: (-8.0, -8.0),
         window_size: (1920.0, 1017.0),
-        layout: Some((
-            floating_windows: [
-                (
-                    name: "AnimationEditor",
-                    position: (0.0, 0.0),
-                    size: (946.25006, 365.75),
-                ),
-                (
-                    name: "AsbmEditor",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "ParticleSystemPanel",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "CameraPanel",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "AudioPreviewPanel",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "NavmeshPanel",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "DocPanel",
-                    position: (0.0, 0.0),
-                    size: (0.0, 0.0),
-                ),
-                (
-                    name: "AnimationEditor",
-                    position: (0.0, 0.0),
-                    size: (946.25006, 365.75),
-                ),
-            ],
-            root_tile_descriptor: Some((
-                content: SplitTiles((
-                    splitter: 0.75,
-                    orientation: Vertical,
-                    children: ((
-                        content: SplitTiles((
-                            splitter: 0.25,
-                            orientation: Horizontal,
-                            children: ((
-                                content: Window("WorldOutliner"),
-                            ), (
-                                content: SplitTiles((
-                                    splitter: 0.66,
-                                    orientation: Horizontal,
-                                    children: ((
-                                        content: Window("SceneViewer"),
-                                    ), (
-                                        content: Window("Inspector"),
-                                    )),
-                                )),
-                            )),
-                        )),
-                    ), (
-                        content: SplitTiles((
-                            splitter: 0.66,
-                            orientation: Horizontal,
-                            children: ((
-                                content: SplitTiles((
-                                    splitter: 0.8,
-                                    orientation: Horizontal,
-                                    children: ((
-                                        content: Window("AssetBrowser"),
-                                    ), (
-                                        content: Window("CommandStackPanel"),
-                                    )),
-                                )),
-                            ), (
-                                content: SplitTiles((
-                                    splitter: 0.5,
-                                    orientation: Horizontal,
-                                    children: ((
-                                        content: Window("LogPanel"),
-                                    ), (
-                                        content: Window("AudioPanel"),
-                                    )),
-                                )),
-                            )),
-                        )),
-                    )),
-                )),
-            )),
-        )),
+        layout: None,
     ),
 )

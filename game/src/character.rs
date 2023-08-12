@@ -143,6 +143,57 @@ impl Character {
         false
     }
 
+    pub fn handle_environment_damage(
+        &self,
+        self_handle: Handle<Node>,
+        graph: &Graph,
+        message_sender: &ScriptMessageSender,
+    ) {
+        for hit_box in self.hit_boxes.iter().chain(&[HitBox {
+            bone: self.capsule_collider,
+            collider: self.capsule_collider,
+            damage_factor: 1.0,
+            movement_speed_factor: 1.0,
+            is_head: false,
+        }]) {
+            if let Some(collider) = graph
+                .try_get(hit_box.collider)
+                .and_then(|n| n.cast::<Collider>())
+            {
+                for contact in collider.contacts(&graph.physics) {
+                    for manifold in contact.manifolds.iter() {
+                        for point in manifold.points.iter() {
+                            if point.impulse.abs() > 0.18 {
+                                dbg!(point.impulse.abs());
+                            }
+
+                            if point.impulse.abs() > 5.0 {
+                                message_sender.send_to_target(
+                                    self_handle,
+                                    CharacterMessage {
+                                        character: self_handle,
+                                        data: CharacterMessageData::Damage {
+                                            dealer: DamageDealer {
+                                                entity: Default::default(),
+                                            },
+                                            hitbox: Some(hit_box.clone()),
+                                            amount: dbg!(point.impulse.abs() * 2.0),
+                                            critical_hit_probability: 0.0,
+                                            position: Some(DamagePosition {
+                                                point: point.local_p1,
+                                                direction: manifold.normal,
+                                            }),
+                                        },
+                                    },
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
     pub fn get_health(&self) -> f32 {
         self.health
     }

@@ -394,6 +394,8 @@ impl ScriptTrait for Bot {
         let game = Game::game_ref(ctx.plugins);
         let level = Level::try_get(ctx.plugins).unwrap();
 
+        self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
+
         let movement_speed_factor;
         let is_attacking;
         let is_moving;

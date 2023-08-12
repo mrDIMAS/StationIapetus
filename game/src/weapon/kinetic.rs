@@ -53,7 +53,7 @@ impl Default for KineticGun {
             weapon: Default::default(),
             is_active: false,
             range: 10.0.into(),
-            force: 7.5.into(),
+            force: 10.0.into(),
             target: Default::default(),
         }
     }
