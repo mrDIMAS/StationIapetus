@@ -5,6 +5,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -149,7 +150,7 @@ impl Character {
         graph: &Graph,
         message_sender: &ScriptMessageSender,
     ) {
-        for hit_box in self.hit_boxes.iter().chain(&[HitBox {
+        'hit_box_loop: for hit_box in self.hit_boxes.iter().chain(&[HitBox {
             bone: self.capsule_collider,
             collider: self.capsule_collider,
             damage_factor: 1.0,
@@ -163,11 +164,16 @@ impl Character {
                 for contact in collider.contacts(&graph.physics) {
                     for manifold in contact.manifolds.iter() {
                         for point in manifold.points.iter() {
-                            if point.impulse.abs() > 0.18 {
-                                dbg!(point.impulse.abs());
-                            }
+                            let rb1 = graph[manifold.rigid_body1]
+                                .query_component_ref::<RigidBody>()
+                                .unwrap();
+                            let rb2 = graph[manifold.rigid_body2]
+                                .query_component_ref::<RigidBody>()
+                                .unwrap();
 
-                            if point.impulse.abs() > 5.0 {
+                            let hit_strength = (rb1.lin_vel() - rb2.lin_vel()).norm();
+
+                            if hit_strength > 5.0 {
                                 message_sender.send_to_target(
                                     self_handle,
                                     CharacterMessage {
@@ -177,15 +183,20 @@ impl Character {
                                                 entity: Default::default(),
                                             },
                                             hitbox: Some(hit_box.clone()),
-                                            amount: dbg!(point.impulse.abs() * 2.0),
+                                            amount: hit_strength,
                                             critical_hit_probability: 0.0,
                                             position: Some(DamagePosition {
-                                                point: point.local_p1,
+                                                point: graph[contact.collider1]
+                                                    .global_transform()
+                                                    .transform_point(&Point3::from(point.local_p1))
+                                                    .coords,
                                                 direction: manifold.normal,
                                             }),
                                         },
                                     },
-                                )
+                                );
+
+                                break 'hit_box_loop;
                             }
                         }
                     }
