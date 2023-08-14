@@ -1350,6 +1350,7 @@ impl ScriptTrait for Player {
             }
         }
 
+        self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
         self.update_health_cylinder(ctx.scene);
 
         let has_ground_contact = self.has_ground_contact(&ctx.scene.graph);
