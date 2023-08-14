@@ -162,20 +162,11 @@ impl ScriptTrait for KineticGun {
                         .graph
                         .try_get_mut_of_type::<RigidBody>(target.node)
                     {
-                        let velocity =
-                            if let Some(dir) = (begin - grab_point).try_normalize(f32::EPSILON) {
-                                let volume = aabb.volume();
-
-                                if volume != 0.0 {
-                                    dir.scale((0.05 / volume).clamp(0.0, 2.0))
-                                } else {
-                                    Vector3::default()
-                                }
-                            } else {
-                                Vector3::default()
-                            };
+                        let velocity = (begin - grab_point)
+                            .scale((0.05 / aabb.volume().max(0.0001) * 6.0).clamp(0.0, 2.0));
 
                         target_body.set_lin_vel(velocity);
+                        target_body.set_ang_vel(Default::default());
                         target_body.wake_up();
                     }
                 }
@@ -196,9 +187,15 @@ impl ScriptTrait for KineticGun {
             if msg.weapon == ctx.handle {
                 if let WeaponMessageData::Shoot { direction } = msg.data {
                     if let Some(target) = self.target.as_ref() {
+                        let aabb = ctx
+                            .scene
+                            .graph
+                            .aabb_of_descendants(target.node)
+                            .unwrap_or_else(|| AxisAlignedBoundingBox::collapsed());
+
                         let velocity = direction
                             .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
-                            .scale(*self.force);
+                            .scale(*self.force / (100.0 * aabb.volume().max(0.0001)).max(1.0));
 
                         if let Some(target_body) = ctx
                             .scene
