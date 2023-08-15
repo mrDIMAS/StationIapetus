@@ -194,6 +194,7 @@ impl ScriptTrait for Door {
 
                 if let Some(current_state) = layer.states().try_borrow(layer.active_state()) {
                     let mut can_interact = false;
+                    let mut locked = false;
                     let text;
                     if current_state.name == self.opening_state.as_str() {
                         text = "Opening...";
@@ -202,10 +203,15 @@ impl ScriptTrait for Door {
                     } else if current_state.name == self.closing_state.as_str() {
                         text = "Closing..";
                     } else if current_state.name == self.closed_state.as_str() {
-                        can_interact = true;
-                        text = if someone_nearby { "Open?" } else { "Closed" };
+                        if someone_nearby {
+                            can_interact = true;
+                            text = "Open?";
+                        } else {
+                            text = "Closed";
+                        }
                     } else if current_state.name == self.locked_state.as_str() {
                         text = "Locked";
+                        locked = true;
 
                         if let Some(open_request) = open_request.as_ref() {
                             sound = Some(if open_request.open {
@@ -219,7 +225,7 @@ impl ScriptTrait for Door {
                     };
 
                     if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
-                        ui.update_text(text.to_owned(), &game.control_scheme, can_interact);
+                        ui.update_text(text.to_owned(), &game.control_scheme, can_interact, locked);
                     }
                 }
             }

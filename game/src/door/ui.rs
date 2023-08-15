@@ -24,6 +24,8 @@ use fyrox::{
 pub struct DoorUi {
     pub ui: UserInterface,
     pub render_target: TextureResource,
+    logo: Handle<UiNode>,
+    sector: Handle<UiNode>,
     text: Handle<UiNode>,
     action_text: Handle<UiNode>,
 }
@@ -61,14 +63,16 @@ impl DoorUi {
 
         let ctx = &mut ui.build_ctx();
 
+        let logo;
+        let sector;
         let text;
         let action_text;
         GridBuilder::new(
             WidgetBuilder::new()
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
-                .with_child(
-                    ImageBuilder::new(
+                .with_child({
+                    logo = ImageBuilder::new(
                         WidgetBuilder::new()
                             .with_width(120.0)
                             .with_height(120.0)
@@ -78,10 +82,11 @@ impl DoorUi {
                     .with_texture(into_gui_texture(
                         resource_manager.request::<Texture, _>("data/ui/triangles.png"),
                     ))
-                    .build(ctx),
-                )
-                .with_child(
-                    TextBuilder::new(
+                    .build(ctx);
+                    logo
+                })
+                .with_child({
+                    sector = TextBuilder::new(
                         WidgetBuilder::new()
                             .on_row(0)
                             .on_column(0)
@@ -91,8 +96,9 @@ impl DoorUi {
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .with_vertical_text_alignment(VerticalAlignment::Center)
                     .with_text("D")
-                    .build(ctx),
-                )
+                    .build(ctx);
+                    sector
+                })
                 .with_child({
                     text = TextBuilder::new(
                         WidgetBuilder::new()
@@ -132,6 +138,8 @@ impl DoorUi {
             render_target,
             text,
             action_text,
+            logo,
+            sector,
         }
     }
 
@@ -140,6 +148,7 @@ impl DoorUi {
         text: String,
         control_scheme: &ControlScheme,
         can_interact: bool,
+        locked: bool,
     ) {
         self.ui.send_message(TextMessage::text(
             self.text,
@@ -159,6 +168,22 @@ impl DoorUi {
             self.action_text,
             MessageDirection::ToWidget,
             can_interact,
+        ));
+
+        let brush = Brush::Solid(if locked { Color::RED } else { Color::GREEN });
+
+        for widget in [self.action_text, self.text, self.sector] {
+            self.ui.send_message(WidgetMessage::foreground(
+                widget,
+                MessageDirection::ToWidget,
+                brush.clone(),
+            ));
+        }
+
+        self.ui.send_message(WidgetMessage::background(
+            self.logo,
+            MessageDirection::ToWidget,
+            brush.clone(),
         ));
     }
 
