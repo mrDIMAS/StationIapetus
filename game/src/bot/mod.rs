@@ -426,6 +426,8 @@ impl ScriptTrait for Bot {
                 navmesh: level.navmesh,
                 yaw: &mut self.yaw,
                 pitch: &mut self.pitch,
+                attack_sounds: &self.attack_sounds,
+                scream_sounds: &self.scream_sounds,
 
                 // Output
                 hostility: self.hostility,
@@ -438,7 +440,6 @@ impl ScriptTrait for Bot {
                 is_attacking: false,
                 is_aiming_weapon: false,
                 is_screaming: false,
-                attack_sounds: &self.attack_sounds,
             };
 
             self.behavior.tree.tick(&mut behavior_ctx);

@@ -100,6 +100,7 @@ pub struct BehaviorContext<'a> {
     pub h_aim_angle_hack: f32,
     pub v_aim_angle_hack: f32,
     pub attack_sounds: &'a [ResourceProxy<SoundBufferResource>],
+    pub scream_sounds: &'a [ResourceProxy<SoundBufferResource>],
     pub yaw: &'a mut SmoothAngle,
     pub pitch: &'a mut SmoothAngle,
 
