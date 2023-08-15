@@ -135,17 +135,30 @@ impl DoorUi {
         }
     }
 
-    pub fn update_text(&mut self, text: String, control_scheme: &ControlScheme) {
+    pub fn update_text(
+        &mut self,
+        text: String,
+        control_scheme: &ControlScheme,
+        can_interact: bool,
+    ) {
         self.ui.send_message(TextMessage::text(
             self.text,
             MessageDirection::ToWidget,
             text,
         ));
 
-        self.ui.send_message(TextMessage::text(
+        if can_interact {
+            self.ui.send_message(TextMessage::text(
+                self.action_text,
+                MessageDirection::ToWidget,
+                format!("[{}] - Interact", control_scheme.action.button.name()),
+            ));
+        }
+
+        self.ui.send_message(WidgetMessage::visibility(
             self.action_text,
             MessageDirection::ToWidget,
-            format!("[{}] - Interact", control_scheme.action.button.name()),
+            can_interact,
         ));
     }
 
