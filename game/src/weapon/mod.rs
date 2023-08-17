@@ -59,8 +59,6 @@ pub struct Weapon {
     item: Item,
 
     shot_point: Handle<Node>,
-    flash_light: Handle<Node>,
-    flash_light_enabled: bool,
 
     #[visit(optional)]
     shoot_interval: InheritableVariable<f32>,
@@ -117,8 +115,6 @@ impl Default for Weapon {
             shot_point: Handle::NONE,
             last_shot_time: 0.0,
             owner: Handle::NONE,
-            flash_light: Default::default(),
-            flash_light_enabled: false,
             shoot_interval: 0.15.into(),
             projectile: None,
             self_handle: Default::default(),
@@ -172,10 +168,6 @@ impl Weapon {
 
     pub fn set_owner(&mut self, owner: Handle<Node>) {
         self.owner = owner;
-    }
-
-    pub fn switch_flash_light(&mut self) {
-        self.flash_light_enabled = !self.flash_light_enabled;
     }
 
     pub fn can_shoot(&self, elapsed_time: f32) -> bool {
@@ -262,10 +254,6 @@ impl ScriptTrait for Weapon {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         self.item.enabled = self.owner.is_none();
         self.item.on_update(ctx);
-
-        if let Some(flash_light) = ctx.scene.graph.try_get_mut(self.flash_light) {
-            flash_light.set_visibility(self.flash_light_enabled);
-        }
     }
 
     fn on_message(

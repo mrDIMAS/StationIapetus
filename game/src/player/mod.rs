@@ -150,6 +150,12 @@ pub struct Player {
     target_local_velocity: Vector2<f32>,
 
     #[visit(optional)]
+    flash_light: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    flash_light_enabled: InheritableVariable<bool>,
+
+    #[visit(optional)]
     ak47_weapon: Option<ModelResource>,
     #[visit(optional)]
     m4_weapon: Option<ModelResource>,
@@ -248,6 +254,8 @@ impl Default for Player {
             state_machine: Default::default(),
             script_message_sender: None,
             target_local_velocity: Default::default(),
+            flash_light: Default::default(),
+            flash_light_enabled: true.into(),
             ak47_weapon: None,
             m4_weapon: None,
             glock_weapon: None,
@@ -295,6 +303,8 @@ impl Clone for Player {
             state_machine: self.state_machine.clone(),
             script_message_sender: self.script_message_sender.clone(),
             target_local_velocity: self.target_local_velocity,
+            flash_light: self.flash_light.clone(),
+            flash_light_enabled: self.flash_light_enabled.clone(),
             ak47_weapon: self.ak47_weapon.clone(),
             m4_weapon: self.m4_weapon.clone(),
             glock_weapon: self.glock_weapon.clone(),
@@ -1120,13 +1130,9 @@ impl ScriptTrait for Player {
                 self.controller.run = state == ElementState::Pressed;
             } else if button == control_scheme.flash_light.button {
                 if state == ElementState::Pressed {
-                    if let Some(current_weapon) = context
-                        .scene
-                        .graph
-                        .try_get_script_of_mut::<Weapon>(self.current_weapon())
-                    {
-                        current_weapon.switch_flash_light();
-                    }
+                    let enabled = *self.flash_light_enabled;
+                    self.flash_light_enabled
+                        .set_value_and_mark_modified(!enabled);
                 }
             } else if button == control_scheme.grab_ak47.button && can_change_weapon {
                 if current_weapon_kind != self.ak47_weapon {
@@ -1380,6 +1386,10 @@ impl ScriptTrait for Player {
             self.handle_weapon_grab_signal(ctx.scene, ctx.handle, ctx.message_sender);
             self.handle_put_back_weapon_end_signal(ctx.scene);
             self.handle_toss_grenade_signal(Default::default(), ctx.scene, ctx.resource_manager);
+
+            if let Some(flash_light) = ctx.scene.graph.try_get_mut(*self.flash_light) {
+                flash_light.set_visibility(*self.flash_light_enabled);
+            }
 
             if self.controller.aim {
                 self.spine_pitch.set_target(self.controller.pitch);
