@@ -13,6 +13,7 @@ use station_iapetus::{
         spawn::DefaultWeapon,
         trigger::TriggerKind,
         turret::{Barrel, Hostility, ShootMode},
+        Level,
     },
     player::camera::CameraController,
     utils::ResourceProxy,
@@ -26,7 +27,7 @@ fn main() {
         &event_loop,
         Some(StartupData {
             working_directory: Default::default(),
-            scene: "data/levels/testbed.rgs".into(),
+            scene: Level::ARRIVAL_PATH.into(),
         }),
     );
 
