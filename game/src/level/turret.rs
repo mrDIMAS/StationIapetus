@@ -238,24 +238,23 @@ impl ScriptTrait for Turret {
             for barrel in self.barrels.iter_mut() {
                 barrel.update(ctx.scene);
             }
-
-            if self.projector.is_some() {
-                ctx.scene.graph[self.projector]
-                    .query_component_mut::<BaseLight>()
-                    .unwrap()
-                    .set_color(Color::opaque(255, 0, 0));
-            }
         } else {
             self.pitch.set_target(90.0f32.to_radians());
             self.yaw
                 .set_target(self.yaw.angle() + 50.0f32.to_radians() * ctx.dt);
+        }
 
-            if self.projector.is_some() {
-                ctx.scene.graph[self.projector]
-                    .query_component_mut::<BaseLight>()
-                    .unwrap()
-                    .set_color(Color::opaque(255, 127, 40));
-            }
+        if let Some(projector) = ctx
+            .scene
+            .graph
+            .try_get_mut(self.projector)
+            .and_then(|p| p.query_component_mut::<BaseLight>())
+        {
+            projector.set_color(if self.target.is_some() {
+                Color::opaque(255, 0, 0)
+            } else {
+                Color::opaque(255, 127, 40)
+            });
         }
 
         self.pitch.update(ctx.dt);
