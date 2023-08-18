@@ -113,6 +113,8 @@ impl Level {
             .await
             .unwrap();
 
+        scene.ambient_lighting_color = map_model.data_ref().get_scene().ambient_lighting_color;
+
         // Instantiate map
         map_model.instantiate(&mut scene);
 
