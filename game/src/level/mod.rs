@@ -4,10 +4,14 @@ use crate::{
 };
 use fyrox::{
     asset::manager::ResourceManager,
-    core::{math::PositionProvider, pool::Handle, visitor::prelude::*},
+    core::{pool::Handle, visitor::prelude::*},
     plugin::{Plugin, PluginContext},
     resource::model::{Model, ModelResourceExtension},
-    scene::{self, navmesh::NavigationalMesh, node::Node, Scene},
+    scene::{
+        navmesh::NavigationalMesh,
+        node::{Node, NodeTrait},
+        Scene,
+    },
 };
 use std::path::Path;
 
@@ -175,22 +179,12 @@ impl Level {
             .graph
             .try_get_of_type::<NavigationalMesh>(self.navmesh)
         {
-            let navmesh = navmesh.navmesh_ref();
+            navmesh.debug_draw(drawing_context);
+        }
 
-            for pt in navmesh.vertices() {
-                for neighbour in pt.neighbours() {
-                    drawing_context.add_line(scene::debug::Line {
-                        begin: pt.position(),
-                        end: navmesh.vertices()[*neighbour as usize].position(),
-                        color: Default::default(),
-                    });
-                }
-            }
-
-            for actor in self.actors.iter() {
-                if let Some(bot) = scene.graph[*actor].try_get_script::<Bot>() {
-                    bot.debug_draw(drawing_context);
-                }
+        for actor in self.actors.iter() {
+            if let Some(bot) = scene.graph[*actor].try_get_script::<Bot>() {
+                bot.debug_draw(drawing_context);
             }
         }
     }
