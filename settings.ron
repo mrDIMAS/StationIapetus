@@ -65,45 +65,55 @@
         drag_speed: 0.01,
         zoom_speed: 1.0,
         camera_settings: {
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_section.rgs": (
-                position: (2.0863771, 2.3489954, -1.8331127),
-                yaw: -0.78000045,
-                pitch: 0.83000004,
-            ),
-            "data/levels/arrival_new.rgs": (
-                position: (3.5294588, 2.987161, 0.020504989),
-                yaw: 8.120085,
-                pitch: 1.5607964,
-            ),
-            ".\\data\\levels\\arrival.rgs": (
-                position: (-13.344022, 4.28357, -2.3446722),
-                yaw: -4.9299974,
-                pitch: 0.44079655,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_cross.rgs": (
-                position: (-0.29600275, 4.376987, -5.1092234),
-                yaw: 0.07999998,
-                pitch: 0.76999986,
-            ),
-            "data/levels/testbed.rgs": (
-                position: (-1.9924551, 2.692386, 5.6607895),
-                yaw: -3.2999961,
-                pitch: 0.4207971,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_light\\starship_light.rgs": (
-                position: (0.016807377, 1.0770406, -0.91968524),
-                yaw: 0.13999908,
-                pitch: 0.44999993,
+            "data/models/zombie/zombie.rgs": (
+                position: (-0.5175726, 0.44335553, 0.76907474),
+                yaw: 2.5799992,
+                pitch: 0.03999997,
             ),
             "data/models/starship_door/starship_door_2.rgs": (
                 position: (-0.63234043, 1.083226, -0.40277576),
                 yaw: 0.6000001,
                 pitch: 0.3500001,
             ),
+            "data/levels/testbed.rgs": (
+                position: (-1.9924551, 2.692386, 5.6607895),
+                yaw: -3.2999961,
+                pitch: 0.4207971,
+            ),
+            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_cross.rgs": (
+                position: (-0.29600275, 4.376987, -5.1092234),
+                yaw: 0.07999998,
+                pitch: 0.76999986,
+            ),
+            ".\\data\\levels\\arrival.rgs": (
+                position: (-13.344022, 4.28357, -2.3446722),
+                yaw: -4.9299974,
+                pitch: 0.44079655,
+            ),
+            "data/models/bed/bed.rgs": (
+                position: (-0.024155322, 0.74291956, -2.033973),
+                yaw: -0.010000002,
+                pitch: 0.3,
+            ),
             "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\levels\\arrival_new.rgs": (
                 position: (7.701183, -0.67120266, -2.8509164),
                 yaw: 5.54,
                 pitch: -0.23920307,
+            ),
+            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_section.rgs": (
+                position: (2.0863771, 2.3489954, -1.8331127),
+                yaw: -0.78000045,
+                pitch: 0.83000004,
+            ),
+            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_light\\starship_light.rgs": (
+                position: (0.016807377, 1.0770406, -0.91968524),
+                yaw: 0.13999908,
+                pitch: 0.44999993,
+            ),
+            "data/levels/arrival_new.rgs": (
+                position: (3.2179143, 6.837532, 6.1771812),
+                yaw: 3.170083,
+                pitch: 0.80079657,
             ),
         },
     ),
@@ -280,6 +290,7 @@
             "data/models/starship_parts/starship_cross.rgs",
             "data/models/starship_parts/starship_right_corner.rgs",
             "data/models/starship_parts/starship_section.rgs",
+            "data/models/turret/turret.rgs",
             "data/models/zombie/zombie.rgs",
         ],
     ),
