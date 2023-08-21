@@ -428,6 +428,7 @@ impl ScriptTrait for Bot {
                 pitch: &mut self.pitch,
                 attack_sounds: &self.attack_sounds,
                 scream_sounds: &self.scream_sounds,
+                plugins: ctx.plugins,
 
                 // Output
                 hostility: self.hostility,

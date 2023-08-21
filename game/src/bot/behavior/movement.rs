@@ -1,14 +1,32 @@
-use crate::{bot::behavior::BehaviorContext, character::HitBox, utils::BodyImpactHandler};
+use crate::{
+    bot::behavior::BehaviorContext, character::HitBox, door::door_mut, level::Level,
+    utils::BodyImpactHandler,
+};
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
-    scene::navmesh::NavigationalMesh,
-    scene::Scene,
+    scene::{navmesh::NavigationalMesh, Scene},
     utils::behavior::{Behavior, Status},
 };
 
 #[derive(Default, Debug, PartialEq, Visit, Clone)]
 pub struct MoveToTarget {
     pub min_distance: f32,
+}
+
+impl MoveToTarget {
+    fn check_obstacles(&self, self_position: Vector3<f32>, ctx: &mut BehaviorContext) {
+        let doors = &Level::try_get(ctx.plugins)
+            .expect("Level must exist!")
+            .doors_container
+            .doors;
+        for &door in doors {
+            let door = door_mut(door, &mut ctx.scene.graph);
+            let close_enough = self_position.metric_distance(&door.initial_position()) < 1.25;
+            if close_enough {
+                door.try_open(Some(&ctx.character.inventory));
+            }
+        }
+    }
 }
 
 fn calculate_movement_speed_factor(
@@ -80,6 +98,8 @@ impl<'a> Behavior<'a> for MoveToTarget {
             let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
             body.set_lin_vel(velocity);
         }
+
+        self.check_obstacles(position, ctx);
 
         // Emit step sounds from walking animation.
         /*

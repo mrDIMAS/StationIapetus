@@ -20,6 +20,7 @@ use crate::{
 };
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
+    plugin::Plugin,
     scene::{node::Node, sound::SoundBufferResource, Scene},
     script::ScriptMessageSender,
     utils::{behavior::*, navmesh::NavmeshAgent},
@@ -103,6 +104,7 @@ pub struct BehaviorContext<'a> {
     pub scream_sounds: &'a [ResourceProxy<SoundBufferResource>],
     pub yaw: &'a mut SmoothAngle,
     pub pitch: &'a mut SmoothAngle,
+    pub plugins: &'a [Box<dyn Plugin>],
 
     // Output
     pub attack_animation_index: usize,
