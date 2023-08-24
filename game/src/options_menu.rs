@@ -217,6 +217,7 @@ impl OptionsMenu {
                                             .on_row(0)
                                             .with_margin(margin),
                                     )
+                                    .with_close_on_selection(true)
                                     .with_selected(0)
                                     .build(ctx);
                                     video_mode
