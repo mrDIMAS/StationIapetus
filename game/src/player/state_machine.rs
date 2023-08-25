@@ -1,13 +1,10 @@
-use crate::{character::Character, sound::SoundManager, utils, weapon::CombatWeaponKind};
+use crate::{utils, weapon::CombatWeaponKind};
 use fyrox::{
     animation::{
         machine::{MachineLayer, Parameter, State, Transition},
         Animation,
     },
-    core::{
-        algebra::{Vector2, Vector3},
-        pool::Handle,
-    },
+    core::{algebra::Vector2, pool::Handle},
     scene::{
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
         graph::Graph,
@@ -140,65 +137,6 @@ impl StateMachine {
 
     pub fn upper_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
         self.fetch_layer_mut(graph, Self::UPPER_BODY_LAYER_INDEX)
-    }
-
-    pub fn handle_animation_events(
-        &self,
-        character: &Character,
-        sound_manager: &SoundManager,
-        position: Vector3<f32>,
-        scene: &mut Scene,
-        is_walking: bool,
-        run_factor: f32,
-        has_ground_contact: bool,
-    ) {
-        let begin = position + Vector3::new(0.0, 0.5, 0.0);
-
-        if let Some(absm) = scene
-            .graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
-        {
-            let animation_player = absm.animation_player();
-
-            if let Some(animation_player) = scene
-                .graph
-                .try_get_mut_of_type::<AnimationPlayer>(animation_player)
-            {
-                let animations_container = animation_player.animations_mut().get_value_mut_silent();
-
-                let mut walk_events = animations_container
-                    .get_mut(self.walk_animation)
-                    .take_events();
-                let mut run_events = animations_container
-                    .get_mut(self.run_animation)
-                    .take_events();
-                let mut land_events = animations_container
-                    .get_mut(self.land_animation)
-                    .take_events();
-
-                while let Some((walking, evt)) = walk_events
-                    .pop_front()
-                    .map(|e| (true, e))
-                    .or_else(|| run_events.pop_front().map(|e| (false, e)))
-                {
-                    if is_walking
-                        && has_ground_contact
-                        && evt.name == Self::FOOTSTEP_SIGNAL
-                        && run_factor < 0.5
-                        && walking
-                        || run_factor >= 0.5 && !walking
-                    {
-                        character.footstep_ray_check(begin, scene, sound_manager);
-                    }
-                }
-
-                while let Some(evt) = land_events.pop_front() {
-                    if evt.name == Self::FOOTSTEP_SIGNAL {
-                        character.footstep_ray_check(begin, scene, sound_manager);
-                    }
-                }
-            }
-        }
     }
 
     pub fn apply(&mut self, input: StateMachineInput) {
