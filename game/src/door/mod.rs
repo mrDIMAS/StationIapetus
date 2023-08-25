@@ -295,14 +295,17 @@ impl Door {
     pub fn try_open(&mut self, inventory: Option<&Inventory>) {
         let mut open = false;
 
-        if let Some(inventory) = inventory {
-            if let Some(key_item) = self.key_item.as_ref() {
-                if inventory.item_count(key_item) > 0 {
-                    open = true;
+        if *self.locked {
+            if let Some(inventory) = inventory {
+                if let Some(key_item) = self.key_item.as_ref() {
+                    if inventory.item_count(key_item) > 0 {
+                        open = true;
+                        self.locked.set_value_and_mark_modified(false);
+                    }
                 }
-            } else {
-                open = true;
             }
+        } else {
+            open = true;
         }
 
         self.open_request = Some(OpenRequest { open });
