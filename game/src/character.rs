@@ -496,7 +496,7 @@ impl Character {
                 intersection.feature,
                 intersection.position.coords,
                 SoundKind::FootStep,
-                0.2,
+                0.45,
                 1.0,
                 0.3,
             );
