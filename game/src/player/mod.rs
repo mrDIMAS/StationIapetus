@@ -503,10 +503,21 @@ impl Player {
                 .graph
                 .try_get_of_type::<AnimationPlayer>(animation_player_handle)
             {
-                let collections = absm
-                    .machine()
-                    .layers()
-                    .iter()
+                let upper_layer_events = self
+                    .state_machine
+                    .upper_body_layer(&scene.graph)
+                    .map(|l| {
+                        l.collect_active_animations_events(
+                            absm.machine().parameters(),
+                            animation_player.animations(),
+                            AnimationEventCollectionStrategy::All,
+                        )
+                    })
+                    .unwrap_or_default();
+
+                let lower_layer_events = self
+                    .state_machine
+                    .lower_body_layer(&scene.graph)
                     .map(|l| {
                         l.collect_active_animations_events(
                             absm.machine().parameters(),
@@ -514,72 +525,74 @@ impl Player {
                             AnimationEventCollectionStrategy::MaxWeight,
                         )
                     })
-                    .collect::<Vec<_>>();
+                    .unwrap_or_default();
 
-                for collection in collections {
-                    for (_, event) in collection.events {
-                        if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
-                            match &self.weapon_change_direction {
-                                RequiredWeapon::None => (),
-                                RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
-                                RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
-                                RequiredWeapon::Specific(weapon_resource) => {
-                                    script_message_sender.send_to_target(
+                for (_, event) in upper_layer_events.events {
+                    if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
+                        match &self.weapon_change_direction {
+                            RequiredWeapon::None => (),
+                            RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
+                            RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
+                            RequiredWeapon::Specific(weapon_resource) => {
+                                script_message_sender.send_to_target(
+                                    self_handle,
+                                    CharacterMessage {
+                                        character: self_handle,
+                                        data: CharacterMessageData::SelectWeapon(
+                                            weapon_resource.clone(),
+                                        ),
+                                    },
+                                );
+                            }
+                        }
+
+                        self.weapon_change_direction = RequiredWeapon::None;
+                    } else if event.name == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
+                        let animations_container = utils::fetch_animation_container_mut(
+                            &mut scene.graph,
+                            self.animation_player,
+                        );
+                        animations_container
+                            .get_mut(self.state_machine.grab_animation)
+                            .set_enabled(true);
+                    } else if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
+                        let position = scene.graph[self.weapon_pivot].global_position();
+
+                        let direction = scene
+                            .graph
+                            .try_get(self.camera_controller)
+                            .and_then(|c| c.try_get_script::<CameraController>())
+                            .map(|c| scene.graph[c.camera()].look_vector())
+                            .unwrap_or_default();
+
+                        if let Some(grenade_item) = self.grenade_item.deref().clone() {
+                            if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
+                                if let Ok(grenade) =
+                                    block_on(resource_manager.request::<Model, _>(
+                                        "data/models/grenade/grenade_proj.rgs",
+                                    ))
+                                {
+                                    Projectile::spawn(
+                                        &grenade,
+                                        scene,
+                                        direction,
+                                        position,
                                         self_handle,
-                                        CharacterMessage {
-                                            character: self_handle,
-                                            data: CharacterMessageData::SelectWeapon(
-                                                weapon_resource.clone(),
-                                            ),
-                                        },
+                                        direction.scale(10.0),
                                     );
                                 }
                             }
+                        }
+                    }
+                }
 
-                            self.weapon_change_direction = RequiredWeapon::None;
-                        } else if event.name == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
-                            let animations_container = utils::fetch_animation_container_mut(
-                                &mut scene.graph,
-                                self.animation_player,
-                            );
-                            animations_container
-                                .get_mut(self.state_machine.grab_animation)
-                                .set_enabled(true);
-                        } else if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
-                            let position = scene.graph[self.weapon_pivot].global_position();
+                for (_, event) in lower_layer_events.events {
+                    if event.name == StateMachine::FOOTSTEP_SIGNAL {
+                        let begin = position + Vector3::new(0.0, 0.5, 0.0);
 
-                            let direction = scene
-                                .graph
-                                .try_get(self.camera_controller)
-                                .and_then(|c| c.try_get_script::<CameraController>())
-                                .map(|c| scene.graph[c.camera()].look_vector())
-                                .unwrap_or_default();
-
-                            if let Some(grenade_item) = self.grenade_item.deref().clone() {
-                                if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
-                                    if let Ok(grenade) =
-                                        block_on(resource_manager.request::<Model, _>(
-                                            "data/models/grenade/grenade_proj.rgs",
-                                        ))
-                                    {
-                                        Projectile::spawn(
-                                            &grenade,
-                                            scene,
-                                            direction,
-                                            position,
-                                            self_handle,
-                                            direction.scale(10.0),
-                                        );
-                                    }
-                                }
-                            }
-                        } else if event.name == StateMachine::FOOTSTEP_SIGNAL {
-                            let begin = position + Vector3::new(0.0, 0.5, 0.0);
-
-                            if is_walking && has_ground_contact {
-                                self.character
-                                    .footstep_ray_check(begin, scene, sound_manager);
-                            }
+                        if is_walking && has_ground_contact {
+                            self.character
+                                .footstep_ray_check(begin, scene, sound_manager);
                         }
                     }
                 }
