@@ -547,14 +547,6 @@ impl Player {
                         }
 
                         self.weapon_change_direction = RequiredWeapon::None;
-                    } else if event.name == StateMachine::PUT_BACK_WEAPON_END_SIGNAL {
-                        let animations_container = utils::fetch_animation_container_mut(
-                            &mut scene.graph,
-                            self.animation_player,
-                        );
-                        animations_container
-                            .get_mut(self.state_machine.grab_animation)
-                            .set_enabled(true);
                     } else if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
                         let position = scene.graph[self.weapon_pivot].global_position();
 
@@ -675,18 +667,7 @@ impl Player {
         self.last_health - self.health >= 15.0
     }
 
-    fn stun(&mut self, scene: &mut Scene) {
-        let animations_container =
-            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
-        for &animation in self
-            .state_machine
-            .hit_reaction_animations()
-            .iter()
-            .chain(self.state_machine.hit_reaction_animations().iter())
-        {
-            animations_container[animation].set_enabled(true).rewind();
-        }
-
+    fn stun(&mut self) {
         self.last_health = self.health;
     }
 
@@ -724,7 +705,7 @@ impl Player {
 
         let should_be_stunned = self.should_be_stunned();
         if should_be_stunned {
-            self.stun(scene);
+            self.stun();
         }
 
         self.state_machine.apply(StateMachineInput {
@@ -1131,21 +1112,6 @@ impl ScriptTrait for Player {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == control_scheme.jump.button {
                 if state == ElementState::Pressed && can_jump {
-                    let animations_container = utils::fetch_animation_container_mut(
-                        &mut context.scene.graph,
-                        self.animation_player,
-                    );
-
-                    // Rewind jump animation to beginning before jump.
-                    animations_container
-                        .get_mut(self.state_machine.jump_animation)
-                        .set_enabled(true)
-                        .rewind();
-                    animations_container
-                        .get_mut(self.state_machine.jump_animation)
-                        .set_enabled(true)
-                        .rewind();
-
                     self.jump_inertia = self.velocity;
                 }
 
@@ -1197,17 +1163,6 @@ impl ScriptTrait for Player {
                 if let Some(grenade_item) = self.grenade_item.as_ref() {
                     if self.inventory.item_count(grenade_item) > 0 {
                         self.controller.toss_grenade = state == ElementState::Pressed;
-                        if state == ElementState::Pressed {
-                            let animations_container = utils::fetch_animation_container_mut(
-                                &mut context.scene.graph,
-                                self.animation_player,
-                            );
-
-                            animations_container
-                                .get_mut(self.state_machine.toss_grenade_animation)
-                                .set_enabled(true)
-                                .rewind();
-                        }
                     }
                 }
             } else if button == control_scheme.quick_heal.button {
@@ -1277,20 +1232,6 @@ impl ScriptTrait for Player {
 
         if let Some(weapon_change_direction) = weapon_change_direction {
             self.weapon_change_direction = weapon_change_direction;
-
-            let animations_container = utils::fetch_animation_container_mut(
-                &mut context.scene.graph,
-                self.animation_player,
-            );
-
-            animations_container
-                .get_mut(self.state_machine.put_back_animation)
-                .rewind();
-
-            animations_container
-                .get_mut(self.state_machine.grab_animation)
-                .set_enabled(false)
-                .rewind();
         }
     }
 
@@ -1508,19 +1449,6 @@ impl ScriptTrait for Player {
                 self.in_air_time = 0.0;
             } else {
                 self.in_air_time += ctx.dt;
-            }
-
-            if !has_ground_contact {
-                for &land_animation in &[
-                    self.state_machine.land_animation,
-                    self.state_machine.land_animation,
-                ] {
-                    let animations_container = utils::fetch_animation_container_mut(
-                        &mut ctx.scene.graph,
-                        self.animation_player,
-                    );
-                    animations_container.get_mut(land_animation).rewind();
-                }
             }
 
             ctx.scene.graph[self.item_display].set_visibility(false);

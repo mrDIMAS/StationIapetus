@@ -175,10 +175,6 @@ impl StateMachine {
 
         let land_animation_ended = animations_container.get(self.land_animation).has_ended();
         let jump_animation_ended = animations_container.get(self.jump_animation).has_ended();
-        let put_back_animation_ended = animations_container
-            .get(self.put_back_animation)
-            .has_ended();
-        let grab_animation_ended = animations_container.get(self.grab_animation).has_ended();
         let toss_grenade_animation_ended = animations_container
             .get(self.toss_grenade_animation)
             .has_ended();
@@ -204,9 +200,7 @@ impl StateMachine {
             .set_parameter("RunFactor", Parameter::Weight(run_factor))
             .set_parameter("TossGrenade", Parameter::Rule(toss_grenade))
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
-            .set_parameter("GrabWeapon", Parameter::Rule(put_back_animation_ended))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
-            .set_parameter("WeaponChanged", Parameter::Rule(grab_animation_ended))
             .set_parameter("Recovered", Parameter::Rule(recovered))
             .set_parameter("JumpFinished", Parameter::Rule(jump_animation_ended))
             .set_parameter(
