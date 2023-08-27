@@ -56,7 +56,6 @@ impl StateMachine {
     pub const FOOTSTEP_SIGNAL: &'static str = "Footstep";
     pub const JUMP_SIGNAL: &'static str = "Jump";
     pub const GRAB_WEAPON_SIGNAL: &'static str = "Grab";
-    pub const PUT_BACK_WEAPON_END_SIGNAL: &'static str = "PutBack";
     pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
 
     const LOWER_BODY_LAYER_INDEX: usize = 0;
@@ -174,7 +173,6 @@ impl StateMachine {
             && animations_container[current_hit_reaction_animation].has_ended();
 
         let land_animation_ended = animations_container.get(self.land_animation).has_ended();
-        let jump_animation_ended = animations_container.get(self.jump_animation).has_ended();
         let toss_grenade_animation_ended = animations_container
             .get(self.toss_grenade_animation)
             .has_ended();
@@ -202,19 +200,11 @@ impl StateMachine {
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("Recovered", Parameter::Rule(recovered))
-            .set_parameter("JumpFinished", Parameter::Rule(jump_animation_ended))
             .set_parameter(
                 "GrenadeTossed",
                 Parameter::Rule(toss_grenade_animation_ended),
             )
             .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity));
-    }
-
-    pub fn hit_reaction_animations(&self) -> [Handle<Animation>; 2] {
-        [
-            self.hit_reaction_rifle_animation,
-            self.hit_reaction_pistol_animation,
-        ]
     }
 
     pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<Node>) -> bool {

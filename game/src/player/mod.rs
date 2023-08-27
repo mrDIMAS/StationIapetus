@@ -180,6 +180,10 @@ pub struct Player {
     state_machine: StateMachine,
 
     #[reflect(hidden)]
+    #[visit(skip)]
+    jump_y_velocity: Option<f32>,
+
+    #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
 
     #[reflect(hidden)]
@@ -266,6 +270,7 @@ impl Default for Player {
             glock_weapon: None,
             plasma_gun_weapon: None,
             grenade_item: Default::default(),
+            jump_y_velocity: None,
         }
     }
 }
@@ -315,6 +320,7 @@ impl Clone for Player {
             glock_weapon: self.glock_weapon.clone(),
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
+            jump_y_velocity: self.jump_y_velocity,
         }
     }
 }
@@ -492,6 +498,7 @@ impl Player {
         is_walking: bool,
         has_ground_contact: bool,
         sound_manager: &SoundManager,
+        dt: f32,
     ) {
         if let Some(absm) = scene
             .graph
@@ -515,7 +522,7 @@ impl Player {
                     })
                     .unwrap_or_default();
 
-                let lower_layer_events = self
+                let lower_layer_max_weight_events = self
                     .state_machine
                     .lower_body_layer(&scene.graph)
                     .map(|l| {
@@ -523,6 +530,18 @@ impl Player {
                             absm.machine().parameters(),
                             animation_player.animations(),
                             AnimationEventCollectionStrategy::MaxWeight,
+                        )
+                    })
+                    .unwrap_or_default();
+
+                let lower_layer_all_events = self
+                    .state_machine
+                    .lower_body_layer(&scene.graph)
+                    .map(|l| {
+                        l.collect_active_animations_events(
+                            absm.machine().parameters(),
+                            animation_player.animations(),
+                            AnimationEventCollectionStrategy::All,
                         )
                     })
                     .unwrap_or_default();
@@ -578,7 +597,7 @@ impl Player {
                     }
                 }
 
-                for (_, event) in lower_layer_events.events {
+                for (_, event) in lower_layer_max_weight_events.events {
                     if event.name == StateMachine::FOOTSTEP_SIGNAL {
                         let begin = position + Vector3::new(0.0, 0.5, 0.0);
 
@@ -586,6 +605,12 @@ impl Player {
                             self.character
                                 .footstep_ray_check(begin, scene, sound_manager);
                         }
+                    }
+                }
+
+                for (_, event) in lower_layer_all_events.events {
+                    if event.name == StateMachine::JUMP_SIGNAL {
+                        self.jump_y_velocity = Some(0.064 / dt);
                     }
                 }
 
@@ -599,27 +624,6 @@ impl Player {
                     .clear_animation_events();
             }
         }
-    }
-
-    fn handle_jump_signal(&self, scene: &mut Scene, dt: f32) -> Option<f32> {
-        let mut new_y_vel = None;
-        let animations_container =
-            utils::fetch_animation_container_mut(&mut scene.graph, self.animation_player);
-        let mut events = animations_container
-            .get_mut(self.state_machine.jump_animation)
-            .take_events();
-        while let Some(event) = events.pop_front() {
-            if let Some(layer) = self.state_machine.lower_body_layer(&scene.graph) {
-                let active_transition = layer.active_transition();
-                if event.name == StateMachine::JUMP_SIGNAL
-                    && (active_transition == self.state_machine.walk_to_jump
-                        || layer.active_state() == self.state_machine.jump_state)
-                {
-                    new_y_vel = Some(0.064 / dt);
-                }
-            }
-        }
-        new_y_vel
     }
 
     fn update_velocity(&mut self, scene: &mut Scene, dt: f32) {
@@ -637,14 +641,14 @@ impl Player {
                 .scale(1.0 / dt);
         }
 
-        let jump_y_velocity = self.handle_jump_signal(scene, dt);
-
         let body = scene.graph[self.body].as_rigid_body_mut();
 
         body.set_ang_vel(Default::default());
         body.set_lin_vel(Vector3::new(
             self.velocity.x + self.jump_inertia.x,
-            jump_y_velocity.unwrap_or_else(|| body.lin_vel().y),
+            self.jump_y_velocity
+                .take()
+                .unwrap_or_else(|| body.lin_vel().y),
             self.velocity.z + self.jump_inertia.z,
         ));
 
@@ -1351,6 +1355,7 @@ impl ScriptTrait for Player {
                 is_walking,
                 has_ground_contact,
                 &level.sound_manager,
+                ctx.dt,
             );
 
             if let Some(flash_light) = ctx.scene.graph.try_get_mut(*self.flash_light) {
