@@ -749,7 +749,9 @@ impl OptionsMenu {
                 {
                     let window = &graphics_context.window;
                     // -1 here because we have Windowed item in the list.
-                    if let Some(video_mode) = self.available_video_modes.get(*index - 1) {
+                    if let Some(video_mode) =
+                        self.available_video_modes.get(index.saturating_sub(1))
+                    {
                         window.set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
                         changed = true;
                     } else {
