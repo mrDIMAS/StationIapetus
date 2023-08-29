@@ -20,7 +20,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
             if upper_body_layer.active_state() == ctx.state_machine.threaten_state {
                 if !self.in_progress {
                     if let Some(attack_sound) =
-                        ctx.attack_sounds.iter().choose(&mut rand::thread_rng())
+                        ctx.scream_sounds.iter().choose(&mut rand::thread_rng())
                     {
                         let self_position = ctx.character.position(&ctx.scene.graph);
 
