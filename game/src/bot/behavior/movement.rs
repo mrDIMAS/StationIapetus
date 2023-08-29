@@ -101,28 +101,6 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         self.check_obstacles(position, ctx);
 
-        // Emit step sounds from walking animation.
-        /*
-        if ctx.state_machine.is_walking(&ctx.scene.graph) {
-            let animations_container =
-                utils::fetch_animation_container_mut(&mut ctx.scene.graph, ctx.animation_player);
-
-
-            let mut events = animations_container
-                .get_mut(ctx.lower_body_machine.walk_animation)
-                .take_events();
-
-            while let Some(event) = events.pop_front() {
-                if event.name == StateMachine::STEP_SIGNAL {
-                    let begin =
-                        ctx.scene.graph[ctx.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
-
-                    ctx.character
-                        .footstep_ray_check(begin, ctx.scene, ctx.sound_manager);
-                }
-            }
-        }*/
-
         if has_reached_destination {
             ctx.is_moving = false;
             Status::Success

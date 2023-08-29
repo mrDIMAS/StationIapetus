@@ -5,11 +5,13 @@ use crate::{
     },
     character::{Character, CharacterMessage, CharacterMessageData},
     door::{door_mut, door_ref, DoorContainer},
+    sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
     weapon::WeaponMessage,
     Game, Level,
 };
 use fyrox::{
+    animation::machine::node::AnimationEventCollectionStrategy,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
@@ -25,6 +27,7 @@ use fyrox::{
     rand::prelude::SliceRandom,
     scene::{
         self,
+        animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
         debug::SceneDrawingContext,
         graph::{
             physics::{Intersection, RayCastOptions},
@@ -274,6 +277,46 @@ impl Bot {
             }
         }
     }
+
+    fn handle_animation_events(&self, scene: &mut Scene, sound_manager: &SoundManager) {
+        if let Some(absm) = scene
+            .graph
+            .try_get_of_type::<AnimationBlendingStateMachine>(self.state_machine.absm)
+        {
+            let animation_player_handle = absm.animation_player();
+
+            if let Some(animation_player) = scene
+                .graph
+                .try_get_of_type::<AnimationPlayer>(animation_player_handle)
+            {
+                if let Some(lower_layer) = self.state_machine.lower_body_layer(&scene.graph) {
+                    let events = lower_layer.collect_active_animations_events(
+                        absm.machine().parameters(),
+                        animation_player.animations(),
+                        AnimationEventCollectionStrategy::MaxWeight,
+                    );
+
+                    for (_, event) in events.events {
+                        if event.name == StateMachine::STEP_SIGNAL {
+                            let begin = scene.graph[self.model].global_position()
+                                + Vector3::new(0.0, 0.5, 0.0);
+
+                            self.character
+                                .footstep_ray_check(begin, scene, sound_manager);
+                        }
+                    }
+
+                    scene
+                        .graph
+                        .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)
+                        .unwrap()
+                        .animations_mut()
+                        .get_value_mut_silent()
+                        .clear_animation_events();
+                }
+            }
+        }
+    }
 }
 
 impl TypeUuidProvider for Bot {
@@ -482,6 +525,8 @@ impl ScriptTrait for Bot {
                 * UnitQuaternion::from_axis_angle(&Vector3::x_axis(), self.v_recoil.angle())
                 * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
         );
+
+        self.handle_animation_events(ctx.scene, &level.sound_manager);
 
         if self.head_exploded {
             if let Some(head) = ctx.scene.graph.try_get_mut(self.head) {
