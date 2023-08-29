@@ -182,7 +182,7 @@ impl Character {
                                             dealer: DamageDealer {
                                                 entity: Default::default(),
                                             },
-                                            hitbox: Some(hit_box.clone()),
+                                            hitbox: Some(*hit_box),
                                             amount: hit_strength,
                                             critical_hit_probability: 0.0,
                                             position: Some(DamagePosition {

@@ -130,10 +130,7 @@ impl BotBehavior {
 
         let threaten_seq = sequence(
             [
-                leaf(
-                    Action::NeedsThreatenTarget(NeedsThreatenTarget::default()),
-                    bt,
-                ),
+                leaf(Action::NeedsThreatenTarget(NeedsThreatenTarget), bt),
                 leaf(AimOnTarget::new_action(spine, AimTarget::ActualTarget), bt),
                 leaf(Action::ThreatenTarget(ThreatenTarget::default()), bt),
             ],

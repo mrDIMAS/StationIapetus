@@ -155,7 +155,7 @@ impl ScriptTrait for KineticGun {
                         .scene
                         .graph
                         .aabb_of_descendants(target.node)
-                        .unwrap_or_else(|| AxisAlignedBoundingBox::collapsed());
+                        .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
 
                     if let Some(target_body) = ctx
                         .scene
@@ -191,7 +191,7 @@ impl ScriptTrait for KineticGun {
                             .scene
                             .graph
                             .aabb_of_descendants(target.node)
-                            .unwrap_or_else(|| AxisAlignedBoundingBox::collapsed());
+                            .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
 
                         let velocity = direction
                             .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
