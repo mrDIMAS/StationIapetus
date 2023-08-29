@@ -110,7 +110,8 @@ pub struct BehaviorContext<'a> {
     pub attack_animation_index: usize,
     pub movement_speed_factor: f32,
     pub is_moving: bool,
-    pub is_attacking: bool,
+    pub need_to_melee_attack: bool,
+    pub is_melee_attack: bool,
     pub is_aiming_weapon: bool,
     pub is_screaming: bool,
 }

@@ -3,7 +3,7 @@ use crate::{
         behavior::{BehaviorContext, BotBehavior},
         state_machine::{StateMachine, StateMachineInput},
     },
-    character::{Character, CharacterMessage, CharacterMessageData},
+    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
     door::{door_mut, door_ref, DoorContainer},
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
@@ -23,8 +23,8 @@ use fyrox::{
         visitor::{Visit, VisitResult, Visitor},
         TypeUuidProvider,
     },
-    impl_component_provider, rand,
-    rand::prelude::SliceRandom,
+    impl_component_provider,
+    rand::{self, prelude::SliceRandom, seq::IteratorRandom},
     scene::{
         self,
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
@@ -39,7 +39,8 @@ use fyrox::{
         Scene,
     },
     script::{
-        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
+        ScriptMessageSender, ScriptTrait,
     },
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
@@ -171,7 +172,7 @@ impl Default for Bot {
             walk_speed: 1.2,
             v_aim_angle_hack: 0.0,
             h_aim_angle_hack: 0.0,
-            close_combat_distance: 1.0,
+            close_combat_distance: 1.2,
             pain_sounds: Default::default(),
             scream_sounds: Default::default(),
             idle_sounds: Default::default(),
@@ -278,7 +279,15 @@ impl Bot {
         }
     }
 
-    fn handle_animation_events(&self, scene: &mut Scene, sound_manager: &SoundManager) {
+    fn handle_animation_events(
+        &self,
+        scene: &mut Scene,
+        message_sender: &ScriptMessageSender,
+        sound_manager: &SoundManager,
+        self_handle: Handle<Node>,
+        self_position: Vector3<f32>,
+        is_melee_attacking: bool,
+    ) {
         if let Some(absm) = scene
             .graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.state_machine.absm)
@@ -289,31 +298,82 @@ impl Bot {
                 .graph
                 .try_get_of_type::<AnimationPlayer>(animation_player_handle)
             {
-                if let Some(lower_layer) = self.state_machine.lower_body_layer(&scene.graph) {
-                    let events = lower_layer.collect_active_animations_events(
-                        absm.machine().parameters(),
-                        animation_player.animations(),
-                        AnimationEventCollectionStrategy::MaxWeight,
-                    );
+                let lower_layer_events = self
+                    .state_machine
+                    .lower_body_layer(&scene.graph)
+                    .map(|l| {
+                        l.collect_active_animations_events(
+                            absm.machine().parameters(),
+                            animation_player.animations(),
+                            AnimationEventCollectionStrategy::MaxWeight,
+                        )
+                    })
+                    .unwrap_or_default();
 
-                    for (_, event) in events.events {
-                        if event.name == StateMachine::STEP_SIGNAL {
-                            let begin = scene.graph[self.model].global_position()
-                                + Vector3::new(0.0, 0.5, 0.0);
+                let upper_layer_events = self
+                    .state_machine
+                    .upper_body_layer(&scene.graph)
+                    .map(|l| {
+                        l.collect_active_animations_events(
+                            absm.machine().parameters(),
+                            animation_player.animations(),
+                            AnimationEventCollectionStrategy::MaxWeight,
+                        )
+                    })
+                    .unwrap_or_default();
 
-                            self.character
-                                .footstep_ray_check(begin, scene, sound_manager);
+                for (_, event) in lower_layer_events.events {
+                    if event.name == StateMachine::STEP_SIGNAL {
+                        let begin =
+                            scene.graph[self.model].global_position() + Vector3::new(0.0, 0.5, 0.0);
+
+                        self.character
+                            .footstep_ray_check(begin, scene, sound_manager);
+                    }
+                }
+
+                for (_, event) in upper_layer_events.events {
+                    if event.name == StateMachine::HIT_SIGNAL {
+                        // Apply damage to target from melee attack
+                        if let Some(target) = self.target.as_ref() {
+                            if is_melee_attacking {
+                                message_sender.send_global(CharacterMessage {
+                                    character: target.handle,
+                                    data: CharacterMessageData::Damage {
+                                        dealer: DamageDealer {
+                                            entity: self_handle,
+                                        },
+                                        hitbox: None,
+                                        amount: 20.0,
+                                        critical_hit_probability: 0.0,
+                                        position: None,
+                                    },
+                                });
+                            }
+
+                            if let Some(attack_sound) =
+                                self.attack_sounds.iter().choose(&mut rand::thread_rng())
+                            {
+                                sound_manager.try_play_sound_buffer(
+                                    &mut scene.graph,
+                                    attack_sound.0.as_ref(),
+                                    self_position,
+                                    1.0,
+                                    1.0,
+                                    1.0,
+                                );
+                            }
                         }
                     }
-
-                    scene
-                        .graph
-                        .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)
-                        .unwrap()
-                        .animations_mut()
-                        .get_value_mut_silent()
-                        .clear_animation_events();
                 }
+
+                scene
+                    .graph
+                    .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)
+                    .unwrap()
+                    .animations_mut()
+                    .get_value_mut_silent()
+                    .clear_animation_events();
             }
         }
     }
@@ -440,7 +500,8 @@ impl ScriptTrait for Bot {
         self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
 
         let movement_speed_factor;
-        let is_attacking;
+        let need_to_melee_attack;
+        let is_melee_attack;
         let is_moving;
         let is_aiming;
         let attack_animation_index;
@@ -481,7 +542,8 @@ impl ScriptTrait for Bot {
                 attack_animation_index: 0,
                 movement_speed_factor: 1.0,
                 is_moving: false,
-                is_attacking: false,
+                need_to_melee_attack: false,
+                is_melee_attack: false,
                 is_aiming_weapon: false,
                 is_screaming: false,
             };
@@ -489,7 +551,8 @@ impl ScriptTrait for Bot {
             self.behavior.tree.tick(&mut behavior_ctx);
 
             movement_speed_factor = behavior_ctx.movement_speed_factor;
-            is_attacking = behavior_ctx.is_attacking;
+            need_to_melee_attack = behavior_ctx.need_to_melee_attack;
+            is_melee_attack = behavior_ctx.is_melee_attack;
             is_moving = behavior_ctx.is_moving;
             is_aiming = behavior_ctx.is_aiming_weapon;
             attack_animation_index = behavior_ctx.attack_animation_index;
@@ -508,7 +571,7 @@ impl ScriptTrait for Bot {
                 scream: is_screaming,
                 dead: self.is_dead(),
                 movement_speed_factor,
-                attack: is_attacking,
+                attack: need_to_melee_attack,
                 attack_animation_index: attack_animation_index as u32,
                 aim: is_aiming,
             },
@@ -526,7 +589,14 @@ impl ScriptTrait for Bot {
                 * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
         );
 
-        self.handle_animation_events(ctx.scene, &level.sound_manager);
+        self.handle_animation_events(
+            ctx.scene,
+            ctx.message_sender,
+            &level.sound_manager,
+            ctx.handle,
+            self.position(&ctx.scene.graph),
+            is_melee_attack,
+        );
 
         if self.head_exploded {
             if let Some(head) = ctx.scene.graph.try_get_mut(self.head) {
