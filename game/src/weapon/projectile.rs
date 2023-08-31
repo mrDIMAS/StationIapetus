@@ -5,7 +5,7 @@ use crate::{
     },
     level::decal::Decal,
     utils::ResourceProxy,
-    CollisionGroups, Game, Level, Weapon,
+    CollisionGroups, Level, Weapon,
 };
 use fyrox::{
     core::{
@@ -32,7 +32,6 @@ use fyrox::{
         },
         node::Node,
         rigidbody::RigidBody,
-        sound::SoundBufferResource,
         Scene,
     },
     script::{ScriptContext, ScriptTrait},
@@ -133,9 +132,6 @@ pub struct Projectile {
     flesh_impact_effect: Option<ModelResource>,
 
     #[visit(optional)]
-    impact_sound: Option<SoundBufferResource>,
-
-    #[visit(optional)]
     #[reflect(
         description = "A prefab that will be instantiated when the projectile is just appeared (spawned)."
     )]
@@ -186,7 +182,6 @@ impl Default for Projectile {
             speed: Some(1.0),
             environment_impact_effect: None,
             flesh_impact_effect: None,
-            impact_sound: None,
             appear_effect: None,
             random_appear_effects: Default::default(),
             one_frame: false,
@@ -344,7 +339,6 @@ impl ScriptTrait for Projectile {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = Game::game_ref(ctx.plugins);
         let level = Level::try_get(ctx.plugins).unwrap();
 
         // Movement of kinematic projectiles is controlled explicitly.
@@ -529,21 +523,6 @@ impl ScriptTrait for Projectile {
                 }
             }
 
-            if let Some(impact_sound) = self.impact_sound.as_ref() {
-                game.level
-                    .as_ref()
-                    .unwrap()
-                    .sound_manager
-                    .play_sound_buffer(
-                        &mut ctx.scene.graph,
-                        impact_sound,
-                        hit.position,
-                        1.0,
-                        4.0,
-                        3.0,
-                    );
-            }
-
             Decal::new_bullet_hole(
                 ctx.resource_manager,
                 &mut ctx.scene.graph,
@@ -568,7 +547,7 @@ impl ScriptTrait for Projectile {
                         Decal::spawn(
                             &mut ctx.scene.graph,
                             intersection.position.coords,
-                            hit.normal,
+                            -hit.normal,
                             Handle::NONE,
                             Color::opaque(255, 255, 255),
                             Vector3::new(0.45, 0.45, 0.2),
