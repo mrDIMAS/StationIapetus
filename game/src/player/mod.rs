@@ -449,7 +449,7 @@ impl Player {
 
             // Handle call buttons
             for &call_button_handle in elevator_script.call_buttons.iter() {
-                if let Some(call_button_node) = graph_multiborrow.try_get(*call_button_handle) {
+                if let Some(call_button_node) = graph_multiborrow.try_get(call_button_handle) {
                     let button_position = call_button_node.global_position();
 
                     let call_button_script =

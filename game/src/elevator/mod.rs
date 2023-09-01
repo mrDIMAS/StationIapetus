@@ -1,4 +1,6 @@
 use crate::Level;
+use fyrox::core::pool::Handle;
+use fyrox::scene::node::Node;
 use fyrox::{
     core::{
         reflect::prelude::*,
@@ -7,7 +9,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    scene::{node::NodeHandle, rigidbody::RigidBody},
+    scene::rigidbody::RigidBody,
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
@@ -19,8 +21,8 @@ pub struct Elevator {
     pub current_floor: u32,
     pub dest_floor: u32,
     k: f32,
-    pub point_handles: Vec<NodeHandle>,
-    pub call_buttons: Vec<NodeHandle>,
+    pub point_handles: Vec<Handle<Node>>,
+    pub call_buttons: Vec<Handle<Node>>,
 }
 
 impl Elevator {
@@ -69,8 +71,8 @@ impl ScriptTrait for Elevator {
             self.point_handles.get(self.current_floor as usize),
             self.point_handles.get(self.dest_floor as usize),
         ) {
-            let current_pos = context.scene.graph[**current].global_position();
-            let dest_pos = context.scene.graph[**dest].global_position();
+            let current_pos = context.scene.graph[*current].global_position();
+            let dest_pos = context.scene.graph[*dest].global_position();
             if let Some(rigid_body_ref) =
                 context.scene.graph[context.handle].cast_mut::<RigidBody>()
             {

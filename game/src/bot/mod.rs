@@ -6,7 +6,7 @@ use crate::{
     character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
     door::{door_mut, door_ref, DoorContainer},
     sound::SoundManager,
-    utils::{self, is_probability_event_occurred, BodyImpactHandler, ResourceProxy},
+    utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::WeaponMessage,
     Game, Level,
 };
@@ -122,13 +122,15 @@ pub struct Bot {
     #[visit(optional)]
     pub close_combat_distance: f32,
     #[visit(optional)]
-    pub pain_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    pub pain_sounds: Vec<Option<SoundBufferResource>>,
     #[visit(optional)]
-    pub scream_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    pub scream_sounds: Vec<Option<SoundBufferResource>>,
     #[visit(optional)]
-    pub idle_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    pub idle_sounds: Vec<Option<SoundBufferResource>>,
     #[visit(optional)]
-    pub attack_sounds: Vec<ResourceProxy<SoundBufferResource>>,
+    pub attack_sounds: Vec<Option<SoundBufferResource>>,
+    #[visit(optional)]
+    pub punch_sounds: Vec<Option<SoundBufferResource>>,
     #[visit(optional)]
     pub hostility: BotHostility,
 }
@@ -177,6 +179,7 @@ impl Default for Bot {
             scream_sounds: Default::default(),
             idle_sounds: Default::default(),
             attack_sounds: Default::default(),
+            punch_sounds: Default::default(),
             hostility: BotHostility::Player,
             yaw: SmoothAngle {
                 angle: f32::NAN, // Nan means undefined.
@@ -356,7 +359,7 @@ impl Bot {
                             {
                                 sound_manager.try_play_sound_buffer(
                                     &mut scene.graph,
-                                    attack_sound.0.as_ref(),
+                                    attack_sound.as_ref(),
                                     self_position,
                                     1.0,
                                     1.0,
@@ -478,7 +481,7 @@ impl ScriptTrait for Bot {
 
                         level.sound_manager.try_play_sound_buffer(
                             &mut ctx.scene.graph,
-                            grunt_sound.0.as_ref(),
+                            grunt_sound.as_ref(),
                             position,
                             0.8,
                             1.0,

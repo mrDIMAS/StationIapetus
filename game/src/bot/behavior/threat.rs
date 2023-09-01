@@ -26,7 +26,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
 
                         ctx.sound_manager.try_play_sound_buffer(
                             &mut ctx.scene.graph,
-                            attack_sound.0.as_ref(),
+                            attack_sound.as_ref(),
                             self_position,
                             1.0,
                             1.0,

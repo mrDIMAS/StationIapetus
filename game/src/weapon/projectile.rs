@@ -4,7 +4,6 @@ use crate::{
         DamageDealer, DamagePosition, HitBox,
     },
     level::decal::Decal,
-    utils::ResourceProxy,
     CollisionGroups, Level, Weapon,
 };
 use fyrox::{
@@ -141,7 +140,7 @@ pub struct Projectile {
     #[reflect(
         description = "Random prefab will be instantiated from the list when the projectile is just appeared (spawned)."
     )]
-    random_appear_effects: Vec<ResourceProxy<ModelResource>>,
+    random_appear_effects: Vec<Option<ModelResource>>,
 
     #[visit(optional)]
     #[reflect(
@@ -321,7 +320,7 @@ impl ScriptTrait for Projectile {
         if let Some(vfx) = self
             .random_appear_effects
             .choose(&mut fyrox::rand::thread_rng())
-            .and_then(|vfx| vfx.0.as_ref())
+            .and_then(|vfx| vfx.as_ref())
         {
             vfx.instantiate_at(ctx.scene, current_position, vector_to_quat(self.dir));
         }

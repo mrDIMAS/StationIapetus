@@ -19,12 +19,7 @@ use fyrox::{
         model::ModelResource,
         texture::{Texture, TextureResource},
     },
-    scene::{
-        animation::absm::AnimationBlendingStateMachine,
-        graph::Graph,
-        mesh::Mesh,
-        node::{Node, NodeHandle},
-    },
+    scene::{animation::absm::AnimationBlendingStateMachine, graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
@@ -38,7 +33,7 @@ struct OpenRequest {
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Door {
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
-    screens: Vec<NodeHandle>,
+    screens: Vec<Handle<Node>>,
 
     #[visit(optional)]
     key_item: InheritableVariable<Option<ModelResource>>,
@@ -264,7 +259,7 @@ impl Door {
         texture: TextureResource,
     ) {
         for &node_handle in &self.screens {
-            if let Some(mesh) = graph[*node_handle].cast_mut::<Mesh>() {
+            if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
                 Log::verify(material.set_property(

@@ -1,7 +1,7 @@
 //! Weapon related stuff.
 
 use crate::character::Character;
-use crate::{level::item::Item, utils::ResourceProxy, weapon::projectile::Projectile};
+use crate::{level::item::Item, weapon::projectile::Projectile};
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -94,7 +94,7 @@ pub struct Weapon {
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
-    shot_vfx: InheritableVariable<Vec<ResourceProxy<ModelResource>>>,
+    shot_vfx: InheritableVariable<Vec<Option<ModelResource>>>,
 
     #[reflect(hidden)]
     owner: Handle<Node>,
@@ -202,7 +202,7 @@ impl Weapon {
         if let Some(vfx) = self
             .shot_vfx
             .choose(&mut fyrox::rand::thread_rng())
-            .and_then(|vfx| vfx.0.as_ref())
+            .and_then(|vfx| vfx.as_ref())
         {
             vfx.instantiate_at(scene, shot_position, vector_to_quat(direction));
         }
