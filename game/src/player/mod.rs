@@ -14,7 +14,7 @@ use crate::{
         projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
         WeaponMessageData,
     },
-    CameraController, Elevator, Game, Item, Level,
+    CameraController, Elevator, Game, Item, Level, MessageSender,
 };
 use fyrox::{
     animation::machine::{self, node::AnimationEventCollectionStrategy},
@@ -491,6 +491,7 @@ impl Player {
     fn handle_animation_signals(
         &mut self,
         scene: &mut Scene,
+        game_message_sender: &MessageSender,
         script_message_sender: &ScriptMessageSender,
         self_handle: Handle<Node>,
         resource_manager: &ResourceManager,
@@ -611,6 +612,8 @@ impl Player {
                 for (_, event) in lower_layer_all_events.events {
                     if event.name == StateMachine::JUMP_SIGNAL {
                         self.jump_y_velocity = Some(0.064 / dt);
+                    } else if event.name == "Died" {
+                        game_message_sender.send(Message::EndMatch);
                     }
                 }
 
@@ -897,14 +900,6 @@ impl Player {
 
     pub fn is_aiming(&self) -> bool {
         self.controller.aim
-    }
-
-    pub fn is_completely_dead(&self, scene: &Scene) -> bool {
-        let animations_container =
-            utils::fetch_animation_container_ref(&scene.graph, self.animation_player);
-        self.is_dead()
-            && (animations_container[self.state_machine.dying_animation].has_ended()
-                || animations_container[self.state_machine.dying_animation].has_ended())
     }
 
     pub fn resolve(
@@ -1336,6 +1331,19 @@ impl ScriptTrait for Player {
 
         let is_running = self.is_running(ctx.scene);
 
+        self.handle_animation_signals(
+            ctx.scene,
+            &game.message_sender,
+            ctx.message_sender,
+            ctx.handle,
+            ctx.resource_manager,
+            self.position(&ctx.scene.graph),
+            is_walking,
+            has_ground_contact,
+            &level.sound_manager,
+            ctx.dt,
+        );
+
         if !self.is_dead() {
             if is_running {
                 self.target_run_factor = 1.0;
@@ -1346,17 +1354,6 @@ impl ScriptTrait for Player {
 
             let can_move = self.can_move(&ctx.scene.graph);
             self.update_velocity(ctx.scene, ctx.dt);
-            self.handle_animation_signals(
-                ctx.scene,
-                ctx.message_sender,
-                ctx.handle,
-                ctx.resource_manager,
-                self.position(&ctx.scene.graph),
-                is_walking,
-                has_ground_contact,
-                &level.sound_manager,
-                ctx.dt,
-            );
 
             if let Some(flash_light) = ctx.scene.graph.try_get_mut(*self.flash_light) {
                 flash_light.set_visibility(*self.flash_light_enabled);
@@ -1457,27 +1454,10 @@ impl ScriptTrait for Player {
                     * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
             );
         } else {
-            for &dying_animation in &[
-                self.state_machine.dying_animation,
-                self.state_machine.dying_animation,
-            ] {
-                let animations_container = utils::fetch_animation_container_mut(
-                    &mut ctx.scene.graph,
-                    self.animation_player,
-                );
-                animations_container
-                    .get_mut(dying_animation)
-                    .set_enabled(true);
-            }
-
             // Lock player on the place he died.
             let body = ctx.scene.graph[self.body].as_rigid_body_mut();
             body.set_ang_vel(Default::default());
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
-
-            if self.is_completely_dead(ctx.scene) {
-                game.message_sender.send(Message::EndMatch);
-            }
         }
     }
 
