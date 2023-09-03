@@ -1,9 +1,9 @@
 //! Bots can threaten the player before attack, this mod has behavior nodes for this.
 
-use crate::bot::behavior::BehaviorContext;
+use crate::{bot::behavior::BehaviorContext, utils};
 use fyrox::{
     core::{rand::Rng, visitor::prelude::*},
-    rand::{self, seq::IteratorRandom},
+    rand::{self},
     utils::behavior::{Behavior, Status},
 };
 
@@ -19,20 +19,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
         if let Some(upper_body_layer) = ctx.state_machine.upper_body_layer(&ctx.scene.graph) {
             if upper_body_layer.active_state() == ctx.state_machine.threaten_state {
                 if !self.in_progress {
-                    if let Some(attack_sound) =
-                        ctx.scream_sounds.iter().choose(&mut rand::thread_rng())
-                    {
-                        let self_position = ctx.character.position(&ctx.scene.graph);
-
-                        ctx.sound_manager.try_play_sound_buffer(
-                            &mut ctx.scene.graph,
-                            attack_sound.as_ref(),
-                            self_position,
-                            1.0,
-                            1.0,
-                            1.0,
-                        );
-                    }
+                    utils::try_play_random_sound(&ctx.scream_sounds, &mut ctx.scene.graph);
                 }
 
                 self.in_progress = true;

@@ -1,21 +1,17 @@
 use fyrox::{
-    animation::{
-        machine::{MachineLayer, PoseNode, State},
-        Animation, AnimationContainer,
-    },
+    animation::AnimationContainer,
     asset::core::rand::Rng,
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
         log::Log,
         pool::Handle,
     },
-    rand,
-    resource::model::{ModelResource, ModelResourceExtension},
+    rand::{self, seq::IteratorRandom},
     scene::{
         animation::AnimationPlayer,
         graph::Graph,
         node::Node,
-        sound::{self, context::SoundContext},
+        sound::{self, context::SoundContext, Sound},
         Scene,
     },
 };
@@ -100,23 +96,6 @@ pub fn use_hrtf(context: &mut SoundContext) {
         ));
 }
 
-pub fn create_play_animation_state(
-    animation_resource: ModelResource,
-    name: &str,
-    layer: &mut MachineLayer,
-    scene: &mut Scene,
-    model: Handle<Node>,
-    animation_player: Handle<Node>,
-) -> (Handle<Animation>, Handle<State>) {
-    let animation = *animation_resource
-        .retarget_animations_to_player(model, animation_player, &mut scene.graph)
-        .get(0)
-        .unwrap();
-    let node = layer.add_node(PoseNode::make_play_animation(animation));
-    let state = layer.add_state(State::new(name, node));
-    (animation, state)
-}
-
 pub fn is_probability_event_occurred(probability: f32) -> bool {
     rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
 }
@@ -137,4 +116,17 @@ pub fn fetch_animation_container_mut(
         .unwrap()
         .animations_mut()
         .get_value_mut_silent()
+}
+
+pub fn try_play_random_sound(sounds: &[Handle<Node>], graph: &mut Graph) -> bool {
+    if let Some(random_sound) = sounds
+        .iter()
+        .choose(&mut rand::thread_rng())
+        .and_then(|s| graph.try_get_mut_of_type::<Sound>(*s))
+    {
+        random_sound.play();
+        true
+    } else {
+        false
+    }
 }

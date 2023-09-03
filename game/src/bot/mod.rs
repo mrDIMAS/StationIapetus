@@ -24,7 +24,6 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    rand::{self, prelude::SliceRandom, seq::IteratorRandom},
     scene::{
         self,
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
@@ -35,7 +34,6 @@ use fyrox::{
         },
         node::Node,
         rigidbody::RigidBody,
-        sound::SoundBufferResource,
         Scene,
     },
     script::{
@@ -122,15 +120,15 @@ pub struct Bot {
     #[visit(optional)]
     pub close_combat_distance: f32,
     #[visit(optional)]
-    pub pain_sounds: Vec<Option<SoundBufferResource>>,
+    pub pain_sounds: Vec<Handle<Node>>,
     #[visit(optional)]
-    pub scream_sounds: Vec<Option<SoundBufferResource>>,
+    pub scream_sounds: Vec<Handle<Node>>,
     #[visit(optional)]
-    pub idle_sounds: Vec<Option<SoundBufferResource>>,
+    pub idle_sounds: Vec<Handle<Node>>,
     #[visit(optional)]
-    pub attack_sounds: Vec<Option<SoundBufferResource>>,
+    pub attack_sounds: Vec<Handle<Node>>,
     #[visit(optional)]
-    pub punch_sounds: Vec<Option<SoundBufferResource>>,
+    pub punch_sounds: Vec<Handle<Node>>,
     #[visit(optional)]
     pub hostility: BotHostility,
 }
@@ -288,7 +286,6 @@ impl Bot {
         message_sender: &ScriptMessageSender,
         sound_manager: &SoundManager,
         self_handle: Handle<Node>,
-        self_position: Vector3<f32>,
         is_melee_attacking: bool,
     ) {
         if let Some(absm) = scene
@@ -352,20 +349,11 @@ impl Bot {
                                         position: None,
                                     },
                                 });
+
+                                utils::try_play_random_sound(&self.punch_sounds, &mut scene.graph);
                             }
 
-                            if let Some(attack_sound) =
-                                self.attack_sounds.iter().choose(&mut rand::thread_rng())
-                            {
-                                sound_manager.try_play_sound_buffer(
-                                    &mut scene.graph,
-                                    attack_sound.as_ref(),
-                                    self_position,
-                                    1.0,
-                                    1.0,
-                                    1.0,
-                                );
-                            }
+                            utils::try_play_random_sound(&self.attack_sounds, &mut scene.graph);
                         }
                     }
                 }
@@ -476,18 +464,7 @@ impl ScriptTrait for Bot {
                     self.last_health = self.health;
                     self.restoration_time = 0.8;
 
-                    if let Some(grunt_sound) = self.pain_sounds.choose(&mut rand::thread_rng()) {
-                        let position = self.position(&ctx.scene.graph);
-
-                        level.sound_manager.try_play_sound_buffer(
-                            &mut ctx.scene.graph,
-                            grunt_sound.as_ref(),
-                            position,
-                            0.8,
-                            1.0,
-                            0.6,
-                        );
-                    }
+                    utils::try_play_random_sound(&self.pain_sounds, &mut ctx.scene.graph);
                 }
             }
         } else if let Some(weapon_message) = message.downcast_ref() {
@@ -597,7 +574,6 @@ impl ScriptTrait for Bot {
             ctx.message_sender,
             &level.sound_manager,
             ctx.handle,
-            self.position(&ctx.scene.graph),
             is_melee_attack,
         );
 

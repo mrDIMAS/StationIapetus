@@ -21,7 +21,7 @@ use crate::{
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     plugin::Plugin,
-    scene::{node::Node, sound::SoundBufferResource, Scene},
+    scene::{node::Node, Scene},
     script::ScriptMessageSender,
     utils::{behavior::*, navmesh::NavmeshAgent},
 };
@@ -100,8 +100,8 @@ pub struct BehaviorContext<'a> {
     pub hostility: BotHostility,
     pub h_aim_angle_hack: f32,
     pub v_aim_angle_hack: f32,
-    pub attack_sounds: &'a [Option<SoundBufferResource>],
-    pub scream_sounds: &'a [Option<SoundBufferResource>],
+    pub attack_sounds: &'a [Handle<Node>],
+    pub scream_sounds: &'a [Handle<Node>],
     pub yaw: &'a mut SmoothAngle,
     pub pitch: &'a mut SmoothAngle,
     pub plugins: &'a [Box<dyn Plugin>],
