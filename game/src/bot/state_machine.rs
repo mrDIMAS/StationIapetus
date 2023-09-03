@@ -20,7 +20,6 @@ pub struct StateMachineInput {
 #[derive(Default, Debug, Clone)]
 pub struct StateMachine {
     pub absm: Handle<Node>,
-    pub walk_state: Handle<State>,
     pub aim_state: Handle<State>,
     pub attack_state: Handle<State>,
     pub threaten_state: Handle<State>,
@@ -39,8 +38,6 @@ impl StateMachine {
         let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)?;
         let machine = absm.machine();
 
-        let (lower_body_layer_index, lower_body) = machine.find_layer_by_name_ref("LowerBody")?;
-        assert_eq!(lower_body_layer_index, Self::LOWER_BODY_LAYER_INDEX);
         let (upper_body_layer_index, upper_body) = machine.find_layer_by_name_ref("UpperBody")?;
         assert_eq!(upper_body_layer_index, Self::UPPER_BODY_LAYER_INDEX);
 
@@ -49,7 +46,6 @@ impl StateMachine {
         Some(Self {
             attack_state,
             absm: machine_handle,
-            walk_state: lower_body.find_state_by_name_ref("Walk")?.0,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,
             threaten_state: upper_body.find_state_by_name_ref("Threaten")?.0,
             dead_state: upper_body.find_state_by_name_ref("Dead")?.0,
@@ -94,20 +90,5 @@ impl StateMachine {
     pub fn is_in_aim_state(&self, graph: &Graph) -> bool {
         self.upper_body_layer(graph)
             .map_or(false, |layer| layer.active_state() == self.aim_state)
-    }
-
-    pub fn is_walking(&self, graph: &Graph) -> bool {
-        if let Some(lower_body_layer) = self.lower_body_layer(graph) {
-            let active_transition = lower_body_layer.active_transition();
-            lower_body_layer.active_state() == self.walk_state
-                || (active_transition.is_some()
-                    && lower_body_layer
-                        .transitions()
-                        .borrow(active_transition)
-                        .dest()
-                        == self.walk_state)
-        } else {
-            false
-        }
     }
 }

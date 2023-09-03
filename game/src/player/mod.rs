@@ -1427,25 +1427,6 @@ impl ScriptTrait for Player {
                             ) * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), 0.0),
                         );
                 }
-
-                let walk_dir = if self.controller.aim && self.controller.walk_backward {
-                    -1.0
-                } else {
-                    1.0
-                };
-
-                for &animation in &[
-                    self.state_machine.walk_animation,
-                    self.state_machine.walk_animation,
-                    self.state_machine.run_animation,
-                    self.state_machine.run_animation,
-                ] {
-                    let animations_container = utils::fetch_animation_container_mut(
-                        &mut ctx.scene.graph,
-                        self.animation_player,
-                    );
-                    animations_container.get_mut(animation).set_speed(walk_dir);
-                }
             }
 
             self.apply_weapon_angular_correction(ctx.scene, can_move, ctx.dt);

@@ -19,7 +19,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
         if let Some(upper_body_layer) = ctx.state_machine.upper_body_layer(&ctx.scene.graph) {
             if upper_body_layer.active_state() == ctx.state_machine.threaten_state {
                 if !self.in_progress {
-                    utils::try_play_random_sound(&ctx.scream_sounds, &mut ctx.scene.graph);
+                    utils::try_play_random_sound(ctx.scream_sounds, &mut ctx.scene.graph);
                 }
 
                 self.in_progress = true;

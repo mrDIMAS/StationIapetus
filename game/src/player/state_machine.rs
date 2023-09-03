@@ -1,7 +1,7 @@
 use crate::{utils, weapon::CombatWeaponKind};
 use fyrox::{
     animation::{
-        machine::{MachineLayer, Parameter, State, Transition},
+        machine::{MachineLayer, Parameter, State},
         Animation,
     },
     core::{algebra::Vector2, pool::Handle},
@@ -33,22 +33,14 @@ pub struct StateMachineInput<'a> {
 pub struct StateMachine {
     pub machine_handle: Handle<Node>,
     pub jump_animation: Handle<Animation>,
-    pub walk_animation: Handle<Animation>,
-    pub run_animation: Handle<Animation>,
     pub land_animation: Handle<Animation>,
     pub dying_animation: Handle<Animation>,
     pub hit_reaction_pistol_animation: Handle<Animation>,
     pub hit_reaction_rifle_animation: Handle<Animation>,
-    pub walk_state: Handle<State>,
-    pub jump_state: Handle<State>,
     pub fall_state: Handle<State>,
     pub land_state: Handle<State>,
-    pub walk_to_jump: Handle<Transition>,
     pub aim_state: Handle<State>,
-    pub toss_grenade_state: Handle<State>,
     pub put_back_state: Handle<State>,
-    pub toss_grenade_animation: Handle<Animation>,
-    pub put_back_animation: Handle<Animation>,
     pub grab_animation: Handle<Animation>,
 }
 
@@ -76,8 +68,6 @@ impl StateMachine {
         Some(Self {
             machine_handle,
             jump_animation: animations.find_by_name_ref("agent_jump")?.0,
-            walk_animation: animations.find_by_name_ref("agent_walk_rifle")?.0,
-            run_animation: animations.find_by_name_ref("agent_run_rifle")?.0,
             land_animation: animations.find_by_name_ref("agent_landing")?.0,
             dying_animation: animations.find_by_name_ref("agent_dying")?.0,
             hit_reaction_pistol_animation: animations
@@ -86,16 +76,10 @@ impl StateMachine {
             hit_reaction_rifle_animation: animations
                 .find_by_name_ref("agent_hit_reaction_rifle")?
                 .0,
-            walk_state: lower_body.find_state_by_name_ref("Walk")?.0,
-            jump_state: lower_body.find_state_by_name_ref("Jump")?.0,
             fall_state: lower_body.find_state_by_name_ref("Fall")?.0,
             land_state: lower_body.find_state_by_name_ref("Land")?.0,
-            walk_to_jump: lower_body.find_transition_by_name_ref("WalkToJump")?.0,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,
-            toss_grenade_state: upper_body.find_state_by_name_ref("TossGrenade")?.0,
             put_back_state: upper_body.find_state_by_name_ref("PutBack")?.0,
-            toss_grenade_animation: animations.find_by_name_ref("agent_toss_grenade")?.0,
-            put_back_animation: animations.find_by_name_ref("agent_put_back")?.0,
             grab_animation: animations.find_by_name_ref("agent_grab")?.0,
         })
     }
@@ -173,9 +157,6 @@ impl StateMachine {
             && animations_container[current_hit_reaction_animation].has_ended();
 
         let land_animation_ended = animations_container.get(self.land_animation).has_ended();
-        let toss_grenade_animation_ended = animations_container
-            .get(self.toss_grenade_animation)
-            .has_ended();
 
         scene
             .graph
@@ -200,10 +181,6 @@ impl StateMachine {
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("Recovered", Parameter::Rule(recovered))
-            .set_parameter(
-                "GrenadeTossed",
-                Parameter::Rule(toss_grenade_animation_ended),
-            )
             .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity));
     }
 
