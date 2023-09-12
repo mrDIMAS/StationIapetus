@@ -10,6 +10,8 @@ use crate::{
     weapon::WeaponMessage,
     Game, Level,
 };
+use fyrox::core::variable::InheritableVariable;
+use fyrox::scene::ragdoll::Ragdoll;
 use fyrox::{
     animation::machine::node::AnimationEventCollectionStrategy,
     core::{
@@ -84,6 +86,7 @@ pub struct Bot {
     target: Option<Target>,
     model: Handle<Node>,
     character: Character,
+    ragdoll: InheritableVariable<Handle<Node>>,
     #[reflect(hidden)]
     #[visit(skip)]
     state_machine: StateMachine,
@@ -189,6 +192,7 @@ impl Default for Bot {
                 target: 0.0,
                 speed: 270.0f32.to_radians(),
             },
+            ragdoll: Default::default(),
         }
     }
 }
@@ -354,6 +358,12 @@ impl Bot {
                             }
 
                             utils::try_play_random_sound(&self.attack_sounds, &mut scene.graph);
+                        }
+                    } else if event.name == "Dead" {
+                        if let Some(ragdoll) =
+                            scene.graph.try_get_mut_of_type::<Ragdoll>(*self.ragdoll)
+                        {
+                            ragdoll.set_active(true);
                         }
                     }
                 }
