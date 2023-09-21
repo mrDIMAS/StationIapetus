@@ -2,6 +2,7 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, Game, MessageSender,
 };
+use fyrox::core::futures::executor::block_on;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{pool::Handle, visitor::prelude::*},
@@ -61,7 +62,7 @@ impl Level {
         resource_manager: ResourceManager,
     ) -> Self {
         if sound_config.use_hrtf {
-            use_hrtf(&mut scene.graph.sound_context)
+            block_on(use_hrtf(&mut scene.graph.sound_context, &resource_manager))
         } else {
             scene
                 .graph
@@ -103,7 +104,7 @@ impl Level {
         let mut scene = Scene::new();
 
         if sound_config.use_hrtf {
-            use_hrtf(&mut scene.graph.sound_context)
+            use_hrtf(&mut scene.graph.sound_context, &resource_manager).await
         } else {
             scene
                 .graph

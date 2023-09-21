@@ -589,7 +589,10 @@ impl Game {
                     if let Some(level) = self.level.as_ref() {
                         let scene = &mut context.scenes[level.scene];
                         if self.sound_config.use_hrtf {
-                            use_hrtf(&mut scene.graph.sound_context)
+                            block_on(use_hrtf(
+                                &mut scene.graph.sound_context,
+                                &context.resource_manager,
+                            ))
                         } else {
                             scene
                                 .graph
@@ -833,7 +836,7 @@ impl Plugin for Game {
         let window = &graphics_context.window;
         window.set_title("Station Iapetus");
         window.set_resizable(true);
-        window.set_inner_size(inner_size);
+        let _ = window.request_inner_size(inner_size);
 
         // Re-load config here as well.
         match Config::load() {

@@ -1,6 +1,6 @@
 use fyrox::{
     animation::AnimationContainer,
-    asset::core::rand::Rng,
+    asset::{core::rand::Rng, manager::ResourceManager},
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
         log::Log,
@@ -11,7 +11,7 @@ use fyrox::{
         animation::AnimationPlayer,
         graph::Graph,
         node::Node,
-        sound::{self, context::SoundContext, Sound},
+        sound::{context::SoundContext, HrirSphereResourceData, Sound},
         Scene,
     },
 };
@@ -85,10 +85,12 @@ impl BodyImpactHandler {
     }
 }
 
-pub fn use_hrtf(context: &mut SoundContext) {
-    let hrtf_sphere =
-        fyrox::scene::sound::HrirSphere::from_file("data/sounds/hrtf.bin", sound::SAMPLE_RATE)
-            .unwrap();
+pub async fn use_hrtf(context: &mut SoundContext, resource_manager: &ResourceManager) {
+    let hrtf_sphere = resource_manager
+        .request::<HrirSphereResourceData, _>("data/sounds/hrtf.hrir")
+        .await
+        .unwrap();
+
     context
         .state()
         .set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
