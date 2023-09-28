@@ -441,27 +441,27 @@ impl InventoryInterface {
                 if state == ButtonState::Pressed {
                     // TODO: Add support for other input bindings.
                     if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             self.try_move_selection(MoveDirection::Up);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             self.try_move_selection(MoveDirection::Down);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_left.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             self.try_move_selection(MoveDirection::Left);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.cursor_right.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             self.try_move_selection(MoveDirection::Right);
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.action.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             let selection = self.selection();
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
@@ -505,7 +505,7 @@ impl InventoryInterface {
                         }
                     }
                     if let ControlButton::Key(key) = control_scheme.drop_item.button {
-                        if fyrox::utils::translate_key(key) == button {
+                        if fyrox::utils::translate_key_to_ui(key) == button {
                             let selection = self.selection();
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
