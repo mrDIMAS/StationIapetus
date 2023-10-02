@@ -55,7 +55,7 @@ impl MenuScene {
         .finish()
         .await;
 
-        scene.ambient_lighting_color = Color::opaque(20, 20, 20);
+        scene.rendering_options.ambient_lighting_color = Color::opaque(20, 20, 20);
 
         let buffer = context
             .resource_manager
