@@ -52,7 +52,7 @@ impl MenuScene {
         )
         .await
         .unwrap()
-        .finish()
+        .finish(&context.resource_manager)
         .await;
 
         scene.rendering_options.ambient_lighting_color = Color::opaque(20, 20, 20);

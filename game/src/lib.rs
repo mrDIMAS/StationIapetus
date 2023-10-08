@@ -381,7 +381,7 @@ impl Game {
                 &mut visitor,
                 Some(path.to_path_buf()),
             )?
-            .finish(),
+            .finish(&context.resource_manager),
         );
 
         let mut level = Level::default();
