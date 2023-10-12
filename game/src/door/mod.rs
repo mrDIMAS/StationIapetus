@@ -1,4 +1,4 @@
-use crate::{character::character_ref, inventory::Inventory, Game, Level};
+use crate::{character::character_ref, inventory::Inventory, utils, Game, Level};
 use fyrox::{
     animation::machine::{Event, Parameter},
     asset::manager::ResourceManager,
@@ -34,6 +34,18 @@ struct OpenRequest {
 pub struct Door {
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
     screens: Vec<Handle<Node>>,
+
+    #[visit(optional)]
+    open_sound: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    close_sound: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    access_granted_sound: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    access_denied_sound: InheritableVariable<Handle<Node>>,
 
     #[visit(optional)]
     key_item: InheritableVariable<Option<ModelResource>>,
@@ -76,6 +88,10 @@ impl Default for Door {
     fn default() -> Self {
         Self {
             screens: Default::default(),
+            open_sound: Default::default(),
+            close_sound: Default::default(),
+            access_granted_sound: Default::default(),
+            access_denied_sound: Default::default(),
             key_item: Default::default(),
             locked: Default::default(),
             opened_state: "Opened".to_string().into(),
@@ -154,8 +170,6 @@ impl ScriptTrait for Door {
             close_enough
         });
 
-        let position = self.actual_position(&ctx.scene.graph);
-
         if let Some(state_machine) = ctx
             .scene
             .graph
@@ -172,7 +186,7 @@ impl ScriptTrait for Door {
                     Parameter::Rule(open_request.as_ref().map_or(false, |r| r.open)),
                 );
 
-            let mut sound = None;
+            let mut sound = Handle::NONE;
 
             if let Some(layer) = machine.layers_mut().first_mut() {
                 while let Some(event) = layer.pop_event() {
@@ -180,9 +194,9 @@ impl ScriptTrait for Door {
                         let new_state_name = layer.state(new).name.as_str();
 
                         if new_state_name == self.opening_state.as_str() {
-                            sound = Some("data/sounds/door_open.ogg");
+                            sound = *self.open_sound;
                         } else if new_state_name == self.closing_state.as_str() {
-                            sound = Some("data/sounds/door_close.ogg");
+                            sound = *self.close_sound;
                         }
                     }
                 }
@@ -209,11 +223,11 @@ impl ScriptTrait for Door {
                         locked = true;
 
                         if let Some(open_request) = open_request.as_ref() {
-                            sound = Some(if open_request.open {
-                                "data/sounds/access_granted.ogg"
+                            sound = if open_request.open {
+                                *self.access_granted_sound
                             } else {
-                                "data/sounds/door_deny.ogg"
-                            });
+                                *self.access_denied_sound
+                            };
                         }
                     } else {
                         text = "Unknown";
@@ -225,16 +239,7 @@ impl ScriptTrait for Door {
                 }
             }
 
-            if let Some(sound) = sound {
-                level.sound_manager.play_sound(
-                    &mut ctx.scene.graph,
-                    sound,
-                    position,
-                    0.6,
-                    1.0,
-                    1.0,
-                );
-            }
+            utils::try_play_sound(sound, &mut ctx.scene.graph);
         }
     }
 
