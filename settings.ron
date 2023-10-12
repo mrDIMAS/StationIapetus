@@ -7,14 +7,16 @@
         quality: (
             point_shadow_map_size: 1024,
             point_soft_shadows: true,
-            point_shadows_enabled: true,
+            point_shadows_enabled: false,
             point_shadows_distance: 15.0,
             point_shadow_map_precision: Full,
+            point_shadows_fade_out_range: 1.0,
             spot_shadow_map_size: 1024,
-            spot_soft_shadows: true,
+            spot_soft_shadows: false,
             spot_shadows_enabled: true,
             spot_shadows_distance: 15.0,
             spot_shadow_map_precision: Full,
+            spot_shadows_fade_out_range: 1.0,
             csm_settings: (
                 enabled: true,
                 size: 2048,
@@ -33,15 +35,16 @@
     ),
     general: (
         show_node_removal_dialog: true,
+        suspend_unfocused_editor: true,
     ),
     debugging: (
-        show_physics: true,
+        show_physics: false,
         show_bounds: true,
         show_tbn: false,
         show_terrains: false,
-        show_light_bounds: true,
+        show_light_bounds: false,
         show_camera_bounds: false,
-        pictogram_size: 0.1,
+        pictogram_size: 0.0,
         save_scene_in_text_form: false,
     ),
     move_mode_settings: (
@@ -60,122 +63,14 @@
         instantiation_scale: (1.0, 1.0, 1.0),
     ),
     camera: (
-        speed: 10.0,
+        speed: 2.0,
         invert_dragging: false,
         drag_speed: 0.01,
-        zoom_speed: 1.0,
-        camera_settings: {
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_light\\starship_light.rgs": (
-                position: (0.016807377, 1.0770406, -0.91968524),
-                yaw: 0.13999908,
-                pitch: 0.44999993,
-            ),
-            "data/models/zombie/zombie.rgs": (
-                position: (-0.5175726, 0.44335553, 0.76907474),
-                yaw: 2.5799992,
-                pitch: 0.03999997,
-            ),
-            "data/models/bed/bed.rgs": (
-                position: (-0.024155322, 0.74291956, -2.033973),
-                yaw: -0.010000002,
-                pitch: 0.3,
-            ),
-            "data/levels/testbed.rgs": (
-                position: (-1.9924551, 2.692386, 5.6607895),
-                yaw: -3.2999961,
-                pitch: 0.4207971,
-            ),
-            "data/models/starship_door/starship_door_2.rgs": (
-                position: (-0.63234043, 1.083226, -0.40277576),
-                yaw: 0.6000001,
-                pitch: 0.3500001,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\trolley\\trolley.rgs": (
-                position: (-2.0477827, 0.20509622, -0.57364964),
-                yaw: 1.4899993,
-                pitch: 0.25079712,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\levels\\arrival_new.rgs": (
-                position: (7.701183, -0.67120266, -2.8509164),
-                yaw: 5.54,
-                pitch: -0.23920307,
-            ),
-            "data/models/agent/agent.rgs": (
-                position: (-0.21466519, 0.60442275, 0.78423315),
-                yaw: 2.9199991,
-                pitch: 0.47079656,
-            ),
-            "data/models/ak47/ak47_shot_1.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            "data/models/starship_parts/starship_section.rgs": (
-                position: (0.10797906, 0.0910238, 0.027716324),
-                yaw: 0.020000495,
-                pitch: 0.12999974,
-            ),
-            "data/models/ak47/ak47.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            "data/models/plasma_rifle/plasma_rifle.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            "data/models/rail.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            "data/models/m4/m4.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            ".\\data\\levels\\arrival.rgs": (
-                position: (-13.344022, 4.28357, -2.3446722),
-                yaw: -4.9299974,
-                pitch: 0.44079655,
-            ),
-            "data/models/cabinet/cabinet.rgs": (
-                position: (-0.2771491, 1.3541746, 1.58837),
-                yaw: 3.1499994,
-                pitch: 0.43999997,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_section.rgs": (
-                position: (2.0863771, 2.3489954, -1.8331127),
-                yaw: -0.78000045,
-                pitch: 0.83000004,
-            ),
-            "data/models/blood_splatter.rgs": (
-                position: (-0.72861034, 0.45535266, -0.25984323),
-                yaw: 1.2099999,
-                pitch: 0.3,
-            ),
-            "data/models/pistol_bullet.rgs": (
-                position: (0.0, 1.0, -3.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            "data/levels/arrival_new.rgs": (
-                position: (3.4360003, 0.22588135, 4.7192082),
-                yaw: 0.41010073,
-                pitch: 0.37079763,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\starship_parts\\starship_cross.rgs": (
-                position: (-0.29600275, 4.376987, -5.1092234),
-                yaw: 0.07999998,
-                pitch: 0.76999986,
-            ),
-            "\\\\?\\C:\\rust-engine\\StationIapetus\\data\\models\\cabinet\\cabinet.rgs": (
-                position: (0.12956017, 0.5005803, 0.34268498),
-                yaw: 3.449999,
-                pitch: 0.36000013,
-            ),
-        },
+        zoom_speed: 0.5,
+        zoom_range: (
+            start: 0.0,
+            end: 100.0,
+        ),
     ),
     navmesh: (
         draw_all: true,
@@ -334,41 +229,592 @@
                 system: false,
             ),
         ),
+        terrain_key_bindings: (
+            modify_height_map_mode: Some(
+                code: F1,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            draw_on_mask_mode: Some(
+                code: F2,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            flatten_slopes_mode: Some(
+                code: F3,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            increase_brush_size: Some(
+                code: BracketRight,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            decrease_brush_size: Some(
+                code: BracketLeft,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            increase_brush_opacity: Some(
+                code: Period,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            decrease_brush_opacity: Some(
+                code: Comma,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            prev_layer: Some(
+                code: Semicolon,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+            next_layer: Some(
+                code: Quote,
+                modifiers: (
+                    alt: false,
+                    shift: false,
+                    control: false,
+                    system: false,
+                ),
+            ),
+        ),
     ),
+    scene_settings: {
+        "data/models/kinetic_gun/kinetic_gun.rgs": (
+            camera_settings: (
+                position: (-2.006403, -1.2769253, 0.34597245),
+                yaw: -1.550001,
+                pitch: 0.54000074,
+            ),
+            node_infos: {
+                (
+                    index: 54,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 51,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 9,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/levels/testbed.rgs": (
+            camera_settings: (
+                position: (-3.7002475, -1.2280006, -3.3962429),
+                yaw: -1.29,
+                pitch: 0.6599992,
+            ),
+            node_infos: {
+                (
+                    index: 32,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 207,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 299,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        ".\\data\\models\\starship_door\\starship_door.rgs": (
+            camera_settings: (
+                position: (-1.1527534, 0.08315936, 1.2786138),
+                yaw: -0.9,
+                pitch: 0.14999999,
+            ),
+            node_infos: {},
+        ),
+        "data/models/starship_door/starship_door_2.rgs": (
+            camera_settings: (
+                position: (-0.98256457, -0.24273741, 0.645919),
+                yaw: -1.1999997,
+                pitch: 0.52000016,
+            ),
+            node_infos: {
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 55,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 52,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 53,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 54,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "\\\\?\\C:\\rust-engine\\StationIapetus\\unnamed.rgs": (
+            camera_settings: (
+                position: (-1.1239815, 1.4931499, -1.2610378),
+                yaw: 13.740035,
+                pitch: 0.6207964,
+            ),
+            node_infos: {},
+        ),
+        "data/levels/arrival_new.rgs": (
+            camera_settings: (
+                position: (-3.2259226, 0.1549969, 0.13943958),
+                yaw: -14.230013,
+                pitch: -0.04920233,
+            ),
+            node_infos: {
+                (
+                    index: 143,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 436,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 79,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 334,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 62,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 401,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 271,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 86,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 289,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 278,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 134,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 360,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 145,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 335,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 209,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 144,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 359,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 78,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 101,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 363,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 254,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 217,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 238,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 70,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 389,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 318,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 109,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 400,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 261,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 384,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 354,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 114,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 246,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 87,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 320,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 262,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 376,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 287,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 15,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/starship_door/starship_door.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+            ),
+            node_infos: {},
+        ),
+        "unnamed.rgs": (
+            camera_settings: (
+                position: (-2.379105, -1.9686074, -0.9530728),
+                yaw: 99.30835,
+                pitch: 0.89079726,
+            ),
+            node_infos: {
+                (
+                    index: 45,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 47,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 46,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 44,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 43,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+    },
     recent: (
         scenes: [
-            "data/levels/arrival.rgs",
             "data/levels/arrival_new.rgs",
             "data/levels/testbed.rgs",
-            "data/models/agent/agent.rgs",
-            "data/models/ak47/ak47.rgs",
-            "data/models/ak47/ak47_shot_1.rgs",
-            "data/models/barrel/barrel.rgs",
-            "data/models/bed/bed.rgs",
-            "data/models/blood_splatter.rgs",
-            "data/models/bullet_impact.rgs",
-            "data/models/cabinet/cabinet.rgs",
-            "data/models/container/container.rgs",
-            "data/models/glock/glock.rgs",
             "data/models/kinetic_gun/kinetic_gun.rgs",
-            "data/models/m4/m4.rgs",
-            "data/models/master_key/master_key.rgs",
-            "data/models/pistol_bullet.rgs",
-            "data/models/plasma_rifle/plasma_rifle.rgs",
-            "data/models/rail.rgs",
-            "data/models/rail_gun/rail_gun.rgs",
+            "data/models/starship_door/starship_door.rgs",
             "data/models/starship_door/starship_door_2.rgs",
-            "data/models/starship_light/starship_light.rgs",
-            "data/models/starship_parts/starship_cross.rgs",
-            "data/models/starship_parts/starship_right_corner.rgs",
-            "data/models/starship_parts/starship_section.rgs",
-            "data/models/trolley/trolley.rgs",
-            "data/models/turret/turret.rgs",
-            "data/models/zombie/zombie.rgs",
         ],
     ),
     windows: (
-        window_position: (-8.0, -8.0),
+        window_position: (0.0, 0.0),
         window_size: (1920.0, 1017.0),
         layout: None,
     ),
