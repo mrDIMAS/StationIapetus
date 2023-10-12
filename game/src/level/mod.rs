@@ -2,10 +2,9 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, Game, MessageSender,
 };
-use fyrox::core::futures::executor::block_on;
 use fyrox::{
     asset::manager::ResourceManager,
-    core::{pool::Handle, visitor::prelude::*},
+    core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
     plugin::{Plugin, PluginContext},
     resource::model::{Model, ModelResourceExtension},
     scene::{
@@ -16,6 +15,7 @@ use fyrox::{
 };
 use std::path::Path;
 
+pub mod arrival;
 pub mod death_zone;
 pub mod decal;
 pub mod explosion;

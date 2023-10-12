@@ -21,6 +21,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::level::arrival::enemy_trap::EnemyTrap;
 use crate::weapon::kinetic::KineticGun;
 use crate::{
     bot::Bot,
@@ -772,7 +773,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Rail>("Rail")
             .add::<Explosion>("Explosion")
             .add::<Beam>("Beam")
-            .add::<KineticGun>("KineticGun");
+            .add::<KineticGun>("KineticGun")
+            .add::<EnemyTrap>("ArrivalEnemyTrap");
     }
 
     fn create_instance(

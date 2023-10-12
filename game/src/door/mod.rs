@@ -51,7 +51,7 @@ pub struct Door {
     key_item: InheritableVariable<Option<ModelResource>>,
 
     #[visit(optional)]
-    locked: InheritableVariable<bool>,
+    pub locked: InheritableVariable<bool>,
 
     #[visit(optional)]
     opened_state: InheritableVariable<String>,
