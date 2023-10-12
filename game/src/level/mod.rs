@@ -13,7 +13,7 @@ use fyrox::{
         Scene,
     },
 };
-use std::path::Path;
+use std::path::PathBuf;
 
 pub mod arrival;
 pub mod death_zone;
@@ -26,7 +26,6 @@ pub mod turret;
 
 #[derive(Default, Visit)]
 pub struct Level {
-    pub map_path: String,
     pub scene: Handle<Scene>,
     pub player: Handle<Node>,
     pub actors: Vec<Handle<Node>>,
@@ -90,13 +89,12 @@ impl Level {
             sender: Some(sender),
             sound_manager: SoundManager::new(scene, resource_manager),
             doors_container: Default::default(),
-            map_path: Default::default(),
             elevators: Default::default(),
         }
     }
 
     pub async fn new(
-        map: String,
+        path: PathBuf,
         resource_manager: ResourceManager,
         sender: MessageSender,
         sound_config: SoundConfig, // Using copy, instead of reference because of async.
@@ -113,10 +111,7 @@ impl Level {
                 .set_renderer(fyrox::scene::sound::Renderer::Default);
         }
 
-        let map_model = resource_manager
-            .request::<Model, _>(Path::new(&map))
-            .await
-            .unwrap();
+        let map_model = resource_manager.request::<Model, _>(path).await.unwrap();
 
         scene.rendering_options.ambient_lighting_color = map_model
             .data_ref()
@@ -146,7 +141,6 @@ impl Level {
             sender: Some(sender),
             sound_manager: SoundManager::new(&mut scene, resource_manager),
             doors_container: Default::default(),
-            map_path: map,
             elevators: Default::default(),
         };
 

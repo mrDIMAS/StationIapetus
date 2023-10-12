@@ -18,7 +18,9 @@ pub enum Message {
     StartNewGame,
     LoadTestbed,
     QuitGame,
-    LoadNextLevel,
+    LoadLevel {
+        path: PathBuf,
+    },
     ToggleMainMenu,
     EndMatch,
     EndGame,

@@ -9,7 +9,7 @@ use station_iapetus::{
     level::{
         item::{Item, ItemAction},
         spawn::DefaultWeapon,
-        trigger::TriggerKind,
+        trigger::TriggerAction,
         turret::{Barrel, Hostility, ShootMode},
         Level,
     },
@@ -34,7 +34,7 @@ fn main() {
     editors.register_inheritable_enum::<CombatWeaponKind, _>();
     editors.register_inheritable_enum::<CallButtonKind, _>();
     editors.register_inheritable_enum::<Damage, _>();
-    editors.register_inheritable_enum::<TriggerKind, _>();
+    editors.register_inheritable_enum::<TriggerAction, _>();
     editors.register_inheritable_enum::<BotHostility, _>();
     editors.register_inheritable_enum::<ItemAction, _>();
     editors.register_inheritable_inspectable::<Inventory>();

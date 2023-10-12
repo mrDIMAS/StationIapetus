@@ -21,8 +21,6 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::level::arrival::enemy_trap::EnemyTrap;
-use crate::weapon::kinetic::KineticGun;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -35,8 +33,8 @@ use crate::{
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     level::{
-        death_zone::DeathZone, decal::Decal, explosion::Explosion, item::Item,
-        spawn::CharacterSpawnPoint, turret::Turret, Level,
+        arrival::enemy_trap::EnemyTrap, death_zone::DeathZone, decal::Decal, explosion::Explosion,
+        item::Item, spawn::CharacterSpawnPoint, trigger::Trigger, turret::Turret, Level,
     },
     light::AnimatedLight,
     loading_screen::LoadingScreen,
@@ -44,9 +42,8 @@ use crate::{
     message::Message,
     player::{camera::CameraController, Player},
     utils::use_hrtf,
-    weapon::{projectile::Projectile, sight::LaserSight, Weapon},
+    weapon::{kinetic::KineticGun, projectile::Projectile, sight::LaserSight, Weapon},
 };
-use fyrox::keyboard::KeyCode;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -69,6 +66,7 @@ use fyrox::{
         widget::{WidgetBuilder, WidgetMessage},
         UiNode, UserInterface,
     },
+    keyboard::KeyCode,
     material::{shader::SamplerFallback, Material, PropertyValue},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
     resource::texture::TextureResource,
@@ -418,7 +416,7 @@ impl Game {
         }
     }
 
-    pub fn load_level<S: AsRef<str>>(&mut self, map: S, context: &mut PluginContext) {
+    pub fn load_level(&mut self, path: PathBuf, context: &mut PluginContext) {
         self.destroy_level(context);
 
         let ctx = Arc::new(Mutex::new(LoadContext { level: None }));
@@ -438,11 +436,10 @@ impl Game {
         let sender = self.message_sender.clone();
         let sound_config = self.sound_config.clone();
 
-        let map_path = map.as_ref().to_owned();
         std::thread::spawn(move || {
             let level = {
                 let (arrival, scene) = block_on(Level::new(
-                    map_path,
+                    path,
                     resource_manager.clone(),
                     sender,
                     sound_config,
@@ -537,10 +534,10 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::ARRIVAL_PATH, context);
+                    self.load_level(Level::ARRIVAL_PATH.into(), context);
                 }
                 Message::LoadTestbed => {
-                    self.load_level(Level::TESTBED_PATH, context);
+                    self.load_level(Level::TESTBED_PATH.into(), context);
                 }
                 Message::SaveGame => match self.save_game(context) {
                     Ok(_) => Log::info("Successfully saved"),
@@ -551,18 +548,7 @@ impl Game {
                         Log::err(format!("Failed to load saved game. Reason: {e:?}"));
                     }
                 }
-                Message::LoadNextLevel => {
-                    if let Some(level) = self.level.as_ref() {
-                        let kind = match level.map_path.as_ref() {
-                            Level::ARRIVAL_PATH => Some(Level::LAB_PATH),
-                            _ => None,
-                        };
-
-                        if let Some(kind) = kind {
-                            self.load_level(kind, context)
-                        }
-                    }
-                }
+                Message::LoadLevel { path } => self.load_level(path.clone(), context),
                 Message::QuitGame => {
                     self.destroy_level(context);
                     self.running = false;
@@ -774,7 +760,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Explosion>("Explosion")
             .add::<Beam>("Beam")
             .add::<KineticGun>("KineticGun")
-            .add::<EnemyTrap>("ArrivalEnemyTrap");
+            .add::<EnemyTrap>("ArrivalEnemyTrap")
+            .add::<Trigger>("Trigger");
     }
 
     fn create_instance(
