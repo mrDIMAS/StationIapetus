@@ -11,7 +11,9 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    scene::{debug::SceneDrawingContext, node::Node, Scene},
+    scene::{
+        animation::AnimationPlayer, debug::SceneDrawingContext, graph::Graph, node::Node, Scene,
+    },
     script::{ScriptContext, ScriptTrait},
 };
 
@@ -27,6 +29,12 @@ enum State {
 pub struct EnemyTrap {
     #[visit(optional)]
     doors_to_lock: InheritableVariable<Vec<Handle<Node>>>,
+
+    #[visit(optional)]
+    nodes_to_enable_on_activation: InheritableVariable<Vec<Handle<Node>>>,
+
+    #[visit(optional)]
+    nodes_to_enable_on_deactivation: InheritableVariable<Vec<Handle<Node>>>,
 
     #[visit(optional)]
     #[reflect(hidden)]
@@ -83,6 +91,16 @@ impl EnemyTrap {
             Color::RED,
         );
     }
+
+    fn enable_nodes(&self, graph: &mut Graph, animations: &[Handle<Node>]) {
+        for node_handle in animations.iter() {
+            if let Some(animation_player) =
+                graph.try_get_mut_of_type::<AnimationPlayer>(*node_handle)
+            {
+                animation_player.set_enabled(true);
+            }
+        }
+    }
 }
 
 impl_component_provider!(EnemyTrap);
@@ -94,6 +112,16 @@ impl TypeUuidProvider for EnemyTrap {
 }
 
 impl ScriptTrait for EnemyTrap {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
+        for animation in self
+            .nodes_to_enable_on_activation
+            .iter()
+            .chain(&*self.nodes_to_enable_on_deactivation)
+        {
+            ctx.scene.graph[*animation].set_enabled(false);
+        }
+    }
+
     fn on_update(&mut self, context: &mut ScriptContext) {
         match self.state {
             State::Inactive => {
@@ -109,12 +137,20 @@ impl ScriptTrait for EnemyTrap {
 
                         self.find_enemies(context.scene, &level.actors, &this_bounds);
                         self.lock_doors(context.scene, true);
+                        self.enable_nodes(
+                            &mut context.scene.graph,
+                            &self.nodes_to_enable_on_activation,
+                        );
                     }
                 }
             }
             State::Active => {
                 if self.is_all_enemies_dead(&context.scene) {
                     self.lock_doors(context.scene, false);
+                    self.enable_nodes(
+                        &mut context.scene.graph,
+                        &self.nodes_to_enable_on_deactivation,
+                    );
                     self.state = State::Finished;
                 }
             }
