@@ -6,7 +6,7 @@ use crate::{
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
-        math::{aabb::AxisAlignedBoundingBox, ray::Ray},
+        math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
         uuid::{uuid, Uuid},
@@ -38,6 +38,10 @@ struct Target {
 pub struct KineticGun {
     weapon: Weapon,
     #[visit(optional)]
+    ray: InheritableVariable<Handle<Node>>,
+    #[visit(optional)]
+    laser_sight: InheritableVariable<Handle<Node>>,
+    #[visit(optional)]
     range: InheritableVariable<f32>,
     #[visit(optional)]
     force: InheritableVariable<f32>,
@@ -55,6 +59,8 @@ impl Default for KineticGun {
             range: 10.0.into(),
             force: 10.0.into(),
             target: Default::default(),
+            ray: Default::default(),
+            laser_sight: Default::default(),
         }
     }
 }
@@ -161,12 +167,30 @@ impl ScriptTrait for KineticGun {
                         .transform_point(&Point3::from(target.grab_point))
                         .coords;
 
+                    let delta = begin - grab_point;
+
+                    let relative_delta = &ctx.scene.graph[ctx.handle]
+                        .global_transform()
+                        .try_inverse()
+                        .unwrap_or_default()
+                        .transform_vector(&delta)
+                        .try_normalize(f32::EPSILON)
+                        .unwrap_or_default();
+
+                    if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
+                        let rotation = math::vector_to_quat(-*relative_delta);
+
+                        ray.local_transform_mut()
+                            .set_rotation(rotation)
+                            .set_scale(Vector3::new(1.0, 1.0, delta.norm()));
+                    }
+
                     if let Some(target_body) = ctx
                         .scene
                         .graph
                         .try_get_mut_of_type::<RigidBody>(target.node)
                     {
-                        let velocity = (begin - grab_point).scale(2.0);
+                        let velocity = delta.scale(2.0);
 
                         target_body.set_lin_vel(velocity);
                         target_body.set_ang_vel(Default::default());
@@ -176,6 +200,14 @@ impl ScriptTrait for KineticGun {
             }
         } else {
             self.target = None;
+        }
+
+        if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
+            ray.set_visibility(self.target.is_some());
+        }
+
+        if let Some(laser_sight) = ctx.scene.graph.try_get_mut(*self.laser_sight) {
+            laser_sight.set_visibility(self.target.is_none());
         }
     }
 
