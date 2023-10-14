@@ -126,17 +126,27 @@ impl ScriptTrait for KineticGun {
                             .try_get_of_type::<RigidBody>(collider.parent())
                         {
                             if rigid_body.body_type() == RigidBodyType::Dynamic {
-                                self.target = Some(Target {
-                                    node: collider.parent(),
-                                    grab_point: collider
-                                        .global_transform()
-                                        .try_inverse()
-                                        .map(|inv| {
-                                            inv.transform_point(&intersection.position).coords
-                                        })
-                                        .unwrap_or_default(),
-                                    collider: intersection.collider,
-                                });
+                                let target_node = collider.parent();
+
+                                let aabb = ctx
+                                    .scene
+                                    .graph
+                                    .aabb_of_descendants(target_node)
+                                    .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
+
+                                if aabb.volume() <= 0.15 {
+                                    self.target = Some(Target {
+                                        node: target_node,
+                                        grab_point: collider
+                                            .global_transform()
+                                            .try_inverse()
+                                            .map(|inv| {
+                                                inv.transform_point(&intersection.position).coords
+                                            })
+                                            .unwrap_or_default(),
+                                        collider: intersection.collider,
+                                    });
+                                }
                             }
                         }
                     }
@@ -151,19 +161,12 @@ impl ScriptTrait for KineticGun {
                         .transform_point(&Point3::from(target.grab_point))
                         .coords;
 
-                    let aabb = ctx
-                        .scene
-                        .graph
-                        .aabb_of_descendants(target.node)
-                        .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
-
                     if let Some(target_body) = ctx
                         .scene
                         .graph
                         .try_get_mut_of_type::<RigidBody>(target.node)
                     {
-                        let velocity = (begin - grab_point)
-                            .scale((0.05 / aabb.volume().max(0.0001) * 6.0).clamp(0.0, 2.0));
+                        let velocity = (begin - grab_point).scale(2.0);
 
                         target_body.set_lin_vel(velocity);
                         target_body.set_ang_vel(Default::default());
@@ -187,15 +190,9 @@ impl ScriptTrait for KineticGun {
             if msg.weapon == ctx.handle {
                 if let WeaponMessageData::Shoot { direction } = msg.data {
                     if let Some(target) = self.target.as_ref() {
-                        let aabb = ctx
-                            .scene
-                            .graph
-                            .aabb_of_descendants(target.node)
-                            .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
-
                         let velocity = direction
                             .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
-                            .scale(*self.force / (100.0 * aabb.volume().max(0.0001)).max(1.0));
+                            .scale(*self.force);
 
                         if let Some(target_body) = ctx
                             .scene
