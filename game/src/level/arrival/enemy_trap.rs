@@ -1,6 +1,7 @@
 use crate::{bot::Bot, door::Door, level::Level};
 use fyrox::{
     core::{
+        color::Color,
         math::aabb::AxisAlignedBoundingBox,
         pool::Handle,
         reflect::prelude::*,
@@ -10,7 +11,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    scene::{node::Node, Scene},
+    scene::{debug::SceneDrawingContext, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
 
@@ -74,6 +75,13 @@ impl EnemyTrap {
                 door.locked.set_value_and_mark_modified(lock);
             }
         }
+    }
+
+    pub fn editor_debug_draw(&self, node: &Node, drawing_context: &mut SceneDrawingContext) {
+        drawing_context.draw_aabb(
+            &AxisAlignedBoundingBox::unit().transform(&node.global_transform()),
+            Color::RED,
+        );
     }
 }
 

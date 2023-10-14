@@ -1,12 +1,13 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
-use fyroxed_base::{Editor, StartupData};
+use fyroxed_base::{plugin::EditorPlugin, Editor, StartupData};
 use station_iapetus::{
     bot::BotHostility,
     character::{Character, HitBox},
     elevator::call_button::CallButtonKind,
     inventory::{Inventory, ItemEntry},
     level::{
+        arrival::enemy_trap::EnemyTrap,
         item::{Item, ItemAction},
         spawn::DefaultWeapon,
         trigger::TriggerAction,
@@ -18,6 +19,24 @@ use station_iapetus::{
     GameConstructor,
 };
 
+struct EditorExtension {}
+
+impl EditorPlugin for EditorExtension {
+    fn on_post_update(&mut self, editor: &mut Editor) {
+        if let Some(editor_scene) = editor.scenes.current_editor_scene_mut() {
+            let scene = &mut editor.engine.scenes[editor_scene.scene];
+
+            for node in scene.graph.linear_iter() {
+                if let Some(script) = node.script() {
+                    if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
+                        enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
+                    }
+                }
+            }
+        }
+    }
+}
+
 fn main() {
     let event_loop = EventLoop::new().unwrap();
     let mut editor = Editor::new(
@@ -27,6 +46,8 @@ fn main() {
             scene: Level::ARRIVAL_PATH.into(),
         }),
     );
+
+    editor.add_editor_plugin(EditorExtension {});
 
     let editors = &editor.inspector.property_editors;
     editors.register_inheritable_enum::<Hostility, _>();
