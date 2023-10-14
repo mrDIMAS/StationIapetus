@@ -1,11 +1,13 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
+    level::Level,
+    player::{camera::CameraController, Player},
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Item,
 };
 use fyrox::{
     core::{
-        algebra::{Point3, Vector3},
+        algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
@@ -14,8 +16,9 @@ use fyrox::{
         visitor::prelude::*,
         TypeUuidProvider,
     },
-    event::Event,
+    event::{Event, WindowEvent},
     impl_component_provider,
+    keyboard::KeyCode,
     scene::{
         collider::{BitMask, Collider, InteractionGroups},
         graph::physics::RayCastOptions,
@@ -91,6 +94,57 @@ impl ScriptTrait for KineticGun {
 
     fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) {
         self.weapon.on_os_event(event, ctx);
+
+        if let Some(level) = Level::try_get(ctx.plugins) {
+            if let Some(target) = self.target.as_ref() {
+                if let Event::WindowEvent { event, .. } = event {
+                    if let WindowEvent::KeyboardInput { event, .. } = event {
+                        if let Some(player) = ctx
+                            .scene
+                            .graph
+                            .try_get_script_component_of::<Player>(level.player)
+                        {
+                            if let Some(camera_controller) = ctx
+                                .scene
+                                .graph
+                                .try_get_script_component_of::<CameraController>(
+                                    player.camera_controller,
+                                )
+                            {
+                                if let Some(camera) =
+                                    ctx.scene.graph.try_get(camera_controller.camera)
+                                {
+                                    let axis = match event.physical_key {
+                                        KeyCode::KeyZ => Some(camera.side_vector()),
+                                        KeyCode::KeyX => Some(-camera.side_vector()),
+                                        KeyCode::KeyC => Some(-camera.look_vector()),
+                                        KeyCode::KeyV => Some(camera.look_vector()),
+                                        _ => None,
+                                    };
+                                    if let Some(axis) = axis {
+                                        let rotation = UnitQuaternion::from_axis_angle(
+                                            &UnitVector3::new_normalize(axis),
+                                            5.0f32.to_radians(),
+                                        );
+
+                                        if let Some(target_body) = ctx
+                                            .scene
+                                            .graph
+                                            .try_get_mut_of_type::<RigidBody>(target.node)
+                                        {
+                                            let local_transform = target_body.local_transform_mut();
+                                            let new_rotation =
+                                                **local_transform.rotation() * rotation;
+                                            local_transform.set_rotation(new_rotation);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
@@ -98,66 +152,6 @@ impl ScriptTrait for KineticGun {
 
         if self.is_active {
             let begin = self.weapon.shot_position(&ctx.scene.graph);
-
-            if self.target.is_none() {
-                let dir = self
-                    .weapon
-                    .shot_direction(&ctx.scene.graph)
-                    .scale(*self.range);
-
-                let physics = &mut ctx.scene.graph.physics;
-                let ray = Ray::new(begin, dir);
-
-                let mut query_buffer = Vec::default();
-                physics.cast_ray(
-                    RayCastOptions {
-                        ray_origin: Point3::from(ray.origin),
-                        ray_direction: ray.dir,
-                        max_len: ray.dir.norm(),
-                        groups: InteractionGroups::new(
-                            BitMask(0xFFFF),
-                            // Prevent characters from grabbing.
-                            BitMask(!(CollisionGroups::ActorCapsule as u32)),
-                        ),
-                        sort_results: true,
-                    },
-                    &mut query_buffer,
-                );
-
-                for intersection in query_buffer.iter() {
-                    if let Some(collider) = ctx.scene.graph.try_get(intersection.collider) {
-                        if let Some(rigid_body) = ctx
-                            .scene
-                            .graph
-                            .try_get_of_type::<RigidBody>(collider.parent())
-                        {
-                            if rigid_body.body_type() == RigidBodyType::Dynamic {
-                                let target_node = collider.parent();
-
-                                let aabb = ctx
-                                    .scene
-                                    .graph
-                                    .aabb_of_descendants(target_node)
-                                    .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
-
-                                if aabb.volume() <= 0.15 {
-                                    self.target = Some(Target {
-                                        node: target_node,
-                                        grab_point: collider
-                                            .global_transform()
-                                            .try_inverse()
-                                            .map(|inv| {
-                                                inv.transform_point(&intersection.position).coords
-                                            })
-                                            .unwrap_or_default(),
-                                        collider: intersection.collider,
-                                    });
-                                }
-                            }
-                        }
-                    }
-                }
-            }
 
             if let Some(target) = self.target.as_ref() {
                 if let Some(collider) = ctx.scene.graph.try_get_of_type::<Collider>(target.collider)
@@ -221,23 +215,95 @@ impl ScriptTrait for KineticGun {
         if let Some(msg) = message.downcast_ref::<WeaponMessage>() {
             if msg.weapon == ctx.handle {
                 if let WeaponMessageData::Shoot { direction } = msg.data {
-                    if let Some(target) = self.target.as_ref() {
-                        let velocity = direction
-                            .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
-                            .scale(*self.force);
+                    match self.target.as_ref() {
+                        Some(target) => {
+                            let velocity = direction
+                                .unwrap_or_else(|| self.weapon.shot_direction(&ctx.scene.graph))
+                                .scale(*self.force);
 
-                        if let Some(target_body) = ctx
-                            .scene
-                            .graph
-                            .try_get_mut_of_type::<RigidBody>(target.node)
-                        {
-                            target_body.set_lin_vel(velocity);
-                            target_body.wake_up();
+                            if let Some(target_body) = ctx
+                                .scene
+                                .graph
+                                .try_get_mut_of_type::<RigidBody>(target.node)
+                            {
+                                target_body.set_lin_vel(velocity);
+                                target_body.wake_up();
+                            }
+
+                            self.target = None;
+                            self.is_active = false;
+                        }
+                        None => {
+                            let begin = self.weapon.shot_position(&ctx.scene.graph);
+
+                            if self.target.is_none() {
+                                let dir = self
+                                    .weapon
+                                    .shot_direction(&ctx.scene.graph)
+                                    .scale(*self.range);
+
+                                let physics = &mut ctx.scene.graph.physics;
+                                let ray = Ray::new(begin, dir);
+
+                                let mut query_buffer = Vec::default();
+                                physics.cast_ray(
+                                    RayCastOptions {
+                                        ray_origin: Point3::from(ray.origin),
+                                        ray_direction: ray.dir,
+                                        max_len: ray.dir.norm(),
+                                        groups: InteractionGroups::new(
+                                            BitMask(0xFFFF),
+                                            // Prevent characters from grabbing.
+                                            BitMask(!(CollisionGroups::ActorCapsule as u32)),
+                                        ),
+                                        sort_results: true,
+                                    },
+                                    &mut query_buffer,
+                                );
+
+                                for intersection in query_buffer.iter() {
+                                    if let Some(collider) =
+                                        ctx.scene.graph.try_get(intersection.collider)
+                                    {
+                                        if let Some(rigid_body) = ctx
+                                            .scene
+                                            .graph
+                                            .try_get_of_type::<RigidBody>(collider.parent())
+                                        {
+                                            if rigid_body.body_type() == RigidBodyType::Dynamic {
+                                                let target_node = collider.parent();
+
+                                                let aabb = ctx
+                                                    .scene
+                                                    .graph
+                                                    .aabb_of_descendants(target_node)
+                                                    .unwrap_or_else(
+                                                        AxisAlignedBoundingBox::collapsed,
+                                                    );
+
+                                                if aabb.volume() <= 0.15 {
+                                                    self.target = Some(Target {
+                                                        node: target_node,
+                                                        grab_point: collider
+                                                            .global_transform()
+                                                            .try_inverse()
+                                                            .map(|inv| {
+                                                                inv.transform_point(
+                                                                    &intersection.position,
+                                                                )
+                                                                .coords
+                                                            })
+                                                            .unwrap_or_default(),
+                                                        collider: intersection.collider,
+                                                    });
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
-
-                    self.target = None;
-                    self.is_active = false;
                 }
             }
         } else if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {

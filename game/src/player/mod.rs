@@ -123,7 +123,7 @@ pub struct PlayerPersistentData {
 #[derive(Visit, Reflect, Debug)]
 pub struct Player {
     character: Character,
-    camera_controller: Handle<Node>,
+    pub camera_controller: Handle<Node>,
     model_pivot: Handle<Node>,
     #[visit(optional)]
     model_sub_pivot: Handle<Node>,

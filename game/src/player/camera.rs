@@ -24,7 +24,7 @@ pub struct CameraController {
     player: Handle<Node>,
     ignorable_collider: Handle<Node>,
     camera_hinge: Handle<Node>,
-    camera: Handle<Node>,
+    pub camera: Handle<Node>,
     camera_offset: Vector3<f32>,
     target_camera_offset: Vector3<f32>,
     shake_offset: Vector3<f32>,
