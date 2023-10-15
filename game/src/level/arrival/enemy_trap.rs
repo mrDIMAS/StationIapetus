@@ -11,9 +11,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    scene::{
-        animation::AnimationPlayer, debug::SceneDrawingContext, graph::Graph, node::Node, Scene,
-    },
+    scene::{debug::SceneDrawingContext, graph::Graph, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
 
@@ -94,10 +92,8 @@ impl EnemyTrap {
 
     fn enable_nodes(&self, graph: &mut Graph, animations: &[Handle<Node>]) {
         for node_handle in animations.iter() {
-            if let Some(animation_player) =
-                graph.try_get_mut_of_type::<AnimationPlayer>(*node_handle)
-            {
-                animation_player.set_enabled(true);
+            if let Some(node) = graph.try_get_mut(*node_handle) {
+                node.set_enabled(true);
             }
         }
     }
