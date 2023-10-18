@@ -6,14 +6,12 @@ use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
     plugin::{Plugin, PluginContext},
-    resource::model::{Model, ModelResourceExtension},
     scene::{
         navmesh::NavigationalMesh,
         node::{Node, NodeTrait},
         Scene,
     },
 };
-use std::path::PathBuf;
 
 pub mod arrival;
 pub mod death_zone;
@@ -91,60 +89,6 @@ impl Level {
             doors_container: Default::default(),
             elevators: Default::default(),
         }
-    }
-
-    pub async fn new(
-        path: PathBuf,
-        resource_manager: ResourceManager,
-        sender: MessageSender,
-        sound_config: SoundConfig, // Using copy, instead of reference because of async.
-    ) -> (Self, Scene) {
-        let mut scene = Scene::new();
-
-        if sound_config.use_hrtf {
-            use_hrtf(&mut scene.graph.sound_context, &resource_manager).await
-        } else {
-            scene
-                .graph
-                .sound_context
-                .state()
-                .set_renderer(fyrox::scene::sound::Renderer::Default);
-        }
-
-        let map_model = resource_manager.request::<Model, _>(path).await.unwrap();
-
-        scene.rendering_options.ambient_lighting_color = map_model
-            .data_ref()
-            .get_scene()
-            .rendering_options
-            .ambient_lighting_color;
-
-        // Instantiate map
-        map_model.instantiate(&mut scene);
-
-        scene
-            .graph
-            .update(Default::default(), 0.0, Default::default());
-
-        let navmesh = scene
-            .graph
-            .find_from_root(&mut |n| n.cast::<NavigationalMesh>().is_some())
-            .map(|t| t.0)
-            .unwrap_or_default();
-
-        let level = Self {
-            navmesh,
-            player: Default::default(),
-            actors: Default::default(),
-            items: Default::default(),
-            scene: Handle::NONE, // Filled when scene will be moved to engine.
-            sender: Some(sender),
-            sound_manager: SoundManager::new(&mut scene, resource_manager),
-            doors_container: Default::default(),
-            elevators: Default::default(),
-        };
-
-        (level, scene)
     }
 
     pub fn destroy(&mut self, context: &mut PluginContext) {

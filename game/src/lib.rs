@@ -97,7 +97,6 @@ pub struct Game {
     control_scheme: ControlScheme,
     message_receiver: Receiver<Message>,
     message_sender: MessageSender,
-    load_context: Option<Arc<Mutex<LoadContext>>>,
     loading_screen: LoadingScreen,
     death_screen: DeathScreen,
     final_screen: FinalScreen,
@@ -120,10 +119,6 @@ pub struct Game {
 pub enum CollisionGroups {
     ActorCapsule = 1 << 0,
     All = std::u16::MAX,
-}
-
-pub struct LoadContext {
-    level: Option<(Level, Scene)>,
 }
 
 pub fn create_display_material(display_texture: TextureResource) -> Arc<Mutex<Material>> {
@@ -160,7 +155,11 @@ impl Game {
         plugins.first_mut().unwrap().cast_mut::<Game>().unwrap()
     }
 
-    pub fn new(override_scene: Handle<Scene>, mut context: PluginContext) -> Self {
+    pub fn new(scene_path: Option<&str>, mut context: PluginContext) -> Self {
+        if let Some(scene_path) = scene_path {
+            context.async_scene_loader.request(scene_path);
+        }
+
         let font = SharedFont::new(
             fyrox::core::futures::executor::block_on(Font::from_file(
                 Path::new("data/ui/SquaresBold.ttf"),
@@ -214,22 +213,6 @@ impl Game {
         let item_display = ItemDisplay::new(smaller_font.clone(), even_smaller_font.clone());
         let journal_display = JournalDisplay::new();
 
-        let level = if override_scene.is_some() {
-            let sound_config = sound_config.clone();
-
-            Some(Level::from_existing_scene(
-                &mut context.scenes[override_scene],
-                override_scene,
-                message_sender.clone(),
-                sound_config,
-                context.resource_manager.clone(),
-            ))
-        } else {
-            None
-        };
-
-        let has_level = level.is_some();
-
         let mut game = Game {
             even_smaller_font,
             show_debug_info,
@@ -255,9 +238,8 @@ impl Game {
             item_display,
             journal_display,
             smaller_font,
-            level,
+            level: None,
             debug_string: String::new(),
-            load_context: None,
             inventory_interface,
             message_receiver: rx,
             message_sender,
@@ -267,7 +249,7 @@ impl Game {
         };
 
         game.create_debug_ui(&mut context);
-        game.menu.set_visible(&mut context, !has_level);
+        game.menu.set_visible(&mut context, true);
 
         game
     }
@@ -418,37 +400,7 @@ impl Game {
 
     pub fn load_level(&mut self, path: PathBuf, context: &mut PluginContext) {
         self.destroy_level(context);
-
-        let ctx = Arc::new(Mutex::new(LoadContext { level: None }));
-
-        self.load_context = Some(ctx.clone());
-
-        context
-            .user_interface
-            .send_message(WidgetMessage::visibility(
-                self.loading_screen.root,
-                MessageDirection::ToWidget,
-                true,
-            ));
-        self.menu.set_visible(context, false);
-
-        let resource_manager = context.resource_manager.clone();
-        let sender = self.message_sender.clone();
-        let sound_config = self.sound_config.clone();
-
-        std::thread::spawn(move || {
-            let level = {
-                let (arrival, scene) = block_on(Level::new(
-                    path,
-                    resource_manager.clone(),
-                    sender,
-                    sound_config,
-                ));
-                (arrival, scene)
-            };
-
-            ctx.lock().level = Some(level);
-        });
+        context.async_scene_loader.request(path);
     }
 
     pub fn set_menu_visible(&mut self, visible: bool, context: &mut PluginContext) {
@@ -472,33 +424,10 @@ impl Game {
             });
         }
 
-        if let Some(load_context) = self.load_context.clone() {
-            if let Some(mut load_context) = load_context.try_lock() {
-                if let Some((mut level, scene)) = load_context.level.take() {
-                    level.scene = ctx.scenes.add(scene);
-
-                    self.level = Some(level);
-                    self.load_context = None;
-                    self.set_menu_visible(false, ctx);
-                    ctx.user_interface.send_message(WidgetMessage::visibility(
-                        self.loading_screen.root,
-                        MessageDirection::ToWidget,
-                        false,
-                    ));
-                    self.menu.sync_to_model(ctx, true);
-
-                    // Reset update lag to prevent lag after scene is loaded.
-                    *ctx.lag = 0.0;
-
-                    Log::info("Level was loaded successfully!");
-                } else {
-                    self.loading_screen.set_progress(
-                        ctx.user_interface,
-                        ctx.resource_manager.state().loading_progress() as f32 / 100.0,
-                    );
-                }
-            }
-        }
+        self.loading_screen.set_progress(
+            ctx.user_interface,
+            ctx.resource_manager.state().loading_progress() as f32 / 100.0,
+        );
 
         if let Some(ref mut level) = self.level {
             ctx.scenes[level.scene].enabled = !self.menu.is_visible(ctx.user_interface);
@@ -764,12 +693,8 @@ impl PluginConstructor for GameConstructor {
             .add::<Trigger>("Trigger");
     }
 
-    fn create_instance(
-        &self,
-        override_scene: Handle<Scene>,
-        context: PluginContext,
-    ) -> Box<dyn Plugin> {
-        Box::new(Game::new(override_scene, context))
+    fn create_instance(&self, scene_path: Option<&str>, context: PluginContext) -> Box<dyn Plugin> {
+        Box::new(Game::new(scene_path, context))
     }
 }
 
@@ -867,5 +792,39 @@ impl Plugin for Game {
         _control_flow: &mut ControlFlow,
     ) {
         self.handle_ui_message(context, message);
+    }
+
+    fn on_scene_begin_loading(&mut self, _path: &Path, context: &mut PluginContext) {
+        context
+            .user_interface
+            .send_message(WidgetMessage::visibility(
+                self.loading_screen.root,
+                MessageDirection::ToWidget,
+                true,
+            ));
+        self.menu.set_visible(context, false);
+    }
+
+    fn on_scene_loaded(&mut self, _path: &Path, scene: Handle<Scene>, ctx: &mut PluginContext) {
+        let scene_ref = &mut ctx.scenes[scene];
+        self.level = Some(Level::from_existing_scene(
+            scene_ref,
+            scene,
+            self.message_sender.clone(),
+            self.sound_config.clone(),
+            ctx.resource_manager.clone(),
+        ));
+        self.set_menu_visible(false, ctx);
+        ctx.user_interface.send_message(WidgetMessage::visibility(
+            self.loading_screen.root,
+            MessageDirection::ToWidget,
+            false,
+        ));
+        self.menu.sync_to_model(ctx, true);
+
+        // Reset update lag to prevent lag after scene is loaded.
+        *ctx.lag = 0.0;
+
+        Log::info("Level was loaded successfully!");
     }
 }
