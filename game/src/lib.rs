@@ -806,6 +806,8 @@ impl Plugin for Game {
     }
 
     fn on_scene_loaded(&mut self, _path: &Path, scene: Handle<Scene>, ctx: &mut PluginContext) {
+        self.destroy_level(ctx);
+
         let scene_ref = &mut ctx.scenes[scene];
         self.level = Some(Level::from_existing_scene(
             scene_ref,
