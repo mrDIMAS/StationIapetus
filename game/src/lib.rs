@@ -362,7 +362,7 @@ impl Game {
                 &mut visitor,
                 Some(path.to_path_buf()),
             )?
-            .finish(&context.resource_manager),
+            .finish(context.resource_manager),
         );
 
         let mut level = Level::default();
@@ -507,7 +507,7 @@ impl Game {
                         if self.sound_config.use_hrtf {
                             block_on(use_hrtf(
                                 &mut scene.graph.sound_context,
-                                &context.resource_manager,
+                                context.resource_manager,
                             ))
                         } else {
                             scene

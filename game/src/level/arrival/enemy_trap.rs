@@ -52,10 +52,10 @@ impl EnemyTrap {
     ) {
         for actor in actors {
             if let Some(actor_node) = scene.graph.try_get(*actor) {
-                if this_bounds.is_contains_point(actor_node.global_position()) {
-                    if actor_node.try_get_script_component::<Bot>().is_some() {
-                        self.enemies.push(*actor);
-                    }
+                if this_bounds.is_contains_point(actor_node.global_position())
+                    && actor_node.try_get_script_component::<Bot>().is_some()
+                {
+                    self.enemies.push(*actor);
                 }
             }
         }
@@ -141,7 +141,7 @@ impl ScriptTrait for EnemyTrap {
                 }
             }
             State::Active => {
-                if self.is_all_enemies_dead(&context.scene) {
+                if self.is_all_enemies_dead(context.scene) {
                     self.lock_doors(context.scene, false);
                     self.enable_nodes(
                         &mut context.scene.graph,

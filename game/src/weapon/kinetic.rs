@@ -97,46 +97,46 @@ impl ScriptTrait for KineticGun {
 
         if let Some(level) = Level::try_get(ctx.plugins) {
             if let Some(target) = self.target.as_ref() {
-                if let Event::WindowEvent { event, .. } = event {
-                    if let WindowEvent::KeyboardInput { event, .. } = event {
-                        if let Some(player) = ctx
+                if let Event::WindowEvent {
+                    event: WindowEvent::KeyboardInput { event, .. },
+                    ..
+                } = event
+                {
+                    if let Some(player) = ctx
+                        .scene
+                        .graph
+                        .try_get_script_component_of::<Player>(level.player)
+                    {
+                        if let Some(camera_controller) = ctx
                             .scene
                             .graph
-                            .try_get_script_component_of::<Player>(level.player)
+                            .try_get_script_component_of::<CameraController>(
+                                player.camera_controller,
+                            )
                         {
-                            if let Some(camera_controller) = ctx
-                                .scene
-                                .graph
-                                .try_get_script_component_of::<CameraController>(
-                                    player.camera_controller,
-                                )
+                            if let Some(camera) = ctx.scene.graph.try_get(camera_controller.camera)
                             {
-                                if let Some(camera) =
-                                    ctx.scene.graph.try_get(camera_controller.camera)
-                                {
-                                    let axis = match event.physical_key {
-                                        KeyCode::KeyZ => Some(camera.side_vector()),
-                                        KeyCode::KeyX => Some(-camera.side_vector()),
-                                        KeyCode::KeyC => Some(-camera.look_vector()),
-                                        KeyCode::KeyV => Some(camera.look_vector()),
-                                        _ => None,
-                                    };
-                                    if let Some(axis) = axis {
-                                        let rotation = UnitQuaternion::from_axis_angle(
-                                            &UnitVector3::new_normalize(axis),
-                                            5.0f32.to_radians(),
-                                        );
+                                let axis = match event.physical_key {
+                                    KeyCode::KeyZ => Some(camera.side_vector()),
+                                    KeyCode::KeyX => Some(-camera.side_vector()),
+                                    KeyCode::KeyC => Some(-camera.look_vector()),
+                                    KeyCode::KeyV => Some(camera.look_vector()),
+                                    _ => None,
+                                };
+                                if let Some(axis) = axis {
+                                    let rotation = UnitQuaternion::from_axis_angle(
+                                        &UnitVector3::new_normalize(axis),
+                                        5.0f32.to_radians(),
+                                    );
 
-                                        if let Some(target_body) = ctx
-                                            .scene
-                                            .graph
-                                            .try_get_mut_of_type::<RigidBody>(target.node)
-                                        {
-                                            let local_transform = target_body.local_transform_mut();
-                                            let new_rotation =
-                                                **local_transform.rotation() * rotation;
-                                            local_transform.set_rotation(new_rotation);
-                                        }
+                                    if let Some(target_body) = ctx
+                                        .scene
+                                        .graph
+                                        .try_get_mut_of_type::<RigidBody>(target.node)
+                                    {
+                                        let local_transform = target_body.local_transform_mut();
+                                        let new_rotation = **local_transform.rotation() * rotation;
+                                        local_transform.set_rotation(new_rotation);
                                     }
                                 }
                             }
