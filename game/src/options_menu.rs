@@ -5,6 +5,7 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     core::{
         algebra::Vector2,
@@ -665,7 +666,9 @@ impl OptionsMenu {
                     }
                 }
                 WindowEvent::KeyboardInput { event: input, .. } => {
-                    control_button = Some(ControlButton::Key(input.physical_key));
+                    if let PhysicalKey::Code(key) = input.physical_key {
+                        control_button = Some(ControlButton::Key(key));
+                    }
                 }
                 WindowEvent::MouseInput { button, .. } => {
                     let index = match button {

@@ -16,6 +16,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, Level, MessageSender,
 };
+use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     animation::machine::{self, node::AnimationEventCollectionStrategy},
     asset::manager::ResourceManager,
@@ -1033,7 +1034,11 @@ impl ScriptTrait for Player {
         let button_state = match event {
             Event::WindowEvent { event, .. } => {
                 if let WindowEvent::KeyboardInput { event: input, .. } = event {
-                    Some((ControlButton::Key(input.physical_key), input.state))
+                    if let PhysicalKey::Code(key) = input.physical_key {
+                        Some((ControlButton::Key(key), input.state))
+                    } else {
+                        None
+                    }
                 } else {
                     None
                 }

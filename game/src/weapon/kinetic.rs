@@ -5,6 +5,7 @@ use crate::{
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Item,
 };
+use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
@@ -116,27 +117,30 @@ impl ScriptTrait for KineticGun {
                         {
                             if let Some(camera) = ctx.scene.graph.try_get(camera_controller.camera)
                             {
-                                let axis = match event.physical_key {
-                                    KeyCode::KeyZ => Some(camera.side_vector()),
-                                    KeyCode::KeyX => Some(-camera.side_vector()),
-                                    KeyCode::KeyC => Some(-camera.look_vector()),
-                                    KeyCode::KeyV => Some(camera.look_vector()),
-                                    _ => None,
-                                };
-                                if let Some(axis) = axis {
-                                    let rotation = UnitQuaternion::from_axis_angle(
-                                        &UnitVector3::new_normalize(axis),
-                                        5.0f32.to_radians(),
-                                    );
+                                if let PhysicalKey::Code(key) = event.physical_key {
+                                    let axis = match key {
+                                        KeyCode::KeyZ => Some(camera.side_vector()),
+                                        KeyCode::KeyX => Some(-camera.side_vector()),
+                                        KeyCode::KeyC => Some(-camera.look_vector()),
+                                        KeyCode::KeyV => Some(camera.look_vector()),
+                                        _ => None,
+                                    };
+                                    if let Some(axis) = axis {
+                                        let rotation = UnitQuaternion::from_axis_angle(
+                                            &UnitVector3::new_normalize(axis),
+                                            5.0f32.to_radians(),
+                                        );
 
-                                    if let Some(target_body) = ctx
-                                        .scene
-                                        .graph
-                                        .try_get_mut_of_type::<RigidBody>(target.node)
-                                    {
-                                        let local_transform = target_body.local_transform_mut();
-                                        let new_rotation = **local_transform.rotation() * rotation;
-                                        local_transform.set_rotation(new_rotation);
+                                        if let Some(target_body) = ctx
+                                            .scene
+                                            .graph
+                                            .try_get_mut_of_type::<RigidBody>(target.node)
+                                        {
+                                            let local_transform = target_body.local_transform_mut();
+                                            let new_rotation =
+                                                **local_transform.rotation() * rotation;
+                                            local_transform.set_rotation(new_rotation);
+                                        }
                                     }
                                 }
                             }

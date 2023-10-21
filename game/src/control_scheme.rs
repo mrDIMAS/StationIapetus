@@ -13,11 +13,11 @@ impl ControlButton {
     pub fn name(self) -> &'static str {
         match self {
             ControlButton::Mouse(index) => match index {
-                1 => "LMB",
-                2 => "RMB",
-                3 => "MMB",
-                4 => "MB4",
-                5 => "MB5",
+                0 => "LMB",
+                1 => "RMB",
+                2 => "MMB",
+                3 => "MB4",
+                4 => "MB5",
                 _ => "Unknown",
             },
             ControlButton::Key(code) => fyrox::utils::virtual_key_code_name(code),
@@ -89,7 +89,7 @@ impl Default for ControlScheme {
             },
             shoot: ControlButtonDefinition {
                 description: "Shoot".to_string(),
-                button: ControlButton::Mouse(1),
+                button: ControlButton::Mouse(0),
             },
             next_weapon: ControlButtonDefinition {
                 description: "Next Weapon".to_string(),
@@ -105,7 +105,7 @@ impl Default for ControlScheme {
             },
             aim: ControlButtonDefinition {
                 description: "Aim".to_string(),
-                button: ControlButton::Mouse(3),
+                button: ControlButton::Mouse(1),
             },
             toss_grenade: ControlButtonDefinition {
                 description: "Toss Grenade".to_string(),

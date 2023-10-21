@@ -56,7 +56,6 @@ use fyrox::{
     dpi::LogicalSize,
     engine::GraphicsContext,
     event::{ElementState, Event, WindowEvent},
-    event_loop::ControlFlow,
     gui::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
@@ -699,27 +698,22 @@ impl PluginConstructor for GameConstructor {
 }
 
 impl Plugin for Game {
-    fn update(&mut self, context: &mut PluginContext, control_flow: &mut ControlFlow) {
-        self.update(context);
+    fn update(&mut self, ctx: &mut PluginContext) {
+        self.update(ctx);
 
         if !self.running {
-            *control_flow = ControlFlow::Exit;
+            ctx.window_target.unwrap().exit();
         }
     }
 
-    fn on_os_event(
-        &mut self,
-        event: &Event<()>,
-        mut ctx: PluginContext,
-        control_flow: &mut ControlFlow,
-    ) {
+    fn on_os_event(&mut self, event: &Event<()>, mut ctx: PluginContext) {
         self.process_input_event(event, &mut ctx);
 
         if let Event::WindowEvent { event, .. } = event {
             match event {
                 WindowEvent::CloseRequested => {
                     self.destroy_level(&mut ctx);
-                    *control_flow = ControlFlow::Exit
+                    ctx.window_target.unwrap().exit();
                 }
                 WindowEvent::Resized(new_size) => self.on_window_resized(
                     ctx.user_interface,
@@ -731,11 +725,7 @@ impl Plugin for Game {
         }
     }
 
-    fn on_graphics_context_initialized(
-        &mut self,
-        mut context: PluginContext,
-        _control_flow: &mut ControlFlow,
-    ) {
+    fn on_graphics_context_initialized(&mut self, mut context: PluginContext) {
         let graphics_context = context.graphics_context.as_initialized_mut();
 
         let inner_size = if let Some(primary_monitor) = graphics_context.window.primary_monitor() {
@@ -781,16 +771,11 @@ impl Plugin for Game {
         self.menu.sync_to_model(&mut context, self.level.is_some());
     }
 
-    fn before_rendering(&mut self, mut context: PluginContext, _control_flow: &mut ControlFlow) {
+    fn before_rendering(&mut self, mut context: PluginContext) {
         self.render_offscreen(&mut context);
     }
 
-    fn on_ui_message(
-        &mut self,
-        context: &mut PluginContext,
-        message: &UiMessage,
-        _control_flow: &mut ControlFlow,
-    ) {
+    fn on_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
         self.handle_ui_message(context, message);
     }
 
