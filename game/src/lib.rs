@@ -72,7 +72,7 @@ use fyrox::{
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
-        Scene, SceneLoader,
+        Scene,
     },
     utils::translate_event,
     window::CursorGrabMode,
@@ -335,57 +335,14 @@ impl Game {
                 file.write_all(visitor.save_text().as_bytes()).unwrap();
             }
 
-            visitor.save_binary(Path::new("save.bin"))
+            visitor.save_binary(Path::new("save.rgs"))
         } else {
             Ok(())
         }
     }
 
-    pub fn load_game(&mut self, context: &mut PluginContext) -> VisitResult {
-        Log::info("Attempting load a save...");
-
-        let path = Path::new("save.bin");
-        let mut visitor = block_on(Visitor::load_binary(path))?;
-
-        // Clean up.
-        self.destroy_level(context);
-
-        // Load engine state first
-        Log::info("Trying to load a save file...");
-
-        let scene = block_on(
-            SceneLoader::load(
-                "Scene",
-                context.serialization_context.clone(),
-                context.resource_manager.clone(),
-                &mut visitor,
-                Some(path.to_path_buf()),
-            )?
-            .finish(context.resource_manager),
-        );
-
-        let mut level = Level::default();
-        level.visit("Level", &mut visitor)?;
-        level.scene = context.scenes.add(scene);
-        self.level = Some(level);
-
-        Log::info("Game state successfully loaded!");
-
-        // Hide menu only of we successfully loaded a save.
-        self.set_menu_visible(false, context);
-        self.death_screen.set_visible(context.user_interface, false);
-        self.final_screen.set_visible(context.user_interface, false);
-        self.door_ui_container.clear();
-        self.call_button_ui_container.clear();
-
-        // Set control scheme for player.
-        if let Some(level) = &mut self.level {
-            level.resolve(context, self.message_sender.clone());
-        }
-
-        self.menu.sync_to_model(context, true);
-
-        Ok(())
+    pub fn load_game(&mut self, context: &mut PluginContext) {
+        context.async_scene_loader.request_raw("save.rgs");
     }
 
     fn destroy_level(&mut self, context: &mut PluginContext) {
@@ -472,9 +429,7 @@ impl Game {
                     Err(e) => Log::err(format!("Failed to make a save, reason: {e}")),
                 },
                 Message::LoadGame => {
-                    if let Err(e) = self.load_game(context) {
-                        Log::err(format!("Failed to load saved game. Reason: {e:?}"));
-                    }
+                    self.load_game(context);
                 }
                 Message::LoadLevel { path } => self.load_level(path.clone(), context),
                 Message::QuitGame => {
@@ -613,7 +568,6 @@ impl Game {
     fn process_dispatched_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
         if let Event::WindowEvent { event, .. } = event {
             if let Some(event) = translate_event(event) {
-                context.user_interface.process_os_event(&event);
                 if let Some(level) = self.level.as_mut() {
                     let player_handle = level.get_player();
                     if let Some(player_ref) =
@@ -780,6 +734,8 @@ impl Plugin for Game {
     }
 
     fn on_scene_begin_loading(&mut self, _path: &Path, context: &mut PluginContext) {
+        self.destroy_level(context);
+
         context
             .user_interface
             .send_message(WidgetMessage::visibility(
@@ -787,20 +743,45 @@ impl Plugin for Game {
                 MessageDirection::ToWidget,
                 true,
             ));
+
         self.menu.set_visible(context, false);
     }
 
-    fn on_scene_loaded(&mut self, _path: &Path, scene: Handle<Scene>, ctx: &mut PluginContext) {
-        self.destroy_level(ctx);
+    fn on_scene_loaded(
+        &mut self,
+        _path: &Path,
+        scene: Handle<Scene>,
+        data: &[u8],
+        ctx: &mut PluginContext,
+    ) {
+        if let Ok(mut visitor) = Visitor::load_from_memory(data) {
+            let mut level = Level::default();
+            if level.visit("Level", &mut visitor).is_ok() {
+                // Means that we're loading a saved game.
+                level.scene = scene;
+                self.level = Some(level);
 
-        let scene_ref = &mut ctx.scenes[scene];
-        self.level = Some(Level::from_existing_scene(
-            scene_ref,
-            scene,
-            self.message_sender.clone(),
-            self.sound_config.clone(),
-            ctx.resource_manager.clone(),
-        ));
+                self.death_screen.set_visible(ctx.user_interface, false);
+                self.final_screen.set_visible(ctx.user_interface, false);
+                self.door_ui_container.clear();
+                self.call_button_ui_container.clear();
+
+                // Set control scheme for player.
+                if let Some(level) = &mut self.level {
+                    level.resolve(ctx, self.message_sender.clone());
+                }
+            } else {
+                let scene_ref = &mut ctx.scenes[scene];
+                self.level = Some(Level::from_existing_scene(
+                    scene_ref,
+                    scene,
+                    self.message_sender.clone(),
+                    self.sound_config.clone(),
+                    ctx.resource_manager.clone(),
+                ));
+            }
+        }
+
         self.set_menu_visible(false, ctx);
         ctx.user_interface.send_message(WidgetMessage::visibility(
             self.loading_screen.root,
@@ -808,9 +789,6 @@ impl Plugin for Game {
             false,
         ));
         self.menu.sync_to_model(ctx, true);
-
-        // Reset update lag to prevent lag after scene is loaded.
-        *ctx.lag = 0.0;
 
         Log::info("Level was loaded successfully!");
     }

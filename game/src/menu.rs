@@ -52,6 +52,7 @@ impl MenuScene {
         )
         .await
         .unwrap()
+        .0
         .finish(context.resource_manager)
         .await;
 
