@@ -222,7 +222,9 @@ impl Menu {
     }
 
     pub fn set_visible(&mut self, context: &mut PluginContext, visible: bool) {
-        context.scenes[self.scene.scene].enabled = visible;
+        context.scenes[self.scene.scene]
+            .enabled
+            .set_value_silent(visible);
 
         context
             .user_interface

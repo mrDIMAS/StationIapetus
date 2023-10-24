@@ -386,7 +386,9 @@ impl Game {
         );
 
         if let Some(ref mut level) = self.level {
-            ctx.scenes[level.scene].enabled = !self.menu.is_visible(ctx.user_interface);
+            ctx.scenes[level.scene]
+                .enabled
+                .set_value_silent(!self.menu.is_visible(ctx.user_interface));
         }
 
         self.weapon_display.update(ctx.dt);
@@ -733,18 +735,20 @@ impl Plugin for Game {
         self.handle_ui_message(context, message);
     }
 
-    fn on_scene_begin_loading(&mut self, _path: &Path, context: &mut PluginContext) {
-        self.destroy_level(context);
+    fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) {
+        self.destroy_level(ctx);
+        self.death_screen.set_visible(ctx.user_interface, false);
+        self.final_screen.set_visible(ctx.user_interface, false);
+        self.door_ui_container.clear();
+        self.call_button_ui_container.clear();
 
-        context
-            .user_interface
-            .send_message(WidgetMessage::visibility(
-                self.loading_screen.root,
-                MessageDirection::ToWidget,
-                true,
-            ));
+        ctx.user_interface.send_message(WidgetMessage::visibility(
+            self.loading_screen.root,
+            MessageDirection::ToWidget,
+            true,
+        ));
 
-        self.menu.set_visible(context, false);
+        self.menu.set_visible(ctx, false);
     }
 
     fn on_scene_loaded(
@@ -759,21 +763,11 @@ impl Plugin for Game {
             if level.visit("Level", &mut visitor).is_ok() {
                 // Means that we're loading a saved game.
                 level.scene = scene;
+                level.resolve(ctx, self.message_sender.clone());
                 self.level = Some(level);
-
-                self.death_screen.set_visible(ctx.user_interface, false);
-                self.final_screen.set_visible(ctx.user_interface, false);
-                self.door_ui_container.clear();
-                self.call_button_ui_container.clear();
-
-                // Set control scheme for player.
-                if let Some(level) = &mut self.level {
-                    level.resolve(ctx, self.message_sender.clone());
-                }
             } else {
-                let scene_ref = &mut ctx.scenes[scene];
                 self.level = Some(Level::from_existing_scene(
-                    scene_ref,
+                    &mut ctx.scenes[scene],
                     scene,
                     self.message_sender.clone(),
                     self.sound_config.clone(),
