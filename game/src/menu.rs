@@ -2,6 +2,7 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, MessageSender,
 };
+use fyrox::asset::io::FsResourceIo;
 use fyrox::engine::InitializedGraphicsContext;
 use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
@@ -47,6 +48,7 @@ impl MenuScene {
     pub async fn new(context: &mut PluginContext<'_, '_>, sound_config: &SoundConfig) -> Self {
         let mut scene = SceneLoader::from_file(
             "data/levels/menu.rgs",
+            &FsResourceIo,
             context.serialization_context.clone(),
             context.resource_manager.clone(),
         )

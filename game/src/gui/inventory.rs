@@ -7,7 +7,10 @@ use crate::{
     MessageSender,
 };
 use fyrox::{
-    core::{algebra::Vector2, color::Color, math, pool::Handle},
+    core::{
+        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
+        visitor::prelude::*,
+    },
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -46,7 +49,7 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<UiNode>,
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Reflect, Visit)]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
@@ -480,7 +483,6 @@ impl InventoryInterface {
                                                     self.sender.send(Message::SyncInventory);
                                                 }
 
-                                                // TODO: Replace with UseItem message
                                                 player
                                                     .script_message_sender
                                                     .as_ref()
