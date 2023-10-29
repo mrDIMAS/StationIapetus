@@ -1,7 +1,8 @@
 #![allow(dead_code)] // TODO
 
 use crate::control_scheme::{ControlButton, ControlScheme};
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
+use crate::gui;
+use fyrox::resource::texture::TextureResource;
 use fyrox::{
     core::{
         algebra::Vector2,
@@ -101,8 +102,7 @@ impl JournalDisplay {
     pub fn new() -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target =
-            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
 
         let objective;
         let messages;

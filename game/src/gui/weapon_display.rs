@@ -1,6 +1,4 @@
-use crate::player::Player;
-use crate::weapon::Weapon;
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension};
+use crate::{gui, player::Player, weapon::Weapon};
 use fyrox::{
     asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
@@ -14,7 +12,7 @@ use fyrox::{
         widget::WidgetBuilder,
         UiNode, UserInterface, VerticalAlignment,
     },
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::graph::Graph,
     utils,
 };
@@ -34,8 +32,7 @@ impl WeaponDisplay {
     pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target =
-            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
 
         let ammo;
         let grenades;

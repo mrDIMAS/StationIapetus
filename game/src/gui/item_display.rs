@@ -1,4 +1,4 @@
-use crate::{control_scheme::ControlScheme, level::item::Item};
+use crate::{control_scheme::ControlScheme, gui, level::item::Item};
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -13,10 +13,7 @@ use fyrox::{
         widget::WidgetBuilder,
         HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
-    resource::{
-        model::ModelResource,
-        texture::{TextureResource, TextureResourceExtension},
-    },
+    resource::{model::ModelResource, texture::TextureResource},
 };
 
 pub struct ItemDisplay {
@@ -35,8 +32,7 @@ impl ItemDisplay {
     pub fn new(font: SharedFont, smaller_font: SharedFont) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target =
-            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
 
         let item_image;
         let item_name;

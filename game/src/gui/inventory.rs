@@ -1,6 +1,7 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     control_scheme::{ControlButton, ControlScheme},
+    gui,
     level::item::Item,
     message::Message,
     player::Player,
@@ -28,10 +29,7 @@ use fyrox::{
         BuildContext, Control, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
         VerticalAlignment,
     },
-    resource::{
-        model::ModelResource,
-        texture::{TextureResource, TextureResourceExtension},
-    },
+    resource::{model::ModelResource, texture::TextureResource},
     scene::node::Node,
 };
 use std::{
@@ -228,8 +226,7 @@ impl InventoryInterface {
     pub fn new(sender: MessageSender) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
-        let render_target =
-            TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
+        let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
 
         let items_panel;
         let item_description;
