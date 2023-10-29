@@ -825,17 +825,19 @@ impl Player {
                             },
                         );
 
-                        self.v_recoil
-                            .set_target(current_weapon.gen_v_recoil_angle());
-                        self.h_recoil
-                            .set_target(current_weapon.gen_h_recoil_angle());
+                        if *current_weapon.shake_camera_on_shot {
+                            self.v_recoil
+                                .set_target(current_weapon.gen_v_recoil_angle());
+                            self.h_recoil
+                                .set_target(current_weapon.gen_h_recoil_angle());
 
-                        if let Some(camera_controller) = scene
-                            .graph
-                            .try_get_mut(self.camera_controller)
-                            .and_then(|c| c.try_get_script_mut::<CameraController>())
-                        {
-                            camera_controller.request_shake_camera();
+                            if let Some(camera_controller) = scene
+                                .graph
+                                .try_get_mut(self.camera_controller)
+                                .and_then(|c| c.try_get_script_mut::<CameraController>())
+                            {
+                                camera_controller.request_shake_camera();
+                            }
                         }
                     }
                 }

@@ -91,6 +91,9 @@ pub struct Weapon {
     pub ammo_item: InheritableVariable<Option<ModelResource>>,
 
     #[visit(optional)]
+    pub shake_camera_on_shot: InheritableVariable<bool>,
+
+    #[visit(optional)]
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
@@ -127,6 +130,7 @@ impl Default for Weapon {
             shot_vfx: Default::default(),
             weapon_type: CombatWeaponKind::Pistol,
             ammo_item: Default::default(),
+            shake_camera_on_shot: true.into(),
         }
     }
 }
