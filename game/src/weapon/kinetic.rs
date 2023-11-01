@@ -3,7 +3,7 @@ use crate::{
     level::Level,
     player::{camera::CameraController, Player},
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
-    CollisionGroups, Item,
+    CollisionGroups, Game, Item,
 };
 use fyrox::keyboard::PhysicalKey;
 use fyrox::{
@@ -74,6 +74,24 @@ impl_component_provider!(KineticGun, weapon: Weapon, weapon.item: Item);
 impl TypeUuidProvider for KineticGun {
     fn type_uuid() -> Uuid {
         uuid!("2351b380-de4c-4b8a-a33f-a3e598e2ada4")
+    }
+}
+
+impl KineticGun {
+    fn reset_target(&mut self, game: &mut Game) {
+        if let Some(target) = self.target.take() {
+            if let Some(highlighter) = game.highlighter.as_mut() {
+                let mut highlighter = highlighter.borrow_mut();
+
+                if let Some(position) = highlighter
+                    .nodes_to_highlight
+                    .iter()
+                    .position(|n| *n == target.node)
+                {
+                    highlighter.nodes_to_highlight.remove(position);
+                }
+            }
+        }
     }
 }
 
@@ -197,7 +215,7 @@ impl ScriptTrait for KineticGun {
                 }
             }
         } else {
-            self.target = None;
+            self.reset_target(Game::game_mut(ctx.plugins));
         }
 
         if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
@@ -234,7 +252,7 @@ impl ScriptTrait for KineticGun {
                                 target_body.wake_up();
                             }
 
-                            self.target = None;
+                            self.reset_target(Game::game_mut(ctx.plugins));
                             self.is_active = false;
                         }
                         None => {
@@ -300,6 +318,17 @@ impl ScriptTrait for KineticGun {
                                                             .unwrap_or_default(),
                                                         collider: intersection.collider,
                                                     });
+
+                                                    if let Some(highlighter) =
+                                                        Game::game_mut(ctx.plugins)
+                                                            .highlighter
+                                                            .as_mut()
+                                                    {
+                                                        highlighter
+                                                            .borrow_mut()
+                                                            .nodes_to_highlight
+                                                            .push(target_node);
+                                                    }
                                                 }
                                             }
                                         }

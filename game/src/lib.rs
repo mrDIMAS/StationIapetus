@@ -8,6 +8,7 @@ pub mod door;
 pub mod effects;
 pub mod elevator;
 pub mod gui;
+pub mod highlight;
 pub mod inventory;
 pub mod level;
 pub mod light;
@@ -21,6 +22,7 @@ pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
+use crate::highlight::HighlightRenderPass;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -77,6 +79,8 @@ use fyrox::{
     utils::translate_event,
     window::CursorGrabMode,
 };
+use std::cell::RefCell;
+use std::rc::Rc;
 use std::{
     fs::File,
     io::Write,
@@ -112,6 +116,7 @@ pub struct Game {
     show_debug_info: bool,
     smaller_font: SharedFont,
     even_smaller_font: SharedFont,
+    highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
 }
 
 #[repr(u16)]
@@ -245,6 +250,7 @@ impl Game {
             sound_config,
             door_ui_container: Default::default(),
             call_button_ui_container: Default::default(),
+            highlighter: None,
         };
 
         game.create_debug_ui(&mut context);
@@ -593,9 +599,44 @@ impl Game {
         }
     }
 
-    pub fn on_window_resized(&mut self, ui: &UserInterface, width: f32, height: f32) {
+    pub fn on_window_resized(
+        &mut self,
+        ui: &UserInterface,
+        graphics_context: &mut GraphicsContext,
+        width: f32,
+        height: f32,
+    ) {
         self.loading_screen.resize(ui, width, height);
         self.death_screen.resize(ui, width, height);
+        self.create_highlighter(graphics_context, width as usize, height as usize);
+    }
+
+    fn create_highlighter(
+        &mut self,
+        graphics_context: &mut GraphicsContext,
+        width: usize,
+        height: usize,
+    ) {
+        if let GraphicsContext::Initialized(graphics_context) = graphics_context {
+            if let Some(highlighter) = self.highlighter.as_ref() {
+                graphics_context
+                    .renderer
+                    .remove_render_pass(highlighter.clone());
+            }
+
+            let highlighter =
+                HighlightRenderPass::new(&mut graphics_context.renderer.state, width, height);
+
+            if let Some(level) = self.level.as_ref() {
+                highlighter.borrow_mut().scene_handle = level.scene;
+            }
+
+            graphics_context
+                .renderer
+                .add_render_pass(highlighter.clone());
+
+            self.highlighter = Some(highlighter);
+        }
     }
 
     pub fn process_input_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
@@ -673,6 +714,7 @@ impl Plugin for Game {
                 }
                 WindowEvent::Resized(new_size) => self.on_window_resized(
                     ctx.user_interface,
+                    ctx.graphics_context,
                     new_size.width as f32,
                     new_size.height as f32,
                 ),
@@ -722,7 +764,12 @@ impl Plugin for Game {
         self.menu
             .on_graphics_context_initialized(context.user_interface, graphics_context);
 
-        self.on_window_resized(context.user_interface, inner_size.width, inner_size.height);
+        self.on_window_resized(
+            context.user_interface,
+            context.graphics_context,
+            inner_size.width,
+            inner_size.height,
+        );
 
         self.menu.sync_to_model(&mut context, self.level.is_some());
     }
@@ -758,6 +805,10 @@ impl Plugin for Game {
         data: &[u8],
         ctx: &mut PluginContext,
     ) {
+        if let Some(highlighter) = self.highlighter.as_mut() {
+            highlighter.borrow_mut().scene_handle = scene;
+        }
+
         if let Ok(mut visitor) = Visitor::load_from_memory(data) {
             let mut level = Level::default();
             if level.visit("Level", &mut visitor).is_ok() {
