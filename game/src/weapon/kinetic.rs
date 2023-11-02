@@ -6,6 +6,7 @@ use crate::{
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Game, Item,
 };
+use fyrox::scene::graph::Graph;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
@@ -87,6 +88,60 @@ impl KineticGun {
                 highlighter.nodes_to_highlight.remove(&target.node);
             }
         }
+    }
+
+    fn try_pick_target(&self, graph: &mut Graph) -> Result<Target, Handle<Node>> {
+        let begin = self.weapon.shot_position(graph);
+        let dir = self.weapon.shot_direction(graph).scale(*self.range);
+
+        let physics = &mut graph.physics;
+        let ray = Ray::new(begin, dir);
+
+        let mut query_buffer = Vec::default();
+        physics.cast_ray(
+            RayCastOptions {
+                ray_origin: Point3::from(ray.origin),
+                ray_direction: ray.dir,
+                max_len: ray.dir.norm(),
+                groups: InteractionGroups::new(
+                    BitMask(0xFFFF),
+                    // Prevent characters from grabbing.
+                    BitMask(!(CollisionGroups::ActorCapsule as u32)),
+                ),
+                sort_results: true,
+            },
+            &mut query_buffer,
+        );
+
+        if let Some(intersection) = query_buffer.first() {
+            if let Some(collider) = graph.try_get(intersection.collider) {
+                if let Some(rigid_body) = graph.try_get_of_type::<RigidBody>(collider.parent()) {
+                    if rigid_body.body_type() == RigidBodyType::Dynamic {
+                        let potential_target_node = collider.parent();
+
+                        let aabb = graph
+                            .aabb_of_descendants(potential_target_node)
+                            .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
+
+                        return if aabb.volume() <= 0.15 {
+                            Ok(Target {
+                                node: potential_target_node,
+                                grab_point: collider
+                                    .global_transform()
+                                    .try_inverse()
+                                    .map(|inv| inv.transform_point(&intersection.position).coords)
+                                    .unwrap_or_default(),
+                                collider: intersection.collider,
+                            })
+                        } else {
+                            Err(potential_target_node)
+                        };
+                    }
+                }
+            }
+        }
+
+        Err(Handle::NONE)
     }
 }
 
@@ -208,6 +263,29 @@ impl ScriptTrait for KineticGun {
                         target_body.wake_up();
                     }
                 }
+            } else if let Some(highlighter) = Game::game_mut(ctx.plugins).highlighter.as_mut() {
+                match self.try_pick_target(&mut ctx.scene.graph) {
+                    Err(inappropriate_target) => {
+                        if inappropriate_target.is_some() {
+                            highlighter.borrow_mut().nodes_to_highlight.insert(
+                                inappropriate_target,
+                                HighlightEntry {
+                                    color: Color::RED,
+                                    auto_remove: true,
+                                },
+                            );
+                        }
+                    }
+                    Ok(target) => {
+                        highlighter.borrow_mut().nodes_to_highlight.insert(
+                            target.node,
+                            HighlightEntry {
+                                color: Color::GREEN,
+                                auto_remove: true,
+                            },
+                        );
+                    }
+                }
             }
         } else {
             self.reset_target(Game::game_mut(ctx.plugins));
@@ -251,89 +329,20 @@ impl ScriptTrait for KineticGun {
                             self.is_active = false;
                         }
                         None => {
-                            let begin = self.weapon.shot_position(&ctx.scene.graph);
-
-                            if self.target.is_none() {
-                                let dir = self
-                                    .weapon
-                                    .shot_direction(&ctx.scene.graph)
-                                    .scale(*self.range);
-
-                                let physics = &mut ctx.scene.graph.physics;
-                                let ray = Ray::new(begin, dir);
-
-                                let mut query_buffer = Vec::default();
-                                physics.cast_ray(
-                                    RayCastOptions {
-                                        ray_origin: Point3::from(ray.origin),
-                                        ray_direction: ray.dir,
-                                        max_len: ray.dir.norm(),
-                                        groups: InteractionGroups::new(
-                                            BitMask(0xFFFF),
-                                            // Prevent characters from grabbing.
-                                            BitMask(!(CollisionGroups::ActorCapsule as u32)),
-                                        ),
-                                        sort_results: true,
-                                    },
-                                    &mut query_buffer,
-                                );
-
-                                for intersection in query_buffer.iter() {
-                                    if let Some(collider) =
-                                        ctx.scene.graph.try_get(intersection.collider)
-                                    {
-                                        if let Some(rigid_body) = ctx
-                                            .scene
-                                            .graph
-                                            .try_get_of_type::<RigidBody>(collider.parent())
-                                        {
-                                            if rigid_body.body_type() == RigidBodyType::Dynamic {
-                                                let target_node = collider.parent();
-
-                                                let aabb = ctx
-                                                    .scene
-                                                    .graph
-                                                    .aabb_of_descendants(target_node)
-                                                    .unwrap_or_else(
-                                                        AxisAlignedBoundingBox::collapsed,
-                                                    );
-
-                                                if aabb.volume() <= 0.15 {
-                                                    self.target = Some(Target {
-                                                        node: target_node,
-                                                        grab_point: collider
-                                                            .global_transform()
-                                                            .try_inverse()
-                                                            .map(|inv| {
-                                                                inv.transform_point(
-                                                                    &intersection.position,
-                                                                )
-                                                                .coords
-                                                            })
-                                                            .unwrap_or_default(),
-                                                        collider: intersection.collider,
-                                                    });
-
-                                                    if let Some(highlighter) =
-                                                        Game::game_mut(ctx.plugins)
-                                                            .highlighter
-                                                            .as_mut()
-                                                    {
-                                                        highlighter
-                                                            .borrow_mut()
-                                                            .nodes_to_highlight
-                                                            .insert(
-                                                                target_node,
-                                                                HighlightEntry {
-                                                                    color: Color::GREEN,
-                                                                },
-                                                            );
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
+                            if let Ok(new_target) = self.try_pick_target(&mut ctx.scene.graph) {
+                                if let Some(highlighter) =
+                                    Game::game_mut(ctx.plugins).highlighter.as_mut()
+                                {
+                                    highlighter.borrow_mut().nodes_to_highlight.insert(
+                                        new_target.node,
+                                        HighlightEntry {
+                                            color: Color::GREEN,
+                                            auto_remove: false,
+                                        },
+                                    );
                                 }
+
+                                self.target = Some(new_target);
                             }
                         }
                     }

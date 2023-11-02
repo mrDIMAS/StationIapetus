@@ -132,6 +132,7 @@ void main()
 #[derive(Clone)]
 pub struct HighlightEntry {
     pub color: Color,
+    pub auto_remove: bool,
 }
 
 pub struct HighlightRenderPass {
@@ -329,6 +330,8 @@ impl SceneRenderPass for HighlightRenderPass {
                 },
             )?;
         }
+
+        self.nodes_to_highlight.retain(|_, e| !e.auto_remove);
 
         Ok(Default::default())
     }
