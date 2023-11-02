@@ -1,14 +1,15 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
+    highlight::HighlightEntry,
     level::Level,
     player::{camera::CameraController, Player},
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Game, Item,
 };
-use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
+        color::Color,
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
@@ -19,7 +20,7 @@ use fyrox::{
     },
     event::{Event, WindowEvent},
     impl_component_provider,
-    keyboard::KeyCode,
+    keyboard::{KeyCode, PhysicalKey},
     scene::{
         collider::{BitMask, Collider, InteractionGroups},
         graph::physics::RayCastOptions,
@@ -83,13 +84,7 @@ impl KineticGun {
             if let Some(highlighter) = game.highlighter.as_mut() {
                 let mut highlighter = highlighter.borrow_mut();
 
-                if let Some(position) = highlighter
-                    .nodes_to_highlight
-                    .iter()
-                    .position(|n| *n == target.node)
-                {
-                    highlighter.nodes_to_highlight.remove(position);
-                }
+                highlighter.nodes_to_highlight.remove(&target.node);
             }
         }
     }
@@ -327,7 +322,12 @@ impl ScriptTrait for KineticGun {
                                                         highlighter
                                                             .borrow_mut()
                                                             .nodes_to_highlight
-                                                            .push(target_node);
+                                                            .insert(
+                                                                target_node,
+                                                                HighlightEntry {
+                                                                    color: Color::GREEN,
+                                                                },
+                                                            );
                                                     }
                                                 }
                                             }

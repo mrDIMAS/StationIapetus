@@ -5,6 +5,7 @@ use fyrox::{
         pool::Handle,
         sstorage::ImmutableString,
     },
+    fxhash::FxHashMap,
     renderer::{
         batch::{RenderContext, RenderDataBatchStorage},
         framework::{
@@ -45,22 +46,22 @@ void main() {
 	float w = 1.0 / float(size.x);
 	float h = 1.0 / float(size.y);
 
-    float n[9];
-	n[0] = texture(frameTexture, texCoord + vec2(-w, -h)).r;
-	n[1] = texture(frameTexture, texCoord + vec2(0.0, -h)).r;
-	n[2] = texture(frameTexture, texCoord + vec2(w, -h)).r;
-	n[3] = texture(frameTexture, texCoord + vec2( -w, 0.0)).r;
-	n[4] = texture(frameTexture, texCoord).r;
-	n[5] = texture(frameTexture, texCoord + vec2(w, 0.0)).r;
-	n[6] = texture(frameTexture, texCoord + vec2(-w, h)).r;
-	n[7] = texture(frameTexture, texCoord + vec2(0.0, h)).r;
-	n[8] = texture(frameTexture, texCoord + vec2(w, h)).r;
+    vec4 n[9];
+	n[0] = texture(frameTexture, texCoord + vec2(-w, -h));
+	n[1] = texture(frameTexture, texCoord + vec2(0.0, -h));
+	n[2] = texture(frameTexture, texCoord + vec2(w, -h));
+	n[3] = texture(frameTexture, texCoord + vec2( -w, 0.0));
+	n[4] = texture(frameTexture, texCoord);
+	n[5] = texture(frameTexture, texCoord + vec2(w, 0.0));
+	n[6] = texture(frameTexture, texCoord + vec2(-w, h));
+	n[7] = texture(frameTexture, texCoord + vec2(0.0, h));
+	n[8] = texture(frameTexture, texCoord + vec2(w, h));
 
-	float sobel_edge_h = n[2] + (2.0 * n[5]) + n[8] - (n[0] + (2.0 * n[3]) + n[6]);
-  	float sobel_edge_v = n[0] + (2.0 * n[1]) + n[2] - (n[6] + (2.0 * n[7]) + n[8]);
-	float sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
+	vec4 sobel_edge_h = n[2] + (2.0 * n[5]) + n[8] - (n[0] + (2.0 * n[3]) + n[6]);
+  	vec4 sobel_edge_v = n[0] + (2.0 * n[1]) + n[2] - (n[6] + (2.0 * n[7]) + n[8]);
+	vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 
-	gl_FragColor = vec4(1.0, 1.0, 1.0, sobel);
+	gl_FragColor = vec4(sobel.rgb, (sobel.r + sobel.g + sobel.b) * 0.333);
 }"#;
 
         let vertex_source = r#"
@@ -92,15 +93,19 @@ void main()
 struct FlatShader {
     program: GpuProgram,
     wvp_matrix: UniformLocation,
+    diffuse_color: UniformLocation,
 }
 
 impl FlatShader {
     pub fn new(state: &mut PipelineState) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 out vec4 FragColor;
+
+uniform vec4 diffuseColor;
+
 void main()
 {
-    FragColor = vec4(1.0, 1.0, 1.0, 1.0);
+    FragColor = diffuseColor;
 }"#;
 
         let vertex_source = r#"
@@ -117,9 +122,16 @@ void main()
         Ok(Self {
             wvp_matrix: program
                 .uniform_location(state, &ImmutableString::new("worldViewProjection"))?,
+            diffuse_color: program
+                .uniform_location(state, &ImmutableString::new("diffuseColor"))?,
             program,
         })
     }
+}
+
+#[derive(Clone)]
+pub struct HighlightEntry {
+    pub color: Color,
 }
 
 pub struct HighlightRenderPass {
@@ -128,7 +140,7 @@ pub struct HighlightRenderPass {
     edge_detect_shader: EdgeDetectShader,
     flat_shader: FlatShader,
     pub scene_handle: Handle<Scene>,
-    pub nodes_to_highlight: Vec<Handle<Node>>,
+    pub nodes_to_highlight: FxHashMap<Handle<Node>, HighlightEntry>,
 }
 
 impl HighlightRenderPass {
@@ -184,7 +196,7 @@ impl HighlightRenderPass {
             edge_detect_shader: EdgeDetectShader::new(state).unwrap(),
             flat_shader: FlatShader::new(state).unwrap(),
             scene_handle: Default::default(),
-            nodes_to_highlight: vec![],
+            nodes_to_highlight: Default::default(),
         }))
     }
 }
@@ -214,17 +226,21 @@ impl SceneRenderPass for HighlightRenderPass {
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,
                 render_pass_name: &Default::default(),
-                node_handle: Default::default(),
             };
 
-            for &root_node_handle in self.nodes_to_highlight.iter() {
+            let mut additional_data_map = FxHashMap::default();
+
+            for (&root_node_handle, entry) in self.nodes_to_highlight.iter() {
                 for node_handle in ctx.scene.graph.traverse_handle_iter(root_node_handle) {
                     if let Some(node) = ctx.scene.graph.try_get(node_handle) {
-                        render_context.node_handle = node_handle;
                         node.collect_render_data(&mut render_context);
+
+                        additional_data_map.insert(node_handle, entry.clone());
                     }
                 }
             }
+
+            render_batch_storage.sort();
 
             self.framebuffer.clear(
                 ctx.pipeline_state,
@@ -254,10 +270,18 @@ impl SceneRenderPass for HighlightRenderPass {
                         },
                         instance.element_range,
                         |mut program_binding| {
-                            program_binding.set_matrix4(
-                                &shader.wvp_matrix,
-                                &(view_projection * instance.world_transform),
-                            );
+                            program_binding
+                                .set_matrix4(
+                                    &shader.wvp_matrix,
+                                    &(view_projection * instance.world_transform),
+                                )
+                                .set_linear_color(
+                                    &shader.diffuse_color,
+                                    &additional_data_map
+                                        .get(&instance.node_handle)
+                                        .map(|e| e.color)
+                                        .unwrap_or_default(),
+                                );
                         },
                     )?;
                 }
