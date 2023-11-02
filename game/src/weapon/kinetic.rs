@@ -326,7 +326,6 @@ impl ScriptTrait for KineticGun {
                             }
 
                             self.reset_target(Game::game_mut(ctx.plugins));
-                            self.is_active = false;
                         }
                         None => {
                             if let Ok(new_target) = self.try_pick_target(&mut ctx.scene.graph) {
