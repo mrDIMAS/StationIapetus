@@ -228,39 +228,43 @@ impl ScriptTrait for KineticGun {
             if let Some(target) = self.target.as_ref() {
                 if let Some(collider) = ctx.scene.graph.try_get_of_type::<Collider>(target.collider)
                 {
-                    let grab_point = collider
-                        .global_transform()
-                        .transform_point(&Point3::from(target.grab_point))
-                        .coords;
+                    if collider.is_globally_enabled() {
+                        let grab_point = collider
+                            .global_transform()
+                            .transform_point(&Point3::from(target.grab_point))
+                            .coords;
 
-                    let delta = begin - grab_point;
+                        let delta = begin - grab_point;
 
-                    let relative_delta = &ctx.scene.graph[ctx.handle]
-                        .global_transform()
-                        .try_inverse()
-                        .unwrap_or_default()
-                        .transform_vector(&delta)
-                        .try_normalize(f32::EPSILON)
-                        .unwrap_or_default();
+                        let relative_delta = &ctx.scene.graph[ctx.handle]
+                            .global_transform()
+                            .try_inverse()
+                            .unwrap_or_default()
+                            .transform_vector(&delta)
+                            .try_normalize(f32::EPSILON)
+                            .unwrap_or_default();
 
-                    if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
-                        let rotation = math::vector_to_quat(-*relative_delta);
+                        if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
+                            let rotation = math::vector_to_quat(-*relative_delta);
 
-                        ray.local_transform_mut()
-                            .set_rotation(rotation)
-                            .set_scale(Vector3::new(1.0, 1.0, delta.norm()));
-                    }
+                            ray.local_transform_mut()
+                                .set_rotation(rotation)
+                                .set_scale(Vector3::new(1.0, 1.0, delta.norm()));
+                        }
 
-                    if let Some(target_body) = ctx
-                        .scene
-                        .graph
-                        .try_get_mut_of_type::<RigidBody>(target.node)
-                    {
-                        let velocity = delta.scale(2.0);
+                        if let Some(target_body) = ctx
+                            .scene
+                            .graph
+                            .try_get_mut_of_type::<RigidBody>(target.node)
+                        {
+                            let velocity = delta.scale(2.0);
 
-                        target_body.set_lin_vel(velocity);
-                        target_body.set_ang_vel(Default::default());
-                        target_body.wake_up();
+                            target_body.set_lin_vel(velocity);
+                            target_body.set_ang_vel(Default::default());
+                            target_body.wake_up();
+                        }
+                    } else {
+                        self.reset_target(Game::game_mut(ctx.plugins));
                     }
                 }
             } else if let Some(highlighter) = Game::game_mut(ctx.plugins).highlighter.as_mut() {
