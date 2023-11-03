@@ -24,6 +24,7 @@ pub struct StateMachineInput<'a> {
     pub change_weapon: bool,
     pub is_dead: bool,
     pub should_be_stunned: bool,
+    pub melee_attack: bool,
     pub machine: Handle<Node>,
     pub scene: &'a mut Scene,
     pub local_velocity: Vector2<f32>,
@@ -134,6 +135,7 @@ impl StateMachine {
             change_weapon,
             is_dead,
             should_be_stunned,
+            melee_attack,
             machine,
             scene,
             local_velocity,
@@ -181,7 +183,8 @@ impl StateMachine {
             .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("Recovered", Parameter::Rule(recovered))
-            .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity));
+            .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity))
+            .set_parameter("MeleeAttack", Parameter::Rule(melee_attack));
     }
 
     pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<Node>) -> bool {

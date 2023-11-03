@@ -724,6 +724,7 @@ impl Player {
             run_factor: self.run_factor,
             is_dead: self.is_dead(),
             should_be_stunned,
+            melee_attack: self.controller.shoot && !self.controller.aim,
             machine: self.machine,
             weapon_kind,
             toss_grenade: self.controller.toss_grenade,
