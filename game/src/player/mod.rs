@@ -71,8 +71,8 @@ pub struct InputController {
     walk_left: bool,
     walk_right: bool,
     jump: bool,
-    yaw: f32,
-    pitch: f32,
+    target_yaw: f32,
+    target_pitch: f32,
     aim: bool,
     toss_grenade: bool,
     shoot: bool,
@@ -138,6 +138,8 @@ pub struct Player {
     model_sub_pivot: Handle<Node>,
     model: Handle<Node>,
     model_yaw: SmoothAngle,
+    #[visit(optional)]
+    yaw: InheritableVariable<SmoothAngle>,
     spine_pitch: SmoothAngle,
     spine: Handle<Node>,
     hips: Handle<Node>,
@@ -223,6 +225,7 @@ pub struct Player {
 
 impl Default for Player {
     fn default() -> Self {
+        let angular_speed = 570.0f32.to_radians();
         Self {
             character: Default::default(),
             rig_light: Default::default(),
@@ -236,12 +239,18 @@ impl Default for Player {
             model_yaw: SmoothAngle {
                 angle: 0.0,
                 target: 0.0,
-                speed: 10.0,
+                speed: angular_speed,
             },
+            yaw: SmoothAngle {
+                angle: 0.0,
+                target: 0.0,
+                speed: angular_speed,
+            }
+            .into(),
             spine_pitch: SmoothAngle {
                 angle: 0.0,
                 target: 0.0,
-                speed: 10.0,
+                speed: angular_speed,
             },
             weapon_change_direction: RequiredWeapon::None,
             weapon_yaw_correction: SmoothAngle {
@@ -307,6 +316,7 @@ impl Clone for Player {
             model_sub_pivot: self.model_sub_pivot,
             model: self.model,
             model_yaw: self.model_yaw.clone(),
+            yaw: self.yaw.clone(),
             spine_pitch: self.spine_pitch.clone(),
             spine: self.spine,
             hips: self.hips,
@@ -1153,13 +1163,13 @@ impl ScriptTrait for Player {
                 }
                 DeviceEvent::MouseMotion { delta } => {
                     let mouse_sens = control_scheme.mouse_sens * context.dt;
-                    self.controller.yaw -= (delta.0 as f32) * mouse_sens;
+                    self.controller.target_yaw -= (delta.0 as f32) * mouse_sens;
                     let pitch_direction = if control_scheme.mouse_y_inverse {
                         -1.0
                     } else {
                         1.0
                     };
-                    self.controller.pitch = (self.controller.pitch
+                    self.controller.target_pitch = (self.controller.target_pitch
                         + pitch_direction * (delta.1 as f32) * mouse_sens)
                         .clamp(-90.0f32.to_radians(), 90.0f32.to_radians());
                     None
@@ -1456,7 +1466,7 @@ impl ScriptTrait for Player {
             let attacking_in_direction = self.controller.aim || self.melee_attack_context.is_some();
 
             if attacking_in_direction {
-                self.spine_pitch.set_target(self.controller.pitch);
+                self.spine_pitch.set_target(self.controller.target_pitch);
             } else {
                 self.spine_pitch.set_target(0.0);
             }
@@ -1464,13 +1474,17 @@ impl ScriptTrait for Player {
             self.spine_pitch.update(ctx.dt);
 
             if can_move && (is_walking || attacking_in_direction) {
+                self.yaw
+                    .set_target(self.controller.target_yaw)
+                    .update(ctx.dt);
+
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
                 ctx.scene.graph[self.model_pivot]
                     .local_transform_mut()
                     .set_rotation(UnitQuaternion::from_axis_angle(
                         &Vector3::y_axis(),
-                        self.controller.yaw,
+                        self.yaw.angle,
                     ));
 
                 // Apply additional rotation to model - it will turn in front of walking direction.

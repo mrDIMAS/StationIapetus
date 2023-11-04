@@ -111,7 +111,13 @@ impl ScriptTrait for CameraController {
             .graph
             .try_get(self.player)
             .and_then(|p| p.try_get_script::<Player>())
-            .map(|p| (p.is_aiming(), p.controller.yaw, p.controller.pitch))
+            .map(|p| {
+                (
+                    p.is_aiming(),
+                    p.controller.target_yaw,
+                    p.controller.target_pitch,
+                )
+            })
             .unwrap_or_default();
 
         self.target_camera_offset.x = 0.0;
