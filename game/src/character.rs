@@ -72,6 +72,7 @@ pub enum CharacterMessageData {
         /// Only takes effect iff damage was applied to a head hit box!
         critical_hit_probability: f32,
         position: Option<DamagePosition>,
+        is_melee: bool,
     },
     SelectWeapon(ModelResource),
     AddWeapon(ModelResource),
@@ -192,6 +193,7 @@ impl Character {
                                                     .coords,
                                                 direction: manifold.normal,
                                             }),
+                                            is_melee: true,
                                         },
                                     },
                                 );

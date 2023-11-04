@@ -478,6 +478,7 @@ impl ScriptTrait for Projectile {
                                         point: hit.position,
                                         direction,
                                     }),
+                                    is_melee: false,
                                 },
                             });
                         }
@@ -497,6 +498,7 @@ impl ScriptTrait for Projectile {
                                 point: hit.position,
                                 direction,
                             }),
+                            is_melee: false,
                         },
                     });
                 }

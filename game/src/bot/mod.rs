@@ -351,6 +351,7 @@ impl Bot {
                                         amount: 20.0,
                                         critical_hit_probability: 0.0,
                                         position: None,
+                                        is_melee: true,
                                     },
                                 });
 
@@ -442,6 +443,7 @@ impl ScriptTrait for Bot {
                 hitbox,
                 critical_hit_probability: critical_shot_probability,
                 position,
+                is_melee,
             } = char_message.data
             {
                 if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
@@ -470,7 +472,7 @@ impl ScriptTrait for Bot {
                 }
 
                 // Prevent spamming with grunt sounds.
-                if self.last_health - self.health > 20.0 && !self.is_dead() {
+                if self.last_health - self.health > 20.0 && !self.is_dead() || is_melee {
                     self.last_health = self.health;
                     self.restoration_time = 0.8;
 
@@ -549,9 +551,6 @@ impl ScriptTrait for Bot {
             is_screaming = behavior_ctx.is_screaming;
         }
 
-        self.restoration_time -= ctx.dt;
-        self.threaten_timeout -= ctx.dt;
-
         self.check_doors(ctx.scene, &level.doors_container);
 
         self.state_machine.apply(
@@ -564,9 +563,13 @@ impl ScriptTrait for Bot {
                 attack: need_to_melee_attack,
                 attack_animation_index: attack_animation_index as u32,
                 aim: is_aiming,
+                badly_damaged: self.restoration_time > 0.0,
             },
         );
         self.impact_handler.update_and_apply(ctx.dt, ctx.scene);
+
+        self.restoration_time -= ctx.dt;
+        self.threaten_timeout -= ctx.dt;
 
         self.v_recoil.update(ctx.dt);
         self.h_recoil.update(ctx.dt);

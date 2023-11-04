@@ -15,6 +15,7 @@ pub struct StateMachineInput {
     pub attack: bool,
     pub attack_animation_index: u32,
     pub aim: bool,
+    pub badly_damaged: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -70,7 +71,8 @@ impl StateMachine {
             .set_parameter("Walk", Parameter::Rule(input.walk))
             .set_parameter("Threaten", Parameter::Rule(input.scream))
             .set_parameter("Aim", Parameter::Rule(input.aim))
-            .set_parameter("Dead", Parameter::Rule(input.dead));
+            .set_parameter("Dead", Parameter::Rule(input.dead))
+            .set_parameter("WasHit", Parameter::Rule(input.badly_damaged));
     }
 
     pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {

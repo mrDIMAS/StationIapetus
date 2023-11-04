@@ -41,6 +41,7 @@ impl ScriptTrait for DeathZone {
                         amount: 99999.0,
                         critical_hit_probability: 0.0,
                         position: None,
+                        is_melee: false,
                     },
                 })
             }

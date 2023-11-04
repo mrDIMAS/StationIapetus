@@ -988,6 +988,7 @@ impl Player {
                                                     amount: *self.melee_attack_damage,
                                                     critical_hit_probability: 0.0,
                                                     position: None,
+                                                    is_melee: true,
                                                 },
                                             },
                                         );
