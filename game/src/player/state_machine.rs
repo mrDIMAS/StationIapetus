@@ -43,6 +43,7 @@ pub struct StateMachine {
     pub aim_state: Handle<State>,
     pub put_back_state: Handle<State>,
     pub grab_animation: Handle<Animation>,
+    pub melee_state: Handle<State>,
 }
 
 impl StateMachine {
@@ -50,6 +51,8 @@ impl StateMachine {
     pub const JUMP_SIGNAL: &'static str = "Jump";
     pub const GRAB_WEAPON_SIGNAL: &'static str = "Grab";
     pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
+    pub const HIT_STARTED_SIGNAL: &'static str = "HitStarted";
+    pub const HIT_ENDED_SIGNAL: &'static str = "HitEnded";
 
     const LOWER_BODY_LAYER_INDEX: usize = 0;
     const UPPER_BODY_LAYER_INDEX: usize = 1;
@@ -77,6 +80,7 @@ impl StateMachine {
             hit_reaction_rifle_animation: animations
                 .find_by_name_ref("agent_hit_reaction_rifle")?
                 .0,
+            melee_state: upper_body.find_state_by_name_ref("Melee")?.0,
             fall_state: lower_body.find_state_by_name_ref("Fall")?.0,
             land_state: lower_body.find_state_by_name_ref("Land")?.0,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,

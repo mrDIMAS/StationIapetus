@@ -1,5 +1,5 @@
 use crate::{
-    character::{Character, CharacterMessage, CharacterMessageData},
+    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
     control_scheme::ControlButton,
     door::{door_mut, DoorContainer},
     elevator::call_button::{CallButton, CallButtonKind},
@@ -16,7 +16,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, Level, MessageSender,
 };
-use fyrox::keyboard::PhysicalKey;
+use fyrox::fxhash::FxHashSet;
 use fyrox::{
     animation::machine::{self, node::AnimationEventCollectionStrategy},
     asset::manager::ResourceManager,
@@ -37,7 +37,9 @@ use fyrox::{
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     impl_component_provider,
+    keyboard::PhysicalKey,
     material::{shader::SamplerFallback, PropertyValue},
+    plugin::Plugin,
     resource::{
         model::{Model, ModelResource},
         texture::TextureResource,
@@ -45,6 +47,7 @@ use fyrox::{
     scene::{
         animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
         base::BaseBuilder,
+        collider::Collider,
         graph::Graph,
         light::BaseLight,
         node::Node,
@@ -121,6 +124,11 @@ pub struct PlayerPersistentData {
     pub weapons: Vec<ModelResource>,
 }
 
+#[derive(Default, Clone, Debug)]
+struct MeleeAttackContext {
+    damaged_enemies: FxHashSet<Handle<Node>>,
+}
+
 #[derive(Visit, Reflect, Debug)]
 pub struct Player {
     character: Character,
@@ -171,6 +179,9 @@ pub struct Player {
     plasma_gun_weapon: Option<ModelResource>,
 
     #[visit(optional)]
+    melee_hit_box: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
     animation_player: Handle<Node>,
 
     #[reflect(hidden)]
@@ -186,6 +197,10 @@ pub struct Player {
 
     #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
+
+    #[reflect(hidden)]
+    #[visit(skip)]
+    melee_attack_context: Option<MeleeAttackContext>,
 
     #[reflect(hidden)]
     pub journal: Journal,
@@ -272,6 +287,8 @@ impl Default for Player {
             plasma_gun_weapon: None,
             grenade_item: Default::default(),
             jump_y_velocity: None,
+            melee_hit_box: Default::default(),
+            melee_attack_context: Default::default(),
         }
     }
 }
@@ -306,6 +323,7 @@ impl Clone for Player {
             h_recoil: self.h_recoil.clone(),
             rig_light: self.rig_light,
             weapon_change_direction: self.weapon_change_direction.clone(),
+            melee_attack_context: self.melee_attack_context.clone(),
             journal: Default::default(),
             controller: Default::default(),
             animation_player: self.animation_player,
@@ -322,6 +340,7 @@ impl Clone for Player {
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
             jump_y_velocity: self.jump_y_velocity,
+            melee_hit_box: self.melee_hit_box.clone(),
         }
     }
 }
@@ -596,6 +615,10 @@ impl Player {
                                 }
                             }
                         }
+                    } else if event.name == StateMachine::HIT_STARTED_SIGNAL {
+                        self.melee_attack_context = Some(Default::default());
+                    } else if event.name == StateMachine::HIT_ENDED_SIGNAL {
+                        self.melee_attack_context = None;
                     }
                 }
 
@@ -904,6 +927,62 @@ impl Player {
 
     pub fn is_aiming(&self) -> bool {
         self.controller.aim
+    }
+
+    fn update_melee_attack(
+        &mut self,
+        scene: &mut Scene,
+        script_message_sender: &ScriptMessageSender,
+        self_handle: Handle<Node>,
+        plugins: &[Box<dyn Plugin>],
+    ) {
+        if let Some(attack_context) = self.melee_attack_context.as_mut() {
+            if let Some(melee_hit_box_collider) =
+                scene.graph.try_get_of_type::<Collider>(*self.melee_hit_box)
+            {
+                if let Some(level) = Level::try_get(plugins) {
+                    for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
+                        if intersection.has_any_active_contact {
+                            for &actor in level.actors.iter() {
+                                if attack_context.damaged_enemies.contains(&actor) {
+                                    continue;
+                                }
+
+                                if actor == self_handle {
+                                    continue;
+                                }
+
+                                if let Some(character) =
+                                    scene.graph.try_get_script_component_of::<Character>(actor)
+                                {
+                                    if character.capsule_collider == intersection.collider1
+                                        || character.capsule_collider == intersection.collider2
+                                    {
+                                        attack_context.damaged_enemies.insert(actor);
+
+                                        script_message_sender.send_to_target(
+                                            actor,
+                                            CharacterMessage {
+                                                character: actor,
+                                                data: CharacterMessageData::Damage {
+                                                    dealer: DamageDealer {
+                                                        entity: self_handle,
+                                                    },
+                                                    hitbox: None,
+                                                    amount: 50.0,
+                                                    critical_hit_probability: 0.0,
+                                                    position: None,
+                                                },
+                                            },
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
     }
 
     pub fn resolve(
@@ -1336,6 +1415,7 @@ impl ScriptTrait for Player {
         let is_jumping = has_ground_contact && self.controller.jump;
 
         self.update_animation_machines(ctx.scene, is_walking, is_jumping);
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, ctx.plugins);
 
         let is_running = self.is_running(ctx.scene);
 
