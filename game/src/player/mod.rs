@@ -170,6 +170,10 @@ pub struct Player {
     flash_light_enabled: InheritableVariable<bool>,
 
     #[visit(optional)]
+    #[reflect(min_value = 0.0, max_value = 20.0)]
+    melee_attack_damage: InheritableVariable<f32>,
+
+    #[visit(optional)]
     ak47_weapon: Option<ModelResource>,
     #[visit(optional)]
     m4_weapon: Option<ModelResource>,
@@ -281,6 +285,7 @@ impl Default for Player {
             target_local_velocity: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: true.into(),
+            melee_attack_damage: 7.5.into(),
             ak47_weapon: None,
             m4_weapon: None,
             glock_weapon: None,
@@ -334,6 +339,7 @@ impl Clone for Player {
             target_local_velocity: self.target_local_velocity,
             flash_light: self.flash_light.clone(),
             flash_light_enabled: self.flash_light_enabled.clone(),
+            melee_attack_damage: self.melee_attack_damage.clone(),
             ak47_weapon: self.ak47_weapon.clone(),
             m4_weapon: self.m4_weapon.clone(),
             glock_weapon: self.glock_weapon.clone(),
@@ -969,7 +975,7 @@ impl Player {
                                                         entity: self_handle,
                                                     },
                                                     hitbox: None,
-                                                    amount: 50.0,
+                                                    amount: *self.melee_attack_damage,
                                                     critical_hit_probability: 0.0,
                                                     position: None,
                                                 },
@@ -1447,7 +1453,9 @@ impl ScriptTrait for Player {
                 flash_light.set_visibility(*self.flash_light_enabled);
             }
 
-            if self.controller.aim {
+            let attacking_in_direction = self.controller.aim || self.melee_attack_context.is_some();
+
+            if attacking_in_direction {
                 self.spine_pitch.set_target(self.controller.pitch);
             } else {
                 self.spine_pitch.set_target(0.0);
@@ -1455,7 +1463,7 @@ impl ScriptTrait for Player {
 
             self.spine_pitch.update(ctx.dt);
 
-            if can_move && (is_walking || self.controller.aim) {
+            if can_move && (is_walking || attacking_in_direction) {
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
                 ctx.scene.graph[self.model_pivot]
