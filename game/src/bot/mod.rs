@@ -443,7 +443,7 @@ impl ScriptTrait for Bot {
                 hitbox,
                 critical_hit_probability: critical_shot_probability,
                 position,
-                is_melee,
+                ..
             } = char_message.data
             {
                 if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
@@ -472,7 +472,7 @@ impl ScriptTrait for Bot {
                 }
 
                 // Prevent spamming with grunt sounds.
-                if self.last_health - self.health > 20.0 && !self.is_dead() || is_melee {
+                if self.last_health - self.health > 20.0 && !self.is_dead() {
                     self.last_health = self.health;
                     self.restoration_time = 0.8;
 

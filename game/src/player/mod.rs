@@ -233,7 +233,7 @@ pub struct Player {
 impl Default for Player {
     fn default() -> Self {
         let angular_speed = 570.0f32.to_radians();
-        let player = Self {
+        Self {
             character: Default::default(),
             rig_light: Default::default(),
             camera_controller: Default::default(),
@@ -312,8 +312,7 @@ impl Default for Player {
             melee_attack_context: Default::default(),
             melee_hit_sound: Default::default(),
             melee_hit_effect_prefab: Default::default(),
-        };
-        player
+        }
     }
 }
 
