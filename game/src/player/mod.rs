@@ -9,14 +9,14 @@ use crate::{
     message::Message,
     player::state_machine::{StateMachine, StateMachineInput},
     sound::SoundManager,
-    utils,
+    utils::{self, try_play_sound},
     weapon::{
         projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
         WeaponMessageData,
     },
     CameraController, Elevator, Game, Item, Level, MessageSender,
 };
-use fyrox::fxhash::FxHashSet;
+use fyrox::resource::model::ModelResourceExtension;
 use fyrox::{
     animation::machine::{self, node::AnimationEventCollectionStrategy},
     asset::manager::ResourceManager,
@@ -36,6 +36,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
+    fxhash::FxHashSet,
     impl_component_provider,
     keyboard::PhysicalKey,
     material::{shader::SamplerFallback, PropertyValue},
@@ -221,12 +222,18 @@ pub struct Player {
 
     #[visit(optional)]
     pub grenade_item: InheritableVariable<Option<ModelResource>>,
+
+    #[visit(optional)]
+    pub melee_hit_sound: InheritableVariable<Handle<Node>>,
+
+    #[visit(optional)]
+    pub melee_hit_effect_prefab: InheritableVariable<Option<ModelResource>>,
 }
 
 impl Default for Player {
     fn default() -> Self {
         let angular_speed = 570.0f32.to_radians();
-        Self {
+        let player = Self {
             character: Default::default(),
             rig_light: Default::default(),
             camera_controller: Default::default(),
@@ -303,7 +310,10 @@ impl Default for Player {
             jump_y_velocity: None,
             melee_hit_box: Default::default(),
             melee_attack_context: Default::default(),
-        }
+            melee_hit_sound: Default::default(),
+            melee_hit_effect_prefab: Default::default(),
+        };
+        player
     }
 }
 
@@ -357,6 +367,8 @@ impl Clone for Player {
             grenade_item: self.grenade_item.clone(),
             jump_y_velocity: self.jump_y_velocity,
             melee_hit_box: self.melee_hit_box.clone(),
+            melee_hit_sound: self.melee_hit_sound.clone(),
+            melee_hit_effect_prefab: self.melee_hit_effect_prefab.clone(),
         }
     }
 }
@@ -951,55 +963,70 @@ impl Player {
         script_message_sender: &ScriptMessageSender,
         self_handle: Handle<Node>,
         plugins: &[Box<dyn Plugin>],
-    ) {
-        if let Some(attack_context) = self.melee_attack_context.as_mut() {
-            if let Some(melee_hit_box_collider) =
-                scene.graph.try_get_of_type::<Collider>(*self.melee_hit_box)
-            {
-                if let Some(level) = Level::try_get(plugins) {
-                    for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
-                        if intersection.has_any_active_contact {
-                            for &actor in level.actors.iter() {
-                                if attack_context.damaged_enemies.contains(&actor) {
-                                    continue;
-                                }
+    ) -> Option<()> {
+        let attack_context = self.melee_attack_context.as_mut()?;
+        let melee_hit_box_collider = scene
+            .graph
+            .try_get_of_type::<Collider>(*self.melee_hit_box)?;
+        let level = Level::try_get(plugins)?;
 
-                                if actor == self_handle {
-                                    continue;
-                                }
+        let mut hits = Vec::new();
+        for intersection in melee_hit_box_collider
+            .intersects(&scene.graph.physics)
+            .filter(|i| i.has_any_active_contact)
+        {
+            for (actor_handle, character) in level.actors.iter().filter_map(|&actor| {
+                if actor == self_handle {
+                    None
+                } else {
+                    scene
+                        .graph
+                        .try_get_script_component_of::<Character>(actor)
+                        .map(|c| (actor, c))
+                }
+            }) {
+                if attack_context.damaged_enemies.contains(&actor_handle) {
+                    continue;
+                }
 
-                                if let Some(character) =
-                                    scene.graph.try_get_script_component_of::<Character>(actor)
-                                {
-                                    if character.capsule_collider == intersection.collider1
-                                        || character.capsule_collider == intersection.collider2
-                                    {
-                                        attack_context.damaged_enemies.insert(actor);
+                if character.capsule_collider == intersection.collider1
+                    || character.capsule_collider == intersection.collider2
+                {
+                    attack_context.damaged_enemies.insert(actor_handle);
 
-                                        script_message_sender.send_to_target(
-                                            actor,
-                                            CharacterMessage {
-                                                character: actor,
-                                                data: CharacterMessageData::Damage {
-                                                    dealer: DamageDealer {
-                                                        entity: self_handle,
-                                                    },
-                                                    hitbox: None,
-                                                    amount: *self.melee_attack_damage,
-                                                    critical_hit_probability: 0.0,
-                                                    position: None,
-                                                    is_melee: true,
-                                                },
-                                            },
-                                        );
-                                    }
-                                }
-                            }
-                        }
-                    }
+                    hits.push(melee_hit_box_collider.global_position());
+
+                    script_message_sender.send_to_target(
+                        actor_handle,
+                        CharacterMessage {
+                            character: actor_handle,
+                            data: CharacterMessageData::Damage {
+                                dealer: DamageDealer {
+                                    entity: self_handle,
+                                },
+                                hitbox: None,
+                                amount: *self.melee_attack_damage,
+                                critical_hit_probability: 0.0,
+                                position: None,
+                                is_melee: true,
+                            },
+                        },
+                    );
                 }
             }
         }
+
+        if !hits.is_empty() {
+            try_play_sound(*self.melee_hit_sound, &mut scene.graph);
+
+            if let Some(melee_hit_effect_prefab) = &*self.melee_hit_effect_prefab {
+                for hit in hits {
+                    melee_hit_effect_prefab.instantiate_at(scene, hit, Default::default());
+                }
+            }
+        }
+
+        Some(())
     }
 
     pub fn resolve(
