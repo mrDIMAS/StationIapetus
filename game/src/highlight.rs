@@ -252,7 +252,9 @@ impl SceneRenderPass for HighlightRenderPass {
             );
 
             for batch in render_batch_storage.batches.iter() {
-                let geometry = ctx.geometry_cache.get(ctx.pipeline_state, &batch.data);
+                let geometry =
+                    ctx.geometry_cache
+                        .get(ctx.pipeline_state, &batch.data, batch.time_to_live);
                 for instance in batch.instances.iter() {
                     let shader = &self.flat_shader;
                     self.framebuffer.draw(

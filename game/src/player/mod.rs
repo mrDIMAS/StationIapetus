@@ -742,7 +742,7 @@ impl Player {
             .health_color_gradient
             .get_color(self.health / *self.max_health);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
-        let mut material = surface.material().lock();
+        let mut material = surface.material().data_ref();
         Log::verify(material.set_property(
             &ImmutableString::new("diffuseColor"),
             PropertyValue::Color(color),
@@ -1043,7 +1043,7 @@ impl Player {
                 .first_mut()
                 .unwrap()
                 .material()
-                .lock()
+                .data_ref()
                 .set_property(
                     &ImmutableString::new("diffuseTexture"),
                     PropertyValue::Sampler {
@@ -1060,7 +1060,7 @@ impl Player {
                 .first_mut()
                 .unwrap()
                 .material()
-                .lock()
+                .data_ref()
                 .set_property(
                     &ImmutableString::new("diffuseTexture"),
                     PropertyValue::Sampler {
@@ -1077,7 +1077,7 @@ impl Player {
                 .first_mut()
                 .unwrap()
                 .material()
-                .lock()
+                .data_ref()
                 .set_property(
                     &ImmutableString::new("diffuseTexture"),
                     PropertyValue::Sampler {
@@ -1089,7 +1089,10 @@ impl Player {
 
         scene.graph[self.item_display]
             .as_sprite_mut()
-            .set_texture(Some(item_texture));
+            .material()
+            .data_ref()
+            .set_texture(&("diffuseTexture".into()), Some(item_texture))
+            .unwrap();
 
         self.health_color_gradient = make_color_gradient();
     }

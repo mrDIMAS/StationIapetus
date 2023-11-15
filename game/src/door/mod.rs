@@ -14,7 +14,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    material::{Material, PropertyValue, SharedMaterial},
+    material::{Material, MaterialResource, PropertyValue},
     resource::{
         model::ModelResource,
         texture::{Texture, TextureResource},
@@ -286,7 +286,7 @@ impl Door {
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface.set_material(SharedMaterial::new(material));
+                    first_surface.set_material(MaterialResource::new_ok(material));
                 }
             }
         }

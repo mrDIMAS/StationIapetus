@@ -1,5 +1,6 @@
 use crate::{block_on, Level};
 use fyrox::core::log::Log;
+use fyrox::material::{Material, MaterialResource};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -92,14 +93,22 @@ impl TypeUuidProvider for Item {
 
 impl ScriptTrait for Item {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
+        let mut material = Material::standard_sprite();
+        material
+            .set_texture(
+                &"diffuseTexture".into(),
+                Some(
+                    ctx.resource_manager
+                        .request::<Texture, _>("data/particles/star_09.png"),
+                ),
+            )
+            .unwrap();
+
         // Create spark from code, since it is the same across all items.
         self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
             .with_size(0.04)
             .with_color(Color::from_rgba(255, 255, 255, 160))
-            .with_texture(
-                ctx.resource_manager
-                    .request::<Texture, _>("data/particles/star_09.png"),
-            )
+            .with_material(MaterialResource::new_ok(material))
             .build(&mut ctx.scene.graph);
 
         ctx.scene.graph.link_nodes(self.spark, ctx.handle);

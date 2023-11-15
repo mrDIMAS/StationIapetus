@@ -11,7 +11,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     impl_component_provider,
-    material::{Material, PropertyValue, SharedMaterial},
+    material::{Material, MaterialResource, PropertyValue},
     resource::texture::{Texture, TextureResource},
     scene::{graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptTrait},
@@ -73,7 +73,7 @@ impl CallButton {
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface.set_material(SharedMaterial::new(material));
+                    first_surface.set_material(MaterialResource::new_ok(material));
                 }
             }
         }

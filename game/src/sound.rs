@@ -112,7 +112,7 @@ impl SoundMap {
                                     ..
                                 }) = surface
                                     .material()
-                                    .lock()
+                                    .data_ref()
                                     .property_ref(&ImmutableString::new("diffuseTexture"))
                                 {
                                     let path = diffuse_texture.path();

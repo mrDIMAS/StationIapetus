@@ -102,7 +102,7 @@ impl LaserSight {
                 .first()
                 .unwrap()
                 .material()
-                .lock()
+                .data_ref()
                 .set_property(
                     &ImmutableString::new("diffuseColor"),
                     PropertyValue::Color(color),
