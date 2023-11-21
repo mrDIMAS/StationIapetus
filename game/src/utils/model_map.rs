@@ -16,7 +16,7 @@ impl ModelMap {
             map: fyrox::core::futures::future::join_all(
                 paths
                     .into_iter()
-                    .map(|path| resource_manager.request::<Model, _>(path))
+                    .map(|path| resource_manager.request::<Model>(path))
                     .collect::<Vec<_>>(),
             )
             .await

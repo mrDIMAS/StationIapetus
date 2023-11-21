@@ -80,7 +80,7 @@ impl DoorUi {
                             .on_column(0),
                     )
                     .with_texture(into_gui_texture(
-                        resource_manager.request::<Texture, _>("data/ui/triangles.png"),
+                        resource_manager.request::<Texture>("data/ui/triangles.png"),
                     ))
                     .build(ctx);
                     logo

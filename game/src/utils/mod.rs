@@ -87,7 +87,7 @@ impl BodyImpactHandler {
 
 pub async fn use_hrtf(context: &mut SoundContext, resource_manager: &ResourceManager) {
     let hrtf_sphere = resource_manager
-        .request::<HrirSphereResourceData, _>("data/sounds/hrtf.hrir")
+        .request::<HrirSphereResourceData>("data/sounds/hrtf.hrir")
         .await
         .unwrap();
 

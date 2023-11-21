@@ -522,7 +522,7 @@ impl Game {
                 }
                 Message::Play2DSound { path, gain } => {
                     if let Ok(buffer) = fyrox::core::futures::executor::block_on(
-                        context.resource_manager.request::<SoundBuffer, _>(path),
+                        context.resource_manager.request::<SoundBuffer>(path),
                     ) {
                         let menu_scene = &mut context.scenes[self.menu.scene.scene];
                         SoundBuilder::new(BaseBuilder::new())

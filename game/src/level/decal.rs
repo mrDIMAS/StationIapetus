@@ -145,8 +145,7 @@ impl Decal {
             parent,
             color,
             default_scale,
-            resource_manager
-                .request::<Texture, _>("data/textures/decals/BulletImpact_BaseColor.png"),
+            resource_manager.request::<Texture>("data/textures/decals/BulletImpact_BaseColor.png"),
         )
     }
 }

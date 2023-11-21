@@ -552,7 +552,7 @@ impl ScriptTrait for Projectile {
                             Handle::NONE,
                             Color::opaque(255, 255, 255),
                             Vector3::new(0.45, 0.45, 0.2),
-                            ctx.resource_manager.request::<Texture, _>(
+                            ctx.resource_manager.request::<Texture>(
                                 "data/textures/decals/BloodSplatter_BaseColor.png",
                             ),
                         );

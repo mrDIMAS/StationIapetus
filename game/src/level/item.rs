@@ -99,7 +99,7 @@ impl ScriptTrait for Item {
                 &"diffuseTexture".into(),
                 Some(
                     ctx.resource_manager
-                        .request::<Texture, _>("data/particles/star_09.png"),
+                        .request::<Texture>("data/particles/star_09.png"),
                 ),
             )
             .unwrap();

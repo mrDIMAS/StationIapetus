@@ -626,11 +626,10 @@ impl Player {
 
                         if let Some(grenade_item) = self.grenade_item.deref().clone() {
                             if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
-                                if let Ok(grenade) =
-                                    block_on(resource_manager.request::<Model, _>(
-                                        "data/models/grenade/grenade_proj.rgs",
-                                    ))
-                                {
+                                if let Ok(grenade) = block_on(
+                                    resource_manager
+                                        .request::<Model>("data/models/grenade/grenade_proj.rgs"),
+                                ) {
                                     Projectile::spawn(
                                         &grenade,
                                         scene,

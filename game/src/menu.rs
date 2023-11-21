@@ -62,7 +62,7 @@ impl MenuScene {
 
         let buffer = context
             .resource_manager
-            .request::<SoundBuffer, _>(
+            .request::<SoundBuffer>(
                 "data/music/Pura Sombar - Tongues falling from an opened sky.ogg",
             )
             .await

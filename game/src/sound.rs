@@ -257,7 +257,7 @@ impl SoundManager {
             self.resource_manager
                 .as_ref()
                 .unwrap()
-                .request::<SoundBuffer, _>(path.as_ref()),
+                .request::<SoundBuffer>(path.as_ref()),
         ) {
             self.play_sound_buffer(graph, &buffer, position, gain, rolloff_factor, radius)
         } else {
