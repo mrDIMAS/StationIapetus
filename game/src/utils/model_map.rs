@@ -23,7 +23,12 @@ impl ModelMap {
             .into_iter()
             .map(|r| {
                 let resource = r.unwrap();
-                let key = resource.path().to_string_lossy().into_owned();
+                let key = resource
+                    .kind()
+                    .into_path()
+                    .unwrap_or_default()
+                    .to_string_lossy()
+                    .into_owned();
                 (key, resource)
             })
             .collect::<HashMap<_, _>>(),

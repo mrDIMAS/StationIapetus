@@ -284,7 +284,8 @@ impl Door {
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface.set_material(MaterialResource::new_ok(material));
+                    first_surface
+                        .set_material(MaterialResource::new_ok(Default::default(), material));
                 }
             }
         }

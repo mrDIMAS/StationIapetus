@@ -108,7 +108,7 @@ impl ScriptTrait for Item {
         self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
             .with_size(0.04)
             .with_color(Color::from_rgba(255, 255, 255, 160))
-            .with_material(MaterialResource::new_ok(material))
+            .with_material(MaterialResource::new_ok(Default::default(), material))
             .build(&mut ctx.scene.graph);
 
         ctx.scene.graph.link_nodes(self.spark, ctx.handle);
@@ -212,7 +212,7 @@ impl Item {
         } else {
             Log::err(format!(
                 "Asset {} is not an item asset!",
-                item_resource.path().display()
+                item_resource.kind()
             ));
         }
     }

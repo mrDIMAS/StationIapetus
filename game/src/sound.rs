@@ -115,7 +115,8 @@ impl SoundMap {
                                     .data_ref()
                                     .property_ref(&ImmutableString::new("diffuseTexture"))
                                 {
-                                    let path = diffuse_texture.path();
+                                    let path =
+                                        diffuse_texture.kind().into_path().unwrap_or_default();
                                     match path.canonicalize() {
                                         Ok(path) => {
                                             if let Some(&material) =

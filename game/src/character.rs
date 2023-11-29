@@ -314,7 +314,7 @@ impl Character {
                 } else {
                     Log::warn(format!(
                         "{} is not a weapon resource!",
-                        weapon_resource.path().display()
+                        weapon_resource.kind()
                     ));
                 }
             }
