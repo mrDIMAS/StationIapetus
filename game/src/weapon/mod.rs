@@ -2,6 +2,7 @@
 
 use crate::character::Character;
 use crate::{level::item::Item, weapon::projectile::Projectile};
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -52,6 +53,8 @@ pub enum CombatWeaponKind {
     Pistol = 0,
     Rifle = 1,
 }
+
+stub_uuid_provider!(CombatWeaponKind);
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Weapon {

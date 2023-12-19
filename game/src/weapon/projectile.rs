@@ -6,6 +6,7 @@ use crate::{
     level::decal::Decal,
     CollisionGroups, Level, Weapon,
 };
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -46,6 +47,8 @@ pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
 }
+
+stub_uuid_provider!(Damage);
 
 impl Default for Damage {
     fn default() -> Self {
@@ -99,7 +102,7 @@ impl PartialEq for Hit {
 
 impl Hash for Hit {
     fn hash<H: Hasher>(&self, state: &mut H) {
-        fyrox::utils::hash_as_bytes(self, state);
+        fyrox::core::hash_as_bytes(self, state);
     }
 }
 

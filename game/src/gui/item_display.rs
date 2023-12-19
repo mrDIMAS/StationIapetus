@@ -1,4 +1,5 @@
 use crate::{control_scheme::ControlScheme, gui, level::item::Item};
+use fyrox::gui::font::FontResource;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
     gui::{
@@ -9,12 +10,12 @@ use fyrox::{
         image::{ImageBuilder, ImageMessage},
         message::MessageDirection,
         text::{TextBuilder, TextMessage},
-        ttf::SharedFont,
         widget::WidgetBuilder,
         HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
     resource::{model::ModelResource, texture::TextureResource},
 };
+use std::ops::Deref;
 
 pub struct ItemDisplay {
     pub ui: UserInterface,
@@ -29,7 +30,7 @@ impl ItemDisplay {
     pub const WIDTH: f32 = 128.0;
     pub const HEIGHT: f32 = 160.0;
 
-    pub fn new(font: SharedFont, smaller_font: SharedFont) -> Self {
+    pub fn new(font: FontResource) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
@@ -70,7 +71,8 @@ impl ItemDisplay {
                             .on_row(1)
                             .on_column(0),
                     )
-                    .with_font(font)
+                    .with_font(font.clone())
+                    .with_height(31.0)
                     .build(&mut ui.build_ctx());
                     item_name
                 })
@@ -85,7 +87,8 @@ impl ItemDisplay {
                     )
                     .with_shadow(true)
                     .with_wrap(WrapMode::Letter)
-                    .with_font(smaller_font)
+                    .with_height(20.0)
+                    .with_font(font)
                     .build(&mut ui.build_ctx());
                     action_text
                 }),
@@ -130,10 +133,7 @@ impl ItemDisplay {
                     self.ui.send_message(ImageMessage::texture(
                         self.item_image,
                         MessageDirection::ToWidget,
-                        item_script
-                            .preview
-                            .as_ref()
-                            .map(|tex| fyrox::utils::into_gui_texture(tex.clone())),
+                        item_script.preview.deref().clone().map(Into::into),
                     ));
                 }
             });

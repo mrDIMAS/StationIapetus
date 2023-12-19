@@ -3,6 +3,7 @@ use crate::{
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
+use fyrox::gui::font::FontResource;
 use fyrox::resource::texture::TextureResource;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle},
@@ -11,7 +12,6 @@ use fyrox::{
         brush::Brush,
         grid::{Column, GridBuilder, Row},
         text::{TextBuilder, TextMessage},
-        ttf::SharedFont,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     scene::node::Node,
@@ -46,7 +46,7 @@ impl CallButtonUi {
     pub const WIDTH: f32 = 100.0;
     pub const HEIGHT: f32 = 100.0;
 
-    pub fn new(font: SharedFont, floor: u32) -> Self {
+    pub fn new(font: FontResource, floor: u32) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
         let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
 
@@ -69,6 +69,7 @@ impl CallButtonUi {
                                         .on_column(0)
                                         .with_margin(Thickness::top(25.0)),
                                 )
+                                .with_height(31.0)
                                 .with_font(font.clone())
                                 .with_horizontal_text_alignment(HorizontalAlignment::Center)
                                 .with_vertical_text_alignment(VerticalAlignment::Center)
@@ -83,6 +84,7 @@ impl CallButtonUi {
                                         .on_column(0)
                                         .with_foreground(Brush::Solid(Color::GREEN)),
                                 )
+                                .with_height(31.0)
                                 .with_text("Call?")
                                 .with_horizontal_text_alignment(HorizontalAlignment::Center)
                                 .with_font(font)
@@ -128,7 +130,7 @@ pub type CallButtonUiContainer = UiContainer<Node, CallButtonUi>;
 impl CallButtonUiContainer {
     pub fn create_ui(
         &mut self,
-        font: SharedFont,
+        font: FontResource,
         call_button_handle: Handle<Node>,
         floor: u32,
     ) -> TextureResource {

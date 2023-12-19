@@ -4,6 +4,7 @@ use crate::{
 };
 use fyrox::asset::io::FsResourceIo;
 use fyrox::engine::InitializedGraphicsContext;
+use fyrox::gui::font::FontResource;
 use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
     core::{color::Color, pool::Handle},
@@ -12,7 +13,6 @@ use fyrox::{
         button::{ButtonBuilder, ButtonMessage},
         grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
-        ttf::SharedFont,
         widget::{WidgetBuilder, WidgetMessage},
         window::{WindowBuilder, WindowMessage, WindowTitle},
         HorizontalAlignment, Thickness, UiNode, UserInterface,
@@ -87,7 +87,7 @@ impl Menu {
         context: &mut PluginContext<'_, '_>,
         control_scheme: &ControlScheme,
         sender: MessageSender,
-        font: SharedFont,
+        font: FontResource,
         show_debug_info: bool,
         sound_config: &SoundConfig,
     ) -> Self {

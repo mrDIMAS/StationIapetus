@@ -1,4 +1,5 @@
 use crate::{gui, player::Player, weapon::Weapon};
+use fyrox::gui::font::FontResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
@@ -8,13 +9,11 @@ use fyrox::{
         image::ImageBuilder,
         message::MessageDirection,
         text::{TextBuilder, TextMessage},
-        ttf::SharedFont,
         widget::WidgetBuilder,
         UiNode, UserInterface, VerticalAlignment,
     },
     resource::texture::{Texture, TextureResource},
     scene::graph::Graph,
-    utils,
 };
 use std::path::Path;
 
@@ -29,7 +28,7 @@ impl WeaponDisplay {
     pub const WIDTH: f32 = 120.0;
     pub const HEIGHT: f32 = 120.0;
 
-    pub fn new(font: SharedFont, resource_manager: ResourceManager) -> Self {
+    pub fn new(font: FontResource, resource_manager: ResourceManager) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
@@ -48,9 +47,11 @@ impl WeaponDisplay {
                             .on_row(0)
                             .on_column(0),
                     )
-                    .with_texture(utils::into_gui_texture(
-                        resource_manager.request::<Texture>(Path::new("data/ui/ammo_icon.png")),
-                    ))
+                    .with_texture(
+                        resource_manager
+                            .request::<Texture>(Path::new("data/ui/ammo_icon.png"))
+                            .into(),
+                    )
                     .build(&mut ui.build_ctx()),
                 )
                 .with_child({
@@ -62,6 +63,7 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font.clone())
+                    .with_height(31.0)
                     .build(&mut ui.build_ctx());
                     ammo
                 })
@@ -73,9 +75,11 @@ impl WeaponDisplay {
                             .on_row(1)
                             .on_column(0),
                     )
-                    .with_texture(utils::into_gui_texture(
-                        resource_manager.request::<Texture>(Path::new("data/ui/grenade.png")),
-                    ))
+                    .with_texture(
+                        resource_manager
+                            .request::<Texture>(Path::new("data/ui/grenade.png"))
+                            .into(),
+                    )
                     .build(&mut ui.build_ctx()),
                 )
                 .with_child({
@@ -87,6 +91,7 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font)
+                    .with_height(31.0)
                     .build(&mut ui.build_ctx());
                     grenades
                 }),

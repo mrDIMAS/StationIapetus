@@ -7,6 +7,7 @@ use crate::{
     player::Player,
     MessageSender,
 };
+use fyrox::core::uuid_provider;
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
@@ -55,6 +56,8 @@ pub struct InventoryItem {
     #[allow(dead_code)]
     count: Handle<UiNode>,
 }
+
+uuid_provider!(InventoryItem = "346f2207-0868-4577-89a3-a4b36f3bf45d");
 
 impl Control for InventoryItem {
     fn query_component(&self, type_id: TypeId) -> Option<&dyn Any> {
@@ -152,9 +155,7 @@ impl InventoryItemBuilder {
                                                 .on_row(0),
                                         )
                                         .with_opt_texture(
-                                            item.preview
-                                                .as_ref()
-                                                .map(|i| fyrox::utils::into_gui_texture(i.clone())),
+                                            item.preview.deref().clone().map(Into::into),
                                         )
                                         .build(ctx),
                                     )

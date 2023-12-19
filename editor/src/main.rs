@@ -1,5 +1,6 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
+use fyroxed_base::scene::GameScene;
 use fyroxed_base::{plugin::EditorPlugin, Editor, StartupData};
 use station_iapetus::{
     bot::BotHostility,
@@ -23,13 +24,15 @@ struct EditorExtension {}
 
 impl EditorPlugin for EditorExtension {
     fn on_post_update(&mut self, editor: &mut Editor) {
-        if let Some(editor_scene) = editor.scenes.current_editor_scene_mut() {
-            let scene = &mut editor.engine.scenes[editor_scene.scene];
+        if let Some(entry) = editor.scenes.current_scene_entry_mut() {
+            if let Some(game_scene) = entry.controller.downcast_mut::<GameScene>() {
+                let scene = &mut editor.engine.scenes[game_scene.scene];
 
-            for node in scene.graph.linear_iter() {
-                if let Some(script) = node.script() {
-                    if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
-                        enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
+                for node in scene.graph.linear_iter() {
+                    if let Some(script) = node.script() {
+                        if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
+                            enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
+                        }
                     }
                 }
             }

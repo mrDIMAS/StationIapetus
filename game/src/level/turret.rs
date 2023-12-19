@@ -4,6 +4,7 @@ use crate::{
     weapon::projectile::Projectile,
     Level, Player,
 };
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -55,6 +56,8 @@ pub enum ShootMode {
     Simultaneously = 1,
 }
 
+stub_uuid_provider!(ShootMode);
+
 impl Default for ShootMode {
     fn default() -> Self {
         Self::Consecutive
@@ -82,6 +85,8 @@ pub enum Hostility {
     Monsters,
     All,
 }
+
+stub_uuid_provider!(Hostility);
 
 impl Default for Hostility {
     fn default() -> Self {
@@ -293,6 +298,8 @@ pub struct Barrel {
     #[reflect(hidden)]
     offset: Vector3<f32>,
 }
+
+stub_uuid_provider!(Barrel);
 
 impl Barrel {
     fn shoot(

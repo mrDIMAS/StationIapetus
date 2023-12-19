@@ -46,6 +46,9 @@ use crate::{
     utils::use_hrtf,
     weapon::{kinetic::KineticGun, projectile::Projectile, sight::LaserSight, Weapon},
 };
+use fyrox::core::color::Color;
+use fyrox::gui::font::FontResource;
+use fyrox::renderer::framework::gpu_texture::PixelKind;
 use fyrox::{
     core::{
         futures::executor::block_on,
@@ -61,9 +64,9 @@ use fyrox::{
     gui::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
+        font::Font,
         message::{MessageDirection, UiMessage},
         text::{TextBuilder, TextMessage},
-        ttf::{Font, SharedFont},
         widget::{WidgetBuilder, WidgetMessage},
         UiNode, UserInterface,
     },
@@ -114,8 +117,7 @@ pub struct Game {
     // is data-model for options menu.
     sound_config: SoundConfig,
     show_debug_info: bool,
-    smaller_font: SharedFont,
-    even_smaller_font: SharedFont,
+    font: FontResource,
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
 }
 
@@ -164,32 +166,9 @@ impl Game {
             context.async_scene_loader.request(scene_path);
         }
 
-        let font = SharedFont::new(
-            fyrox::core::futures::executor::block_on(Font::from_file(
-                Path::new("data/ui/SquaresBold.ttf"),
-                31.0,
-                Font::default_char_set(),
-            ))
-            .unwrap(),
-        );
-
-        let smaller_font = SharedFont::new(
-            fyrox::core::futures::executor::block_on(Font::from_file(
-                Path::new("data/ui/SquaresBold.ttf"),
-                20.0,
-                Font::default_char_set(),
-            ))
-            .unwrap(),
-        );
-
-        let even_smaller_font = SharedFont::new(
-            fyrox::core::futures::executor::block_on(Font::from_file(
-                Path::new("data/ui/SquaresBold.ttf"),
-                16.0,
-                Font::default_char_set(),
-            ))
-            .unwrap(),
-        );
+        let font = context
+            .resource_manager
+            .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));
 
         let mut control_scheme = ControlScheme::default();
         let mut sound_config = SoundConfig::default();
@@ -214,11 +193,10 @@ impl Game {
         let message_sender = MessageSender { sender: tx };
         let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
         let inventory_interface = InventoryInterface::new(message_sender.clone());
-        let item_display = ItemDisplay::new(smaller_font.clone(), even_smaller_font.clone());
+        let item_display = ItemDisplay::new(font.clone());
         let journal_display = JournalDisplay::new();
 
         let mut game = Game {
-            even_smaller_font,
             show_debug_info,
             loading_screen: LoadingScreen::new(&mut context.user_interface.build_ctx()),
             running: true,
@@ -235,13 +213,16 @@ impl Game {
                 font.clone(),
                 message_sender.clone(),
             ),
-            final_screen: FinalScreen::new(context.user_interface, font, message_sender.clone()),
+            final_screen: FinalScreen::new(
+                context.user_interface,
+                font.clone(),
+                message_sender.clone(),
+            ),
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display,
             item_display,
             journal_display,
-            smaller_font,
             level: None,
             debug_string: String::new(),
             inventory_interface,
@@ -251,6 +232,7 @@ impl Game {
             door_ui_container: Default::default(),
             call_button_ui_container: Default::default(),
             highlighter: None,
+            font,
         };
 
         game.create_debug_ui(&mut context);
@@ -293,25 +275,32 @@ impl Game {
         if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
             let renderer = &mut graphics_context.renderer;
 
-            Log::verify(renderer.render_ui_to_texture(
-                self.weapon_display.render_target.clone(),
-                &mut self.weapon_display.ui,
-            ));
-
-            Log::verify(renderer.render_ui_to_texture(
-                self.inventory_interface.render_target.clone(),
-                &mut self.inventory_interface.ui,
-            ));
-
-            Log::verify(renderer.render_ui_to_texture(
-                self.item_display.render_target.clone(),
-                &mut self.item_display.ui,
-            ));
-
-            Log::verify(renderer.render_ui_to_texture(
-                self.journal_display.render_target.clone(),
-                &mut self.journal_display.ui,
-            ));
+            for (rt, ui) in [
+                (
+                    self.weapon_display.render_target.clone(),
+                    &mut self.weapon_display.ui,
+                ),
+                (
+                    self.inventory_interface.render_target.clone(),
+                    &mut self.inventory_interface.ui,
+                ),
+                (
+                    self.item_display.render_target.clone(),
+                    &mut self.item_display.ui,
+                ),
+                (
+                    self.journal_display.render_target.clone(),
+                    &mut self.journal_display.ui,
+                ),
+            ] {
+                Log::verify(renderer.render_ui_to_texture(
+                    rt,
+                    ui.screen_size(),
+                    ui.draw(),
+                    Color::TRANSPARENT,
+                    PixelKind::SRGBA8,
+                ));
+            }
 
             self.door_ui_container.render(renderer);
             self.call_button_ui_container.render(renderer);

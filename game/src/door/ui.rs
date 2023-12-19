@@ -3,6 +3,7 @@ use crate::{
     ui_container::{InteractiveUi, UiContainer},
     MessageDirection, UiNode, WidgetBuilder,
 };
+use fyrox::gui::font::FontResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle},
@@ -12,13 +13,11 @@ use fyrox::{
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         text::{TextBuilder, TextMessage},
-        ttf::SharedFont,
         widget::WidgetMessage,
         HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     resource::texture::{Texture, TextureResource, TextureResourceExtension},
     scene::node::Node,
-    utils::into_gui_texture,
 };
 
 pub struct DoorUi {
@@ -52,11 +51,7 @@ impl DoorUi {
     pub const WIDTH: f32 = 160.0;
     pub const HEIGHT: f32 = 160.0;
 
-    pub fn new(
-        font: SharedFont,
-        smaller_font: SharedFont,
-        resource_manager: ResourceManager,
-    ) -> Self {
+    pub fn new(font: FontResource, resource_manager: ResourceManager) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
         let render_target =
             TextureResource::new_render_target(Self::WIDTH as u32, Self::HEIGHT as u32);
@@ -79,9 +74,11 @@ impl DoorUi {
                             .on_row(0)
                             .on_column(0),
                     )
-                    .with_texture(into_gui_texture(
-                        resource_manager.request::<Texture>("data/ui/triangles.png"),
-                    ))
+                    .with_texture(
+                        resource_manager
+                            .request::<Texture>("data/ui/triangles.png")
+                            .into(),
+                    )
                     .build(ctx);
                     logo
                 })
@@ -107,7 +104,8 @@ impl DoorUi {
                             .with_foreground(Brush::Solid(Color::GREEN)),
                     )
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
-                    .with_font(font)
+                    .with_height(31.0)
+                    .with_font(font.clone())
                     .build(ctx);
                     text
                 })
@@ -120,9 +118,10 @@ impl DoorUi {
                             .on_row(2)
                             .on_column(0),
                     )
+                    .with_font(font)
                     .with_shadow(true)
                     .with_wrap(WrapMode::Letter)
-                    .with_font(smaller_font)
+                    .with_height(20.0)
                     .build(ctx);
                     action_text
                 }),
@@ -201,14 +200,10 @@ pub type DoorUiContainer = UiContainer<Node, DoorUi>;
 impl DoorUiContainer {
     pub fn create_ui(
         &mut self,
-        font: SharedFont,
-        smaller_font: SharedFont,
+        font: FontResource,
         resource_manager: ResourceManager,
         door_handle: Handle<Node>,
     ) -> TextureResource {
-        self.add(
-            door_handle,
-            DoorUi::new(font, smaller_font, resource_manager),
-        )
+        self.add(door_handle, DoorUi::new(font, resource_manager))
     }
 }

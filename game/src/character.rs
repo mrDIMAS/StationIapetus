@@ -5,6 +5,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
+use fyrox::core::stub_uuid_provider;
 use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
@@ -514,6 +515,8 @@ pub struct HitBox {
     pub movement_speed_factor: f32,
     pub is_head: bool,
 }
+
+stub_uuid_provider!(HitBox);
 
 impl HitBox {
     pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {

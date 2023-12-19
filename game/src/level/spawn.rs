@@ -1,4 +1,5 @@
 use crate::character::{CharacterMessage, CharacterMessageData};
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         log::Log,
@@ -14,6 +15,8 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct DefaultWeapon(Option<ModelResource>);
+
+stub_uuid_provider!(DefaultWeapon);
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
 pub struct CharacterSpawnPoint {

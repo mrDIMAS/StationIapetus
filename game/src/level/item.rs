@@ -1,5 +1,6 @@
 use crate::{block_on, Level};
 use fyrox::core::log::Log;
+use fyrox::core::stub_uuid_provider;
 use fyrox::material::{Material, MaterialResource};
 use fyrox::{
     core::{
@@ -36,6 +37,8 @@ pub enum ItemAction {
         amount: f32,
     },
 }
+
+stub_uuid_provider!(ItemAction);
 
 #[derive(Visit, Reflect, Debug, Clone)]
 pub struct Item {

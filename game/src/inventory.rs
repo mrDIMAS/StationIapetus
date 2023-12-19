@@ -1,4 +1,4 @@
-use fyrox::core::{reflect::prelude::*, visitor::prelude::*};
+use fyrox::core::{reflect::prelude::*, stub_uuid_provider, visitor::prelude::*};
 use fyrox::resource::model::ModelResource;
 
 #[derive(Default, Debug, Clone, Visit, Reflect)]
@@ -6,6 +6,8 @@ pub struct ItemEntry {
     pub resource: Option<ModelResource>,
     pub amount: u32,
 }
+
+stub_uuid_provider!(ItemEntry);
 
 #[derive(Default, Clone, Visit, Reflect, Debug)]
 pub struct Inventory {

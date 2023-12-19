@@ -1,4 +1,5 @@
 use crate::{elevator::Elevator, Game};
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -23,6 +24,8 @@ pub enum CallButtonKind {
     FloorSelector,
     EndPoint,
 }
+
+stub_uuid_provider!(CallButtonKind);
 
 impl Default for CallButtonKind {
     fn default() -> Self {
@@ -91,11 +94,9 @@ impl ScriptTrait for CallButton {
     fn on_start(&mut self, context: &mut ScriptContext) {
         let game = Game::game_mut(context.plugins);
 
-        let texture = game.call_button_ui_container.create_ui(
-            game.smaller_font.clone(),
-            context.handle,
-            self.floor,
-        );
+        let texture =
+            game.call_button_ui_container
+                .create_ui(game.font.clone(), context.handle, self.floor);
 
         self.apply_screen_texture(
             context.handle,

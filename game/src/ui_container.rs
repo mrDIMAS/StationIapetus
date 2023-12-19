@@ -1,3 +1,5 @@
+use fyrox::core::color::Color;
+use fyrox::renderer::framework::gpu_texture::PixelKind;
 use fyrox::{
     core::{log::Log, pool::Handle},
     gui::UserInterface,
@@ -43,7 +45,13 @@ where
 
     pub fn render(&mut self, renderer: &mut Renderer) {
         for ui in self.map.values_mut() {
-            Log::verify(renderer.render_ui_to_texture(ui.texture(), ui.ui()));
+            Log::verify(renderer.render_ui_to_texture(
+                ui.texture(),
+                ui.ui().screen_size(),
+                ui.ui().draw(),
+                Color::TRANSPARENT,
+                PixelKind::SRGBA8,
+            ));
         }
     }
 

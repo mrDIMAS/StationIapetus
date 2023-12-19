@@ -3,6 +3,7 @@
 //! is not much.
 
 use crate::{message::Message, MessageSender};
+use fyrox::gui::font::FontResource;
 use fyrox::resource::texture::{TextureResource, TextureResourceExtension, TextureWrapMode};
 use fyrox::{
     core::pool::Handle,
@@ -17,7 +18,6 @@ use fyrox::{
         scroll_bar::ScrollBarBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
-        ttf::SharedFont,
         widget::{WidgetBuilder, WidgetMessage},
         BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
         VerticalAlignment,
@@ -91,7 +91,7 @@ pub struct DeathScreen {
 }
 
 impl DeathScreen {
-    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: MessageSender) -> Self {
+    pub fn new(ui: &mut UserInterface, font: FontResource, sender: MessageSender) -> Self {
         let load_game;
         let exit_to_menu;
         let exit_game;
@@ -114,6 +114,7 @@ impl DeathScreen {
                                         .with_vertical_alignment(VerticalAlignment::Bottom),
                                 )
                                 .with_text("You Died")
+                                .with_height(31.0)
                                 .with_font(font.clone())
                                 .build(&mut ui.build_ctx()),
                             )
@@ -219,7 +220,7 @@ pub struct FinalScreen {
 }
 
 impl FinalScreen {
-    pub fn new(ui: &mut UserInterface, font: SharedFont, sender: MessageSender) -> Self {
+    pub fn new(ui: &mut UserInterface, font: FontResource, sender: MessageSender) -> Self {
         let exit_to_menu;
         let exit_game;
         let root = BorderBuilder::new(
@@ -242,6 +243,7 @@ impl FinalScreen {
                                 )
                                 .with_text("Thanks for playing demo version of the game!")
                                 .with_font(font.clone())
+                                .with_height(31.0)
                                 .build(&mut ui.build_ctx()),
                             )
                             .with_child(

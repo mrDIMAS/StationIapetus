@@ -1,4 +1,5 @@
 use crate::{character::character_ref, message::Message, Game, Level};
+use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         math::aabb::AxisAlignedBoundingBox,
@@ -22,6 +23,8 @@ pub enum TriggerAction {
     },
     EndGame,
 }
+
+stub_uuid_provider!(TriggerAction);
 
 #[derive(Visit, Reflect, Debug, Default, Clone)]
 pub struct Trigger {

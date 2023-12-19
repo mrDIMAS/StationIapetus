@@ -10,6 +10,7 @@ use crate::{
     weapon::WeaponMessage,
     Game, Level,
 };
+use fyrox::core::stub_uuid_provider;
 use fyrox::core::variable::InheritableVariable;
 use fyrox::scene::ragdoll::Ragdoll;
 use fyrox::{
@@ -73,6 +74,8 @@ pub enum BotHostility {
     OtherSpecies = 1,
     Player = 2,
 }
+
+stub_uuid_provider!(BotHostility);
 
 #[derive(Debug, Visit, Default, Clone)]
 pub struct Target {
