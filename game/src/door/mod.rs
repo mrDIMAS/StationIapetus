@@ -1,7 +1,7 @@
-use crate::{character::character_ref, inventory::Inventory, utils, Game, Level};
+use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game, Level};
 use fyrox::{
     animation::machine::{Event, Parameter},
-    asset::manager::ResourceManager,
+    asset::{manager::ResourceManager, Resource},
     core::{
         algebra::Vector3,
         log::Log,
@@ -13,6 +13,8 @@ use fyrox::{
         visitor::prelude::*,
         TypeUuidProvider,
     },
+    engine::GraphicsContext,
+    gui::UserInterface,
     impl_component_provider,
     material::{Material, MaterialResource, PropertyValue},
     resource::{
@@ -68,6 +70,13 @@ pub struct Door {
     #[visit(optional)]
     locked_state: InheritableVariable<String>,
 
+    #[visit(optional)]
+    ui_resource: InheritableVariable<Option<Resource<UserInterface>>>,
+
+    #[visit(skip)]
+    #[reflect(hidden)]
+    ui: Option<DoorUi>,
+
     #[reflect(hidden)]
     #[visit(skip)]
     initial_position: Vector3<f32>,
@@ -99,6 +108,8 @@ impl Default for Door {
             closed_state: "Closed".to_string().into(),
             closing_state: "Close".to_string().into(),
             locked_state: "Locked".to_string().into(),
+            ui_resource: Default::default(),
+            ui: Default::default(),
             initial_position: Default::default(),
             state_machine: Default::default(),
             open_request: None,
@@ -131,13 +142,15 @@ impl ScriptTrait for Door {
 
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
-        let game = Game::game_mut(ctx.plugins);
-        let texture = game.door_ui_container.create_ui(
-            game.font.clone(),
-            ctx.resource_manager.clone(),
-            ctx.handle,
-        );
-        self.apply_screen_texture(&mut ctx.scene.graph, ctx.resource_manager.clone(), texture);
+        if let Some(ui_resource) = self.ui_resource.as_ref() {
+            let ui = DoorUi::new(ui_resource.data_ref().clone());
+            self.apply_screen_texture(
+                &mut ctx.scene.graph,
+                ctx.resource_manager.clone(),
+                ui.render_target.clone(),
+            );
+            self.ui = Some(ui);
+        }
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
@@ -156,6 +169,13 @@ impl ScriptTrait for Door {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        if let Some(ui) = self.ui.as_mut() {
+            ui.update(ctx.dt);
+            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
+                ui.render(&mut graphics_context.renderer);
+            }
+        }
+
         let game = Game::game_mut(ctx.plugins);
         let level = game.level.as_ref().unwrap();
 
@@ -232,7 +252,7 @@ impl ScriptTrait for Door {
                         text = "Unknown";
                     };
 
-                    if let Some(ui) = game.door_ui_container.get_ui_mut(ctx.handle) {
+                    if let Some(ui) = self.ui.as_mut() {
                         ui.update_text(text.to_owned(), &game.control_scheme, can_interact, locked);
                     }
                 }

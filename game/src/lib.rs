@@ -27,7 +27,7 @@ use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
-    door::{ui::DoorUiContainer, Door},
+    door::Door,
     effects::{beam::Beam, rail::Rail},
     elevator::{call_button::CallButton, ui::CallButtonUiContainer, Elevator},
     gui::{
@@ -110,7 +110,6 @@ pub struct Game {
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
-    door_ui_container: DoorUiContainer,
     call_button_ui_container: CallButtonUiContainer,
     // We're storing sound config separately because we can adjust sound
     // setting in the options but don't have a level loaded. This field
@@ -229,7 +228,6 @@ impl Game {
             message_receiver: rx,
             message_sender,
             sound_config,
-            door_ui_container: Default::default(),
             call_button_ui_container: Default::default(),
             highlighter: None,
             font,
@@ -302,7 +300,6 @@ impl Game {
                 ));
             }
 
-            self.door_ui_container.render(renderer);
             self.call_button_ui_container.render(renderer);
         }
     }
@@ -342,7 +339,6 @@ impl Game {
 
     fn destroy_level(&mut self, context: &mut PluginContext) {
         if let Some(ref mut level) = self.level.take() {
-            self.door_ui_container.clear();
             self.call_button_ui_container.clear();
             level.destroy(context);
             Log::info("Current level destroyed!");
@@ -389,7 +385,6 @@ impl Game {
         self.weapon_display.update(ctx.dt);
         self.inventory_interface.update(ctx.dt);
         self.item_display.update(ctx.dt);
-        self.door_ui_container.update(ctx.dt);
         self.call_button_ui_container.update(ctx.dt);
 
         for scene in ctx.scenes.iter_mut() {
@@ -775,7 +770,6 @@ impl Plugin for Game {
         self.destroy_level(ctx);
         self.death_screen.set_visible(ctx.user_interface, false);
         self.final_screen.set_visible(ctx.user_interface, false);
-        self.door_ui_container.clear();
         self.call_button_ui_container.clear();
 
         ctx.user_interface.send_message(WidgetMessage::visibility(
