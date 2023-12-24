@@ -1,16 +1,19 @@
-use crate::{elevator::Elevator, Game};
-use fyrox::core::stub_uuid_provider;
+use crate::elevator::{ui::CallButtonUi, Elevator};
 use fyrox::{
-    asset::manager::ResourceManager,
+    asset::{manager::ResourceManager, Resource},
     core::{
         log::Log,
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
+        stub_uuid_provider,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::prelude::*,
         TypeUuidProvider,
     },
+    engine::GraphicsContext,
+    gui::UserInterface,
     impl_component_provider,
     material::{Material, MaterialResource, PropertyValue},
     resource::texture::{Texture, TextureResource},
@@ -38,6 +41,11 @@ pub struct CallButton {
     pub floor: u32,
     pub kind: CallButtonKind,
     pub elevator: Handle<Node>,
+    #[visit(optional)]
+    pub ui_resource: InheritableVariable<Option<Resource<UserInterface>>>,
+    #[reflect(hidden)]
+    #[visit(skip)]
+    pub ui: Option<CallButtonUi>,
 }
 
 impl CallButton {
@@ -92,22 +100,26 @@ impl TypeUuidProvider for CallButton {
 
 impl ScriptTrait for CallButton {
     fn on_start(&mut self, context: &mut ScriptContext) {
-        let game = Game::game_mut(context.plugins);
-
-        let texture =
-            game.call_button_ui_container
-                .create_ui(game.font.clone(), context.handle, self.floor);
-
-        self.apply_screen_texture(
-            context.handle,
-            &mut context.scene.graph,
-            context.resource_manager.clone(),
-            texture,
-        );
+        if let Some(ui_resource) = self.ui_resource.as_ref() {
+            let ui = CallButtonUi::new(ui_resource.data_ref().clone(), self.floor);
+            self.apply_screen_texture(
+                context.handle,
+                &mut context.scene.graph,
+                context.resource_manager.clone(),
+                ui.render_target.clone(),
+            );
+            self.ui = Some(ui);
+        }
     }
 
     fn on_update(&mut self, context: &mut ScriptContext) {
-        let game = Game::game_mut(context.plugins);
+        if let Some(ui) = self.ui.as_mut() {
+            ui.update(context.dt);
+
+            if let GraphicsContext::Initialized(graphics_context) = context.graphics_context {
+                ui.render(&mut graphics_context.renderer);
+            }
+        }
 
         if let Some(elevator) = context
             .scene
@@ -115,7 +127,7 @@ impl ScriptTrait for CallButton {
             .try_get(self.elevator)
             .and_then(|n| n.try_get_script::<Elevator>())
         {
-            if let Some(ui) = game.call_button_ui_container.get_ui_mut(context.handle) {
+            if let Some(ui) = self.ui.as_mut() {
                 ui.set_text(
                     if self.floor == elevator.current_floor {
                         "Ready"

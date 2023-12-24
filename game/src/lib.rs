@@ -18,22 +18,21 @@ pub mod message;
 pub mod options_menu;
 pub mod player;
 pub mod sound;
-pub mod ui_container;
 pub mod utils;
 pub mod weapon;
 
-use crate::highlight::HighlightRenderPass;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::Door,
     effects::{beam::Beam, rail::Rail},
-    elevator::{call_button::CallButton, ui::CallButtonUiContainer, Elevator},
+    elevator::{call_button::CallButton, Elevator},
     gui::{
         inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
         weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
+    highlight::HighlightRenderPass,
     level::{
         arrival::enemy_trap::EnemyTrap, death_zone::DeathZone, decal::Decal, explosion::Explosion,
         item::Item, spawn::CharacterSpawnPoint, trigger::Trigger, turret::Turret, Level,
@@ -46,11 +45,9 @@ use crate::{
     utils::use_hrtf,
     weapon::{kinetic::KineticGun, projectile::Projectile, sight::LaserSight, Weapon},
 };
-use fyrox::core::color::Color;
-use fyrox::gui::font::FontResource;
-use fyrox::renderer::framework::gpu_texture::PixelKind;
 use fyrox::{
     core::{
+        color::Color,
         futures::executor::block_on,
         log::{Log, MessageKind},
         parking_lot::Mutex,
@@ -73,6 +70,7 @@ use fyrox::{
     keyboard::KeyCode,
     material::{shader::SamplerFallback, Material, PropertyValue},
     plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
+    renderer::framework::gpu_texture::PixelKind,
     resource::texture::TextureResource,
     scene::{
         base::BaseBuilder,
@@ -82,12 +80,12 @@ use fyrox::{
     utils::translate_event,
     window::CursorGrabMode,
 };
-use std::cell::RefCell;
-use std::rc::Rc;
 use std::{
+    cell::RefCell,
     fs::File,
     io::Write,
     path::{Path, PathBuf},
+    rc::Rc,
     sync::{
         mpsc::{self, Receiver, Sender},
         Arc,
@@ -110,13 +108,11 @@ pub struct Game {
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
-    call_button_ui_container: CallButtonUiContainer,
     // We're storing sound config separately because we can adjust sound
     // setting in the options but don't have a level loaded. This field
     // is data-model for options menu.
     sound_config: SoundConfig,
     show_debug_info: bool,
-    font: FontResource,
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
 }
 
@@ -212,11 +208,7 @@ impl Game {
                 font.clone(),
                 message_sender.clone(),
             ),
-            final_screen: FinalScreen::new(
-                context.user_interface,
-                font.clone(),
-                message_sender.clone(),
-            ),
+            final_screen: FinalScreen::new(context.user_interface, font, message_sender.clone()),
             control_scheme,
             debug_text: Handle::NONE,
             weapon_display,
@@ -228,9 +220,7 @@ impl Game {
             message_receiver: rx,
             message_sender,
             sound_config,
-            call_button_ui_container: Default::default(),
             highlighter: None,
-            font,
         };
 
         game.create_debug_ui(&mut context);
@@ -299,8 +289,6 @@ impl Game {
                     PixelKind::SRGBA8,
                 ));
             }
-
-            self.call_button_ui_container.render(renderer);
         }
     }
 
@@ -339,7 +327,6 @@ impl Game {
 
     fn destroy_level(&mut self, context: &mut PluginContext) {
         if let Some(ref mut level) = self.level.take() {
-            self.call_button_ui_container.clear();
             level.destroy(context);
             Log::info("Current level destroyed!");
         }
@@ -385,7 +372,6 @@ impl Game {
         self.weapon_display.update(ctx.dt);
         self.inventory_interface.update(ctx.dt);
         self.item_display.update(ctx.dt);
-        self.call_button_ui_container.update(ctx.dt);
 
         for scene in ctx.scenes.iter_mut() {
             scene
@@ -770,7 +756,6 @@ impl Plugin for Game {
         self.destroy_level(ctx);
         self.death_screen.set_visible(ctx.user_interface, false);
         self.final_screen.set_visible(ctx.user_interface, false);
-        self.call_button_ui_container.clear();
 
         ctx.user_interface.send_message(WidgetMessage::visibility(
             self.loading_screen.root,

@@ -7,7 +7,6 @@ use fyrox::{
         log::Log,
         pool::Handle,
         reflect::prelude::*,
-        sstorage::ImmutableString,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
@@ -16,7 +15,7 @@ use fyrox::{
     engine::GraphicsContext,
     gui::UserInterface,
     impl_component_provider,
-    material::{Material, MaterialResource, PropertyValue},
+    material::{Material, MaterialResource},
     resource::{
         model::ModelResource,
         texture::{Texture, TextureResource},
@@ -286,20 +285,10 @@ impl Door {
             if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(texture.clone()),
-                        fallback: Default::default(),
-                    },
-                ));
-
-                Log::verify(material.set_property(
-                    &ImmutableString::new("emissionTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(resource_manager.request::<Texture>("data/ui/white_pixel.bmp")),
-                        fallback: Default::default(),
-                    },
+                Log::verify(material.set_texture(&"diffuseTexture".into(), Some(texture.clone())));
+                Log::verify(material.set_texture(
+                    &"emissionTexture".into(),
+                    Some(resource_manager.request::<Texture>("data/ui/white_pixel.bmp")),
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
