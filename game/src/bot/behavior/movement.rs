@@ -75,13 +75,13 @@ impl<'a> Behavior<'a> for MoveToTarget {
         ctx.agent.set_speed(ctx.move_speed);
         if let Some(navmesh) = multiborrow_context
             .try_get(ctx.navmesh)
-            .and_then(|n| n.cast_mut::<NavigationalMesh>())
+            .and_then(|n| n.cast::<NavigationalMesh>())
         {
             ctx.agent.set_position(position);
 
             if let Some(target) = ctx.target.as_ref() {
                 ctx.agent.set_target(target.position);
-                let _ = ctx.agent.update(ctx.dt, navmesh.navmesh_mut());
+                let _ = ctx.agent.update(ctx.dt, &navmesh.navmesh_ref());
             }
         }
 
