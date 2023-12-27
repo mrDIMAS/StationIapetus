@@ -72,7 +72,7 @@ impl ItemDisplay {
                             .on_column(0),
                     )
                     .with_font(font.clone())
-                    .with_height(31.0)
+                    .with_font_size(31.0)
                     .build(&mut ui.build_ctx());
                     item_name
                 })
@@ -87,7 +87,7 @@ impl ItemDisplay {
                     )
                     .with_shadow(true)
                     .with_wrap(WrapMode::Letter)
-                    .with_height(20.0)
+                    .with_font_size(20.0)
                     .with_font(font)
                     .build(&mut ui.build_ctx());
                     action_text

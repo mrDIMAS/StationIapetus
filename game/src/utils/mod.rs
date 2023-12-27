@@ -102,7 +102,10 @@ pub fn is_probability_event_occurred(probability: f32) -> bool {
     rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
 }
 
-pub fn fetch_animation_container_ref(graph: &Graph, handle: Handle<Node>) -> &AnimationContainer {
+pub fn fetch_animation_container_ref(
+    graph: &Graph,
+    handle: Handle<Node>,
+) -> &AnimationContainer<Handle<Node>> {
     graph
         .try_get_of_type::<AnimationPlayer>(handle)
         .unwrap()
@@ -112,7 +115,7 @@ pub fn fetch_animation_container_ref(graph: &Graph, handle: Handle<Node>) -> &An
 pub fn fetch_animation_container_mut(
     graph: &mut Graph,
     handle: Handle<Node>,
-) -> &mut AnimationContainer {
+) -> &mut AnimationContainer<Handle<Node>> {
     graph
         .try_get_mut_of_type::<AnimationPlayer>(handle)
         .unwrap()

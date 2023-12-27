@@ -21,11 +21,11 @@ pub struct StateMachineInput {
 #[derive(Default, Debug, Clone)]
 pub struct StateMachine {
     pub absm: Handle<Node>,
-    pub aim_state: Handle<State>,
-    pub attack_state: Handle<State>,
-    pub threaten_state: Handle<State>,
-    pub dead_state: Handle<State>,
-    pub attack_animations: Vec<Handle<Animation>>,
+    pub aim_state: Handle<State<Handle<Node>>>,
+    pub attack_state: Handle<State<Handle<Node>>>,
+    pub threaten_state: Handle<State<Handle<Node>>>,
+    pub dead_state: Handle<State<Handle<Node>>>,
+    pub attack_animations: Vec<Handle<Animation<Handle<Node>>>>,
 }
 
 impl StateMachine {
@@ -75,17 +75,21 @@ impl StateMachine {
             .set_parameter("WasHit", Parameter::Rule(input.badly_damaged));
     }
 
-    pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
+    pub fn fetch_layer<'a>(
+        &self,
+        graph: &'a Graph,
+        idx: usize,
+    ) -> Option<&'a MachineLayer<Handle<Node>>> {
         graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.absm)
             .and_then(|absm| absm.machine().layers().get(idx))
     }
 
-    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
+    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
         self.fetch_layer(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
+    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
         self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 

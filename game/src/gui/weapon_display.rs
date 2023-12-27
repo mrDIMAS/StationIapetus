@@ -63,7 +63,7 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font.clone())
-                    .with_height(31.0)
+                    .with_font_size(31.0)
                     .build(&mut ui.build_ctx());
                     ammo
                 })
@@ -91,7 +91,7 @@ impl WeaponDisplay {
                             .on_column(1),
                     )
                     .with_font(font)
-                    .with_height(31.0)
+                    .with_font_size(31.0)
                     .build(&mut ui.build_ctx());
                     grenades
                 }),

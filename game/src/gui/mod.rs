@@ -114,7 +114,7 @@ impl DeathScreen {
                                         .with_vertical_alignment(VerticalAlignment::Bottom),
                                 )
                                 .with_text("You Died")
-                                .with_height(31.0)
+                                .with_font_size(31.0)
                                 .with_font(font.clone())
                                 .build(&mut ui.build_ctx()),
                             )
@@ -243,7 +243,7 @@ impl FinalScreen {
                                 )
                                 .with_text("Thanks for playing demo version of the game!")
                                 .with_font(font.clone())
-                                .with_height(31.0)
+                                .with_font_size(31.0)
                                 .build(&mut ui.build_ctx()),
                             )
                             .with_child(
