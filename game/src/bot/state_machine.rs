@@ -1,10 +1,6 @@
 use fyrox::{
-    animation::{
-        machine::{MachineLayer, Parameter, State},
-        Animation,
-    },
     core::pool::Handle,
-    scene::{animation::absm::AnimationBlendingStateMachine, graph::Graph, node::Node, Scene},
+    scene::{animation::absm::prelude::*, animation::prelude::*, graph::Graph, node::Node, Scene},
 };
 
 pub struct StateMachineInput {
@@ -21,11 +17,11 @@ pub struct StateMachineInput {
 #[derive(Default, Debug, Clone)]
 pub struct StateMachine {
     pub absm: Handle<Node>,
-    pub aim_state: Handle<State<Handle<Node>>>,
-    pub attack_state: Handle<State<Handle<Node>>>,
-    pub threaten_state: Handle<State<Handle<Node>>>,
-    pub dead_state: Handle<State<Handle<Node>>>,
-    pub attack_animations: Vec<Handle<Animation<Handle<Node>>>>,
+    pub aim_state: Handle<State>,
+    pub attack_state: Handle<State>,
+    pub threaten_state: Handle<State>,
+    pub dead_state: Handle<State>,
+    pub attack_animations: Vec<Handle<Animation>>,
 }
 
 impl StateMachine {
@@ -75,21 +71,17 @@ impl StateMachine {
             .set_parameter("WasHit", Parameter::Rule(input.badly_damaged));
     }
 
-    pub fn fetch_layer<'a>(
-        &self,
-        graph: &'a Graph,
-        idx: usize,
-    ) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
         graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.absm)
             .and_then(|absm| absm.machine().layers().get(idx))
     }
 
-    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
         self.fetch_layer(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
         self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 

@@ -1,6 +1,5 @@
 use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game, Level};
 use fyrox::{
-    animation::machine::{Event, Parameter},
     asset::{manager::ResourceManager, Resource},
     core::{
         algebra::Vector3,
@@ -20,7 +19,7 @@ use fyrox::{
         model::ModelResource,
         texture::{Texture, TextureResource},
     },
-    scene::{animation::absm::AnimationBlendingStateMachine, graph::Graph, mesh::Mesh, node::Node},
+    scene::{animation::absm::prelude::*, graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 

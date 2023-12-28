@@ -1,5 +1,4 @@
 use fyrox::{
-    animation::AnimationContainer,
     asset::{core::rand::Rng, manager::ResourceManager},
     core::{
         algebra::{Point3, Unit, UnitQuaternion, Vector3},
@@ -8,7 +7,7 @@ use fyrox::{
     },
     rand::{self, seq::IteratorRandom},
     scene::{
-        animation::AnimationPlayer,
+        animation::prelude::*,
         graph::Graph,
         node::Node,
         sound::{context::SoundContext, HrirSphereResourceData, Sound},
@@ -102,10 +101,7 @@ pub fn is_probability_event_occurred(probability: f32) -> bool {
     rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
 }
 
-pub fn fetch_animation_container_ref(
-    graph: &Graph,
-    handle: Handle<Node>,
-) -> &AnimationContainer<Handle<Node>> {
+pub fn fetch_animation_container_ref(graph: &Graph, handle: Handle<Node>) -> &AnimationContainer {
     graph
         .try_get_of_type::<AnimationPlayer>(handle)
         .unwrap()
@@ -115,7 +111,7 @@ pub fn fetch_animation_container_ref(
 pub fn fetch_animation_container_mut(
     graph: &mut Graph,
     handle: Handle<Node>,
-) -> &mut AnimationContainer<Handle<Node>> {
+) -> &mut AnimationContainer {
     graph
         .try_get_mut_of_type::<AnimationPlayer>(handle)
         .unwrap()

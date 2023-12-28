@@ -1,12 +1,8 @@
 use crate::{utils, weapon::CombatWeaponKind};
 use fyrox::{
-    animation::{
-        machine::{MachineLayer, Parameter, State},
-        Animation,
-    },
     core::{algebra::Vector2, pool::Handle},
     scene::{
-        animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
+        animation::{absm::prelude::*, prelude::*},
         graph::Graph,
         node::Node,
         Scene,
@@ -33,17 +29,17 @@ pub struct StateMachineInput<'a> {
 #[derive(Default, Debug, Clone)]
 pub struct StateMachine {
     pub machine_handle: Handle<Node>,
-    pub jump_animation: Handle<Animation<Handle<Node>>>,
-    pub land_animation: Handle<Animation<Handle<Node>>>,
-    pub dying_animation: Handle<Animation<Handle<Node>>>,
-    pub hit_reaction_pistol_animation: Handle<Animation<Handle<Node>>>,
-    pub hit_reaction_rifle_animation: Handle<Animation<Handle<Node>>>,
-    pub fall_state: Handle<State<Handle<Node>>>,
-    pub land_state: Handle<State<Handle<Node>>>,
-    pub aim_state: Handle<State<Handle<Node>>>,
-    pub put_back_state: Handle<State<Handle<Node>>>,
-    pub grab_animation: Handle<Animation<Handle<Node>>>,
-    pub melee_state: Handle<State<Handle<Node>>>,
+    pub jump_animation: Handle<Animation>,
+    pub land_animation: Handle<Animation>,
+    pub dying_animation: Handle<Animation>,
+    pub hit_reaction_pistol_animation: Handle<Animation>,
+    pub hit_reaction_rifle_animation: Handle<Animation>,
+    pub fall_state: Handle<State>,
+    pub land_state: Handle<State>,
+    pub aim_state: Handle<State>,
+    pub put_back_state: Handle<State>,
+    pub grab_animation: Handle<Animation>,
+    pub melee_state: Handle<State>,
 }
 
 impl StateMachine {
@@ -89,21 +85,17 @@ impl StateMachine {
         })
     }
 
-    pub fn fetch_layer<'a>(
-        &self,
-        graph: &'a Graph,
-        idx: usize,
-    ) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
         graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
             .and_then(|absm| absm.machine().layers().get(idx))
     }
 
-    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
         self.fetch_layer(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer<Handle<Node>>> {
+    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
         self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 
@@ -111,7 +103,7 @@ impl StateMachine {
         &self,
         graph: &'a mut Graph,
         idx: usize,
-    ) -> Option<&'a mut MachineLayer<Handle<Node>>> {
+    ) -> Option<&'a mut MachineLayer> {
         graph
             .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
             .and_then(|absm| {
@@ -123,17 +115,11 @@ impl StateMachine {
     }
 
     #[allow(dead_code)]
-    pub fn lower_body_layer_mut<'a>(
-        &self,
-        graph: &'a mut Graph,
-    ) -> Option<&'a mut MachineLayer<Handle<Node>>> {
+    pub fn lower_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
         self.fetch_layer_mut(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer_mut<'a>(
-        &self,
-        graph: &'a mut Graph,
-    ) -> Option<&'a mut MachineLayer<Handle<Node>>> {
+    pub fn upper_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
         self.fetch_layer_mut(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 

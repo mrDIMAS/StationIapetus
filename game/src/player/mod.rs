@@ -16,9 +16,8 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, Level, MessageSender,
 };
-use fyrox::resource::model::ModelResourceExtension;
+use fyrox::scene::animation::absm;
 use fyrox::{
-    animation::machine::{self, node::AnimationEventCollectionStrategy},
     asset::manager::ResourceManager,
     core::{
         algebra::{UnitQuaternion, Vector2, Vector3},
@@ -42,11 +41,11 @@ use fyrox::{
     material::{shader::SamplerFallback, PropertyValue},
     plugin::Plugin,
     resource::{
-        model::{Model, ModelResource},
+        model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,
     },
     scene::{
-        animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
+        animation::{absm::prelude::*, prelude::*},
         base::BaseBuilder,
         collider::Collider,
         graph::Graph,
@@ -1434,7 +1433,7 @@ impl ScriptTrait for Player {
             .upper_body_layer_mut(&mut ctx.scene.graph)
         {
             while let Some(event) = upper_body_layer.pop_event() {
-                if let machine::Event::ActiveStateChanged { prev, new } = event {
+                if let absm::Event::ActiveStateChanged { prev, new } = event {
                     if prev == self.state_machine.aim_state && new != self.state_machine.aim_state {
                         ctx.message_sender.send_global(CharacterMessage {
                             character: ctx.handle,

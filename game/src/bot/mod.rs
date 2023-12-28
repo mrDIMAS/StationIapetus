@@ -10,11 +10,7 @@ use crate::{
     weapon::WeaponMessage,
     Game, Level,
 };
-use fyrox::core::stub_uuid_provider;
-use fyrox::core::variable::InheritableVariable;
-use fyrox::scene::ragdoll::Ragdoll;
 use fyrox::{
-    animation::machine::node::AnimationEventCollectionStrategy,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
@@ -22,20 +18,23 @@ use fyrox::{
         math::SmoothAngle,
         pool::Handle,
         reflect::prelude::*,
+        stub_uuid_provider,
         uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
         TypeUuidProvider,
     },
     impl_component_provider,
     scene::{
         self,
-        animation::{absm::AnimationBlendingStateMachine, AnimationPlayer},
+        animation::{absm::prelude::*, prelude::*},
         debug::SceneDrawingContext,
         graph::{
             physics::{Intersection, RayCastOptions},
             Graph,
         },
         node::Node,
+        ragdoll::Ragdoll,
         rigidbody::RigidBody,
         Scene,
     },
