@@ -16,7 +16,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, Level, MessageSender,
 };
-use fyrox::scene::animation::absm;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -29,14 +28,12 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         sstorage::ImmutableString,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashSet,
-    impl_component_provider,
     keyboard::PhysicalKey,
     material::{shader::SamplerFallback, PropertyValue},
     plugin::Plugin,
@@ -45,7 +42,7 @@ use fyrox::{
         texture::TextureResource,
     },
     scene::{
-        animation::{absm::prelude::*, prelude::*},
+        animation::{absm, absm::prelude::*, prelude::*},
         base::BaseBuilder,
         collider::Collider,
         graph::Graph,
@@ -129,8 +126,10 @@ struct MeleeAttackContext {
     damaged_enemies: FxHashSet<Handle<Node>>,
 }
 
-#[derive(Visit, Reflect, Debug)]
+#[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
 pub struct Player {
+    #[component(include)]
     character: Character,
     pub camera_controller: Handle<Node>,
     model_pivot: Handle<Node>,
@@ -1093,14 +1092,6 @@ impl Player {
             .unwrap();
 
         self.health_color_gradient = make_color_gradient();
-    }
-}
-
-impl_component_provider!(Player, character: Character);
-
-impl TypeUuidProvider for Player {
-    fn type_uuid() -> Uuid {
-        uuid!("50a07510-893d-476f-aad2-fcfb0845807f")
     }
 }
 

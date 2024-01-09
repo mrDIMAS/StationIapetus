@@ -3,17 +3,16 @@ use fyrox::{
         algebra::{Matrix4, Vector3},
         math::aabb::AxisAlignedBoundingBox,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     scene::rigidbody::RigidBody,
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
 pub struct Explosion {
     #[visit(optional)]
     strength: InheritableVariable<f32>,
@@ -27,14 +26,6 @@ impl Default for Explosion {
             strength: 100.0f32.into(),
             scale: Vector3::new(2.0, 2.0, 2.0).into(),
         }
-    }
-}
-
-impl_component_provider!(Explosion);
-
-impl TypeUuidProvider for Explosion {
-    fn type_uuid() -> Uuid {
-        uuid!("d5a6d420-bb6c-4367-ad06-26109880eff8")
     }
 }
 

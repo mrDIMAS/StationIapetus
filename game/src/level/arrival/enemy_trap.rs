@@ -1,16 +1,9 @@
 use crate::{bot::Bot, door::Door, level::Level};
 use fyrox::{
     core::{
-        color::Color,
-        math::aabb::AxisAlignedBoundingBox,
-        pool::Handle,
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        variable::InheritableVariable,
-        visitor::prelude::*,
-        TypeUuidProvider,
+        color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
+        type_traits::prelude::*, variable::InheritableVariable, visitor::prelude::*,
     },
-    impl_component_provider,
     scene::{debug::SceneDrawingContext, graph::Graph, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
@@ -23,7 +16,8 @@ enum State {
     Finished,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "845a5364-395a-4228-9394-ee3c43352f01")]
 pub struct EnemyTrap {
     #[visit(optional)]
     doors_to_lock: InheritableVariable<Vec<Handle<Node>>>,
@@ -96,14 +90,6 @@ impl EnemyTrap {
                 node.set_enabled(true);
             }
         }
-    }
-}
-
-impl_component_provider!(EnemyTrap);
-
-impl TypeUuidProvider for EnemyTrap {
-    fn type_uuid() -> Uuid {
-        uuid!("845a5364-395a-4228-9394-ee3c43352f01")
     }
 }
 

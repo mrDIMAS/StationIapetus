@@ -1,20 +1,18 @@
 use crate::{block_on, Level};
-use fyrox::core::log::Log;
-use fyrox::core::stub_uuid_provider;
-use fyrox::material::{Material, MaterialResource};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         color::Color,
+        log::Log,
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        stub_uuid_provider,
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
+    material::{Material, MaterialResource},
     resource::{
         model::{ModelResource, ModelResourceExtension},
         texture::{Texture, TextureResource},
@@ -40,7 +38,8 @@ pub enum ItemAction {
 
 stub_uuid_provider!(ItemAction);
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
 pub struct Item {
     pub stack_size: InheritableVariable<u32>,
 
@@ -83,14 +82,6 @@ impl Default for Item {
             action: Default::default(),
             enabled: true,
         }
-    }
-}
-
-impl_component_provider!(Item);
-
-impl TypeUuidProvider for Item {
-    fn type_uuid() -> Uuid {
-        uuid!("b915fa9e-6fd0-420d-8879-33cf76adfb5e")
     }
 }
 

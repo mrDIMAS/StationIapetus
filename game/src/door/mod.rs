@@ -2,18 +2,11 @@ use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, ut
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        algebra::Vector3,
-        log::Log,
-        pool::Handle,
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        variable::InheritableVariable,
-        visitor::prelude::*,
-        TypeUuidProvider,
+        algebra::Vector3, log::Log, pool::Handle, reflect::prelude::*, type_traits::prelude::*,
+        variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
     gui::UserInterface,
-    impl_component_provider,
     material::{Material, MaterialResource},
     resource::{
         model::ModelResource,
@@ -30,7 +23,8 @@ struct OpenRequest {
     open: bool,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 pub struct Door {
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
     screens: Vec<Handle<Node>>,
@@ -113,14 +107,6 @@ impl Default for Door {
             open_request: None,
             self_handle: Default::default(),
         }
-    }
-}
-
-impl_component_provider!(Door);
-
-impl TypeUuidProvider for Door {
-    fn type_uuid() -> Uuid {
-        uuid!("4b8aa92a-fe10-47d6-91bf-2878b834ff18")
     }
 }
 

@@ -1,14 +1,9 @@
 use crate::character::{CharacterMessage, CharacterMessageData};
-use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
-        log::Log,
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        log::Log, reflect::prelude::*, stub_uuid_provider, type_traits::prelude::*,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     resource::model::{ModelResource, ModelResourceExtension},
     script::{ScriptContext, ScriptTrait},
 };
@@ -18,18 +13,11 @@ pub struct DefaultWeapon(Option<ModelResource>);
 
 stub_uuid_provider!(DefaultWeapon);
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "39c47baa-9fc3-4204-92ca-878d621f3656")]
 pub struct CharacterSpawnPoint {
     default_weapons: Vec<DefaultWeapon>,
     prefab: Option<ModelResource>,
-}
-
-impl_component_provider!(CharacterSpawnPoint);
-
-impl TypeUuidProvider for CharacterSpawnPoint {
-    fn type_uuid() -> Uuid {
-        uuid!("39c47baa-9fc3-4204-92ca-878d621f3656")
-    }
 }
 
 impl ScriptTrait for CharacterSpawnPoint {

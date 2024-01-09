@@ -2,19 +2,11 @@ use crate::elevator::{ui::CallButtonUi, Elevator};
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        log::Log,
-        pool::Handle,
-        reflect::prelude::*,
-        sstorage::ImmutableString,
-        stub_uuid_provider,
-        uuid::{uuid, Uuid},
-        variable::InheritableVariable,
-        visitor::prelude::*,
-        TypeUuidProvider,
+        log::Log, pool::Handle, reflect::prelude::*, sstorage::ImmutableString, stub_uuid_provider,
+        type_traits::prelude::*, variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
     gui::UserInterface,
-    impl_component_provider,
     material::{Material, MaterialResource, PropertyValue},
     resource::texture::{Texture, TextureResource},
     scene::{graph::Graph, mesh::Mesh, node::Node},
@@ -36,7 +28,8 @@ impl Default for CallButtonKind {
     }
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
 pub struct CallButton {
     pub floor: u32,
     pub kind: CallButtonKind,
@@ -87,14 +80,6 @@ impl CallButton {
                 }
             }
         }
-    }
-}
-
-impl_component_provider!(CallButton);
-
-impl TypeUuidProvider for CallButton {
-    fn type_uuid() -> Uuid {
-        uuid!("215c9f84-a775-4d17-88a0-0e174c06dc4a")
     }
 }
 

@@ -11,16 +11,15 @@ use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
         color::Color,
+        impl_component_provider,
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
     event::{Event, WindowEvent},
-    impl_component_provider,
     keyboard::{KeyCode, PhysicalKey},
     scene::{
         collider::{BitMask, Collider, InteractionGroups},
@@ -40,7 +39,8 @@ struct Target {
     collider: Handle<Node>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
+#[type_uuid(id = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
 pub struct KineticGun {
     weapon: Weapon,
     #[visit(optional)]
@@ -72,12 +72,6 @@ impl Default for KineticGun {
 }
 
 impl_component_provider!(KineticGun, weapon: Weapon, weapon.item: Item);
-
-impl TypeUuidProvider for KineticGun {
-    fn type_uuid() -> Uuid {
-        uuid!("2351b380-de4c-4b8a-a33f-a3e598e2ada4")
-    }
-}
 
 impl KineticGun {
     fn reset_target(&mut self, game: &mut Game) {

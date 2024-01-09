@@ -6,7 +6,6 @@ use crate::{
     level::decal::Decal,
     CollisionGroups, Level, Weapon,
 };
-use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -14,11 +13,10 @@ use fyrox::{
         math::{ray::Ray, vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        stub_uuid_provider,
+        type_traits::prelude::*,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     rand::seq::SliceRandom,
     resource::{
         model::{ModelResource, ModelResourceExtension},
@@ -108,7 +106,8 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
 pub struct Projectile {
     #[reflect(hidden)]
     dir: Vector3<f32>,
@@ -163,14 +162,6 @@ pub struct Projectile {
     #[visit(skip)]
     #[reflect(hidden)]
     collider: Handle<Node>,
-}
-
-impl_component_provider!(Projectile);
-
-impl TypeUuidProvider for Projectile {
-    fn type_uuid() -> Uuid {
-        uuid!("6b60c75e-83cf-406b-8106-e87d5ab98132")
-    }
 }
 
 impl Default for Projectile {

@@ -6,16 +6,16 @@ use fyrox::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
         reflect::{FieldInfo, Reflect},
+        type_traits::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     scene::{collider::InteractionGroups, graph::physics::RayCastOptions},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "5405f6e2-3016-40ef-998a-e4f797e59694")]
 pub struct Beam {
     max_length: f32,
 }
@@ -23,14 +23,6 @@ pub struct Beam {
 impl Default for Beam {
     fn default() -> Self {
         Self { max_length: 100.0 }
-    }
-}
-
-impl_component_provider!(Beam);
-
-impl TypeUuidProvider for Beam {
-    fn type_uuid() -> Uuid {
-        uuid!("5405f6e2-3016-40ef-998a-e4f797e59694")
     }
 }
 

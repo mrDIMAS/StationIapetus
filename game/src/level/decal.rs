@@ -1,4 +1,3 @@
-use fyrox::resource::texture::TextureResource;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -7,12 +6,10 @@ use fyrox::{
         math::vector_to_quat,
         pool::Handle,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
-    resource::texture::Texture,
+    resource::texture::{Texture, TextureResource},
     scene::{
         base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
         transform::TransformBuilder,
@@ -20,7 +17,8 @@ use fyrox::{
     script::{Script, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")]
 pub struct Decal {
     lifetime: f32,
     fade_interval: f32,
@@ -32,14 +30,6 @@ impl Default for Decal {
             lifetime: 10.0,
             fade_interval: 1.0,
         }
-    }
-}
-
-impl_component_provider!(Decal);
-
-impl TypeUuidProvider for Decal {
-    fn type_uuid() -> Uuid {
-        uuid!("e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")
     }
 }
 

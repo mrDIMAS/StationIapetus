@@ -14,11 +14,9 @@ use fyrox::{
         reflect::prelude::*,
         reflect::Reflect,
         sstorage::ImmutableString,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     material::PropertyValue,
     scene::{
         collider::{BitMask, InteractionGroups},
@@ -29,7 +27,8 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
 pub struct LaserSight {
     ray: Handle<Node>,
     #[visit(optional)]
@@ -123,14 +122,6 @@ impl LaserSight {
             NORMAL_RADIUS * factor,
             scale.z,
         ));
-    }
-}
-
-impl_component_provider!(LaserSight);
-
-impl TypeUuidProvider for LaserSight {
-    fn type_uuid() -> Uuid {
-        uuid!("f9bcf484-e84a-4de1-9e6d-32913d35f2ef")
     }
 }
 

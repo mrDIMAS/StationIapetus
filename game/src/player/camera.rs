@@ -6,11 +6,10 @@ use fyrox::{
         pool::Handle,
         rand::Rng,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider, rand,
+    rand,
     scene::{
         graph::physics::{Intersection, RayCastOptions},
         node::Node,
@@ -19,7 +18,8 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit, Reflect, Debug, Clone)]
+#[derive(Default, Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "a4681191-0b6f-4398-891d-c5b44019fb31")]
 pub struct CameraController {
     player: Handle<Node>,
     ignorable_collider: Handle<Node>,
@@ -93,14 +93,6 @@ impl CameraController {
             self.target_shake_offset = Vector3::new(0.0, 0.0, 0.0);
         }
         self.shake_offset.follow(&self.target_shake_offset, 0.5);
-    }
-}
-
-impl_component_provider!(CameraController);
-
-impl TypeUuidProvider for CameraController {
-    fn type_uuid() -> Uuid {
-        uuid!("a4681191-0b6f-4398-891d-c5b44019fb31")
     }
 }
 

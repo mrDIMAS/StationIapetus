@@ -5,11 +5,10 @@ use fyrox::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
         reflect::{FieldInfo, Reflect},
+        type_traits::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     scene::{
         collider::InteractionGroups,
         graph::physics::RayCastOptions,
@@ -18,7 +17,8 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")]
 pub struct Rail {
     radius: f32,
     particles_per_meter: f32,
@@ -32,14 +32,6 @@ impl Default for Rail {
             particles_per_meter: 120.0,
             max_length: 100.0,
         }
-    }
-}
-
-impl_component_provider!(Rail);
-
-impl TypeUuidProvider for Rail {
-    fn type_uuid() -> Uuid {
-        uuid!("bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")
     }
 }
 

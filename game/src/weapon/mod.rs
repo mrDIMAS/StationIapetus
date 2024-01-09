@@ -1,20 +1,17 @@
 //! Weapon related stuff.
 
-use crate::character::Character;
-use crate::{level::item::Item, weapon::projectile::Projectile};
-use fyrox::core::stub_uuid_provider;
+use crate::{character::Character, level::item::Item, weapon::projectile::Projectile};
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
         math::{vector_to_quat, Matrix4Ext},
         pool::Handle,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        stub_uuid_provider,
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
-        TypeUuidProvider,
     },
-    impl_component_provider,
     rand::{seq::SliceRandom, Rng},
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{graph::Graph, node::Node, Scene},
@@ -56,9 +53,11 @@ pub enum CombatWeaponKind {
 
 stub_uuid_provider!(CombatWeaponKind);
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "bca0083b-b062-4d95-b241-db05bca65da7")]
 pub struct Weapon {
     #[visit(optional)]
+    #[component(include)]
     item: Item,
 
     shot_point: Handle<Node>,
@@ -224,14 +223,6 @@ impl Weapon {
                 Default::default(),
             );
         }
-    }
-}
-
-impl_component_provider!(Weapon, item: Item);
-
-impl TypeUuidProvider for Weapon {
-    fn type_uuid() -> Uuid {
-        uuid!("bca0083b-b062-4d95-b241-db05bca65da7")
     }
 }
 

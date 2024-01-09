@@ -1,22 +1,15 @@
 use crate::Level;
-use fyrox::core::pool::Handle;
-use fyrox::scene::node::Node;
 use fyrox::{
-    core::{
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        visitor::prelude::*,
-        TypeUuidProvider,
-    },
-    impl_component_provider,
-    scene::rigidbody::RigidBody,
+    core::{pool::Handle, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
+    scene::{node::Node, rigidbody::RigidBody},
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
 pub mod call_button;
 pub mod ui;
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "67904c1b-0d12-427c-a92e-e66cb0ec6dae")]
 pub struct Elevator {
     pub current_floor: u32,
     pub dest_floor: u32,
@@ -30,14 +23,6 @@ impl Elevator {
         if floor < self.point_handles.len() as u32 {
             self.dest_floor = floor;
         }
-    }
-}
-
-impl_component_provider!(Elevator);
-
-impl TypeUuidProvider for Elevator {
-    fn type_uuid() -> Uuid {
-        uuid!("67904c1b-0d12-427c-a92e-e66cb0ec6dae")
     }
 }
 

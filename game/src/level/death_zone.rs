@@ -1,29 +1,15 @@
-use crate::character::DamageDealer;
 use crate::{
-    character::{CharacterMessage, CharacterMessageData},
+    character::{CharacterMessage, CharacterMessageData, DamageDealer},
     Level,
 };
 use fyrox::{
-    core::{
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        visitor::prelude::*,
-        TypeUuidProvider,
-    },
-    impl_component_provider,
+    core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "9c258713-e44e-4366-a236-f91e09c6f0aa")]
 pub struct DeathZone;
-
-impl_component_provider!(DeathZone);
-
-impl TypeUuidProvider for DeathZone {
-    fn type_uuid() -> Uuid {
-        uuid!("9c258713-e44e-4366-a236-f91e09c6f0aa")
-    }
-}
 
 impl ScriptTrait for DeathZone {
     fn on_update(&mut self, context: &mut ScriptContext) {

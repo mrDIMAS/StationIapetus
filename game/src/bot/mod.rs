@@ -19,12 +19,12 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         stub_uuid_provider,
+        type_traits::prelude::*,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
         TypeUuidProvider,
     },
-    impl_component_provider,
     scene::{
         self,
         animation::{absm::prelude::*, prelude::*},
@@ -82,11 +82,13 @@ pub struct Target {
     handle: Handle<Node>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
 pub struct Bot {
     #[reflect(hidden)]
     target: Option<Target>,
     model: Handle<Node>,
+    #[component(include)]
     character: Character,
     ragdoll: InheritableVariable<Handle<Node>>,
     #[reflect(hidden)]
@@ -137,8 +139,6 @@ pub struct Bot {
     #[visit(optional)]
     pub hostility: BotHostility,
 }
-
-impl_component_provider!(Bot, character: Character);
 
 impl Deref for Bot {
     type Target = Character;
@@ -380,12 +380,6 @@ impl Bot {
                     .clear_animation_events();
             }
         }
-    }
-}
-
-impl TypeUuidProvider for Bot {
-    fn type_uuid() -> Uuid {
-        uuid!("15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")
     }
 }
 

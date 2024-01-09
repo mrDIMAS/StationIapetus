@@ -1,14 +1,9 @@
 use crate::{character::character_ref, message::Message, Game, Level};
-use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
-        math::aabb::AxisAlignedBoundingBox,
-        reflect::prelude::*,
-        uuid::{uuid, Uuid},
-        visitor::prelude::*,
-        TypeUuidProvider,
+        math::aabb::AxisAlignedBoundingBox, reflect::prelude::*, stub_uuid_provider,
+        type_traits::prelude::*, visitor::prelude::*,
     },
-    impl_component_provider,
     script::{ScriptContext, ScriptTrait},
 };
 use std::path::PathBuf;
@@ -26,17 +21,10 @@ pub enum TriggerAction {
 
 stub_uuid_provider!(TriggerAction);
 
-#[derive(Visit, Reflect, Debug, Default, Clone)]
+#[derive(Visit, Reflect, Debug, Default, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "a7e0d266-3f3f-4100-85c5-59811f9bbab3")]
 pub struct Trigger {
     kind: TriggerAction,
-}
-
-impl_component_provider!(Trigger);
-
-impl TypeUuidProvider for Trigger {
-    fn type_uuid() -> Uuid {
-        uuid!("a7e0d266-3f3f-4100-85c5-59811f9bbab3")
-    }
 }
 
 impl ScriptTrait for Trigger {

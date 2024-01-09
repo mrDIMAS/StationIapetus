@@ -4,7 +4,6 @@ use crate::{
     weapon::projectile::Projectile,
     Level, Player,
 };
-use fyrox::core::stub_uuid_provider;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -14,12 +13,11 @@ use fyrox::{
         pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        stub_uuid_provider,
+        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
-        TypeUuidProvider,
     },
-    impl_component_provider,
     resource::model::ModelResource,
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
@@ -94,7 +92,8 @@ impl Default for Hostility {
     }
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 pub struct Turret {
     model: Handle<Node>,
     body: Handle<Node>,
@@ -158,14 +157,6 @@ impl Default for Turret {
             collider: Default::default(),
             shoot_interval: 0.2,
         }
-    }
-}
-
-impl_component_provider!(Turret);
-
-impl TypeUuidProvider for Turret {
-    fn type_uuid() -> Uuid {
-        uuid!("7a23ce43-500e-4a49-995d-57f44486ed20")
     }
 }
 

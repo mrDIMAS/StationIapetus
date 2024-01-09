@@ -2,26 +2,17 @@ use fyrox::{
     core::{
         rand::Rng,
         reflect::prelude::*,
-        uuid::{uuid, Uuid},
+        type_traits::prelude::*,
         visitor::{Visit, VisitResult, Visitor},
-        TypeUuidProvider,
     },
-    impl_component_provider,
     rand::thread_rng,
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "95cee406-a30e-4ae4-a017-e0ccae1ca23d")]
 pub struct AnimatedLight {
     timer: f32,
-}
-
-impl_component_provider!(AnimatedLight);
-
-impl TypeUuidProvider for AnimatedLight {
-    fn type_uuid() -> Uuid {
-        uuid!("95cee406-a30e-4ae4-a017-e0ccae1ca23d")
-    }
 }
 
 impl ScriptTrait for AnimatedLight {
