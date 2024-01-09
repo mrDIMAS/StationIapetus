@@ -149,8 +149,4 @@ impl ScriptTrait for CameraController {
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

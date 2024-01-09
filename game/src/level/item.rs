@@ -151,10 +151,6 @@ impl ScriptTrait for Item {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 impl Item {

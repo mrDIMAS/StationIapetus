@@ -60,8 +60,4 @@ impl ScriptTrait for Explosion {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

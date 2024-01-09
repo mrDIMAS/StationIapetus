@@ -278,10 +278,6 @@ impl ScriptTrait for Turret {
                 self.pitch.angle() - std::f32::consts::FRAC_PI_2,
             ));
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 #[derive(Default, Visit, Reflect, Clone, Debug)]

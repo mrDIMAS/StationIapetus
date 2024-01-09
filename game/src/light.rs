@@ -36,8 +36,4 @@ impl ScriptTrait for AnimatedLight {
             self.timer = thread_rng().gen_range(0.1..0.5);
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

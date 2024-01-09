@@ -64,8 +64,4 @@ impl ScriptTrait for Beam {
             .local_transform_mut()
             .set_scale(Vector3::new(1.0, 1.0, len));
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

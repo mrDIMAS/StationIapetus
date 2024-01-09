@@ -599,10 +599,6 @@ impl ScriptTrait for Bot {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 pub fn try_get_bot_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Bot> {

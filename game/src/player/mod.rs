@@ -1598,8 +1598,4 @@ impl ScriptTrait for Player {
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

@@ -371,8 +371,4 @@ impl ScriptTrait for KineticGun {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

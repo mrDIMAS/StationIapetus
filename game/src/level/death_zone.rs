@@ -47,8 +47,4 @@ impl ScriptTrait for DeathZone {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

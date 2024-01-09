@@ -143,8 +143,4 @@ impl ScriptTrait for CallButton {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

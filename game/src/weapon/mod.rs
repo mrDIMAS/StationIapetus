@@ -280,10 +280,6 @@ impl ScriptTrait for Weapon {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {

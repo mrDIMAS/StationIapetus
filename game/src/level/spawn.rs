@@ -67,8 +67,4 @@ impl ScriptTrait for CharacterSpawnPoint {
             Log::warn("Prefab is not set, nothing to spawn!")
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

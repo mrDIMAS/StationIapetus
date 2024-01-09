@@ -259,8 +259,4 @@ impl ScriptTrait for LaserSight {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

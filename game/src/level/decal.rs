@@ -63,10 +63,6 @@ impl ScriptTrait for Decal {
             ctx.scene.graph.remove_node(ctx.handle);
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 impl Decal {

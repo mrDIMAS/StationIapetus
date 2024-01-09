@@ -61,8 +61,4 @@ impl ScriptTrait for Trigger {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

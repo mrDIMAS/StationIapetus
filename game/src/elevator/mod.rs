@@ -81,8 +81,4 @@ impl ScriptTrait for Elevator {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

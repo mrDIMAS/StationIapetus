@@ -95,8 +95,4 @@ impl ScriptTrait for Rail {
             );
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }

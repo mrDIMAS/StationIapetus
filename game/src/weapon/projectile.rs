@@ -474,7 +474,7 @@ impl ScriptTrait for Projectile {
                                         entity: hit.shooter_actor,
                                     },
                                     hitbox: None,
-                                    /// TODO: Maybe collect all hitboxes?
+                                    // TODO: Maybe collect all hitboxes?
                                     amount,
                                     critical_hit_probability: self.critical_hit_probability,
                                     position: Some(DamagePosition {
@@ -572,9 +572,5 @@ impl ScriptTrait for Projectile {
         if self.one_frame {
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
-    }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
     }
 }

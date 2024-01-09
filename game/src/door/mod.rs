@@ -259,10 +259,6 @@ impl ScriptTrait for Door {
             utils::try_play_sound(sound, &mut ctx.scene.graph);
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
 
 impl Door {

@@ -155,8 +155,4 @@ impl ScriptTrait for EnemyTrap {
             }
         }
     }
-
-    fn id(&self) -> Uuid {
-        Self::type_uuid()
-    }
 }
