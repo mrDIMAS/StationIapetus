@@ -8,7 +8,7 @@ use crate::{
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::WeaponMessage,
-    Game, Level,
+    Game,
 };
 use fyrox::{
     core::{
@@ -384,17 +384,20 @@ impl Bot {
 }
 
 impl ScriptTrait for Bot {
-    fn on_init(&mut self, context: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
         self.agent = NavmeshAgentBuilder::new()
-            .with_position(context.scene.graph[context.handle].global_position())
+            .with_position(ctx.scene.graph[ctx.handle].global_position())
             .with_speed(self.walk_speed)
             .build();
         self.behavior = BotBehavior::new(self.spine, self.close_combat_distance);
 
-        Level::try_get_mut(context.plugins)
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
             .unwrap()
             .actors
-            .push(context.handle);
+            .push(ctx.handle);
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
@@ -405,9 +408,9 @@ impl ScriptTrait for Bot {
             .subscribe_to::<WeaponMessage>(ctx.handle);
     }
 
-    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = Level::try_get_mut(context.plugins) {
-            if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
+            if let Some(position) = level.actors.iter().position(|a| *a == ctx.node_handle) {
                 level.actors.remove(position);
             }
         }
@@ -423,7 +426,7 @@ impl ScriptTrait for Bot {
                 return;
             }
 
-            let level = Level::try_get(ctx.plugins).unwrap();
+            let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
 
             self.character.on_character_message(
                 &char_message.data,
@@ -482,8 +485,8 @@ impl ScriptTrait for Bot {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = Game::game_ref(ctx.plugins);
-        let level = Level::try_get(ctx.plugins).unwrap();
+        let game = ctx.plugins.get::<Game>();
+        let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
 
         self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
 
@@ -520,7 +523,7 @@ impl ScriptTrait for Bot {
                 pitch: &mut self.pitch,
                 attack_sounds: &self.attack_sounds,
                 scream_sounds: &self.scream_sounds,
-                plugins: ctx.plugins,
+                plugins: &ctx.plugins,
 
                 // Output
                 hostility: self.hostility,

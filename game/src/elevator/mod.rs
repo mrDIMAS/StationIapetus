@@ -1,4 +1,4 @@
-use crate::Level;
+use crate::Game;
 use fyrox::{
     core::{pool::Handle, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
     scene::{node::Node, rigidbody::RigidBody},
@@ -28,14 +28,17 @@ impl Elevator {
 
 impl ScriptTrait for Elevator {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        Level::try_get_mut(ctx.plugins)
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
             .unwrap()
             .elevators
             .push(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
-        if let Some(level) = Level::try_get_mut(ctx.plugins) {
+        if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(elevator) = level.elevators.iter().position(|h| *h == ctx.node_handle) {
                 level.elevators.remove(elevator);
             }

@@ -2,7 +2,7 @@ use crate::{
     character::{character_ref, try_get_character_ref},
     sound::SoundManager,
     weapon::projectile::Projectile,
-    Level, Player,
+    Game, Player,
 };
 use fyrox::{
     core::{
@@ -162,7 +162,12 @@ impl Default for Turret {
 
 impl ScriptTrait for Turret {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let level_ref = Level::try_get(ctx.plugins).expect("Level must exist!");
+        let level_ref = ctx
+            .plugins
+            .get::<Game>()
+            .level
+            .as_ref()
+            .expect("Level must exist!");
 
         self.update_frustum(ctx.scene);
 

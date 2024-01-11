@@ -1,4 +1,4 @@
-use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game, Level};
+use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game};
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
@@ -114,7 +114,10 @@ impl ScriptTrait for Door {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
-        Level::try_get_mut(ctx.plugins)
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
             .expect("Level must exist!")
             .doors_container
             .doors
@@ -140,7 +143,7 @@ impl ScriptTrait for Door {
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
         // Level can not exist in case if we're changing the level. In this case there is no need
         // to unregister doors anyway, because the registry is already removed.
-        if let Some(level) = Level::try_get_mut(ctx.plugins) {
+        if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(position) = level
                 .doors_container
                 .doors
@@ -160,7 +163,7 @@ impl ScriptTrait for Door {
             }
         }
 
-        let game = Game::game_mut(ctx.plugins);
+        let game = ctx.plugins.get_mut::<Game>();
         let level = game.level.as_ref().unwrap();
 
         let mut closest_actor = None;

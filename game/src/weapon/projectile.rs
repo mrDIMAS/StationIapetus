@@ -4,7 +4,7 @@ use crate::{
         DamageDealer, DamagePosition, HitBox,
     },
     level::decal::Decal,
-    CollisionGroups, Level, Weapon,
+    CollisionGroups, Game, Weapon,
 };
 use fyrox::{
     core::{
@@ -332,7 +332,7 @@ impl ScriptTrait for Projectile {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let level = Level::try_get(ctx.plugins).unwrap();
+        let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
 
         // Movement of kinematic projectiles is controlled explicitly.
         if let Some(speed) = self.speed {
@@ -363,7 +363,7 @@ impl ScriptTrait for Projectile {
                 self.last_position,
                 position,
                 self.owner,
-                &Level::try_get(ctx.plugins).unwrap().actors,
+                &ctx.plugins.get::<Game>().level.as_ref().unwrap().actors,
                 &mut ctx.scene.graph,
                 // Ignore self collider.
                 self.collider,
@@ -451,7 +451,7 @@ impl ScriptTrait for Projectile {
 
             match damage {
                 Damage::Splash { radius, amount } => {
-                    let level = Level::try_get(ctx.plugins).unwrap();
+                    let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
                     // Just find out actors which must be damaged and re-cast damage message for each.
                     for &actor_handle in level.actors.iter() {
                         let character = character_ref(actor_handle, &ctx.scene.graph);

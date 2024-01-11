@@ -1,7 +1,6 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     highlight::HighlightEntry,
-    level::Level,
     player::{camera::CameraController, Player},
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Game, Item,
@@ -158,7 +157,7 @@ impl ScriptTrait for KineticGun {
     fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) {
         self.weapon.on_os_event(event, ctx);
 
-        if let Some(level) = Level::try_get(ctx.plugins) {
+        if let Some(level) = ctx.plugins.get::<Game>().level.as_ref() {
             if let Some(target) = self.target.as_ref() {
                 if let Event::WindowEvent {
                     event: WindowEvent::KeyboardInput { event, .. },
@@ -258,10 +257,10 @@ impl ScriptTrait for KineticGun {
                             target_body.wake_up();
                         }
                     } else {
-                        self.reset_target(Game::game_mut(ctx.plugins));
+                        self.reset_target(ctx.plugins.get_mut::<Game>());
                     }
                 }
-            } else if let Some(highlighter) = Game::game_mut(ctx.plugins).highlighter.as_mut() {
+            } else if let Some(highlighter) = ctx.plugins.get_mut::<Game>().highlighter.as_mut() {
                 match self.try_pick_target(&mut ctx.scene.graph) {
                     Err(inappropriate_target) => {
                         if inappropriate_target.is_some() {
@@ -286,7 +285,7 @@ impl ScriptTrait for KineticGun {
                 }
             }
         } else {
-            self.reset_target(Game::game_mut(ctx.plugins));
+            self.reset_target(ctx.plugins.get_mut::<Game>());
         }
 
         if let Some(ray) = ctx.scene.graph.try_get_mut(*self.ray) {
@@ -323,12 +322,12 @@ impl ScriptTrait for KineticGun {
                                 target_body.wake_up();
                             }
 
-                            self.reset_target(Game::game_mut(ctx.plugins));
+                            self.reset_target(ctx.plugins.get_mut::<Game>());
                         }
                         None => {
                             if let Ok(new_target) = self.try_pick_target(&mut ctx.scene.graph) {
                                 if let Some(highlighter) =
-                                    Game::game_mut(ctx.plugins).highlighter.as_mut()
+                                    ctx.plugins.get_mut::<Game>().highlighter.as_mut()
                                 {
                                     highlighter.borrow_mut().nodes_to_highlight.insert(
                                         new_target.node,

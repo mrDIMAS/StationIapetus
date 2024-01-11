@@ -1,4 +1,4 @@
-use crate::{character::character_ref, message::Message, Game, Level};
+use crate::{character::character_ref, message::Message, Game};
 use fyrox::{
     core::{
         math::aabb::AxisAlignedBoundingBox, reflect::prelude::*, stub_uuid_provider,
@@ -28,15 +28,15 @@ pub struct Trigger {
 }
 
 impl ScriptTrait for Trigger {
-    fn on_update(&mut self, context: &mut ScriptContext) {
-        let game = Game::game_ref(context.plugins);
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let game = ctx.plugins.get::<Game>();
 
-        if let Some(level) = Level::try_get(context.plugins) {
+        if let Some(level) = ctx.plugins.get::<Game>().level.as_ref() {
             let this_bounds = AxisAlignedBoundingBox::unit()
-                .transform(&context.scene.graph[context.handle].global_transform());
+                .transform(&ctx.scene.graph[ctx.handle].global_transform());
 
             let player_position =
-                character_ref(level.player, &context.scene.graph).position(&context.scene.graph);
+                character_ref(level.player, &ctx.scene.graph).position(&ctx.scene.graph);
 
             if this_bounds.is_contains_point(player_position) {
                 match self.kind {

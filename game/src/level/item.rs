@@ -1,4 +1,4 @@
-use crate::{block_on, Level};
+use crate::{block_on, Game};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -107,20 +107,23 @@ impl ScriptTrait for Item {
 
         ctx.scene.graph.link_nodes(self.spark, ctx.handle);
 
-        Level::try_get_mut(ctx.plugins)
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
             .unwrap()
             .items
             .container
             .push(ctx.handle);
     }
 
-    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = Level::try_get_mut(context.plugins) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(index) = level
                 .items
                 .container
                 .iter()
-                .position(|i| *i == context.node_handle)
+                .position(|i| *i == ctx.node_handle)
             {
                 level.items.container.remove(index);
             }

@@ -148,14 +148,6 @@ impl MessageSender {
 }
 
 impl Game {
-    pub fn game_ref(plugins: &[Box<dyn Plugin>]) -> &Game {
-        plugins.first().unwrap().cast::<Game>().unwrap()
-    }
-
-    pub fn game_mut(plugins: &mut [Box<dyn Plugin>]) -> &mut Game {
-        plugins.first_mut().unwrap().cast_mut::<Game>().unwrap()
-    }
-
     pub fn new(scene_path: Option<&str>, mut context: PluginContext) -> Self {
         if let Some(scene_path) = scene_path {
             context.async_scene_loader.request(scene_path);

@@ -1,6 +1,6 @@
 use crate::{
     character::{CharacterMessage, CharacterMessageData, DamageDealer},
-    Level,
+    Game,
 };
 use fyrox::{
     core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
@@ -12,12 +12,20 @@ use fyrox::{
 pub struct DeathZone;
 
 impl ScriptTrait for DeathZone {
-    fn on_update(&mut self, context: &mut ScriptContext) {
-        let self_bounds = context.scene.graph[context.handle].world_bounding_box();
-        for &actor in Level::try_get(context.plugins).unwrap().actors.iter() {
-            let character_position = context.scene.graph[actor].global_position();
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        let self_bounds = ctx.scene.graph[ctx.handle].world_bounding_box();
+        for &actor in ctx
+            .plugins
+            .get::<Game>()
+            .level
+            .as_ref()
+            .unwrap()
+            .actors
+            .iter()
+        {
+            let character_position = ctx.scene.graph[actor].global_position();
             if self_bounds.is_contains_point(character_position) {
-                context.message_sender.send_global(CharacterMessage {
+                ctx.message_sender.send_global(CharacterMessage {
                     character: actor,
                     data: CharacterMessageData::Damage {
                         dealer: DamageDealer {

@@ -1,6 +1,6 @@
 use crate::{
-    bot::behavior::BehaviorContext, character::HitBox, door::door_mut, level::Level,
-    utils::BodyImpactHandler,
+    bot::behavior::BehaviorContext, character::HitBox, door::door_mut, utils::BodyImpactHandler,
+    Game,
 };
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
@@ -15,7 +15,11 @@ pub struct MoveToTarget {
 
 impl MoveToTarget {
     fn check_obstacles(&self, self_position: Vector3<f32>, ctx: &mut BehaviorContext) {
-        let doors = &Level::try_get(ctx.plugins)
+        let doors = &ctx
+            .plugins
+            .get::<Game>()
+            .level
+            .as_ref()
             .expect("Level must exist!")
             .doors_container
             .doors;

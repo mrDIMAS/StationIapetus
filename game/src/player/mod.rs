@@ -14,8 +14,9 @@ use crate::{
         projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
         WeaponMessageData,
     },
-    CameraController, Elevator, Game, Item, Level, MessageSender,
+    CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -36,7 +37,6 @@ use fyrox::{
     fxhash::FxHashSet,
     keyboard::PhysicalKey,
     material::{shader::SamplerFallback, PropertyValue},
-    plugin::Plugin,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,
@@ -128,16 +128,15 @@ struct MeleeAttackContext {
 
 #[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
+#[visit(optional)]
 pub struct Player {
     #[component(include)]
     character: Character,
     pub camera_controller: Handle<Node>,
     model_pivot: Handle<Node>,
-    #[visit(optional)]
     model_sub_pivot: Handle<Node>,
     model: Handle<Node>,
     model_yaw: SmoothAngle,
-    #[visit(optional)]
     yaw: InheritableVariable<SmoothAngle>,
     spine_pitch: SmoothAngle,
     spine: Handle<Node>,
@@ -148,7 +147,6 @@ pub struct Player {
     target_run_factor: f32,
     in_air_time: f32,
     velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
-    #[visit(optional)]
     jump_inertia: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
@@ -160,33 +158,17 @@ pub struct Player {
     h_recoil: SmoothAngle,
     rig_light: Handle<Node>,
     machine: Handle<Node>,
-
     local_velocity: Vector2<f32>,
     target_local_velocity: Vector2<f32>,
-
-    #[visit(optional)]
     flash_light: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     flash_light_enabled: InheritableVariable<bool>,
-
-    #[visit(optional)]
     #[reflect(min_value = 0.0, max_value = 20.0)]
     melee_attack_damage: InheritableVariable<f32>,
-
-    #[visit(optional)]
     ak47_weapon: Option<ModelResource>,
-    #[visit(optional)]
     m4_weapon: Option<ModelResource>,
-    #[visit(optional)]
     glock_weapon: Option<ModelResource>,
-    #[visit(optional)]
     plasma_gun_weapon: Option<ModelResource>,
-
-    #[visit(optional)]
     melee_hit_box: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     animation_player: Handle<Node>,
 
     #[reflect(hidden)]
@@ -217,14 +199,8 @@ pub struct Player {
     #[visit(skip)]
     #[reflect(hidden)]
     pub script_message_sender: Option<ScriptMessageSender>,
-
-    #[visit(optional)]
     pub grenade_item: InheritableVariable<Option<ModelResource>>,
-
-    #[visit(optional)]
     pub melee_hit_sound: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     pub melee_hit_effect_prefab: InheritableVariable<Option<ModelResource>>,
 }
 
@@ -958,13 +934,13 @@ impl Player {
         scene: &mut Scene,
         script_message_sender: &ScriptMessageSender,
         self_handle: Handle<Node>,
-        plugins: &[Box<dyn Plugin>],
+        plugins: &PluginsRefMut,
     ) -> Option<()> {
         let attack_context = self.melee_attack_context.as_mut()?;
         let melee_hit_box_collider = scene
             .graph
             .try_get_of_type::<Collider>(*self.melee_hit_box)?;
-        let level = Level::try_get(plugins)?;
+        let level = plugins.get::<Game>().level.as_ref()?;
 
         let mut hits = Vec::new();
         for intersection in melee_hit_box_collider
@@ -1096,24 +1072,24 @@ impl Player {
 }
 
 impl ScriptTrait for Player {
-    fn on_init(&mut self, context: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) {
         self.item_display = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.05))
             .with_size(0.18)
-            .build(&mut context.scene.graph);
+            .build(&mut ctx.scene.graph);
 
         if let Some(grenade_item) = self.grenade_item.deref().clone() {
             self.inventory.add_item(&grenade_item, 10);
         }
 
-        let level = Level::try_get_mut(context.plugins).unwrap();
+        let level = ctx.plugins.get_mut::<Game>().level.as_mut().unwrap();
 
-        level.actors.push(context.handle);
+        level.actors.push(ctx.handle);
         // Also register player in special variable to speed up access.
-        level.player = context.handle;
+        level.player = ctx.handle;
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
-        let game = Game::game_ref(ctx.plugins);
+        let game = ctx.plugins.get::<Game>();
 
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
@@ -1133,18 +1109,18 @@ impl ScriptTrait for Player {
         );
     }
 
-    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
-        if let Some(level) = Level::try_get_mut(context.plugins) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             level.player = Handle::NONE;
 
-            if let Some(position) = level.actors.iter().position(|a| *a == context.node_handle) {
+            if let Some(position) = level.actors.iter().position(|a| *a == ctx.node_handle) {
                 level.actors.remove(position);
             }
         }
     }
 
-    fn on_os_event(&mut self, event: &Event<()>, context: &mut ScriptContext) {
-        let game = Game::game_ref(context.plugins);
+    fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) {
+        let game = ctx.plugins.get::<Game>();
         let control_scheme = &game.control_scheme;
         let sender = &game.message_sender;
 
@@ -1181,7 +1157,7 @@ impl ScriptTrait for Player {
                     Some((ControlButton::Mouse(button as u16), state))
                 }
                 DeviceEvent::MouseMotion { delta } => {
-                    let mouse_sens = control_scheme.mouse_sens * context.dt;
+                    let mouse_sens = control_scheme.mouse_sens * ctx.dt;
                     self.controller.target_yaw -= (delta.0 as f32) * mouse_sens;
                     let pitch_direction = if control_scheme.mouse_y_inverse {
                         -1.0
@@ -1199,7 +1175,7 @@ impl ScriptTrait for Player {
         };
 
         let animations_container =
-            utils::fetch_animation_container_mut(&mut context.scene.graph, self.animation_player);
+            utils::fetch_animation_container_mut(&mut ctx.scene.graph, self.animation_player);
 
         let jump_anim = animations_container.get(self.state_machine.jump_animation);
         let can_jump = !jump_anim.is_enabled() || jump_anim.has_ended();
@@ -1208,7 +1184,7 @@ impl ScriptTrait for Player {
             && animations_container[self.state_machine.grab_animation].has_ended()
             && self.weapons.len() > 1;
 
-        let current_weapon_kind = context
+        let current_weapon_kind = ctx
             .scene
             .graph
             .try_get(self.current_weapon())
@@ -1220,8 +1196,8 @@ impl ScriptTrait for Player {
             if button == control_scheme.aim.button {
                 self.controller.aim = state == ElementState::Pressed;
                 if state == ElementState::Pressed {
-                    context.scene.graph[self.inventory_display].set_visibility(false);
-                    context.scene.graph[self.journal_display].set_visibility(false);
+                    ctx.scene.graph[self.inventory_display].set_visibility(false);
+                    ctx.scene.graph[self.journal_display].set_visibility(false);
                 }
             } else if button == control_scheme.move_forward.button {
                 self.controller.walk_forward = state == ElementState::Pressed;
@@ -1328,9 +1304,9 @@ impl ScriptTrait for Player {
                 && state == ElementState::Pressed
                 && !self.controller.aim
             {
-                context.scene.graph[self.journal_display].set_visibility(false);
+                ctx.scene.graph[self.journal_display].set_visibility(false);
 
-                let inventory = &mut context.scene.graph[self.inventory_display];
+                let inventory = &mut ctx.scene.graph[self.inventory_display];
                 let new_visibility = !inventory.visibility();
                 inventory.set_visibility(new_visibility);
                 if new_visibility {
@@ -1340,9 +1316,9 @@ impl ScriptTrait for Player {
                 && state == ElementState::Pressed
                 && !self.controller.aim
             {
-                context.scene.graph[self.inventory_display].set_visibility(false);
+                ctx.scene.graph[self.inventory_display].set_visibility(false);
 
-                let journal = &mut context.scene.graph[self.journal_display];
+                let journal = &mut ctx.scene.graph[self.journal_display];
                 let new_visibility = !journal.visibility();
                 journal.set_visibility(new_visibility);
                 if new_visibility {
@@ -1366,7 +1342,7 @@ impl ScriptTrait for Player {
                 return;
             }
 
-            let level = Level::try_get(ctx.plugins).unwrap();
+            let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
 
             self.character.on_character_message(
                 &char_message.data,
@@ -1382,12 +1358,12 @@ impl ScriptTrait for Player {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let game = Game::game_mut(ctx.plugins);
+        let game = ctx.plugins.get_mut::<Game>();
         game.weapon_display.sync_to_model(self, &ctx.scene.graph);
         game.journal_display.update(ctx.dt, &self.journal);
 
-        let game = Game::game_ref(ctx.plugins);
-        let level = Level::try_get(ctx.plugins).unwrap();
+        let game = ctx.plugins.get::<Game>();
+        let level = game.level.as_ref().unwrap();
 
         self.target_local_velocity = Vector2::default();
         if self.controller.walk_forward
@@ -1450,7 +1426,7 @@ impl ScriptTrait for Player {
         let is_jumping = has_ground_contact && self.controller.jump;
 
         self.update_animation_machines(ctx.scene, is_walking, is_jumping);
-        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, ctx.plugins);
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, &ctx.plugins);
 
         let is_running = self.is_running(ctx.scene);
 
@@ -1569,7 +1545,7 @@ impl ScriptTrait for Player {
             self.check_elevators(ctx.scene, &level.elevators);
             self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time, ctx.message_sender);
             self.check_items(
-                Game::game_mut(ctx.plugins),
+                ctx.plugins.get_mut::<Game>(),
                 ctx.scene,
                 ctx.handle,
                 ctx.message_sender,

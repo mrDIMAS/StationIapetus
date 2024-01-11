@@ -1,4 +1,4 @@
-use crate::{bot::Bot, door::Door, level::Level};
+use crate::{bot::Bot, door::Door, Game};
 use fyrox::{
     core::{
         color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
@@ -104,35 +104,32 @@ impl ScriptTrait for EnemyTrap {
         }
     }
 
-    fn on_update(&mut self, context: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
         match self.state {
             State::Inactive => {
-                if let Some(level) = Level::try_get(context.plugins) {
-                    let this = &context.scene.graph[context.handle];
+                if let Some(level) = ctx.plugins.get::<Game>().level.as_ref() {
+                    let this = &ctx.scene.graph[ctx.handle];
                     let this_bounds =
                         AxisAlignedBoundingBox::unit().transform(&this.global_transform());
 
-                    let player_position = context.scene.graph[level.player].global_position();
+                    let player_position = ctx.scene.graph[level.player].global_position();
 
                     if this_bounds.is_contains_point(player_position) {
                         self.state = State::Active;
 
-                        self.find_enemies(context.scene, &level.actors, &this_bounds);
-                        self.lock_doors(context.scene, true);
+                        self.find_enemies(ctx.scene, &level.actors, &this_bounds);
+                        self.lock_doors(ctx.scene, true);
                         self.enable_nodes(
-                            &mut context.scene.graph,
+                            &mut ctx.scene.graph,
                             &self.nodes_to_enable_on_activation,
                         );
                     }
                 }
             }
             State::Active => {
-                if self.is_all_enemies_dead(context.scene) {
-                    self.lock_doors(context.scene, false);
-                    self.enable_nodes(
-                        &mut context.scene.graph,
-                        &self.nodes_to_enable_on_deactivation,
-                    );
+                if self.is_all_enemies_dead(ctx.scene) {
+                    self.lock_doors(ctx.scene, false);
+                    self.enable_nodes(&mut ctx.scene.graph, &self.nodes_to_enable_on_deactivation);
                     self.state = State::Finished;
                 }
             }
