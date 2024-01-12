@@ -7,11 +7,10 @@ use crate::{
     player::Player,
     MessageSender,
 };
-use fyrox::core::uuid_provider;
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
-        visitor::prelude::*,
+        type_traits::prelude::*, uuid_provider, visitor::prelude::*,
     },
     gui::{
         border::BorderBuilder,
@@ -33,10 +32,7 @@ use fyrox::{
     resource::{model::ModelResource, texture::TextureResource},
     scene::node::Node,
 };
-use std::{
-    any::{Any, TypeId},
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 pub struct InventoryInterface {
     pub ui: UserInterface,
@@ -48,7 +44,7 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<UiNode>,
 }
 
-#[derive(Debug, Clone, Reflect, Visit)]
+#[derive(Debug, Clone, Reflect, Visit, ComponentProvider)]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
@@ -60,14 +56,6 @@ pub struct InventoryItem {
 uuid_provider!(InventoryItem = "346f2207-0868-4577-89a3-a4b36f3bf45d");
 
 impl Control for InventoryItem {
-    fn query_component(&self, type_id: TypeId) -> Option<&dyn Any> {
-        if type_id == TypeId::of::<Self>() {
-            Some(self)
-        } else {
-            None
-        }
-    }
-
     fn draw(&self, drawing_context: &mut DrawingContext) {
         let bounds = self.bounding_rect();
         drawing_context.push_rect(&bounds, 1.0);

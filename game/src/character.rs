@@ -19,7 +19,7 @@ use fyrox::{
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
-        graph::{map::NodeHandleMap, physics::RayCastOptions, Graph},
+        graph::{physics::RayCastOptions, Graph},
         node::Node,
         rigidbody::RigidBody,
         Scene,
@@ -518,17 +518,8 @@ pub struct HitBox {
 
 stub_uuid_provider!(HitBox);
 
-impl HitBox {
-    pub fn remap_handles(&mut self, old_new_mapping: &NodeHandleMap) {
-        old_new_mapping.map(&mut self.collider);
-    }
-}
-
 pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Character> {
-    graph.try_get(handle).and_then(|c| {
-        c.script()
-            .and_then(|s| s.query_component_ref::<Character>())
-    })
+    graph.try_get_script_component_of::<Character>(handle)
 }
 
 pub fn character_ref(handle: Handle<Node>, graph: &Graph) -> &Character {
@@ -536,10 +527,7 @@ pub fn character_ref(handle: Handle<Node>, graph: &Graph) -> &Character {
 }
 
 pub fn try_get_character_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Character> {
-    graph.try_get_mut(handle).and_then(|c| {
-        c.script_mut()
-            .and_then(|s| s.query_component_mut::<Character>())
-    })
+    graph.try_get_script_component_of_mut(handle)
 }
 
 pub fn character_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Character {
