@@ -5,8 +5,6 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::core::stub_uuid_provider;
-use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -14,6 +12,7 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
+        stub_uuid_provider,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -22,6 +21,7 @@ use fyrox::{
         collider::Collider,
         graph::{map::NodeHandleMap, physics::RayCastOptions, Graph},
         node::Node,
+        rigidbody::RigidBody,
         Scene,
     },
     script::ScriptMessageSender,
@@ -98,7 +98,7 @@ pub struct Character {
     pub max_health: InheritableVariable<f32>,
     pub last_health: f32,
     pub weapons: Vec<Handle<Node>>,
-    pub current_weapon: u32,
+    pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
     #[visit(optional)]
     pub hit_boxes: Vec<HitBox>,
@@ -251,7 +251,7 @@ impl Character {
             graph[other_weapon].set_enabled(false);
         }
 
-        self.current_weapon = self.weapons.len() as u32;
+        self.current_weapon = self.weapons.len();
         self.weapons.push(weapon);
 
         self.set_current_weapon_enabled(true, graph);
@@ -401,7 +401,7 @@ impl Character {
                 graph[other_weapon].set_enabled(false);
             }
 
-            self.current_weapon = index as u32;
+            self.current_weapon = index;
 
             self.set_current_weapon_enabled(true, graph);
         }
@@ -409,19 +409,19 @@ impl Character {
 
     pub fn current_weapon(&self) -> Handle<Node> {
         self.weapons
-            .get(self.current_weapon as usize)
+            .get(self.current_weapon)
             .cloned()
             .unwrap_or_default()
     }
 
     fn set_current_weapon_enabled(&self, state: bool, graph: &mut Graph) {
-        if let Some(current_weapon) = self.weapons.get(self.current_weapon as usize) {
+        if let Some(current_weapon) = self.weapons.get(self.current_weapon) {
             graph[*current_weapon].set_enabled(state);
         }
     }
 
     pub fn next_weapon(&mut self, graph: &mut Graph) {
-        if !self.weapons.is_empty() && (self.current_weapon as usize) < self.weapons.len() - 1 {
+        if !self.weapons.is_empty() && (self.current_weapon) < self.weapons.len() - 1 {
             self.set_current_weapon_enabled(false, graph);
 
             self.current_weapon += 1;
@@ -454,7 +454,7 @@ impl Character {
         if i < self.weapons.len() {
             self.set_current_weapon_enabled(false, graph);
 
-            self.current_weapon = i as u32;
+            self.current_weapon = i;
 
             self.set_current_weapon_enabled(true, graph);
         }

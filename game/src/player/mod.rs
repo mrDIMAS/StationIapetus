@@ -117,7 +117,7 @@ impl Default for RequiredWeapon {
 pub struct PlayerPersistentData {
     pub inventory: Inventory,
     pub health: f32,
-    pub current_weapon: u32,
+    pub current_weapon: usize,
     pub weapons: Vec<ModelResource>,
 }
 
@@ -807,10 +807,8 @@ impl Player {
         self.v_recoil.update(dt);
         self.h_recoil.update(dt);
 
-        if let Some(&current_weapon_handle) = self
-            .character
-            .weapons
-            .get(self.character.current_weapon as usize)
+        if let Some(&current_weapon_handle) =
+            self.character.weapons.get(self.character.current_weapon)
         {
             let aiming = self
                 .state_machine
@@ -1247,7 +1245,7 @@ impl ScriptTrait for Player {
                 }
             } else if button == control_scheme.next_weapon.button {
                 if state == ElementState::Pressed
-                    && self.current_weapon < self.weapons.len().saturating_sub(1) as u32
+                    && self.current_weapon < self.weapons.len().saturating_sub(1)
                     && can_change_weapon
                 {
                     weapon_change_direction = Some(RequiredWeapon::Next);

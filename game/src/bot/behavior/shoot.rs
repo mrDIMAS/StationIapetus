@@ -17,7 +17,7 @@ impl<'a> Behavior<'a> for ShootTarget {
         if let Some(weapon) = context
             .character
             .weapons
-            .get(context.character.current_weapon as usize)
+            .get(context.character.current_weapon)
         {
             let weapon_handle = *weapon;
 
@@ -71,7 +71,7 @@ impl<'a> Behavior<'a> for CanShootTarget {
         if let Some(weapon) = context
             .character
             .weapons
-            .get(context.character.current_weapon as usize)
+            .get(context.character.current_weapon)
         {
             let weapon_handle = *weapon;
             let weapon = weapon_ref(weapon_handle, &context.scene.graph);
