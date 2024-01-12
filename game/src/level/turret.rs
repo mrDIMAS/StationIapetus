@@ -94,6 +94,7 @@ impl Default for Hostility {
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
+#[visit(optional)]
 pub struct Turret {
     model: Handle<Node>,
     body: Handle<Node>,
@@ -104,11 +105,7 @@ pub struct Turret {
     yaw: SmoothAngle,
     pitch: SmoothAngle,
     projector: Handle<Node>,
-
-    #[visit(optional)]
     collider: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     shoot_interval: f32,
 
     #[reflect(hidden)]
@@ -277,16 +274,13 @@ impl ScriptTrait for Turret {
 }
 
 #[derive(Default, Visit, Reflect, Clone, Debug)]
+#[visit(optional)]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
-
-    #[visit(optional)]
     projectile: Option<ModelResource>,
-
     #[reflect(hidden)]
     initial_position: Vector3<f32>,
-
     #[reflect(hidden)]
     offset: Vector3<f32>,
 }

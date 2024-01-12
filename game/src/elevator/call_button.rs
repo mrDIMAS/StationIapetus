@@ -30,11 +30,11 @@ impl Default for CallButtonKind {
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
+#[visit(optional)]
 pub struct CallButton {
     pub floor: u32,
     pub kind: CallButtonKind,
     pub elevator: Handle<Node>,
-    #[visit(optional)]
     pub ui_resource: InheritableVariable<Option<Resource<UserInterface>>>,
     #[reflect(hidden)]
     #[visit(skip)]

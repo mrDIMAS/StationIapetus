@@ -10,6 +10,7 @@ pub mod ui;
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "67904c1b-0d12-427c-a92e-e66cb0ec6dae")]
+#[visit(optional)]
 pub struct Elevator {
     pub current_floor: u32,
     pub dest_floor: u32,

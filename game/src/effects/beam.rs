@@ -16,6 +16,7 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "5405f6e2-3016-40ef-998a-e4f797e59694")]
+#[visit(optional)]
 pub struct Beam {
     max_length: f32,
 }

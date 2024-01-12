@@ -108,6 +108,7 @@ impl Eq for Hit {}
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
+#[visit(optional)]
 pub struct Projectile {
     #[reflect(hidden)]
     dir: Vector3<f32>,
@@ -120,40 +121,32 @@ pub struct Projectile {
     #[reflect(hidden)]
     last_position: Vector3<f32>,
 
-    #[visit(optional)]
     use_ray_casting: bool,
 
-    #[visit(optional)]
     speed: Option<f32>,
 
-    #[visit(optional, rename = "ImpactEffect")]
+    #[visit(rename = "ImpactEffect")]
     environment_impact_effect: Option<ModelResource>,
 
-    #[visit(optional)]
     flesh_impact_effect: Option<ModelResource>,
 
-    #[visit(optional)]
     #[reflect(
         description = "A prefab that will be instantiated when the projectile is just appeared (spawned)."
     )]
     appear_effect: Option<ModelResource>,
 
-    #[visit(optional)]
     #[reflect(
         description = "Random prefab will be instantiated from the list when the projectile is just appeared (spawned)."
     )]
     random_appear_effects: Vec<Option<ModelResource>>,
 
-    #[visit(optional)]
     #[reflect(
         description = "Limit lifetime of the projectile just one update frame. Useful for ray-based projectiles."
     )]
     one_frame: bool,
 
-    #[visit(optional)]
     damage: Damage,
 
-    #[visit(optional)]
     #[reflect(min_value = 0.0, max_value = 1.0)]
     critical_hit_probability: f32,
 

@@ -40,31 +40,18 @@ stub_uuid_provider!(ItemAction);
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
+#[visit(optional)]
 pub struct Item {
     pub stack_size: InheritableVariable<u32>,
-
-    #[visit(optional)]
     pub description: InheritableVariable<String>,
-
-    #[visit(optional)]
     pub name: InheritableVariable<String>,
-
-    #[visit(optional)]
     pub consumable: InheritableVariable<bool>,
-
-    #[visit(optional)]
     pub preview: InheritableVariable<Option<TextureResource>>,
-
-    #[visit(optional)]
     pub action: InheritableVariable<ItemAction>,
-
-    #[visit(optional)]
     #[reflect(hidden)]
     pub enabled: bool,
-
     #[reflect(hidden)]
     spark: Handle<Node>,
-
     #[reflect(hidden)]
     spark_size_change_dir: f32,
 }

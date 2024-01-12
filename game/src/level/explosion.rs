@@ -13,10 +13,9 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
+#[visit(optional)]
 pub struct Explosion {
-    #[visit(optional)]
     strength: InheritableVariable<f32>,
-    #[visit(optional)]
     scale: InheritableVariable<Vector3<f32>>,
 }
 

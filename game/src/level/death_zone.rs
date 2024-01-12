@@ -9,6 +9,7 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "9c258713-e44e-4366-a236-f91e09c6f0aa")]
+#[visit(optional)]
 pub struct DeathZone;
 
 impl ScriptTrait for DeathZone {

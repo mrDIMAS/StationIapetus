@@ -55,47 +55,23 @@ stub_uuid_provider!(CombatWeaponKind);
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "bca0083b-b062-4d95-b241-db05bca65da7")]
+#[visit(optional)]
 pub struct Weapon {
-    #[visit(optional)]
     #[component(include)]
     item: Item,
-
     shot_point: Handle<Node>,
-
-    #[visit(optional)]
     shoot_interval: InheritableVariable<f32>,
-
-    #[visit(optional)]
     pub yaw_correction: InheritableVariable<f32>,
-
-    #[visit(optional)]
     pub pitch_correction: InheritableVariable<f32>,
-
-    #[visit(optional)]
     pub ammo_indicator_offset: InheritableVariable<Vector3<f32>>,
-
-    #[visit(optional)]
     pub ammo_consumption_per_shot: InheritableVariable<u32>,
-
-    #[visit(optional)]
     pub v_recoil: InheritableVariable<Vector2<f32>>,
-
-    #[visit(optional)]
     pub h_recoil: InheritableVariable<Vector2<f32>>,
-
-    #[visit(optional)]
     projectile: Option<ModelResource>,
-
-    #[visit(optional)]
     pub weapon_type: CombatWeaponKind,
-
-    #[visit(optional)]
     pub ammo_item: InheritableVariable<Option<ModelResource>>,
-
-    #[visit(optional)]
     pub shake_camera_on_shot: InheritableVariable<bool>,
 
-    #[visit(optional)]
     #[reflect(
         description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
     )]
@@ -105,7 +81,6 @@ pub struct Weapon {
     owner: Handle<Node>,
 
     #[reflect(hidden)]
-    #[visit(optional)]
     last_shot_time: f32,
 
     #[reflect(hidden)]

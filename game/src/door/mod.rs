@@ -25,44 +25,21 @@ struct OpenRequest {
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
+#[visit(optional)]
 pub struct Door {
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
     screens: Vec<Handle<Node>>,
-
-    #[visit(optional)]
     open_sound: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     close_sound: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     access_granted_sound: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     access_denied_sound: InheritableVariable<Handle<Node>>,
-
-    #[visit(optional)]
     key_item: InheritableVariable<Option<ModelResource>>,
-
-    #[visit(optional)]
     pub locked: InheritableVariable<bool>,
-
-    #[visit(optional)]
     opened_state: InheritableVariable<String>,
-
-    #[visit(optional)]
     opening_state: InheritableVariable<String>,
-
-    #[visit(optional)]
     closed_state: InheritableVariable<String>,
-
-    #[visit(optional)]
     closing_state: InheritableVariable<String>,
-
-    #[visit(optional)]
     locked_state: InheritableVariable<String>,
-
-    #[visit(optional)]
     ui_resource: InheritableVariable<Option<Resource<UserInterface>>>,
 
     #[visit(skip)]
@@ -73,7 +50,6 @@ pub struct Door {
     #[visit(skip)]
     initial_position: Vector3<f32>,
 
-    #[visit(optional)]
     state_machine: Handle<Node>,
 
     #[reflect(hidden)]
@@ -309,17 +285,11 @@ pub struct DoorContainer {
 }
 
 pub fn door_ref(handle: Handle<Node>, graph: &Graph) -> &Door {
-    graph[handle]
-        .script()
-        .and_then(|s| s.cast::<Door>())
-        .unwrap()
+    graph.try_get_script_of::<Door>(handle).unwrap()
 }
 
 pub fn door_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Door {
-    graph[handle]
-        .script_mut()
-        .and_then(|s| s.cast_mut::<Door>())
-        .unwrap()
+    graph.try_get_script_of_mut::<Door>(handle).unwrap()
 }
 
 impl DoorContainer {

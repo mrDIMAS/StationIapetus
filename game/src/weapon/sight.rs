@@ -29,9 +29,9 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
+#[visit(optional)]
 pub struct LaserSight {
     ray: Handle<Node>,
-    #[visit(optional)]
     ray_mesh: Handle<Node>,
     tip: Handle<Node>,
     light: Handle<Node>,

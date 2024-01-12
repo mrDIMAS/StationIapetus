@@ -90,19 +90,17 @@ pub struct CharacterMessage {
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
+#[visit(optional)]
 pub struct Character {
     pub capsule_collider: Handle<Node>,
     pub body: Handle<Node>,
     pub health: f32,
-    #[visit(optional)]
     pub max_health: InheritableVariable<f32>,
     pub last_health: f32,
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
-    #[visit(optional)]
     pub hit_boxes: Vec<HitBox>,
-    #[visit(optional)]
     pub inventory: Inventory,
 }
 

@@ -84,6 +84,7 @@ pub struct Target {
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
+#[visit(optional)]
 pub struct Bot {
     #[reflect(hidden)]
     target: Option<Target>,
@@ -108,35 +109,20 @@ pub struct Bot {
     h_recoil: SmoothAngle,
     spine: Handle<Node>,
     threaten_timeout: f32,
-    #[visit(optional)]
     head: Handle<Node>,
-    #[visit(optional)]
     animation_player: Handle<Node>,
-    #[visit(optional)]
     absm: Handle<Node>,
-    #[visit(optional)]
     yaw: SmoothAngle,
-    #[visit(optional)]
     pitch: SmoothAngle,
-    #[visit(optional)]
     pub walk_speed: f32,
-    #[visit(optional)]
     pub v_aim_angle_hack: f32,
-    #[visit(optional)]
     pub h_aim_angle_hack: f32,
-    #[visit(optional)]
     pub close_combat_distance: f32,
-    #[visit(optional)]
     pub pain_sounds: Vec<Handle<Node>>,
-    #[visit(optional)]
     pub scream_sounds: Vec<Handle<Node>>,
-    #[visit(optional)]
     pub idle_sounds: Vec<Handle<Node>>,
-    #[visit(optional)]
     pub attack_sounds: Vec<Handle<Node>>,
-    #[visit(optional)]
     pub punch_sounds: Vec<Handle<Node>>,
-    #[visit(optional)]
     pub hostility: BotHostility,
 }
 

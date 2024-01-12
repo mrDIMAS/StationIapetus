@@ -15,6 +15,7 @@ stub_uuid_provider!(DefaultWeapon);
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "39c47baa-9fc3-4204-92ca-878d621f3656")]
+#[visit(optional)]
 pub struct CharacterSpawnPoint {
     default_weapons: Vec<DefaultWeapon>,
     prefab: Option<ModelResource>,

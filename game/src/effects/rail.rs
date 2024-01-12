@@ -19,6 +19,7 @@ use fyrox::{
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")]
+#[visit(optional)]
 pub struct Rail {
     radius: f32,
     particles_per_meter: f32,

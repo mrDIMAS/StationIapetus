@@ -18,21 +18,13 @@ enum State {
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "845a5364-395a-4228-9394-ee3c43352f01")]
+#[visit(optional)]
 pub struct EnemyTrap {
-    #[visit(optional)]
     doors_to_lock: InheritableVariable<Vec<Handle<Node>>>,
-
-    #[visit(optional)]
     nodes_to_enable_on_activation: InheritableVariable<Vec<Handle<Node>>>,
-
-    #[visit(optional)]
     nodes_to_enable_on_deactivation: InheritableVariable<Vec<Handle<Node>>>,
-
-    #[visit(optional)]
     #[reflect(hidden)]
     enemies: Vec<Handle<Node>>,
-
-    #[visit(optional)]
     #[reflect(hidden)]
     state: State,
 }

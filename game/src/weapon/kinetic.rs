@@ -40,15 +40,12 @@ struct Target {
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
+#[visit(optional)]
 pub struct KineticGun {
     weapon: Weapon,
-    #[visit(optional)]
     ray: InheritableVariable<Handle<Node>>,
-    #[visit(optional)]
     laser_sight: InheritableVariable<Handle<Node>>,
-    #[visit(optional)]
     range: InheritableVariable<f32>,
-    #[visit(optional)]
     force: InheritableVariable<f32>,
     #[reflect(hidden)]
     is_active: bool,
