@@ -34,7 +34,7 @@ struct EdgeDetectShader {
 }
 
 impl EdgeDetectShader {
-    pub fn new(state: &mut PipelineState) -> Result<Self, FrameworkError> {
+    pub fn new(state: &PipelineState) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 uniform sampler2D frameTexture;
 
@@ -97,7 +97,7 @@ struct FlatShader {
 }
 
 impl FlatShader {
-    pub fn new(state: &mut PipelineState) -> Result<Self, FrameworkError> {
+    pub fn new(state: &PipelineState) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 out vec4 FragColor;
 
@@ -145,7 +145,7 @@ pub struct HighlightRenderPass {
 }
 
 impl HighlightRenderPass {
-    pub fn new(state: &mut PipelineState, width: usize, height: usize) -> Rc<RefCell<Self>> {
+    pub fn new(state: &PipelineState, width: usize, height: usize) -> Rc<RefCell<Self>> {
         let mut depth_stencil_texture = GpuTexture::new(
             state,
             GpuTextureKind::Rectangle { width, height },

@@ -32,7 +32,7 @@ impl ScriptTrait for Trigger {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = ctx.plugins.get::<Game>();
 
-        if let Some(level) = ctx.plugins.get::<Game>().level.as_ref() {
+        if let Some(level) = game.level.as_ref() {
             let this_bounds = AxisAlignedBoundingBox::unit()
                 .transform(&ctx.scene.graph[ctx.handle].global_transform());
 

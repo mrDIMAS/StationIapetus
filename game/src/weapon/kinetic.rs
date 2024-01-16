@@ -110,7 +110,7 @@ impl KineticGun {
                         let potential_target_node = collider.parent();
 
                         let aabb = graph
-                            .aabb_of_descendants(potential_target_node)
+                            .aabb_of_descendants(potential_target_node, |_, _| true)
                             .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
 
                         return if aabb.volume() <= 0.15 {

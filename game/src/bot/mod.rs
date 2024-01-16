@@ -472,7 +472,7 @@ impl ScriptTrait for Bot {
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = ctx.plugins.get::<Game>();
-        let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
+        let level = game.level.as_ref().unwrap();
 
         self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
 
