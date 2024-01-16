@@ -32,11 +32,13 @@ fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<N
     })
 }
 
+#[derive(Debug)]
 pub struct WeaponMessage {
     pub weapon: Handle<Node>,
     pub data: WeaponMessageData,
 }
 
+#[derive(Debug)]
 pub enum WeaponMessageData {
     Shoot { direction: Option<Vector3<f32>> },
     Removed,

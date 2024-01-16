@@ -27,7 +27,7 @@ use fyrox::{
     script::ScriptMessageSender,
 };
 
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Debug)]
 pub struct DamageDealer {
     pub entity: Handle<Node>,
 }
@@ -53,12 +53,13 @@ impl DamageDealer {
     }
 }
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Debug)]
 pub struct DamagePosition {
     pub point: Vector3<f32>,
     pub direction: Vector3<f32>,
 }
 
+#[derive(Debug)]
 pub enum CharacterMessageData {
     BeganAiming,
     EndedAiming,
@@ -84,6 +85,7 @@ pub enum CharacterMessageData {
     },
 }
 
+#[derive(Debug)]
 pub struct CharacterMessage {
     pub character: Handle<Node>,
     pub data: CharacterMessageData,
