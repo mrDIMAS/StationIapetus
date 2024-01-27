@@ -450,9 +450,9 @@ impl Player {
         let self_position = graph[self.body].global_position();
 
         for &elevator_handle in elevators.iter() {
-            let mut graph_multiborrow = graph.begin_multi_borrow::<32>();
+            let mbc = graph.begin_multi_borrow();
 
-            let elevator_node = graph_multiborrow.try_get(elevator_handle).unwrap();
+            let mut elevator_node = mbc.try_get_mut(elevator_handle).unwrap();
             let elevator_position = elevator_node.global_position();
 
             let elevator_script = elevator_node.try_get_script_mut::<Elevator>().unwrap();
@@ -470,7 +470,7 @@ impl Player {
 
             // Handle call buttons
             for &call_button_handle in elevator_script.call_buttons.iter() {
-                if let Some(call_button_node) = graph_multiborrow.try_get(call_button_handle) {
+                if let Some(mut call_button_node) = mbc.try_get_mut(call_button_handle) {
                     let button_position = call_button_node.global_position();
 
                     let call_button_script =

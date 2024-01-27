@@ -68,18 +68,15 @@ impl<'a> Behavior<'a> for MoveToTarget {
             .lower_body_layer(&ctx.scene.graph)
             .and_then(|layer| layer.pose().root_motion().map(|rm| rm.delta_position));
 
-        let mut multiborrow_context = ctx.scene.graph.begin_multi_borrow::<2>();
+        let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let body = multiborrow_context
-            .try_get(ctx.character.body)
-            .unwrap()
-            .as_rigid_body_mut();
+        let mut body_ref = multiborrow_context.try_get_mut(ctx.character.body).unwrap();
+        let body = body_ref.as_rigid_body_mut();
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        if let Some(navmesh) = multiborrow_context
-            .try_get(ctx.navmesh)
-            .and_then(|n| n.cast::<NavigationalMesh>())
+        if let Some(navmesh) =
+            multiborrow_context.try_get_component_of_type::<NavigationalMesh>(ctx.navmesh)
         {
             ctx.agent.set_position(position);
 
@@ -102,6 +99,8 @@ impl<'a> Behavior<'a> for MoveToTarget {
             let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
             body.set_lin_vel(velocity);
         }
+
+        drop(body_ref);
 
         self.check_obstacles(position, ctx);
 
