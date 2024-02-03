@@ -1,3 +1,4 @@
+use fyrox::graph::SceneGraph;
 use fyrox::{
     asset::{core::rand::Rng, manager::ResourceManager},
     core::{

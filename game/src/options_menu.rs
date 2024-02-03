@@ -5,6 +5,7 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::graph::SceneGraph;
 use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     core::{

@@ -16,6 +16,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::graph::SceneGraph;
 use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,
@@ -470,7 +471,7 @@ impl Player {
 
             // Handle call buttons
             for &call_button_handle in elevator_script.call_buttons.iter() {
-                if let Some(mut call_button_node) = mbc.try_get_mut(call_button_handle) {
+                if let Ok(mut call_button_node) = mbc.try_get_mut(call_button_handle) {
                     let button_position = call_button_node.global_position();
 
                     let call_button_script =

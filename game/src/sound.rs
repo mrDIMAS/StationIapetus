@@ -1,3 +1,4 @@
+use fyrox::graph::SceneGraph;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{

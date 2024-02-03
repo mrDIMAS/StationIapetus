@@ -5,6 +5,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},

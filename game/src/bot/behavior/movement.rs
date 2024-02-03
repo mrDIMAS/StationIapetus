@@ -75,7 +75,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        if let Some(navmesh) =
+        if let Ok(navmesh) =
             multiborrow_context.try_get_component_of_type::<NavigationalMesh>(ctx.navmesh)
         {
             ctx.agent.set_position(position);
@@ -101,6 +101,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
         }
 
         drop(body_ref);
+        drop(multiborrow_context);
 
         self.check_obstacles(position, ctx);
 

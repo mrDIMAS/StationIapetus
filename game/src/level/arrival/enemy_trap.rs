@@ -1,4 +1,5 @@
 use crate::{bot::Bot, door::Door, Game};
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
