@@ -1,5 +1,6 @@
 //! Particles generator for rail gun's rail effect.
 
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},

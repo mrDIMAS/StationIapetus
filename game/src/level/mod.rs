@@ -2,6 +2,7 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
+use fyrox::graph::SceneGraph;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},

@@ -1,4 +1,5 @@
 use crate::{gui, MessageDirection, UiNode};
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     gui::{text::TextMessage, UserInterface},
@@ -19,14 +20,14 @@ impl CallButtonUi {
     pub const HEIGHT: f32 = 100.0;
 
     pub fn new(ui: UserInterface, floor: u32) -> Self {
-        let floor_text = ui.find_by_name_down_from_root("FloorText");
+        let floor_text = ui.find_handle_by_name_from_root("FloorText");
         ui.send_message(TextMessage::text(
             floor_text,
             MessageDirection::ToWidget,
             format!("Floor {floor}"),
         ));
         Self {
-            text: ui.find_by_name_down_from_root("Text"),
+            text: ui.find_handle_by_name_from_root("Text"),
             ui,
             render_target: gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT),
             floor_text,

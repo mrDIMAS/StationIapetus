@@ -1,4 +1,5 @@
 use crate::{control_scheme::ControlScheme, MessageDirection, UiNode};
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     gui::{brush::Brush, text::TextMessage, widget::WidgetMessage, UserInterface},
@@ -22,10 +23,10 @@ impl DoorUi {
         let render_target = TextureResource::new_render_target(160, 160);
         Self {
             render_target,
-            text: ui.find_by_name_down_from_root("Text"),
-            action_text: ui.find_by_name_down_from_root("ActionText"),
-            logo: ui.find_by_name_down_from_root("Logo"),
-            sector: ui.find_by_name_down_from_root("Sector"),
+            text: ui.find_handle_by_name_from_root("Text"),
+            action_text: ui.find_handle_by_name_from_root("ActionText"),
+            logo: ui.find_handle_by_name_from_root("Logo"),
+            sector: ui.find_handle_by_name_from_root("Sector"),
             ui,
         }
     }
