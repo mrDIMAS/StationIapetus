@@ -6,7 +6,7 @@ use crate::{
     level::decal::Decal,
     CollisionGroups, Game, Weapon,
 };
-use fyrox::graph::SceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},

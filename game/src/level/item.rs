@@ -1,5 +1,5 @@
 use crate::{block_on, Game};
-use fyrox::graph::SceneGraph;
+use fyrox::graph::BaseSceneGraph;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},

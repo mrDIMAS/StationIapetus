@@ -16,7 +16,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::graph::SceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,

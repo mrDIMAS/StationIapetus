@@ -5,7 +5,7 @@ use crate::{
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Game, Item,
 };
-use fyrox::graph::SceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::scene::graph::Graph;
 use fyrox::{
     core::{

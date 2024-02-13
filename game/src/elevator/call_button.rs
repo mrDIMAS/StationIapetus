@@ -1,5 +1,5 @@
 use crate::elevator::{ui::CallButtonUi, Elevator};
-use fyrox::graph::SceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{

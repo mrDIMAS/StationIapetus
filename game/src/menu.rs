@@ -4,7 +4,7 @@ use crate::{
 };
 use fyrox::asset::io::FsResourceIo;
 use fyrox::engine::InitializedGraphicsContext;
-use fyrox::graph::SceneGraph;
+use fyrox::graph::BaseSceneGraph;
 use fyrox::gui::font::FontResource;
 use fyrox::scene::sound::SoundBuffer;
 use fyrox::{

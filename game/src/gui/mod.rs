@@ -3,7 +3,7 @@
 //! is not much.
 
 use crate::{message::Message, MessageSender};
-use fyrox::graph::SceneGraph;
+use fyrox::graph::BaseSceneGraph;
 use fyrox::gui::font::FontResource;
 use fyrox::resource::texture::{TextureResource, TextureResourceExtension, TextureWrapMode};
 use fyrox::{

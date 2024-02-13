@@ -42,13 +42,10 @@ impl EditorPlugin for EditorExtension {
 
 fn main() {
     let event_loop = EventLoop::new().unwrap();
-    let mut editor = Editor::new(
-        &event_loop,
-        Some(StartupData {
-            working_directory: Default::default(),
-            scene: Level::ARRIVAL_PATH.into(),
-        }),
-    );
+    let mut editor = Editor::new(Some(StartupData {
+        working_directory: Default::default(),
+        scenes: vec![Level::ARRIVAL_PATH.into()],
+    }));
 
     editor.add_editor_plugin(EditorExtension {});
 
