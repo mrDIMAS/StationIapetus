@@ -95,7 +95,7 @@ impl DoorUi {
 
     pub fn update(&mut self, delta: f32) {
         let screen_size = self.ui.screen_size();
-        self.ui.update(screen_size, delta);
+        self.ui.update(screen_size, delta, &Default::default());
 
         // Just pump all messages, but ignore them in game code.
         while self.ui.poll_message().is_some() {}

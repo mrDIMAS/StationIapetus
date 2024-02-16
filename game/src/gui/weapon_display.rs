@@ -149,6 +149,7 @@ impl WeaponDisplay {
         self.ui.update(
             Vector2::new(WeaponDisplay::WIDTH, WeaponDisplay::HEIGHT),
             delta,
+            &Default::default(),
         );
 
         // Just pump all messages, but ignore them in game code.

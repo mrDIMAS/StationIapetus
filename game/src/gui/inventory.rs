@@ -558,7 +558,10 @@ impl InventoryInterface {
             }
         }
 
-        self.ui
-            .update(Vector2::new(Self::WIDTH, Self::HEIGHT), delta);
+        self.ui.update(
+            Vector2::new(Self::WIDTH, Self::HEIGHT),
+            delta,
+            &Default::default(),
+        );
     }
 }
