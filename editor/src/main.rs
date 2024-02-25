@@ -29,7 +29,7 @@ impl EditorPlugin for EditorExtension {
                 let scene = &mut editor.engine.scenes[game_scene.scene];
 
                 for node in scene.graph.linear_iter() {
-                    if let Some(script) = node.script() {
+                    if let Some(script) = node.script(0) {
                         if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
                             enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
                         }

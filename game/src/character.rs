@@ -35,12 +35,12 @@ pub struct DamageDealer {
 
 impl DamageDealer {
     pub fn as_character<'a>(&self, graph: &'a Graph) -> Option<(Handle<Node>, &'a Character)> {
-        if let Some(dealer_script) = graph.try_get(self.entity).and_then(|n| n.script()) {
+        if let Some(dealer_script) = graph.try_get(self.entity).and_then(|n| n.script(0)) {
             if let Some(character) = dealer_script.query_component_ref::<Character>() {
                 return Some((self.entity, character));
             } else if let Some(weapon) = dealer_script.query_component_ref::<Weapon>() {
                 if let Some(weapon_owner_script) =
-                    graph.try_get(weapon.owner()).and_then(|n| n.script())
+                    graph.try_get(weapon.owner()).and_then(|n| n.script(0))
                 {
                     if let Some(character_owner) =
                         weapon_owner_script.query_component_ref::<Character>()

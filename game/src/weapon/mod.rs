@@ -27,10 +27,7 @@ pub mod projectile;
 pub mod sight;
 
 fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<Node>, &Character)> {
-    graph.find_up_map(sight, &mut |n| {
-        n.script()
-            .and_then(|n| n.query_component_ref::<Character>())
-    })
+    graph.find_up_map(sight, &mut |n| n.try_get_script_component::<Character>())
 }
 
 #[derive(Debug)]

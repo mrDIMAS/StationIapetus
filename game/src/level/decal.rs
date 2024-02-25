@@ -15,7 +15,7 @@ use fyrox::{
         base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
         transform::TransformBuilder,
     },
-    script::{Script, ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptTrait},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
@@ -103,7 +103,7 @@ impl Decal {
                         .with_local_scale(scale)
                         .build(),
                 )
-                .with_script(Script::new(Decal::default())),
+                .with_script(Decal::default()),
         )
         .with_diffuse_texture(texture)
         .with_color(color)

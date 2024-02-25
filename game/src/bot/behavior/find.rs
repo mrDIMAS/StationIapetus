@@ -69,8 +69,7 @@ impl<'a> Behavior<'a> for FindTarget {
             let character_node = &ctx.scene.graph[actor_handle];
 
             let character = character_node
-                .script()
-                .and_then(|s| s.query_component_ref::<Character>())
+                .try_get_script_component::<Character>()
                 .unwrap();
 
             // Ignore dead targets.

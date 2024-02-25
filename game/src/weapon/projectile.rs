@@ -376,11 +376,7 @@ impl ScriptTrait for Projectile {
                         .map_or(Default::default(), |owner_node| {
                             if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
                                 weapon.owner
-                            } else if owner_node
-                                .script()
-                                .map(|s| s.query_component_ref::<Character>())
-                                .is_some()
-                            {
+                            } else if owner_node.try_get_script_component::<Character>().is_some() {
                                 self.owner
                             } else {
                                 Default::default()
