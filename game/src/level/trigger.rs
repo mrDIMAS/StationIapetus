@@ -7,9 +7,9 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 use std::path::PathBuf;
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Debug, Clone, Default, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames)]
+#[derive(Debug, Clone, Default, Visit, Reflect, AsRefStr, EnumString, VariantNames)]
 pub enum TriggerAction {
     #[default]
     None,

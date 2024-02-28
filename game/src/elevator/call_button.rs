@@ -13,9 +13,9 @@ use fyrox::{
     scene::{graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptTrait},
 };
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Debug, Visit, Reflect, Clone, AsRefStr, EnumString, EnumVariantNames)]
+#[derive(Debug, Visit, Reflect, Clone, AsRefStr, EnumString, VariantNames)]
 pub enum CallButtonKind {
     FloorSelector,
     EndPoint,

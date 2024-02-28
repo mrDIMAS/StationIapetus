@@ -20,7 +20,7 @@ use fyrox::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
 };
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 pub mod kinetic;
 pub mod projectile;
@@ -42,9 +42,7 @@ pub enum WeaponMessageData {
     Removed,
 }
 
-#[derive(
-    Eq, PartialEq, Copy, Clone, Debug, Reflect, Visit, AsRefStr, EnumString, EnumVariantNames,
-)]
+#[derive(Eq, PartialEq, Copy, Clone, Debug, Reflect, Visit, AsRefStr, EnumString, VariantNames)]
 #[repr(u32)]
 pub enum CombatWeaponKind {
     Pistol = 0,

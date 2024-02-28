@@ -47,7 +47,7 @@ use fyrox::{
 };
 use serde::Deserialize;
 use std::ops::{Deref, DerefMut};
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 mod behavior;
 mod state_machine;
@@ -66,7 +66,7 @@ mod state_machine;
     Reflect,
     AsRefStr,
     EnumString,
-    EnumVariantNames,
+    VariantNames,
 )]
 #[repr(u32)]
 pub enum BotHostility {

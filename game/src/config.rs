@@ -33,6 +33,7 @@ pub struct Config {
 #[derive(Debug)]
 pub enum ConfigError {
     Io(std::io::Error),
+    RonSpanned(ron::error::SpannedError),
     Ron(ron::Error),
     Custom(String),
 }
@@ -40,6 +41,12 @@ pub enum ConfigError {
 impl From<std::io::Error> for ConfigError {
     fn from(e: std::io::Error) -> Self {
         Self::Io(e)
+    }
+}
+
+impl From<ron::error::SpannedError> for ConfigError {
+    fn from(e: ron::error::SpannedError) -> Self {
+        Self::RonSpanned(e)
     }
 }
 

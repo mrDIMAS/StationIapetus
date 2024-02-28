@@ -30,7 +30,7 @@ use fyrox::{
     },
     script::{ScriptContext, ScriptTrait},
 };
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 #[derive(
     Copy,
@@ -44,7 +44,7 @@ use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
     Reflect,
     AsRefStr,
     EnumString,
-    EnumVariantNames,
+    VariantNames,
     Debug,
 )]
 #[repr(u32)]
@@ -75,7 +75,7 @@ impl Default for ShootMode {
     Reflect,
     AsRefStr,
     EnumString,
-    EnumVariantNames,
+    VariantNames,
     Debug,
 )]
 #[repr(u32)]

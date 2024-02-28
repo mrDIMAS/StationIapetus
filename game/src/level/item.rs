@@ -24,11 +24,9 @@ use fyrox::{
     },
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(
-    Default, Visit, Reflect, PartialEq, Debug, Clone, AsRefStr, EnumString, EnumVariantNames,
-)]
+#[derive(Default, Visit, Reflect, PartialEq, Debug, Clone, AsRefStr, EnumString, VariantNames)]
 pub enum ItemAction {
     #[default]
     None,

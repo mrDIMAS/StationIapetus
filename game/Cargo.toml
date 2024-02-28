@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 fyrox = { path = "../../Fyrox" }
-ron = "0.7.0"
+ron = "0.8.1"
 serde = "^1.0.0"
-strum = "0.25"
-strum_macros = "0.25"
+strum = "0.26.1"
+strum_macros = "0.26.1"

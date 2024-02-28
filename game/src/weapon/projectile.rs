@@ -37,11 +37,9 @@ use fyrox::{
 };
 use serde::Deserialize;
 use std::hash::{Hash, Hasher};
-use strum_macros::{AsRefStr, EnumString, EnumVariantNames};
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(
-    Deserialize, Copy, Clone, Debug, Visit, Reflect, AsRefStr, EnumString, EnumVariantNames,
-)]
+#[derive(Deserialize, Copy, Clone, Debug, Visit, Reflect, AsRefStr, EnumString, VariantNames)]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
