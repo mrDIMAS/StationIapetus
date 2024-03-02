@@ -8,7 +8,7 @@ use fyrox::{
     },
     fxhash::FxHashMap,
     renderer::{
-        batch::{RenderContext, RenderDataBatchStorage},
+        bundle::{RenderContext, RenderDataBundleStorage},
         framework::{
             error::FrameworkError,
             framebuffer::{
@@ -217,15 +217,16 @@ impl SceneRenderPass for HighlightRenderPass {
         {
             let view_projection = ctx.camera.view_projection_matrix();
 
-            let mut render_batch_storage = RenderDataBatchStorage::default();
+            let mut render_batch_storage = RenderDataBundleStorage::default();
 
+            let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
                 observer_position: &ctx.camera.global_position(),
                 z_near: ctx.camera.projection().z_near(),
                 z_far: ctx.camera.projection().z_far(),
                 view_matrix: &ctx.camera.view_matrix(),
                 projection_matrix: &ctx.camera.projection_matrix(),
-                frustum: &ctx.camera.frustum(),
+                frustum: Some(&frustum),
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,
                 render_pass_name: &Default::default(),
@@ -253,7 +254,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 None,
             );
 
-            for batch in render_batch_storage.batches.iter() {
+            for batch in render_batch_storage.bundles.iter() {
                 let Some(geometry) =
                     ctx.geometry_cache
                         .get(ctx.pipeline_state, &batch.data, batch.time_to_live)
