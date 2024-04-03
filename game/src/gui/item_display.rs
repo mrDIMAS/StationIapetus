@@ -1,10 +1,10 @@
 use crate::{control_scheme::ControlScheme, gui, level::item::Item};
-use fyrox::gui::font::FontResource;
 use fyrox::{
-    core::{algebra::Vector2, color::Color, pool::Handle},
+    core::{algebra::Vector2, color::Color, pool::Handle, visitor::prelude::*},
     gui::{
         border::BorderBuilder,
         brush::Brush,
+        font::FontResource,
         formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         image::{ImageBuilder, ImageMessage},
@@ -17,6 +17,7 @@ use fyrox::{
 };
 use std::ops::Deref;
 
+#[derive(Visit, Default)]
 pub struct ItemDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

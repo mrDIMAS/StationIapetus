@@ -69,7 +69,7 @@ use fyrox::{
     },
     keyboard::KeyCode,
     material::{shader::SamplerFallback, Material, PropertyValue},
-    plugin::{Plugin, PluginConstructor, PluginContext, PluginRegistrationContext},
+    plugin::{Plugin, PluginContext, PluginRegistrationContext},
     renderer::framework::gpu_texture::PixelKind,
     resource::texture::TextureResource,
     scene::{
@@ -92,14 +92,18 @@ use std::{
     },
 };
 
+#[derive(Visit)]
 pub struct Game {
     menu: Menu,
     level: Option<Level>,
     debug_text: Handle<UiNode>,
     debug_string: String,
     running: bool,
+    #[visit(skip)]
     control_scheme: ControlScheme,
+    #[visit(skip)]
     message_receiver: Receiver<Message>,
+    #[visit(skip)]
     message_sender: MessageSender,
     loading_screen: LoadingScreen,
     death_screen: DeathScreen,
@@ -113,7 +117,34 @@ pub struct Game {
     // is data-model for options menu.
     sound_config: SoundConfig,
     show_debug_info: bool,
+    #[visit(skip)]
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
+}
+
+impl Default for Game {
+    fn default() -> Self {
+        let (tx, rx) = mpsc::channel();
+        Self {
+            menu: Default::default(),
+            level: None,
+            debug_text: Default::default(),
+            debug_string: Default::default(),
+            running: Default::default(),
+            control_scheme: Default::default(),
+            message_receiver: rx,
+            message_sender: MessageSender { sender: tx },
+            loading_screen: Default::default(),
+            death_screen: Default::default(),
+            final_screen: Default::default(),
+            weapon_display: Default::default(),
+            inventory_interface: Default::default(),
+            item_display: Default::default(),
+            journal_display: Default::default(),
+            sound_config: Default::default(),
+            show_debug_info: Default::default(),
+            highlighter: Default::default(),
+        }
+    }
 }
 
 #[repr(u16)]
@@ -148,79 +179,6 @@ impl MessageSender {
 }
 
 impl Game {
-    pub fn new(scene_path: Option<&str>, mut context: PluginContext) -> Self {
-        if let Some(scene_path) = scene_path {
-            context.async_scene_loader.request(scene_path);
-        }
-
-        let font = context
-            .resource_manager
-            .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));
-
-        let mut control_scheme = ControlScheme::default();
-        let mut sound_config = SoundConfig::default();
-        let mut show_debug_info = false;
-
-        match Config::load() {
-            Ok(config) => {
-                show_debug_info = config.show_debug_info;
-                sound_config = config.sound;
-                control_scheme = config.controls;
-            }
-            Err(e) => {
-                Log::writeln(
-                    MessageKind::Error,
-                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
-                );
-            }
-        }
-
-        let (tx, rx) = mpsc::channel();
-
-        let message_sender = MessageSender { sender: tx };
-        let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
-        let inventory_interface = InventoryInterface::new(message_sender.clone());
-        let item_display = ItemDisplay::new(font.clone());
-        let journal_display = JournalDisplay::new();
-
-        let mut game = Game {
-            show_debug_info,
-            loading_screen: LoadingScreen::new(&mut context.user_interface.build_ctx()),
-            running: true,
-            menu: fyrox::core::futures::executor::block_on(Menu::new(
-                &mut context,
-                &control_scheme,
-                message_sender.clone(),
-                font.clone(),
-                show_debug_info,
-                &sound_config,
-            )),
-            death_screen: DeathScreen::new(
-                context.user_interface,
-                font.clone(),
-                message_sender.clone(),
-            ),
-            final_screen: FinalScreen::new(context.user_interface, font, message_sender.clone()),
-            control_scheme,
-            debug_text: Handle::NONE,
-            weapon_display,
-            item_display,
-            journal_display,
-            level: None,
-            debug_string: String::new(),
-            inventory_interface,
-            message_receiver: rx,
-            message_sender,
-            sound_config,
-            highlighter: None,
-        };
-
-        game.create_debug_ui(&mut context);
-        game.menu.set_visible(&mut context, true);
-
-        game
-    }
-
     fn handle_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
         self.menu.handle_ui_message(
             context,
@@ -228,10 +186,13 @@ impl Game {
             &mut self.control_scheme,
             &mut self.show_debug_info,
             &self.sound_config,
+            &self.message_sender,
         );
 
-        self.death_screen.handle_ui_message(message);
-        self.final_screen.handle_ui_message(message);
+        self.death_screen
+            .handle_ui_message(message, &self.message_sender);
+        self.final_screen
+            .handle_ui_message(message, &self.message_sender);
 
         let play_sound = if message.direction() == MessageDirection::FromWidget {
             if let Some(ButtonMessage::Click) = message.data() {
@@ -292,7 +253,7 @@ impl Game {
 
     pub fn create_debug_ui(&mut self, context: &mut PluginContext) {
         self.debug_text = TextBuilder::new(WidgetBuilder::new().with_width(400.0))
-            .build(&mut context.user_interface.build_ctx());
+            .build(&mut context.user_interfaces.first_mut().build_ctx());
     }
 
     pub fn save_game(&mut self, context: &mut PluginContext) -> VisitResult {
@@ -334,9 +295,10 @@ impl Game {
     }
 
     pub fn is_any_menu_visible(&self, context: &PluginContext) -> bool {
-        self.menu.is_visible(context.user_interface)
-            || self.death_screen.is_visible(context.user_interface)
-            || self.final_screen.is_visible(context.user_interface)
+        let ui = context.user_interfaces.first();
+        self.menu.is_visible(ui)
+            || self.death_screen.is_visible(ui)
+            || self.final_screen.is_visible(ui)
     }
 
     pub fn update(&mut self, ctx: &mut PluginContext) {
@@ -350,15 +312,17 @@ impl Game {
             });
         }
 
+        let ui = ctx.user_interfaces.first();
+
         self.loading_screen.set_progress(
-            ctx.user_interface,
+            ui,
             ctx.resource_manager.state().loading_progress() as f32 / 100.0,
         );
 
         if let Some(ref mut level) = self.level {
             ctx.scenes[level.scene]
                 .enabled
-                .set_value_silent(!self.menu.is_visible(ctx.user_interface));
+                .set_value_silent(!self.menu.is_visible(ui));
         }
 
         self.weapon_display.update(ctx.dt);
@@ -408,12 +372,14 @@ impl Game {
                 }
                 Message::EndMatch => {
                     self.destroy_level(context);
-                    self.death_screen.set_visible(context.user_interface, true);
+                    self.death_screen
+                        .set_visible(context.user_interfaces.first(), true);
                     self.menu.sync_to_model(context, false);
                 }
                 Message::EndGame => {
                     self.destroy_level(context);
-                    self.final_screen.set_visible(context.user_interface, true);
+                    self.final_screen
+                        .set_visible(context.user_interfaces.first(), true);
                     self.menu.sync_to_model(context, false);
                 }
                 Message::SetMusicVolume(volume) => {
@@ -463,8 +429,9 @@ impl Game {
                 }
                 Message::ToggleMainMenu => {
                     self.menu.set_visible(context, true);
-                    self.death_screen.set_visible(context.user_interface, false);
-                    self.final_screen.set_visible(context.user_interface, false);
+                    let ui = context.user_interfaces.first();
+                    self.death_screen.set_visible(ui, false);
+                    self.final_screen.set_visible(ui, false);
                 }
                 Message::SyncInventory => {
                     if let Some(ref mut level) = self.level {
@@ -500,7 +467,7 @@ impl Game {
     }
 
     pub fn update_statistics(&mut self, elapsed: f64, context: &mut PluginContext) {
-        let ui = &mut *context.user_interface;
+        let ui = context.user_interfaces.first_mut();
 
         if self.show_debug_info {
             if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
@@ -552,6 +519,7 @@ impl Game {
                             &self.control_scheme,
                             player_ref,
                             player_handle,
+                            &self.message_sender,
                         );
                         self.journal_display
                             .process_os_event(&event, &self.control_scheme);
@@ -621,9 +589,7 @@ impl Game {
     }
 }
 
-pub struct GameConstructor;
-
-impl PluginConstructor for GameConstructor {
+impl Plugin for Game {
     fn register(&self, context: PluginRegistrationContext) {
         context
             .serialization_context
@@ -651,12 +617,74 @@ impl PluginConstructor for GameConstructor {
             .add::<Trigger>("Trigger");
     }
 
-    fn create_instance(&self, scene_path: Option<&str>, context: PluginContext) -> Box<dyn Plugin> {
-        Box::new(Game::new(scene_path, context))
-    }
-}
+    fn init(&mut self, scene_path: Option<&str>, mut context: PluginContext) {
+        if let Some(scene_path) = scene_path {
+            context.async_scene_loader.request(scene_path);
+        }
 
-impl Plugin for Game {
+        let font = context
+            .resource_manager
+            .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));
+
+        let mut control_scheme = ControlScheme::default();
+        let mut sound_config = SoundConfig::default();
+        let mut show_debug_info = false;
+
+        match Config::load() {
+            Ok(config) => {
+                show_debug_info = config.show_debug_info;
+                sound_config = config.sound;
+                control_scheme = config.controls;
+            }
+            Err(e) => {
+                Log::writeln(
+                    MessageKind::Error,
+                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
+                );
+            }
+        }
+
+        let (tx, rx) = mpsc::channel();
+
+        let message_sender = MessageSender { sender: tx };
+        let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
+        let inventory_interface = InventoryInterface::new();
+        let item_display = ItemDisplay::new(font.clone());
+        let journal_display = JournalDisplay::new();
+
+        *self = Game {
+            show_debug_info,
+            loading_screen: LoadingScreen::new(
+                &mut context.user_interfaces.first_mut().build_ctx(),
+            ),
+            running: true,
+            menu: fyrox::core::futures::executor::block_on(Menu::new(
+                &mut context,
+                &control_scheme,
+                font.clone(),
+                show_debug_info,
+                &sound_config,
+            )),
+            death_screen: DeathScreen::new(context.user_interfaces.first_mut(), font.clone()),
+            final_screen: FinalScreen::new(context.user_interfaces.first_mut(), font),
+            control_scheme,
+            debug_text: Handle::NONE,
+            weapon_display,
+            item_display,
+            journal_display,
+            level: None,
+            debug_string: String::new(),
+            inventory_interface,
+            message_receiver: rx,
+            message_sender,
+            sound_config,
+            highlighter: None,
+        };
+
+        self.create_debug_ui(&mut context);
+        self.menu.set_visible(&mut context, true);
+    }
+
     fn update(&mut self, ctx: &mut PluginContext) {
         self.update(ctx);
 
@@ -675,7 +703,7 @@ impl Plugin for Game {
                     ctx.window_target.unwrap().exit();
                 }
                 WindowEvent::Resized(new_size) => self.on_window_resized(
-                    ctx.user_interface,
+                    ctx.user_interfaces.first(),
                     ctx.graphics_context,
                     new_size.width as f32,
                     new_size.height as f32,
@@ -724,10 +752,10 @@ impl Plugin for Game {
         }
 
         self.menu
-            .on_graphics_context_initialized(context.user_interface, graphics_context);
+            .on_graphics_context_initialized(context.user_interfaces.first_mut(), graphics_context);
 
         self.on_window_resized(
-            context.user_interface,
+            context.user_interfaces.first(),
             context.graphics_context,
             inner_size.width,
             inner_size.height,
@@ -746,10 +774,11 @@ impl Plugin for Game {
 
     fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) {
         self.destroy_level(ctx);
-        self.death_screen.set_visible(ctx.user_interface, false);
-        self.final_screen.set_visible(ctx.user_interface, false);
+        let ui = ctx.user_interfaces.first();
+        self.death_screen.set_visible(ui, false);
+        self.final_screen.set_visible(ui, false);
 
-        ctx.user_interface.send_message(WidgetMessage::visibility(
+        ui.send_message(WidgetMessage::visibility(
             self.loading_screen.root,
             MessageDirection::ToWidget,
             true,
@@ -788,11 +817,13 @@ impl Plugin for Game {
         }
 
         self.set_menu_visible(false, ctx);
-        ctx.user_interface.send_message(WidgetMessage::visibility(
-            self.loading_screen.root,
-            MessageDirection::ToWidget,
-            false,
-        ));
+        ctx.user_interfaces
+            .first()
+            .send_message(WidgetMessage::visibility(
+                self.loading_screen.root,
+                MessageDirection::ToWidget,
+                false,
+            ));
         self.menu.sync_to_model(ctx, true);
 
         Log::info("Level was loaded successfully!");

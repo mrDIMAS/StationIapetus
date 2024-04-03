@@ -35,12 +35,12 @@ use fyrox::{
 };
 use std::ops::{Deref, DerefMut};
 
+#[derive(Visit, Default)]
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,
     items_panel: Handle<UiNode>,
     is_enabled: bool,
-    sender: MessageSender,
     item_description: Handle<UiNode>,
     scroll_viewer: Handle<UiNode>,
 }
@@ -213,7 +213,7 @@ impl InventoryInterface {
     pub const WIDTH: f32 = 400.0;
     pub const HEIGHT: f32 = 300.0;
 
-    pub fn new(sender: MessageSender) -> Self {
+    pub fn new() -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
 
         let render_target = gui::create_ui_render_target(Self::WIDTH, Self::HEIGHT);
@@ -316,7 +316,6 @@ impl InventoryInterface {
             render_target,
             items_panel,
             is_enabled: true,
-            sender,
             item_description,
             scroll_viewer,
         }
@@ -423,6 +422,7 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player: &mut Player,
         player_handle: Handle<Node>,
+        sender: &MessageSender,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -467,7 +467,7 @@ impl InventoryInterface {
                                                         == 1
                                                 {
                                                     player.use_item(item);
-                                                    self.sender.send(Message::SyncInventory);
+                                                    sender.send(Message::SyncInventory);
                                                 }
 
                                                 player
@@ -513,7 +513,7 @@ impl InventoryInterface {
                                                 },
                                             },
                                         );
-                                    self.sender.send(Message::SyncInventory);
+                                    sender.send(Message::SyncInventory);
                                 } else {
                                     unreachable!()
                                 }

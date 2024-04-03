@@ -1,11 +1,13 @@
 use crate::control_scheme::ControlScheme;
-use fyrox::engine::GraphicsContext;
-use fyrox::{plugin::PluginContext, renderer::QualitySettings};
+use fyrox::{
+    core::visitor::prelude::*, engine::GraphicsContext, plugin::PluginContext,
+    renderer::QualitySettings,
+};
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Visit)]
 pub struct SoundConfig {
     pub master_volume: f32,
     pub music_volume: f32,

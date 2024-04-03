@@ -1,14 +1,11 @@
 #![allow(dead_code)] // TODO
 
-use crate::control_scheme::{ControlButton, ControlScheme};
-use crate::gui;
-use fyrox::resource::texture::TextureResource;
+use crate::{
+    control_scheme::{ControlButton, ControlScheme},
+    gui,
+};
 use fyrox::{
-    core::{
-        algebra::Vector2,
-        pool::Handle,
-        visitor::{Visit, VisitResult, Visitor},
-    },
+    core::{algebra::Vector2, pool::Handle, visitor::prelude::*},
     gui::{
         border::BorderBuilder,
         decorator::DecoratorBuilder,
@@ -22,6 +19,7 @@ use fyrox::{
         UiNode, UserInterface,
     },
     lazy_static::lazy_static,
+    resource::texture::TextureResource,
 };
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
@@ -80,6 +78,7 @@ impl Journal {
     }
 }
 
+#[derive(Visit)]
 pub struct JournalDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

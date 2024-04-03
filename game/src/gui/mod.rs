@@ -3,17 +3,16 @@
 //! is not much.
 
 use crate::{message::Message, MessageSender};
-use fyrox::graph::BaseSceneGraph;
-use fyrox::gui::font::FontResource;
-use fyrox::resource::texture::{TextureResource, TextureResourceExtension, TextureWrapMode};
 use fyrox::{
-    core::pool::Handle,
+    core::{pool::Handle, visitor::prelude::*},
+    graph::BaseSceneGraph,
     gui::{
         border::BorderBuilder,
         brush::Brush,
         button::{ButtonBuilder, ButtonMessage},
         check_box::CheckBoxBuilder,
         core::color::Color,
+        font::FontResource,
         grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
         scroll_bar::ScrollBarBuilder,
@@ -23,6 +22,7 @@ use fyrox::{
         BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
         VerticalAlignment,
     },
+    resource::texture::{TextureResource, TextureResourceExtension, TextureWrapMode},
 };
 
 pub mod inventory;
@@ -83,16 +83,16 @@ pub fn create_check_box(
     .build(ctx)
 }
 
+#[derive(Visit, Default)]
 pub struct DeathScreen {
     pub root: Handle<UiNode>,
     load_game: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
     exit_game: Handle<UiNode>,
-    sender: MessageSender,
 }
 
 impl DeathScreen {
-    pub fn new(ui: &mut UserInterface, font: FontResource, sender: MessageSender) -> Self {
+    pub fn new(ui: &mut UserInterface, font: FontResource) -> Self {
         let load_game;
         let exit_to_menu;
         let exit_game;
@@ -171,7 +171,6 @@ impl DeathScreen {
             load_game,
             exit_to_menu,
             exit_game,
-            sender,
         }
     }
 
@@ -188,14 +187,14 @@ impl DeathScreen {
         ));
     }
 
-    pub fn handle_ui_message(&mut self, message: &UiMessage) {
+    pub fn handle_ui_message(&mut self, message: &UiMessage, sender: &MessageSender) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {
-                self.sender.send(Message::LoadGame);
+                sender.send(Message::LoadGame);
             } else if message.destination() == self.exit_to_menu {
-                self.sender.send(Message::ToggleMainMenu);
+                sender.send(Message::ToggleMainMenu);
             } else if message.destination() == self.exit_game {
-                self.sender.send(Message::QuitGame);
+                sender.send(Message::QuitGame);
             }
         }
     }
@@ -213,15 +212,15 @@ impl DeathScreen {
     }
 }
 
+#[derive(Visit, Default)]
 pub struct FinalScreen {
     root: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
     exit_game: Handle<UiNode>,
-    sender: MessageSender,
 }
 
 impl FinalScreen {
-    pub fn new(ui: &mut UserInterface, font: FontResource, sender: MessageSender) -> Self {
+    pub fn new(ui: &mut UserInterface, font: FontResource) -> Self {
         let exit_to_menu;
         let exit_game;
         let root = BorderBuilder::new(
@@ -289,16 +288,15 @@ impl FinalScreen {
             root,
             exit_to_menu,
             exit_game,
-            sender,
         }
     }
 
-    pub fn handle_ui_message(&mut self, message: &UiMessage) {
+    pub fn handle_ui_message(&mut self, message: &UiMessage, sender: &MessageSender) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.exit_to_menu {
-                self.sender.send(Message::ToggleMainMenu);
+                sender.send(Message::ToggleMainMenu);
             } else if message.destination() == self.exit_game {
-                self.sender.send(Message::QuitGame);
+                sender.send(Message::QuitGame);
             }
         }
     }

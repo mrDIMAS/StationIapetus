@@ -17,7 +17,7 @@ use station_iapetus::{
     },
     player::camera::CameraController,
     weapon::{projectile::Damage, CombatWeaponKind, Weapon},
-    GameConstructor,
+    Game,
 };
 
 struct EditorExtension {}
@@ -71,6 +71,6 @@ fn main() {
     editors.register_inheritable_vec_collection::<DefaultWeapon>();
     editors.register_inheritable_vec_collection::<ItemEntry>();
 
-    editor.add_game_plugin(GameConstructor);
+    editor.add_game_plugin(Game::default());
     editor.run(event_loop)
 }

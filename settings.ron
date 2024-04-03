@@ -33,9 +33,152 @@
         z_near: 0.025,
         z_far: 128.0,
     ),
+    build: (
+        selected_profile: 0,
+        profiles: [
+            (
+                name: "Debug",
+                build_commands: [
+                    (
+                        command: "cargo",
+                        args: [
+                            "build",
+                            "--package",
+                            "executor",
+                        ],
+                        environment_variables: [],
+                    ),
+                ],
+                run_command: (
+                    command: "cargo",
+                    args: [
+                        "run",
+                        "--package",
+                        "executor",
+                    ],
+                    environment_variables: [],
+                ),
+            ),
+            (
+                name: "Debug (HR)",
+                build_commands: [
+                    (
+                        command: "cargo",
+                        args: [
+                            "build",
+                            "--package",
+                            "game_dylib",
+                            "--no-default-features",
+                            "--features",
+                            "dylib-engine",
+                            "--profile",
+                            "dev-hot-reload",
+                        ],
+                        environment_variables: [
+                            (
+                                name: "RUSTFLAGS",
+                                value: "-C prefer-dynamic=yes",
+                            ),
+                        ],
+                    ),
+                    (
+                        command: "cargo",
+                        args: [
+                            "build",
+                            "--package",
+                            "executor",
+                            "--no-default-features",
+                            "--features",
+                            "dylib",
+                            "--profile",
+                            "dev-hot-reload",
+                        ],
+                        environment_variables: [
+                            (
+                                name: "RUSTFLAGS",
+                                value: "-C prefer-dynamic=yes",
+                            ),
+                        ],
+                    ),
+                ],
+                run_command: (
+                    command: "cargo",
+                    args: [
+                        "run",
+                        "--package",
+                        "executor",
+                        "--no-default-features",
+                        "--features",
+                        "dylib",
+                        "--profile",
+                        "dev-hot-reload",
+                    ],
+                    environment_variables: [
+                        (
+                            name: "RUSTFLAGS",
+                            value: "-C prefer-dynamic=yes",
+                        ),
+                    ],
+                ),
+            ),
+            (
+                name: "Release",
+                build_commands: [
+                    (
+                        command: "cargo",
+                        args: [
+                            "build",
+                            "--package",
+                            "executor",
+                            "--release",
+                        ],
+                        environment_variables: [],
+                    ),
+                ],
+                run_command: (
+                    command: "cargo",
+                    args: [
+                        "run",
+                        "--package",
+                        "executor",
+                        "--release",
+                    ],
+                    environment_variables: [],
+                ),
+            ),
+            (
+                name: "Release (HR)",
+                build_commands: [
+                    (
+                        command: "cargo",
+                        args: [
+                            "build",
+                            "--package",
+                            "executor",
+                            "--release",
+                            "--release",
+                        ],
+                        environment_variables: [],
+                    ),
+                ],
+                run_command: (
+                    command: "cargo",
+                    args: [
+                        "run",
+                        "--package",
+                        "executor",
+                        "--release",
+                        "--release",
+                    ],
+                    environment_variables: [],
+                ),
+            ),
+        ],
+    ),
     general: (
         show_node_removal_dialog: true,
         suspend_unfocused_editor: true,
+        script_editor: SystemDefault,
     ),
     debugging: (
         show_physics: false,
@@ -314,117 +457,31 @@
         ),
     ),
     scene_settings: {
-        "data/levels/arrival_new.rgs": (
+        "\\\\?\\C:\\rust-engine\\StationIapetus\\unnamed.rgs": (
             camera_settings: (
-                position: (1.1493433, -0.6200547, -4.3482633),
-                yaw: -0.37999737,
-                pitch: 0.59079725,
+                position: (-1.1239815, 1.4931499, -1.2610378),
+                yaw: 13.740035,
+                pitch: 0.6207964,
+            ),
+            node_infos: {},
+        ),
+        "data/models/starship_parts/starship_section_cells.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: -1.1600008,
+                pitch: 0.66000026,
+            ),
+            node_infos: {},
+        ),
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\ui\\door.ui": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
             ),
             node_infos: {
                 (
-                    index: 335,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 389,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 411,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 317,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 271,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 463,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 109,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 670,
-                    generation: 2,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 72,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 436,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 406,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 73,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 320,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 17,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 101,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 360,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 62,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 134,
+                    index: 6,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -436,169 +493,13 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 262,
+                    index: 9,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 405,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 145,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 407,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 114,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 209,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 461,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 359,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 400,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 404,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 12,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 376,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 334,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 384,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 287,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 78,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 10,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 318,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 462,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 79,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 401,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 14,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 75,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 111,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 144,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 289,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 426,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 86,
+                    index: 7,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -610,43 +511,99 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 15,
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/agent/agent.rgs": (
+            camera_settings: (
+                position: (1.3893012, -0.6136786, -1.587428),
+                yaw: 2.4199996,
+                pitch: 0.3999999,
+            ),
+            node_infos: {
+                (
+                    index: 90,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 363,
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 421,
+                    index: 91,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        ".\\data\\models\\starship_door\\starship_door.rgs": (
+            camera_settings: (
+                position: (-1.1527534, 0.08315936, 1.2786138),
+                yaw: -0.9,
+                pitch: 0.14999999,
+            ),
+            node_infos: {},
+        ),
+        "data/levels/arrival_new.rgs": (
+            camera_settings: (
+                position: (2.4368453, -1.4896793, -0.34482127),
+                yaw: -7.83,
+                pitch: 0.7407973,
+            ),
+            node_infos: {
+                (
+                    index: 461,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 317,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 17,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 411,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 359,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 114,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 401,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
                     index: 261,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 238,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 143,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 354,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -664,19 +621,199 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 238,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 70,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 278,
+                    index: 408,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 87,
+                    index: 143,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 354,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 335,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 78,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 423,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 145,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 287,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 426,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 15,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 389,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 436,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 360,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 462,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 73,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 318,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 670,
+                    generation: 2,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 271,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 79,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 111,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 209,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 463,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 75,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 101,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 289,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 363,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 384,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 134,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -688,7 +825,316 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 405,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 400,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 334,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 87,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 217,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 109,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 47,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 62,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 407,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 376,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 86,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 404,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 320,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 14,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 278,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 144,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 406,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 421,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 72,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 262,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/kinetic_gun/kinetic_gun.rgs": (
+            camera_settings: (
+                position: (-2.006403, -1.2769253, 0.34597245),
+                yaw: -1.550001,
+                pitch: 0.54000074,
+            ),
+            node_infos: {
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 54,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 9,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 51,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/levels/testbed.rgs": (
+            camera_settings: (
+                position: (-0.8709885, 1.0361999, -1.9121776),
+                yaw: 0.5699998,
+                pitch: 0.27999902,
+            ),
+            node_infos: {
+                (
+                    index: 152,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 69,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 70,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 67,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 299,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 32,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 207,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 155,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 65,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/starship_door/starship_door_2.rgs": (
+            camera_settings: (
+                position: (-0.98256457, -0.24273741, 0.645919),
+                yaw: -0.7199997,
+                pitch: 0.7000001,
+            ),
+            node_infos: {
+                (
+                    index: 53,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 54,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 55,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 52,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -722,11 +1168,19 @@
                 ),
             },
         ),
-        "data/models/starship_parts/starship_section_cells.rgs": (
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\unnamed.rgs": (
             camera_settings: (
                 position: (0.0, 1.0, 0.0),
-                yaw: -1.1600008,
-                pitch: 0.66000026,
+                yaw: 0.0,
+                pitch: 0.0,
+            ),
+            node_infos: {},
+        ),
+        "data/models/starship_door/starship_door.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
             ),
             node_infos: {},
         ),
@@ -738,25 +1192,7 @@
             ),
             node_infos: {
                 (
-                    index: 45,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 47,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
+                    index: 46,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -768,13 +1204,25 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 46,
+                    index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
+                    index: 45,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 47,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -791,289 +1239,8 @@
                 ): (
                     is_expanded: true,
                 ),
-            },
-        ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\ui\\door.ui": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            node_infos: {
                 (
-                    index: 5,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 8,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 9,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/starship_door/starship_door_2.rgs": (
-            camera_settings: (
-                position: (-0.98256457, -0.24273741, 0.645919),
-                yaw: -0.7199997,
-                pitch: 0.7000001,
-            ),
-            node_infos: {
-                (
-                    index: 54,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 53,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 3,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 55,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 52,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        ".\\data\\models\\starship_door\\starship_door.rgs": (
-            camera_settings: (
-                position: (-1.1527534, 0.08315936, 1.2786138),
-                yaw: -0.9,
-                pitch: 0.14999999,
-            ),
-            node_infos: {},
-        ),
-        "data/models/starship_door/starship_door.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            node_infos: {},
-        ),
-        "data/models/agent/agent.rgs": (
-            camera_settings: (
-                position: (1.3893012, -0.6136786, -1.587428),
-                yaw: 2.4199996,
-                pitch: 0.3999999,
-            ),
-            node_infos: {
-                (
-                    index: 90,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 91,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/kinetic_gun/kinetic_gun.rgs": (
-            camera_settings: (
-                position: (-2.006403, -1.2769253, 0.34597245),
-                yaw: -1.550001,
-                pitch: 0.54000074,
-            ),
-            node_infos: {
-                (
-                    index: 9,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 4,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 8,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 51,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 54,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 12,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "\\\\?\\C:\\rust-engine\\StationIapetus\\unnamed.rgs": (
-            camera_settings: (
-                position: (-1.1239815, 1.4931499, -1.2610378),
-                yaw: 13.740035,
-                pitch: 0.6207964,
-            ),
-            node_infos: {},
-        ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\unnamed.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-            ),
-            node_infos: {},
-        ),
-        "data/levels/testbed.rgs": (
-            camera_settings: (
-                position: (-0.8709885, 1.0361999, -1.9121776),
-                yaw: 0.5699998,
-                pitch: 0.27999902,
-            ),
-            node_infos: {
-                (
-                    index: 69,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 70,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 32,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 299,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 207,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 67,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 65,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 152,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 155,
+                    index: 43,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1095,8 +1262,8 @@
         ],
     ),
     windows: (
-        window_position: (1.0, 138.0),
-        window_size: (2560.0, 1377.0),
+        window_position: (-8.0, -8.0),
+        window_size: (1920.0, 1017.0),
         layout: None,
     ),
 )

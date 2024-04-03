@@ -1,10 +1,10 @@
 use crate::{gui, player::Player, weapon::Weapon};
-use fyrox::gui::font::FontResource;
 use fyrox::{
     asset::manager::ResourceManager,
-    core::{algebra::Vector2, color::Color, pool::Handle},
+    core::{algebra::Vector2, color::Color, pool::Handle, visitor::prelude::*},
     gui::{
         brush::Brush,
+        font::FontResource,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
         message::MessageDirection,
@@ -17,6 +17,7 @@ use fyrox::{
 };
 use std::path::Path;
 
+#[derive(Visit, Default)]
 pub struct WeaponDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

@@ -1,16 +1,17 @@
-use fyrox::gui::widget::WidgetMessage;
 use fyrox::{
-    core::pool::Handle,
+    core::{pool::Handle, visitor::prelude::*},
     gui::{
         grid::{Column, GridBuilder, Row},
         message::MessageDirection,
         progress_bar::{ProgressBarBuilder, ProgressBarMessage},
         text::TextBuilder,
         widget::WidgetBuilder,
+        widget::WidgetMessage,
         BuildContext, HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
     },
 };
 
+#[derive(Visit, Default)]
 pub struct LoadingScreen {
     pub root: Handle<UiNode>,
     progress_bar: Handle<UiNode>,

@@ -5,16 +5,16 @@ use crate::{
     message::Message,
     MessageSender,
 };
-use fyrox::graph::BaseSceneGraph;
-use fyrox::keyboard::PhysicalKey;
 use fyrox::{
     core::{
         algebra::Vector2,
         log::{Log, MessageKind},
         pool::Handle,
+        visitor::prelude::*,
     },
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
+    graph::BaseSceneGraph,
     gui::{
         border::BorderBuilder,
         button::{Button, ButtonBuilder, ButtonMessage},
@@ -32,15 +32,16 @@ use fyrox::{
         BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
         VerticalAlignment,
     },
+    keyboard::PhysicalKey,
     monitor::VideoMode,
     plugin::PluginContext,
     renderer::ShadowMapPrecision,
     window::Fullscreen,
 };
 
+#[derive(Visit, Default)]
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
-    sender: MessageSender,
     sound_volume: Handle<UiNode>,
     pub music_volume: Handle<UiNode>,
     video_mode: Handle<UiNode>,
@@ -53,7 +54,6 @@ pub struct OptionsMenu {
     use_light_scatter: Handle<UiNode>,
     fxaa: Handle<UiNode>,
     ssao: Handle<UiNode>,
-    available_video_modes: Vec<VideoMode>,
     control_scheme_buttons: Vec<Handle<UiNode>>,
     active_control_button: Option<usize>,
     mouse_sens: Handle<UiNode>,
@@ -169,11 +169,10 @@ impl OptionsMenu {
     pub fn new(
         engine: &mut PluginContext,
         control_scheme: &ControlScheme,
-        sender: MessageSender,
         show_debug_info_value: bool,
         sound_config: &SoundConfig,
     ) -> Self {
-        let ctx = &mut engine.user_interface.build_ctx();
+        let ctx = &mut engine.user_interfaces.first_mut().build_ctx();
 
         let common_row = Row::strict(36.0);
 
@@ -512,7 +511,6 @@ impl OptionsMenu {
         .build(ctx);
 
         Self {
-            sender,
             window: options_window,
             sound_volume,
             music_volume,
@@ -523,7 +521,6 @@ impl OptionsMenu {
             soft_point_shadows,
             point_shadow_distance,
             spot_shadow_distance,
-            available_video_modes: Default::default(),
             control_scheme_buttons,
             active_control_button: None,
             mouse_sens,
@@ -542,12 +539,12 @@ impl OptionsMenu {
 
     pub fn sync_to_model(
         &mut self,
-        engine: &mut PluginContext,
+        ctx: &mut PluginContext,
         control_scheme: &ControlScheme,
         show_debug_info: bool,
         sound_config: &SoundConfig,
     ) {
-        let ui = &mut engine.user_interface;
+        let ui = &mut ctx.user_interfaces.first_mut();
 
         let sync_check_box = |handle: Handle<UiNode>, value: bool| {
             ui.send_message(CheckBoxMessage::checked(
@@ -565,7 +562,7 @@ impl OptionsMenu {
             ));
         };
 
-        if let GraphicsContext::Initialized(ref graphics_context) = engine.graphics_context {
+        if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
             let settings = graphics_context.renderer.get_quality_settings();
 
             sync_check_box(self.spot_shadows, settings.spot_shadows_enabled);
@@ -603,22 +600,25 @@ impl OptionsMenu {
         }
     }
 
+    fn video_mode_list(graphics_context: &InitializedGraphicsContext) -> Vec<VideoMode> {
+        if let Some(monitor) = graphics_context.window.current_monitor() {
+            monitor
+                .video_modes()
+                .filter(|vm| {
+                    vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
+                })
+                .collect::<Vec<_>>()
+        } else {
+            vec![]
+        }
+    }
+
     pub fn update_video_mode_list(
         &mut self,
         ui: &mut UserInterface,
         graphics_context: &InitializedGraphicsContext,
     ) {
-        let video_modes: Vec<VideoMode> =
-            if let Some(monitor) = graphics_context.window.current_monitor() {
-                monitor
-                    .video_modes()
-                    .filter(|vm| {
-                        vm.size().width > 800 && vm.size().height > 600 && vm.bit_depth() == 32
-                    })
-                    .collect()
-            } else {
-                vec![]
-            };
+        let video_modes = Self::video_mode_list(graphics_context);
 
         let ctx = &mut ui.build_ctx();
         let mut modes = vec![DecoratorBuilder::new(BorderBuilder::new(
@@ -640,8 +640,6 @@ impl OptionsMenu {
             MessageDirection::ToWidget,
             modes,
         ));
-
-        self.available_video_modes = video_modes;
     }
 
     pub fn process_input_event(
@@ -688,12 +686,13 @@ impl OptionsMenu {
 
             if let Some(control_button) = control_button {
                 if let Some(active_control_button) = self.active_control_button {
-                    if let Some(button) = engine
-                        .user_interface
+                    let ui = engine.user_interfaces.first();
+
+                    if let Some(button) = ui
                         .node(self.control_scheme_buttons[active_control_button])
                         .cast::<Button>()
                     {
-                        engine.user_interface.send_message(TextMessage::text(
+                        ui.send_message(TextMessage::text(
                             *button.content,
                             MessageDirection::ToWidget,
                             control_button.name().to_owned(),
@@ -716,6 +715,7 @@ impl OptionsMenu {
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
+        sender: &MessageSender,
     ) {
         let old_settings =
             if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
@@ -731,7 +731,7 @@ impl OptionsMenu {
         if let Some(ScrollBarMessage::Value(new_value)) = message.data() {
             if message.direction() == MessageDirection::FromWidget {
                 if message.destination() == self.sound_volume {
-                    self.sender.send(Message::SetMasterVolume(*new_value));
+                    sender.send(Message::SetMasterVolume(*new_value));
                     changed = true;
                 } else if message.destination() == self.point_shadow_distance {
                     settings.point_shadows_distance = *new_value;
@@ -743,7 +743,7 @@ impl OptionsMenu {
                     control_scheme.mouse_sens = *new_value;
                     changed = true;
                 } else if message.destination() == self.music_volume {
-                    self.sender.send(Message::SetMusicVolume(*new_value));
+                    sender.send(Message::SetMusicVolume(*new_value));
                     changed = true;
                 }
             }
@@ -754,7 +754,7 @@ impl OptionsMenu {
                     let window = &graphics_context.window;
                     // -1 here because we have Windowed item in the list.
                     if let Some(video_mode) =
-                        self.available_video_modes.get(index.saturating_sub(1))
+                        Self::video_mode_list(graphics_context).get(index.saturating_sub(1))
                     {
                         window.set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
                         changed = true;
@@ -808,7 +808,7 @@ impl OptionsMenu {
                 changed = true;
             } else if message.destination() == self.use_hrtf {
                 changed = true;
-                self.sender.send(Message::SetUseHrtf(value));
+                sender.send(Message::SetUseHrtf(value));
             } else if message.destination() == self.show_debug_info {
                 changed = true;
                 *show_debug_info = value;
@@ -825,8 +825,10 @@ impl OptionsMenu {
 
             for (i, button) in self.control_scheme_buttons.iter().enumerate() {
                 if message.destination() == *button {
-                    if let Some(button) = context.user_interface.node(*button).cast::<Button>() {
-                        context.user_interface.send_message(TextMessage::text(
+                    let ui = context.user_interfaces.first();
+
+                    if let Some(button) = ui.node(*button).cast::<Button>() {
+                        ui.send_message(TextMessage::text(
                             *button.content,
                             MessageDirection::ToWidget,
                             "[WAITING INPUT]".to_owned(),
@@ -851,7 +853,7 @@ impl OptionsMenu {
         }
 
         if changed {
-            self.sender.send(Message::SaveConfig);
+            sender.send(Message::SaveConfig);
         }
     }
 }

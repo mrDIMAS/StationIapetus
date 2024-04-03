@@ -2,16 +2,15 @@ use crate::{
     config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, MessageSender,
 };
-use fyrox::asset::io::FsResourceIo;
-use fyrox::engine::InitializedGraphicsContext;
-use fyrox::graph::BaseSceneGraph;
-use fyrox::gui::font::FontResource;
-use fyrox::scene::sound::SoundBuffer;
 use fyrox::{
-    core::{color::Color, pool::Handle},
+    asset::io::FsResourceIo,
+    core::{color::Color, pool::Handle, visitor::prelude::*},
+    engine::InitializedGraphicsContext,
     event::{Event, WindowEvent},
+    graph::BaseSceneGraph,
     gui::{
         button::{ButtonBuilder, ButtonMessage},
+        font::FontResource,
         grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
         widget::{WidgetBuilder, WidgetMessage},
@@ -22,14 +21,14 @@ use fyrox::{
     scene::{
         base::BaseBuilder,
         node::Node,
-        sound::{SoundBuilder, Status},
+        sound::{SoundBuffer, SoundBuilder, Status},
         Scene, SceneLoader,
     },
 };
 
+#[derive(Visit, Default)]
 pub struct Menu {
     pub scene: MenuScene,
-    sender: MessageSender,
     root: Handle<UiNode>,
     btn_load_test_bed: Handle<UiNode>,
     btn_new_game: Handle<UiNode>,
@@ -40,6 +39,7 @@ pub struct Menu {
     options_menu: OptionsMenu,
 }
 
+#[derive(Visit, Default)]
 pub struct MenuScene {
     pub scene: Handle<Scene>,
     pub music: Handle<Node>,
@@ -87,14 +87,13 @@ impl Menu {
     pub async fn new(
         context: &mut PluginContext<'_, '_>,
         control_scheme: &ControlScheme,
-        sender: MessageSender,
         font: FontResource,
         show_debug_info: bool,
         sound_config: &SoundConfig,
     ) -> Self {
         let scene = MenuScene::new(context, sound_config).await;
 
-        let ctx = &mut context.user_interface.build_ctx();
+        let ctx = &mut context.user_interfaces.first_mut().build_ctx();
 
         let btn_load_test_bed;
         let btn_new_game;
@@ -206,7 +205,6 @@ impl Menu {
 
         Self {
             scene,
-            sender: sender.clone(),
             root,
             btn_new_game,
             btn_settings,
@@ -214,30 +212,24 @@ impl Menu {
             btn_load_game,
             btn_quit_game,
             btn_load_test_bed,
-            options_menu: OptionsMenu::new(
-                context,
-                control_scheme,
-                sender,
-                show_debug_info,
-                sound_config,
-            ),
+            options_menu: OptionsMenu::new(context, control_scheme, show_debug_info, sound_config),
         }
     }
 
     pub fn set_visible(&mut self, context: &mut PluginContext, visible: bool) {
+        let ui = context.user_interfaces.first_mut();
+
         context.scenes[self.scene.scene]
             .enabled
             .set_value_silent(visible);
 
-        context
-            .user_interface
-            .send_message(WidgetMessage::visibility(
-                self.root,
-                MessageDirection::ToWidget,
-                visible,
-            ));
+        ui.send_message(WidgetMessage::visibility(
+            self.root,
+            MessageDirection::ToWidget,
+            visible,
+        ));
         if !visible {
-            context.user_interface.send_message(WindowMessage::close(
+            ui.send_message(WindowMessage::close(
                 self.options_menu.window,
                 MessageDirection::ToWidget,
             ));
@@ -259,21 +251,23 @@ impl Menu {
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut PluginContext,
+        ctx: &mut PluginContext,
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
+        let ui = ctx.user_interfaces.first_mut();
+
         if let Event::WindowEvent {
             event: WindowEvent::Resized(new_size),
             ..
         } = event
         {
-            engine.user_interface.send_message(WidgetMessage::width(
+            ui.send_message(WidgetMessage::width(
                 self.root,
                 MessageDirection::ToWidget,
                 new_size.width as f32,
             ));
-            engine.user_interface.send_message(WidgetMessage::height(
+            ui.send_message(WidgetMessage::height(
                 self.root,
                 MessageDirection::ToWidget,
                 new_size.height as f32,
@@ -281,49 +275,51 @@ impl Menu {
         }
 
         self.options_menu
-            .process_input_event(engine, event, control_scheme);
+            .process_input_event(ctx, event, control_scheme);
     }
 
-    pub fn sync_to_model(&mut self, engine: &mut PluginContext, level_loaded: bool) {
-        engine.user_interface.send_message(WidgetMessage::enabled(
-            self.btn_save_game,
-            MessageDirection::ToWidget,
-            level_loaded,
-        ));
+    pub fn sync_to_model(&mut self, ctx: &mut PluginContext, level_loaded: bool) {
+        ctx.user_interfaces
+            .first_mut()
+            .send_message(WidgetMessage::enabled(
+                self.btn_save_game,
+                MessageDirection::ToWidget,
+                level_loaded,
+            ));
     }
 
     pub fn handle_ui_message(
         &mut self,
-        engine: &mut PluginContext,
+        ctx: &mut PluginContext,
         message: &UiMessage,
         control_scheme: &mut ControlScheme,
         show_debug_info: &mut bool,
         sound_config: &SoundConfig,
+        sender: &MessageSender,
     ) {
+        let ui = ctx.user_interfaces.first_mut();
+
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.btn_new_game {
-                self.sender.send(Message::StartNewGame);
+                sender.send(Message::StartNewGame);
             } else if message.destination() == self.btn_save_game {
-                self.sender.send(Message::SaveGame);
+                sender.send(Message::SaveGame);
             } else if message.destination() == self.btn_load_game {
-                self.sender.send(Message::LoadGame);
+                sender.send(Message::LoadGame);
             } else if message.destination() == self.btn_quit_game {
-                self.sender.send(Message::QuitGame);
+                sender.send(Message::QuitGame);
             } else if message.destination() == self.btn_load_test_bed {
-                self.sender.send(Message::LoadTestbed);
+                sender.send(Message::LoadTestbed);
             } else if message.destination() == self.btn_settings {
-                let is_visible = engine
-                    .user_interface
-                    .node(self.options_menu.window)
-                    .visibility();
+                let is_visible = ui.node(self.options_menu.window).visibility();
 
                 if is_visible {
-                    engine.user_interface.send_message(WindowMessage::close(
+                    ui.send_message(WindowMessage::close(
                         self.options_menu.window,
                         MessageDirection::ToWidget,
                     ));
                 } else {
-                    engine.user_interface.send_message(WindowMessage::open(
+                    ui.send_message(WindowMessage::open(
                         self.options_menu.window,
                         MessageDirection::ToWidget,
                         true,
@@ -333,11 +329,12 @@ impl Menu {
         }
 
         self.options_menu.handle_ui_event(
-            engine,
+            ctx,
             message,
             control_scheme,
             show_debug_info,
             sound_config,
+            sender,
         );
     }
 }

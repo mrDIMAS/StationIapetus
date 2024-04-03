@@ -4,6 +4,6 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-fyrox = { path = "../../Fyrox" }
+fyrox = { path = "../../Fyrox/fyrox" }
 fyroxed_base = { path = "../../Fyrox/editor" }
 station_iapetus = { path = "../game" }
