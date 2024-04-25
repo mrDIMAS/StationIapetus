@@ -323,6 +323,7 @@ impl Menu {
                         self.options_menu.window,
                         MessageDirection::ToWidget,
                         true,
+                        true
                     ));
                 }
             }
