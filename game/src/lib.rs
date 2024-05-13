@@ -21,6 +21,18 @@ pub mod sound;
 pub mod utils;
 pub mod weapon;
 
+pub use fyrox;
+
+use crate::bot::BotHostility;
+use crate::character::{Character, HitBox};
+use crate::elevator::call_button::CallButtonKind;
+use crate::inventory::{Inventory, ItemEntry};
+use crate::level::item::ItemAction;
+use crate::level::spawn::DefaultWeapon;
+use crate::level::trigger::TriggerAction;
+use crate::level::turret::{Barrel, Hostility, ShootMode};
+use crate::weapon::projectile::Damage;
+use crate::weapon::CombatWeaponKind;
 use crate::{
     bot::Bot,
     config::{Config, SoundConfig},
@@ -45,6 +57,7 @@ use crate::{
     utils::use_hrtf,
     weapon::{kinetic::KineticGun, projectile::Projectile, sight::LaserSight, Weapon},
 };
+use fyrox::gui::inspector::editors::PropertyEditorDefinitionContainer;
 use fyrox::{
     core::{
         color::Color,
@@ -615,6 +628,31 @@ impl Plugin for Game {
             .add::<KineticGun>("KineticGun")
             .add::<EnemyTrap>("ArrivalEnemyTrap")
             .add::<Trigger>("Trigger");
+    }
+
+    fn register_property_editors(&self) -> PropertyEditorDefinitionContainer {
+        let container = PropertyEditorDefinitionContainer::empty();
+        container.register_inheritable_enum::<Hostility, _>();
+        container.register_inheritable_enum::<ShootMode, _>();
+        container.register_inheritable_enum::<CombatWeaponKind, _>();
+        container.register_inheritable_enum::<CallButtonKind, _>();
+        container.register_inheritable_enum::<Damage, _>();
+        container.register_inheritable_enum::<TriggerAction, _>();
+        container.register_inheritable_enum::<BotHostility, _>();
+        container.register_inheritable_enum::<ItemAction, _>();
+        container.register_inheritable_inspectable::<Inventory>();
+        container.register_inheritable_inspectable::<ItemEntry>();
+        container.register_inheritable_inspectable::<Barrel>();
+        container.register_inheritable_inspectable::<Character>();
+        container.register_inheritable_inspectable::<CameraController>();
+        container.register_inheritable_inspectable::<HitBox>();
+        container.register_inheritable_inspectable::<Item>();
+        container.register_inheritable_inspectable::<Weapon>();
+        container.register_inheritable_vec_collection::<Barrel>();
+        container.register_inheritable_vec_collection::<HitBox>();
+        container.register_inheritable_vec_collection::<DefaultWeapon>();
+        container.register_inheritable_vec_collection::<ItemEntry>();
+        container
     }
 
     fn init(&mut self, scene_path: Option<&str>, mut context: PluginContext) {

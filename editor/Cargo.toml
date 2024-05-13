@@ -4,6 +4,10 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
-fyrox = { path = "../../Fyrox/fyrox" }
-fyroxed_base = { path = "../../Fyrox/editor" }
-station_iapetus = { path = "../game" }
+fyrox = { workspace = true }
+fyroxed_base = { workspace = true }
+station_iapetus = { path = "../game", optional = true }
+
+[features]
+default = ["station_iapetus", "fyroxed_base/default"]
+dylib = ["fyroxed_base/dylib_engine"]
