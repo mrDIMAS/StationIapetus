@@ -4,10 +4,10 @@ use fyroxed_base::{Editor, StartupData};
 
 #[cfg(not(feature = "dylib"))]
 mod editor_plugin {
-    use fyroxed_base::{plugin::EditorPlugin, scene::GameScene};
-    use station_iapetus::level::{arrival::enemy_trap::EnemyTrap, Level};
+    use fyroxed_base::{plugin::EditorPlugin, scene::GameScene, Editor};
+    use station_iapetus::level::arrival::enemy_trap::EnemyTrap;
 
-    struct EditorExtension {}
+    pub struct EditorExtension {}
 
     impl EditorPlugin for EditorExtension {
         fn on_post_update(&mut self, editor: &mut Editor) {
