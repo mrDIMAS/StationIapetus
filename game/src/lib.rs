@@ -31,6 +31,7 @@ use crate::level::item::ItemAction;
 use crate::level::spawn::DefaultWeapon;
 use crate::level::trigger::TriggerAction;
 use crate::level::turret::{Barrel, Hostility, ShootMode};
+use crate::sound::SoundManager;
 use crate::weapon::projectile::Damage;
 use crate::weapon::CombatWeaponKind;
 use crate::{
@@ -748,6 +749,23 @@ impl Plugin for Game {
                 ),
                 _ => (),
             }
+        }
+    }
+
+    fn on_loaded(&mut self, mut context: PluginContext) {
+        if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+            let inner_size = graphics_context.window.inner_size();
+
+            self.create_highlighter(
+                &mut context.graphics_context,
+                inner_size.width as usize,
+                inner_size.height as usize,
+            );
+        }
+
+        if let Some(level) = self.level.as_mut() {
+            let scene = &mut context.scenes[level.scene];
+            level.sound_manager = SoundManager::new(scene, context.resource_manager.clone());
         }
     }
 

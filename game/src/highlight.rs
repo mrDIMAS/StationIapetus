@@ -1,4 +1,4 @@
-use fyrox::graph::{BaseSceneGraph, SceneGraph};
+use crate::Game;
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -7,6 +7,7 @@ use fyrox::{
         sstorage::ImmutableString,
     },
     fxhash::FxHashMap,
+    graph::{BaseSceneGraph, SceneGraph},
     renderer::{
         bundle::{RenderContext, RenderDataBundleStorage},
         framework::{
@@ -26,7 +27,7 @@ use fyrox::{
     },
     scene::{mesh::surface::SurfaceData, node::Node, Scene},
 };
-use std::{cell::RefCell, rc::Rc};
+use std::{any::TypeId, cell::RefCell, rc::Rc};
 
 struct EdgeDetectShader {
     program: GpuProgram,
@@ -343,5 +344,9 @@ impl SceneRenderPass for HighlightRenderPass {
         self.nodes_to_highlight.retain(|_, e| !e.auto_remove);
 
         Ok(Default::default())
+    }
+
+    fn source_type_id(&self) -> TypeId {
+        TypeId::of::<Game>()
     }
 }
