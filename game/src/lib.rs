@@ -26,6 +26,7 @@ pub use fyrox;
 use crate::bot::BotHostility;
 use crate::character::{Character, HitBox};
 use crate::elevator::call_button::CallButtonKind;
+use crate::gui::inventory::InventoryItem;
 use crate::inventory::{Inventory, ItemEntry};
 use crate::level::item::ItemAction;
 use crate::level::spawn::DefaultWeapon;
@@ -629,6 +630,8 @@ impl Plugin for Game {
             .add::<KineticGun>("KineticGun")
             .add::<EnemyTrap>("ArrivalEnemyTrap")
             .add::<Trigger>("Trigger");
+
+        context.widget_constructors.add::<InventoryItem>();
     }
 
     fn register_property_editors(&self) -> PropertyEditorDefinitionContainer {

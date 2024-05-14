@@ -45,7 +45,7 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<UiNode>,
 }
 
-#[derive(Debug, Clone, Reflect, Visit, ComponentProvider)]
+#[derive(Default, Debug, Clone, Reflect, Visit, ComponentProvider)]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
