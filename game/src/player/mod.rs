@@ -69,8 +69,6 @@ pub struct InputController {
     walk_left: bool,
     walk_right: bool,
     jump: bool,
-    target_yaw: f32,
-    target_pitch: f32,
     aim: bool,
     toss_grenade: bool,
     shoot: bool,
@@ -171,6 +169,8 @@ pub struct Player {
     plasma_gun_weapon: Option<ModelResource>,
     melee_hit_box: InheritableVariable<Handle<Node>>,
     animation_player: Handle<Node>,
+    target_yaw: f32,
+    target_pitch: f32,
 
     #[reflect(hidden)]
     item_display: Handle<Node>,
@@ -269,6 +269,7 @@ impl Default for Player {
             model_pivot: Default::default(),
             model_sub_pivot: Default::default(),
             animation_player: Default::default(),
+            target_yaw: 0.0,
             machine: Default::default(),
             local_velocity: Default::default(),
             state_machine: Default::default(),
@@ -287,6 +288,7 @@ impl Default for Player {
             melee_attack_context: Default::default(),
             melee_hit_sound: Default::default(),
             melee_hit_effect_prefab: Default::default(),
+            target_pitch: 0.0,
         }
     }
 }
@@ -326,6 +328,7 @@ impl Clone for Player {
             journal: Default::default(),
             controller: Default::default(),
             animation_player: self.animation_player,
+            target_yaw: self.target_yaw,
             machine: self.machine,
             local_velocity: self.local_velocity,
             state_machine: self.state_machine.clone(),
@@ -343,6 +346,7 @@ impl Clone for Player {
             melee_hit_box: self.melee_hit_box.clone(),
             melee_hit_sound: self.melee_hit_sound.clone(),
             melee_hit_effect_prefab: self.melee_hit_effect_prefab.clone(),
+            target_pitch: self.target_pitch,
         }
     }
 }
@@ -1157,13 +1161,13 @@ impl ScriptTrait for Player {
                 }
                 DeviceEvent::MouseMotion { delta } => {
                     let mouse_sens = control_scheme.mouse_sens * ctx.dt;
-                    self.controller.target_yaw -= (delta.0 as f32) * mouse_sens;
+                    self.target_yaw -= (delta.0 as f32) * mouse_sens;
                     let pitch_direction = if control_scheme.mouse_y_inverse {
                         -1.0
                     } else {
                         1.0
                     };
-                    self.controller.target_pitch = (self.controller.target_pitch
+                    self.target_pitch = (self.target_pitch
                         + pitch_direction * (delta.1 as f32) * mouse_sens)
                         .clamp(-90.0f32.to_radians(), 90.0f32.to_radians());
                     None
@@ -1460,7 +1464,7 @@ impl ScriptTrait for Player {
             let attacking_in_direction = self.controller.aim || self.melee_attack_context.is_some();
 
             if attacking_in_direction {
-                self.spine_pitch.set_target(self.controller.target_pitch);
+                self.spine_pitch.set_target(self.target_pitch);
             } else {
                 self.spine_pitch.set_target(0.0);
             }
@@ -1468,9 +1472,7 @@ impl ScriptTrait for Player {
             self.spine_pitch.update(ctx.dt);
 
             if can_move && (is_walking || attacking_in_direction) {
-                self.yaw
-                    .set_target(self.controller.target_yaw)
-                    .update(ctx.dt);
+                self.yaw.set_target(self.target_yaw).update(ctx.dt);
 
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
