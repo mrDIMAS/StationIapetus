@@ -39,7 +39,7 @@ use fyrox::{
     window::Fullscreen,
 };
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
     sound_volume: Handle<UiNode>,

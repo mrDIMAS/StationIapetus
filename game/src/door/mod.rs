@@ -280,7 +280,7 @@ impl Door {
     }
 }
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Debug)]
 pub struct DoorContainer {
     pub doors: Vec<Handle<Node>>,
 }

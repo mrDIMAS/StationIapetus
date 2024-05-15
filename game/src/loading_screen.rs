@@ -11,7 +11,7 @@ use fyrox::{
     },
 };
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct LoadingScreen {
     pub root: Handle<UiNode>,
     progress_bar: Handle<UiNode>,

@@ -7,7 +7,7 @@ use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
 use std::fs::File;
 
-#[derive(Deserialize, Serialize, Clone, Visit)]
+#[derive(Deserialize, Serialize, Clone, Visit, Debug)]
 pub struct SoundConfig {
     pub master_volume: f32,
     pub music_volume: f32,

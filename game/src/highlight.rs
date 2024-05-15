@@ -27,6 +27,7 @@ use fyrox::{
     },
     scene::{mesh::surface::SurfaceData, node::Node, Scene},
 };
+use std::fmt::{Debug, Formatter};
 use std::{any::TypeId, cell::RefCell, rc::Rc};
 
 struct EdgeDetectShader {
@@ -144,6 +145,12 @@ pub struct HighlightRenderPass {
     flat_shader: FlatShader,
     pub scene_handle: Handle<Scene>,
     pub nodes_to_highlight: FxHashMap<Handle<Node>, HighlightEntry>,
+}
+
+impl Debug for HighlightRenderPass {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "HighlightRenderPass")
+    }
 }
 
 impl HighlightRenderPass {

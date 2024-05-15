@@ -23,43 +23,50 @@ pub mod weapon;
 
 pub use fyrox;
 
-use crate::bot::BotHostility;
-use crate::character::{Character, HitBox};
-use crate::elevator::call_button::CallButtonKind;
-use crate::gui::inventory::InventoryItem;
-use crate::inventory::{Inventory, ItemEntry};
-use crate::level::item::ItemAction;
-use crate::level::spawn::DefaultWeapon;
-use crate::level::trigger::TriggerAction;
-use crate::level::turret::{Barrel, Hostility, ShootMode};
-use crate::sound::SoundManager;
-use crate::weapon::projectile::Damage;
-use crate::weapon::CombatWeaponKind;
 use crate::{
-    bot::Bot,
+    bot::{Bot, BotHostility},
+    character::{Character, HitBox},
     config::{Config, SoundConfig},
     control_scheme::ControlScheme,
     door::Door,
     effects::{beam::Beam, rail::Rail},
-    elevator::{call_button::CallButton, Elevator},
+    elevator::{
+        call_button::{CallButton, CallButtonKind},
+        Elevator,
+    },
     gui::{
-        inventory::InventoryInterface, item_display::ItemDisplay, journal::JournalDisplay,
-        weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
+        inventory::InventoryInterface, inventory::InventoryItem, item_display::ItemDisplay,
+        journal::JournalDisplay, weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     highlight::HighlightRenderPass,
+    inventory::{Inventory, ItemEntry},
     level::{
-        arrival::enemy_trap::EnemyTrap, death_zone::DeathZone, decal::Decal, explosion::Explosion,
-        item::Item, spawn::CharacterSpawnPoint, trigger::Trigger, turret::Turret, Level,
+        arrival::enemy_trap::EnemyTrap,
+        death_zone::DeathZone,
+        decal::Decal,
+        explosion::Explosion,
+        item::Item,
+        item::ItemAction,
+        spawn::CharacterSpawnPoint,
+        spawn::DefaultWeapon,
+        trigger::{Trigger, TriggerAction},
+        turret::{Barrel, Hostility, ShootMode, Turret},
+        Level,
     },
     light::AnimatedLight,
     loading_screen::LoadingScreen,
     menu::Menu,
     message::Message,
     player::{camera::CameraController, Player},
+    sound::SoundManager,
     utils::use_hrtf,
-    weapon::{kinetic::KineticGun, projectile::Projectile, sight::LaserSight, Weapon},
+    weapon::{
+        kinetic::KineticGun,
+        projectile::{Damage, Projectile},
+        sight::LaserSight,
+        CombatWeaponKind, Weapon,
+    },
 };
-use fyrox::gui::inspector::editors::PropertyEditorDefinitionContainer;
 use fyrox::{
     core::{
         color::Color,
@@ -67,6 +74,7 @@ use fyrox::{
         log::{Log, MessageKind},
         parking_lot::Mutex,
         pool::Handle,
+        reflect::prelude::*,
         sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -77,6 +85,7 @@ use fyrox::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
         font::Font,
+        inspector::editors::PropertyEditorDefinitionContainer,
         message::{MessageDirection, UiMessage},
         text::{TextBuilder, TextMessage},
         widget::{WidgetBuilder, WidgetMessage},
@@ -107,7 +116,8 @@ use std::{
     },
 };
 
-#[derive(Visit)]
+#[derive(Visit, Reflect, Debug)]
+#[reflect(hide_all)]
 pub struct Game {
     menu: Menu,
     level: Option<Level>,
@@ -182,7 +192,7 @@ pub fn create_display_material(display_texture: TextureResource) -> Arc<Mutex<Ma
     Arc::new(Mutex::new(material))
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct MessageSender {
     sender: Sender<Message>,
 }

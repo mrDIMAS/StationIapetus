@@ -26,7 +26,7 @@ use fyrox::{
     },
 };
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct Menu {
     pub scene: MenuScene,
     root: Handle<UiNode>,
@@ -39,7 +39,7 @@ pub struct Menu {
     options_menu: OptionsMenu,
 }
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct MenuScene {
     pub scene: Handle<Scene>,
     pub music: Handle<Node>,
@@ -323,7 +323,7 @@ impl Menu {
                         self.options_menu.window,
                         MessageDirection::ToWidget,
                         true,
-                        true
+                        true,
                     ));
                 }
             }

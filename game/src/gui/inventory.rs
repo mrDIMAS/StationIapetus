@@ -35,7 +35,7 @@ use fyrox::{
 };
 use std::ops::{Deref, DerefMut};
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,

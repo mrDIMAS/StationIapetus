@@ -23,7 +23,7 @@ pub mod spawn;
 pub mod trigger;
 pub mod turret;
 
-#[derive(Default, Visit)]
+#[derive(Default, Visit, Debug)]
 pub struct Level {
     pub scene: Handle<Scene>,
     pub player: Handle<Node>,

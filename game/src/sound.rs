@@ -21,6 +21,7 @@ use fyrox::{
     },
 };
 use serde::Deserialize;
+use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf};
 
 #[derive(Debug)]
@@ -180,6 +181,12 @@ pub struct SoundManager {
     sound_base: SoundBase,
     sound_map: SoundMap,
     resource_manager: Option<ResourceManager>,
+}
+
+impl Debug for SoundManager {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
+        write!(f, "SoundManager")
+    }
 }
 
 impl SoundManager {

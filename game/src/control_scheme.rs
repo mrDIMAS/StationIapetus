@@ -1,7 +1,7 @@
 use fyrox::keyboard::KeyCode;
 use serde::{Deserialize, Serialize};
 
-#[derive(Copy, Clone, PartialEq, Eq, Hash, Deserialize, Serialize)]
+#[derive(Copy, Clone, PartialEq, Eq, Hash, Debug, Deserialize, Serialize)]
 pub enum ControlButton {
     Mouse(u16),
     Key(KeyCode),
@@ -27,13 +27,13 @@ impl ControlButton {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ControlButtonDefinition {
     pub description: String,
     pub button: ControlButton,
 }
 
-#[derive(Deserialize, Serialize, Clone)]
+#[derive(Deserialize, Serialize, Clone, Debug)]
 pub struct ControlScheme {
     pub move_forward: ControlButtonDefinition,
     pub move_backward: ControlButtonDefinition,

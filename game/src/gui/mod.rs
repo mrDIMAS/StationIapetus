@@ -83,7 +83,7 @@ pub fn create_check_box(
     .build(ctx)
 }
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct DeathScreen {
     pub root: Handle<UiNode>,
     load_game: Handle<UiNode>,
@@ -212,7 +212,7 @@ impl DeathScreen {
     }
 }
 
-#[derive(Visit, Default)]
+#[derive(Visit, Default, Debug)]
 pub struct FinalScreen {
     root: Handle<UiNode>,
     exit_to_menu: Handle<UiNode>,
