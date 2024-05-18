@@ -67,15 +67,14 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::window::CursorGrabMode;
 use fyrox::{
     core::{
         color::Color,
         futures::executor::block_on,
         log::{Log, MessageKind},
-        parking_lot::Mutex,
         pool::Handle,
         reflect::prelude::*,
-        sstorage::ImmutableString,
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
@@ -92,17 +91,14 @@ use fyrox::{
         UiNode, UserInterface,
     },
     keyboard::KeyCode,
-    material::{shader::SamplerFallback, Material, PropertyValue},
     plugin::{Plugin, PluginContext, PluginRegistrationContext},
     renderer::framework::gpu_texture::PixelKind,
-    resource::texture::TextureResource,
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
         Scene,
     },
     utils::translate_event,
-    window::CursorGrabMode,
 };
 use std::{
     cell::RefCell,
@@ -110,10 +106,7 @@ use std::{
     io::Write,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::{
-        mpsc::{self, Receiver, Sender},
-        Arc,
-    },
+    sync::mpsc::{self, Receiver, Sender},
 };
 
 #[derive(Visit, Reflect, Debug)]
@@ -176,20 +169,6 @@ impl Default for Game {
 pub enum CollisionGroups {
     ActorCapsule = 1 << 0,
     All = std::u16::MAX,
-}
-
-pub fn create_display_material(display_texture: TextureResource) -> Arc<Mutex<Material>> {
-    let mut material = Material::standard();
-
-    Log::verify(material.set_property(
-        &ImmutableString::new("diffuseTexture"),
-        PropertyValue::Sampler {
-            value: Some(display_texture),
-            fallback: SamplerFallback::White,
-        },
-    ));
-
-    Arc::new(Mutex::new(material))
 }
 
 #[derive(Clone, Debug)]

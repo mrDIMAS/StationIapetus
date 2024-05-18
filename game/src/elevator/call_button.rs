@@ -1,5 +1,6 @@
 use crate::elevator::{ui::CallButtonUi, Elevator};
 use fyrox::graph::{BaseSceneGraph, SceneGraph};
+use fyrox::material::MaterialResourceExtension;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
@@ -76,8 +77,7 @@ impl CallButton {
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
-                    first_surface
-                        .set_material(MaterialResource::new_ok(Default::default(), material));
+                    first_surface.set_material(MaterialResource::new(material));
                 }
             }
         }

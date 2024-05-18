@@ -1,5 +1,6 @@
 use crate::{block_on, Game};
 use fyrox::graph::BaseSceneGraph;
+use fyrox::material::MaterialResourceExtension;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -88,7 +89,7 @@ impl ScriptTrait for Item {
         self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
             .with_size(0.04)
             .with_color(Color::from_rgba(255, 255, 255, 160))
-            .with_material(MaterialResource::new_ok(Default::default(), material))
+            .with_material(MaterialResource::new(material))
             .build(&mut ctx.scene.graph);
 
         ctx.scene.graph.link_nodes(self.spark, ctx.handle);
