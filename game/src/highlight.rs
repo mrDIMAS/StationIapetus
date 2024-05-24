@@ -43,6 +43,8 @@ uniform sampler2D frameTexture;
 
 in vec2 texCoord;
 
+out vec4 FragColor;
+
 void main() {
 	ivec2 size = textureSize(frameTexture, 0);
 
@@ -64,7 +66,7 @@ void main() {
   	vec4 sobel_edge_v = n[0] + (2.0 * n[1]) + n[2] - (n[6] + (2.0 * n[7]) + n[8]);
 	vec4 sobel = sqrt((sobel_edge_h * sobel_edge_h) + (sobel_edge_v * sobel_edge_v));
 
-	gl_FragColor = vec4(sobel.rgb, (sobel.r + sobel.g + sobel.b) * 0.333);
+	FragColor = vec4(sobel.rgb, (sobel.r + sobel.g + sobel.b) * 0.333);
 }"#;
 
         let vertex_source = r#"
