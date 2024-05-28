@@ -223,6 +223,14 @@ impl Character {
         graph[self.body].global_position()
     }
 
+    pub fn most_vulnerable_point(&self, graph: &Graph) -> Vector3<f32> {
+        if let Some(head) = self.hit_boxes.iter().find(|h| h.is_head) {
+            head.position(graph)
+        } else {
+            self.position(graph)
+        }
+    }
+
     pub fn damage(&mut self, amount: f32) {
         self.health -= amount.abs();
     }
@@ -515,6 +523,12 @@ pub struct HitBox {
     pub damage_factor: f32,
     pub movement_speed_factor: f32,
     pub is_head: bool,
+}
+
+impl HitBox {
+    pub fn position(&self, graph: &Graph) -> Vector3<f32> {
+        graph[self.bone].global_position()
+    }
 }
 
 stub_uuid_provider!(HitBox);

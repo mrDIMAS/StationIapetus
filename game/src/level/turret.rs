@@ -178,7 +178,7 @@ impl ScriptTrait for Turret {
         }
 
         if let Some(target) = try_get_character_ref(self.target, &ctx.scene.graph) {
-            let target_position = target.position(&ctx.scene.graph);
+            let target_position = target.most_vulnerable_point(&ctx.scene.graph);
 
             let position = ctx.scene.graph[self.model].global_position();
 

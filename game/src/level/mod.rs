@@ -1,8 +1,10 @@
 use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
-    sound::SoundManager, utils::use_hrtf, MessageSender,
+    sound::SoundManager, utils::use_hrtf, Game, MessageSender,
 };
+use fyrox::fxhash::FxHashSet;
 use fyrox::graph::SceneGraph;
+use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
@@ -19,6 +21,7 @@ pub mod death_zone;
 pub mod decal;
 pub mod explosion;
 pub mod item;
+pub mod point_of_interest;
 pub mod spawn;
 pub mod trigger;
 pub mod turret;
@@ -32,6 +35,7 @@ pub struct Level {
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
     pub navmesh: Handle<Node>,
+    pub pois: FxHashSet<Handle<Node>>,
 
     #[visit(skip)]
     pub sound_manager: SoundManager,
@@ -43,6 +47,22 @@ impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/arrival_new.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
     pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
+
+    pub fn get_ref<'a, 'b: 'a>(plugins: &'b mut PluginsRefMut<'a>) -> &'a Self {
+        plugins
+            .get::<Game>()
+            .level
+            .as_ref()
+            .expect("Level must exist!")
+    }
+
+    pub fn get_mut<'a, 'b: 'a>(plugins: &'b mut PluginsRefMut<'a>) -> &'a mut Self {
+        plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
+            .expect("Level must exist!")
+    }
 
     pub fn from_existing_scene(
         scene: &mut Scene,
@@ -81,6 +101,7 @@ impl Level {
             sound_manager: SoundManager::new(scene, resource_manager),
             doors_container: Default::default(),
             elevators: Default::default(),
+            pois: Default::default(),
         }
     }
 

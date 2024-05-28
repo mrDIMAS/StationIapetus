@@ -1,6 +1,7 @@
 use crate::{
     bot::{behavior::BehaviorContext, Bot, BotHostility, Target},
     character::{try_get_character_ref, Character},
+    Game,
 };
 use fyrox::{
     core::{
@@ -136,6 +137,25 @@ impl<'a> Behavior<'a> for FindTarget {
                     });
                     closest_distance = distance;
                 }
+            }
+        }
+
+        // Check points of interest.
+        if ctx.target.is_none() {
+            let level = ctx
+                .plugins
+                .get::<Game>()
+                .level
+                .as_ref()
+                .expect("Level must exist!");
+
+            for poi in level.pois.iter() {
+                let position = ctx.scene.graph[*poi].global_position();
+
+                *ctx.target = Some(Target {
+                    position,
+                    handle: *poi,
+                });
             }
         }
 

@@ -32,7 +32,7 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let mut editor = Editor::new(Some(StartupData {
         working_directory: Default::default(),
-        scenes: vec!["data/levels/arrival_new.rgs".into()],
+        scenes: vec!["data/levels/testbed.rgs".into()],
     }));
 
     #[cfg(not(feature = "dylib"))]

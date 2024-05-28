@@ -353,7 +353,7 @@ impl Bot {
                         if let Some(ragdoll) =
                             scene.graph.try_get_mut_of_type::<Ragdoll>(*self.ragdoll)
                         {
-                            ragdoll.set_active(true);
+                            ragdoll.is_active.set_value_and_mark_modified(true);
                         }
                     }
                 }

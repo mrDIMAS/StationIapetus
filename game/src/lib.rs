@@ -23,6 +23,8 @@ pub mod weapon;
 
 pub use fyrox;
 
+use crate::level::point_of_interest::PointOfInterest;
+use crate::level::trigger::BotCounter;
 use crate::{
     bot::{Bot, BotHostility},
     character::{Character, HitBox},
@@ -48,7 +50,6 @@ use crate::{
         item::Item,
         item::ItemAction,
         spawn::CharacterSpawnPoint,
-        spawn::DefaultWeapon,
         trigger::{Trigger, TriggerAction},
         turret::{Barrel, Hostility, ShootMode, Turret},
         Level,
@@ -306,14 +307,18 @@ impl Game {
     }
 
     pub fn update(&mut self, ctx: &mut PluginContext) {
+        let debug = false;
+
         if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
             let window = &graphics_context.window;
             window.set_cursor_visible(self.is_any_menu_visible(ctx));
-            let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
-                CursorGrabMode::Confined
-            } else {
-                CursorGrabMode::None
-            });
+            if !debug {
+                let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
+                    CursorGrabMode::Confined
+                } else {
+                    CursorGrabMode::None
+                });
+            }
         }
 
         let ui = ctx.user_interfaces.first();
@@ -618,6 +623,7 @@ impl Plugin for Game {
             .add::<Beam>("Beam")
             .add::<KineticGun>("KineticGun")
             .add::<EnemyTrap>("ArrivalEnemyTrap")
+            .add::<PointOfInterest>("Point Of Interest")
             .add::<Trigger>("Trigger");
 
         context.widget_constructors.add::<InventoryItem>();
@@ -641,9 +647,9 @@ impl Plugin for Game {
         container.register_inheritable_inspectable::<HitBox>();
         container.register_inheritable_inspectable::<Item>();
         container.register_inheritable_inspectable::<Weapon>();
+        container.register_inheritable_inspectable::<BotCounter>();
         container.register_inheritable_vec_collection::<Barrel>();
         container.register_inheritable_vec_collection::<HitBox>();
-        container.register_inheritable_vec_collection::<DefaultWeapon>();
         container.register_inheritable_vec_collection::<ItemEntry>();
         container
     }
