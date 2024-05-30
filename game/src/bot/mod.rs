@@ -10,7 +10,7 @@ use crate::{
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::graph::SceneGraph;
+use fyrox::resource::model::ModelResourceExtension;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -26,6 +26,8 @@ use fyrox::{
         visitor::{Visit, VisitResult, Visitor},
         TypeUuidProvider,
     },
+    graph::SceneGraph,
+    resource::model::ModelResource,
     scene::{
         self,
         animation::{absm::prelude::*, prelude::*},
@@ -125,6 +127,10 @@ pub struct Bot {
     pub attack_sounds: Vec<Handle<Node>>,
     pub punch_sounds: Vec<Handle<Node>>,
     pub hostility: BotHostility,
+    prev_is_dead: bool,
+    despawn_asset: Option<ModelResource>,
+    despawn_timeout: f32,
+    last_position: Vector3<f32>,
 }
 
 impl Deref for Bot {
@@ -182,6 +188,10 @@ impl Default for Bot {
                 speed: 270.0f32.to_radians(),
             },
             ragdoll: Default::default(),
+            despawn_asset: None,
+            despawn_timeout: 30.0,
+            prev_is_dead: false,
+            last_position: Default::default(),
         }
     }
 }
@@ -230,17 +240,6 @@ impl Bot {
         }
     }
 
-    pub fn can_be_removed(&self, scene: &Scene) -> bool {
-        if let Some(upper_body_layer) = self.state_machine.upper_body_layer(&scene.graph) {
-            let animations =
-                utils::fetch_animation_container_ref(&scene.graph, self.animation_player);
-            upper_body_layer
-                .is_all_animations_of_state_ended(self.state_machine.dead_state, animations)
-        } else {
-            false
-        }
-    }
-
     pub fn debug_draw(&self, context: &mut SceneDrawingContext) {
         for pts in self.agent.path().windows(2) {
             let a = pts[0];
@@ -263,14 +262,6 @@ impl Bot {
         self.head_exploded = true;
 
         // TODO: Add effect.
-    }
-
-    pub fn on_actor_removed(&mut self, handle: Handle<Node>) {
-        if let Some(target) = self.target.as_ref() {
-            if target.handle == handle {
-                self.target = None;
-            }
-        }
     }
 
     fn handle_animation_events(
@@ -399,6 +390,25 @@ impl ScriptTrait for Bot {
         if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(position) = level.actors.iter().position(|a| *a == ctx.node_handle) {
                 level.actors.remove(position);
+            }
+        }
+
+        if let Some(despawn_asset) = self.despawn_asset.as_ref() {
+            let mut intersections = Vec::new();
+
+            ctx.scene.graph.physics.cast_ray(
+                RayCastOptions {
+                    ray_origin: Point3::from(self.last_position),
+                    ray_direction: -Vector3::y(),
+                    max_len: 10.0,
+                    groups: Default::default(),
+                    sort_results: true,
+                },
+                &mut intersections,
+            );
+
+            if let Some(first) = intersections.first() {
+                despawn_asset.instantiate_at(ctx.scene, first.position.coords, Default::default());
             }
         }
     }
@@ -582,11 +592,12 @@ impl ScriptTrait for Bot {
                     .set_scale(Vector3::new(0.0, 0.0, 0.0));
             }
         }
-    }
-}
 
-pub fn try_get_bot_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Bot> {
-    graph
-        .try_get_mut(handle)
-        .and_then(|b| b.try_get_script_mut::<Bot>())
+        if !self.prev_is_dead && self.is_dead() {
+            self.prev_is_dead = true;
+            ctx.scene.graph[ctx.handle].set_lifetime(Some(self.despawn_timeout));
+        }
+
+        self.last_position = ctx.scene.graph[ctx.handle].global_position();
+    }
 }

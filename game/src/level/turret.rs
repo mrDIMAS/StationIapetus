@@ -365,7 +365,9 @@ impl Turret {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
-                let actor = character_ref(handle, &scene.graph);
+                let Some(actor) = try_get_character_ref(handle, &scene.graph) else {
+                    continue 'target_loop;
+                };
 
                 if actor.is_dead() {
                     continue 'target_loop;
