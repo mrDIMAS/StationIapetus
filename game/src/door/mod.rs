@@ -1,3 +1,4 @@
+use crate::character::try_get_character_ref;
 use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game};
 use fyrox::graph::SceneGraph;
 use fyrox::material::MaterialResourceExtension;
@@ -30,7 +31,7 @@ struct OpenRequest {
 #[visit(optional)]
 pub struct Door {
     #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
-    screens: Vec<Handle<Node>>,
+    screens: InheritableVariable<Vec<Handle<Node>>>,
     open_sound: InheritableVariable<Handle<Node>>,
     close_sound: InheritableVariable<Handle<Node>>,
     access_granted_sound: InheritableVariable<Handle<Node>>,
@@ -146,12 +147,16 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            let actor_position = character_ref(*a, &ctx.scene.graph).position(&ctx.scene.graph);
-            let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
-            if close_enough {
-                closest_actor = Some(a);
+            if let Some(actor) = try_get_character_ref(*a, &ctx.scene.graph) {
+                let actor_position = actor.position(&ctx.scene.graph);
+                let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
+                if close_enough {
+                    closest_actor = Some(a);
+                }
+                close_enough
+            } else {
+                false
             }
-            close_enough
         });
 
         if let Some(state_machine) = ctx
@@ -243,7 +248,7 @@ impl Door {
         resource_manager: ResourceManager,
         texture: TextureResource,
     ) {
-        for &node_handle in &self.screens {
+        for &node_handle in self.screens.iter() {
             if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
