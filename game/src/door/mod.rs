@@ -1,7 +1,6 @@
-use crate::character::try_get_character_ref;
-use crate::{character::character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game};
-use fyrox::graph::SceneGraph;
-use fyrox::material::MaterialResourceExtension;
+use crate::{
+    character::try_get_character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game,
+};
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
@@ -9,8 +8,9 @@ use fyrox::{
         variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
+    graph::SceneGraph,
     gui::UserInterface,
-    material::{Material, MaterialResource},
+    material::{Material, MaterialResource, MaterialResourceExtension},
     resource::{
         model::ModelResource,
         texture::{Texture, TextureResource},

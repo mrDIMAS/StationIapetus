@@ -750,12 +750,12 @@ impl Plugin for Game {
         }
     }
 
-    fn on_loaded(&mut self, mut context: PluginContext) {
+    fn on_loaded(&mut self, context: PluginContext) {
         if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
             let inner_size = graphics_context.window.inner_size();
 
             self.create_highlighter(
-                &mut context.graphics_context,
+                context.graphics_context,
                 inner_size.width as usize,
                 inner_size.height as usize,
             );

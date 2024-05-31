@@ -1,12 +1,11 @@
 use crate::{
     character::{
-        character_ref, try_get_character_ref, Character, CharacterMessage, CharacterMessageData,
-        DamageDealer, DamagePosition, HitBox,
+        try_get_character_ref, Character, CharacterMessage, CharacterMessageData, DamageDealer,
+        DamagePosition, HitBox,
     },
     level::decal::Decal,
     CollisionGroups, Game, Weapon,
 };
-use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -18,6 +17,7 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
+    graph::{BaseSceneGraph, SceneGraph},
     rand::seq::SliceRandom,
     resource::{
         model::{ModelResource, ModelResourceExtension},
@@ -234,16 +234,30 @@ fn ray_hit(
     if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
         // Check if there was an intersection with an actor.
         'actor_loop: for &actor_handle in actors.iter() {
-            let character = character_ref(actor_handle, graph);
+            if let Some(character) = try_get_character_ref(actor_handle, graph) {
+                // Check hit boxes first.
+                for hit_box in character.hit_boxes.iter() {
+                    if hit_box.collider == hit.collider {
+                        // Ignore intersections with owners.
+                        if shooter == actor_handle {
+                            continue 'actor_loop;
+                        }
 
-            // Check hit boxes first.
-            for hit_box in character.hit_boxes.iter() {
-                if hit_box.collider == hit.collider {
-                    // Ignore intersections with owners.
-                    if shooter == actor_handle {
-                        continue 'actor_loop;
+                        return Some(Hit {
+                            hit_actor: actor_handle,
+                            shooter_actor: shooter,
+                            position: hit.position.coords,
+                            normal: hit.normal,
+                            collider: hit.collider,
+                            feature: hit.feature,
+                            hit_box: Some(*hit_box),
+                            query_buffer,
+                        });
                     }
+                }
 
+                // If none of hit boxes is hit, then check if we hit actor's capsule.
+                if character.capsule_collider == hit.collider {
                     return Some(Hit {
                         hit_actor: actor_handle,
                         shooter_actor: shooter,
@@ -251,24 +265,10 @@ fn ray_hit(
                         normal: hit.normal,
                         collider: hit.collider,
                         feature: hit.feature,
-                        hit_box: Some(*hit_box),
+                        hit_box: None,
                         query_buffer,
                     });
                 }
-            }
-
-            // If none of hit boxes is hit, then check if we hit actor's capsule.
-            if character.capsule_collider == hit.collider {
-                return Some(Hit {
-                    hit_actor: actor_handle,
-                    shooter_actor: shooter,
-                    position: hit.position.coords,
-                    normal: hit.normal,
-                    collider: hit.collider,
-                    feature: hit.feature,
-                    hit_box: None,
-                    query_buffer,
-                });
             }
         }
 
@@ -397,21 +397,24 @@ impl ScriptTrait for Projectile {
                                 };
 
                             for &actor_handle in level.actors.iter() {
-                                let character = character_ref(actor_handle, &ctx.scene.graph);
-                                for hit_box in character.hit_boxes.iter() {
-                                    if hit_box.collider == other_collider {
-                                        hit = Some(Hit {
-                                            hit_actor: actor_handle,
-                                            shooter_actor: owner_character,
-                                            position: contact_world_position,
-                                            normal: manifold.normal,
-                                            collider: other_collider,
-                                            feature: FeatureId::Unknown,
-                                            hit_box: Some(*hit_box),
-                                            query_buffer: vec![],
-                                        });
+                                if let Some(character) =
+                                    try_get_character_ref(actor_handle, &ctx.scene.graph)
+                                {
+                                    for hit_box in character.hit_boxes.iter() {
+                                        if hit_box.collider == other_collider {
+                                            hit = Some(Hit {
+                                                hit_actor: actor_handle,
+                                                shooter_actor: owner_character,
+                                                position: contact_world_position,
+                                                normal: manifold.normal,
+                                                collider: other_collider,
+                                                feature: FeatureId::Unknown,
+                                                hit_box: Some(*hit_box),
+                                                query_buffer: vec![],
+                                            });
 
-                                        break 'contact_loop;
+                                            break 'contact_loop;
+                                        }
                                     }
                                 }
                             }
@@ -443,27 +446,30 @@ impl ScriptTrait for Projectile {
                     let level = game.level.as_ref().unwrap();
                     // Just find out actors which must be damaged and re-cast damage message for each.
                     for &actor_handle in level.actors.iter() {
-                        let character = character_ref(actor_handle, &ctx.scene.graph);
-                        // TODO: Add occlusion test. This will hit actors through walls.
-                        let character_position = character.position(&ctx.scene.graph);
-                        if character_position.metric_distance(&position) <= radius {
-                            ctx.message_sender.send_global(CharacterMessage {
-                                character: actor_handle,
-                                data: CharacterMessageData::Damage {
-                                    dealer: DamageDealer {
-                                        entity: hit.shooter_actor,
+                        if let Some(character) =
+                            try_get_character_ref(actor_handle, &ctx.scene.graph)
+                        {
+                            // TODO: Add occlusion test. This will hit actors through walls.
+                            let character_position = character.position(&ctx.scene.graph);
+                            if character_position.metric_distance(&position) <= radius {
+                                ctx.message_sender.send_global(CharacterMessage {
+                                    character: actor_handle,
+                                    data: CharacterMessageData::Damage {
+                                        dealer: DamageDealer {
+                                            entity: hit.shooter_actor,
+                                        },
+                                        hitbox: None,
+                                        // TODO: Maybe collect all hitboxes?
+                                        amount,
+                                        critical_hit_probability: self.critical_hit_probability,
+                                        position: Some(DamagePosition {
+                                            point: hit.position,
+                                            direction,
+                                        }),
+                                        is_melee: false,
                                     },
-                                    hitbox: None,
-                                    // TODO: Maybe collect all hitboxes?
-                                    amount,
-                                    critical_hit_probability: self.critical_hit_probability,
-                                    position: Some(DamagePosition {
-                                        point: hit.position,
-                                        direction,
-                                    }),
-                                    is_melee: false,
-                                },
-                            });
+                                });
+                            }
                         }
                     }
                 }

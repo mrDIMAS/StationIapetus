@@ -537,14 +537,6 @@ pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Cha
     graph.try_get_script_component_of::<Character>(handle)
 }
 
-pub fn character_ref(handle: Handle<Node>, graph: &Graph) -> &Character {
-    try_get_character_ref(handle, graph).unwrap()
-}
-
 pub fn try_get_character_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Character> {
     graph.try_get_script_component_of_mut(handle)
-}
-
-pub fn character_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Character {
-    try_get_character_mut(handle, graph).unwrap()
 }

@@ -1,6 +1,5 @@
-use crate::character::try_get_character_ref;
 use crate::{
-    character::{character_ref, Character},
+    character::{try_get_character_ref, Character},
     message::Message,
     Game,
 };

@@ -1,10 +1,7 @@
 use crate::{
-    character::{character_ref, try_get_character_ref},
-    sound::SoundManager,
-    weapon::projectile::Projectile,
-    Game, Player,
+    character::try_get_character_ref, sound::SoundManager, weapon::projectile::Projectile, Game,
+    Player,
 };
-use fyrox::graph::BaseSceneGraph;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -359,9 +356,7 @@ impl Turret {
     fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {
         let self_position = scene.graph[self.model].global_position();
 
-        if !scene.graph.is_valid_handle(self.target)
-            || !character_ref(self.target, &scene.graph).is_dead()
-        {
+        if try_get_character_ref(self.target, &scene.graph).map_or(true, |c| !c.is_dead()) {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
@@ -421,7 +416,7 @@ impl Turret {
                 }
             }
             self.target = closest;
-        } else if character_ref(self.target, &scene.graph).is_dead() {
+        } else {
             self.target = Default::default();
         }
     }
