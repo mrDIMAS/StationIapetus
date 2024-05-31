@@ -593,11 +593,20 @@ impl ScriptTrait for Bot {
             }
         }
 
+        let node = &mut ctx.scene.graph[ctx.handle];
+
         if !self.prev_is_dead && self.is_dead() {
             self.prev_is_dead = true;
-            ctx.scene.graph[ctx.handle].set_lifetime(Some(self.despawn_timeout));
+            node.set_lifetime(Some(self.despawn_timeout));
         }
 
-        self.last_position = ctx.scene.graph[ctx.handle].global_position();
+        if let Some(lifetime) = node.lifetime() {
+            if lifetime <= 1.0 {
+                node.local_transform_mut()
+                    .set_scale(Vector3::repeat(lifetime));
+            }
+        }
+
+        self.last_position = node.global_position();
     }
 }
