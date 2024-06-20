@@ -1,5 +1,5 @@
 use crate::{
-    config::SoundConfig,
+    config::Config,
     control_scheme::{ControlButton, ControlScheme},
     gui::{create_check_box, create_scroll_bar, ScrollBarData},
     message::Message,
@@ -15,6 +15,7 @@ use fyrox::{
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
     graph::BaseSceneGraph,
+    gui::font::{Font, FontResource},
     gui::{
         border::BorderBuilder,
         button::{Button, ButtonBuilder, ButtonMessage},
@@ -64,9 +65,15 @@ pub struct OptionsMenu {
     point_shadows_quality: Handle<UiNode>,
     spot_shadows_quality: Handle<UiNode>,
     show_debug_info: Handle<UiNode>,
+    font: FontResource,
 }
 
-fn make_text_mark(text: &str, row: usize, ctx: &mut BuildContext) -> Handle<UiNode> {
+fn make_text_mark(
+    text: &str,
+    font: FontResource,
+    row: usize,
+    ctx: &mut BuildContext,
+) -> Handle<UiNode> {
     TextBuilder::new(
         WidgetBuilder::new()
             .on_row(row)
@@ -74,33 +81,55 @@ fn make_text_mark(text: &str, row: usize, ctx: &mut BuildContext) -> Handle<UiNo
             .with_margin(Thickness::uniform(2.0)),
     )
     .with_text(text)
+    .with_font(font)
+    .with_font_size(16.0)
     .with_vertical_text_alignment(VerticalAlignment::Center)
     .build(ctx)
 }
 
-fn make_tab_header(text: &str, ctx: &mut BuildContext) -> Handle<UiNode> {
+fn make_tab_header(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<UiNode> {
     TextBuilder::new(
         WidgetBuilder::new()
-            .with_width(100.0)
+            .with_width(160.0)
             .with_height(30.0)
             .with_margin(Thickness::uniform(1.0)),
     )
     .with_text(text)
+    .with_font(font)
+    .with_font_size(22.0)
     .with_vertical_text_alignment(VerticalAlignment::Center)
     .with_horizontal_text_alignment(HorizontalAlignment::Center)
     .build(ctx)
 }
 
-fn make_video_mode_item(video_mode: &VideoMode, ctx: &mut BuildContext) -> Handle<UiNode> {
+fn make_video_mode_item(
+    video_mode: &VideoMode,
+    font: FontResource,
+    ctx: &mut BuildContext,
+) -> Handle<UiNode> {
     let size = video_mode.size();
     let rate = video_mode.refresh_rate_millihertz() / 1000;
+    make_video_mode_item_raw(
+        &format!("{} x {} @ {}Hz", size.width, size.height, rate),
+        font,
+        ctx,
+    )
+}
+
+fn make_video_mode_item_raw(
+    text: &str,
+    font: FontResource,
+    ctx: &mut BuildContext,
+) -> Handle<UiNode> {
     DecoratorBuilder::new(
         BorderBuilder::new(
             WidgetBuilder::new().with_child(
                 TextBuilder::new(WidgetBuilder::new())
-                    .with_text(format!("{} x {} @ {}Hz", size.width, size.height, rate).as_str())
+                    .with_text(text)
                     .with_vertical_text_alignment(VerticalAlignment::Center)
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                    .with_font(font)
+                    .with_font_size(16.0)
                     .build(ctx),
             ),
         )
@@ -116,6 +145,7 @@ fn make_video_mode_item(video_mode: &VideoMode, ctx: &mut BuildContext) -> Handl
 
 fn make_shadows_quality_drop_down(
     ctx: &mut BuildContext,
+    font: FontResource,
     row: usize,
     current: usize,
 ) -> Handle<UiNode> {
@@ -132,6 +162,10 @@ fn make_shadows_quality_drop_down(
                 DecoratorBuilder::new(BorderBuilder::new(
                     WidgetBuilder::new().with_child(
                         TextBuilder::new(WidgetBuilder::new())
+                            .with_vertical_text_alignment(VerticalAlignment::Center)
+                            .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                            .with_font(font.clone())
+                            .with_font_size(16.0)
                             .with_text(o)
                             .build(ctx),
                     ),
@@ -166,12 +200,7 @@ fn index_to_shadow_map_size(index: usize) -> usize {
 }
 
 impl OptionsMenu {
-    pub fn new(
-        engine: &mut PluginContext,
-        control_scheme: &ControlScheme,
-        show_debug_info_value: bool,
-        sound_config: &SoundConfig,
-    ) -> Self {
+    pub fn new(engine: &mut PluginContext, config: &Config) -> Self {
         let ctx = &mut engine.user_interfaces.first_mut().build_ctx();
 
         let common_row = Row::strict(36.0);
@@ -200,295 +229,350 @@ impl OptionsMenu {
         let spot_shadows_quality;
         let show_debug_info;
 
+        let font = engine
+            .resource_manager
+            .request::<Font>("data/ui/SquaresBold.ttf");
+
+        let graphics_content = GridBuilder::new(
+            WidgetBuilder::new()
+                .with_margin(Thickness::uniform(5.0))
+                .with_child(make_text_mark("Resolution", font.clone(), 0, ctx))
+                .with_child({
+                    video_mode = DropdownListBuilder::new(
+                        WidgetBuilder::new()
+                            .on_column(1)
+                            .on_row(0)
+                            .with_margin(margin),
+                    )
+                    .with_close_on_selection(true)
+                    .with_selected(0)
+                    .build(ctx);
+                    video_mode
+                })
+                // Spot Shadows Enabled
+                .with_child(make_text_mark("Spot Shadows", font.clone(), 1, ctx))
+                .with_child({
+                    spot_shadows =
+                        create_check_box(ctx, 1, 1, config.graphics.spot_shadows_enabled);
+                    spot_shadows
+                })
+                // Soft Spot Shadows
+                .with_child(make_text_mark("Soft Spot Shadows", font.clone(), 2, ctx))
+                .with_child({
+                    soft_spot_shadows =
+                        create_check_box(ctx, 2, 1, config.graphics.spot_soft_shadows);
+                    soft_spot_shadows
+                })
+                // Spot Shadows Distance
+                .with_child(make_text_mark(
+                    "Spot Shadows Distance",
+                    font.clone(),
+                    3,
+                    ctx,
+                ))
+                .with_child({
+                    spot_shadow_distance = create_scroll_bar(
+                        ctx,
+                        ScrollBarData {
+                            min: 1.0,
+                            max: 15.0,
+                            value: config.graphics.spot_shadows_distance,
+                            step: 0.25,
+                            row: 3,
+                            column: 1,
+                            margin,
+                            show_value: true,
+                            orientation: Orientation::Horizontal,
+                            font: font.clone(),
+                        },
+                    );
+                    spot_shadow_distance
+                })
+                // Point Shadows Enabled
+                .with_child(make_text_mark("Point Shadows", font.clone(), 4, ctx))
+                .with_child({
+                    point_shadows =
+                        create_check_box(ctx, 4, 1, config.graphics.point_shadows_enabled);
+                    point_shadows
+                })
+                // Soft Point Shadows
+                .with_child(make_text_mark("Soft Point Shadows", font.clone(), 5, ctx))
+                .with_child({
+                    soft_point_shadows =
+                        create_check_box(ctx, 5, 1, config.graphics.point_soft_shadows);
+                    soft_point_shadows
+                })
+                // Point Shadows Distance
+                .with_child(make_text_mark(
+                    "Point Shadows Distance",
+                    font.clone(),
+                    6,
+                    ctx,
+                ))
+                .with_child({
+                    point_shadow_distance = create_scroll_bar(
+                        ctx,
+                        ScrollBarData {
+                            min: 1.0,
+                            max: 15.0,
+                            value: config.graphics.point_shadows_distance,
+                            step: 0.25,
+                            row: 6,
+                            column: 1,
+                            margin,
+                            show_value: true,
+                            orientation: Orientation::Horizontal,
+                            font: font.clone(),
+                        },
+                    );
+                    point_shadow_distance
+                })
+                .with_child(make_text_mark("Use Light Scatter", font.clone(), 7, ctx))
+                .with_child({
+                    use_light_scatter =
+                        create_check_box(ctx, 7, 1, config.graphics.light_scatter_enabled);
+                    use_light_scatter
+                })
+                .with_child(make_text_mark("FXAA", font.clone(), 8, ctx))
+                .with_child({
+                    fxaa = create_check_box(ctx, 8, 1, config.graphics.fxaa);
+                    fxaa
+                })
+                .with_child(make_text_mark("SSAO", font.clone(), 9, ctx))
+                .with_child({
+                    ssao = create_check_box(ctx, 9, 1, config.graphics.use_ssao);
+                    ssao
+                })
+                .with_child(make_text_mark(
+                    "Point Shadows Quality",
+                    font.clone(),
+                    10,
+                    ctx,
+                ))
+                .with_child({
+                    point_shadows_quality = make_shadows_quality_drop_down(
+                        ctx,
+                        font.clone(),
+                        10,
+                        shadows_quality(config.graphics.point_shadow_map_size),
+                    );
+                    point_shadows_quality
+                })
+                .with_child(make_text_mark(
+                    "Spot Shadows Quality",
+                    font.clone(),
+                    11,
+                    ctx,
+                ))
+                .with_child({
+                    spot_shadows_quality = make_shadows_quality_drop_down(
+                        ctx,
+                        font.clone(),
+                        11,
+                        shadows_quality(config.graphics.spot_shadow_map_size),
+                    );
+                    spot_shadows_quality
+                })
+                .with_child(make_text_mark("Show Debug Info", font.clone(), 12, ctx))
+                .with_child({
+                    show_debug_info = create_check_box(ctx, 12, 1, config.show_debug_info);
+                    show_debug_info
+                }),
+        )
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_column(Column::strict(270.0))
+        .add_column(Column::stretch())
+        .build(ctx);
+
         let graphics_tab = TabDefinition {
-            header: make_tab_header("Graphics", ctx),
+            header: make_tab_header("Graphics", font.clone(), ctx),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
-                    .with_content(
-                        GridBuilder::new(
-                            WidgetBuilder::new()
-                                .with_margin(Thickness::uniform(5.0))
-                                .with_child(make_text_mark("Resolution", 0, ctx))
-                                .with_child({
-                                    video_mode = DropdownListBuilder::new(
-                                        WidgetBuilder::new()
-                                            .on_column(1)
-                                            .on_row(0)
-                                            .with_margin(margin),
-                                    )
-                                    .with_close_on_selection(true)
-                                    .with_selected(0)
-                                    .build(ctx);
-                                    video_mode
-                                })
-                                // Spot Shadows Enabled
-                                .with_child(make_text_mark("Spot Shadows", 1, ctx))
-                                .with_child({
-                                    spot_shadows = create_check_box(ctx, 1, 1, false);
-                                    spot_shadows
-                                })
-                                // Soft Spot Shadows
-                                .with_child(make_text_mark("Soft Spot Shadows", 2, ctx))
-                                .with_child({
-                                    soft_spot_shadows = create_check_box(ctx, 2, 1, false);
-                                    soft_spot_shadows
-                                })
-                                // Spot Shadows Distance
-                                .with_child(make_text_mark("Spot Shadows Distance", 3, ctx))
-                                .with_child({
-                                    spot_shadow_distance = create_scroll_bar(
-                                        ctx,
-                                        ScrollBarData {
-                                            min: 1.0,
-                                            max: 15.0,
-                                            value: 0.0,
-                                            step: 0.25,
-                                            row: 3,
-                                            column: 1,
-                                            margin,
-                                            show_value: true,
-                                            orientation: Orientation::Horizontal,
-                                        },
-                                    );
-                                    spot_shadow_distance
-                                })
-                                // Point Shadows Enabled
-                                .with_child(make_text_mark("Point Shadows", 4, ctx))
-                                .with_child({
-                                    point_shadows = create_check_box(ctx, 4, 1, false);
-                                    point_shadows
-                                })
-                                // Soft Point Shadows
-                                .with_child(make_text_mark("Soft Point Shadows", 5, ctx))
-                                .with_child({
-                                    soft_point_shadows = create_check_box(ctx, 5, 1, false);
-                                    soft_point_shadows
-                                })
-                                // Point Shadows Distance
-                                .with_child(make_text_mark("Point Shadows Distance", 6, ctx))
-                                .with_child({
-                                    point_shadow_distance = create_scroll_bar(
-                                        ctx,
-                                        ScrollBarData {
-                                            min: 1.0,
-                                            max: 15.0,
-                                            value: 0.0,
-                                            step: 0.25,
-                                            row: 6,
-                                            column: 1,
-                                            margin,
-                                            show_value: true,
-                                            orientation: Orientation::Horizontal,
-                                        },
-                                    );
-                                    point_shadow_distance
-                                })
-                                .with_child(make_text_mark("Use Light Scatter", 7, ctx))
-                                .with_child({
-                                    use_light_scatter = create_check_box(ctx, 7, 1, false);
-                                    use_light_scatter
-                                })
-                                .with_child(make_text_mark("FXAA", 8, ctx))
-                                .with_child({
-                                    fxaa = create_check_box(ctx, 8, 1, false);
-                                    fxaa
-                                })
-                                .with_child(make_text_mark("SSAO", 9, ctx))
-                                .with_child({
-                                    ssao = create_check_box(ctx, 9, 1, false);
-                                    ssao
-                                })
-                                .with_child(make_text_mark("Point Shadows Quality", 10, ctx))
-                                .with_child({
-                                    point_shadows_quality =
-                                        make_shadows_quality_drop_down(ctx, 10, shadows_quality(0));
-                                    point_shadows_quality
-                                })
-                                .with_child(make_text_mark("Spot Shadows Quality", 11, ctx))
-                                .with_child({
-                                    spot_shadows_quality =
-                                        make_shadows_quality_drop_down(ctx, 11, shadows_quality(0));
-                                    spot_shadows_quality
-                                })
-                                .with_child(make_text_mark("Show Debug Info", 12, ctx))
-                                .with_child({
-                                    show_debug_info =
-                                        create_check_box(ctx, 12, 1, show_debug_info_value);
-                                    show_debug_info
-                                }),
-                        )
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_column(Column::strict(250.0))
-                        .add_column(Column::stretch())
-                        .build(ctx),
-                    )
+                    .with_content(graphics_content)
                     .build(ctx)
             },
         };
 
+        let sound_content = GridBuilder::new(
+            WidgetBuilder::new()
+                .with_child(make_text_mark("Sound Volume", font.clone(), 0, ctx))
+                .with_child({
+                    sound_volume = create_scroll_bar(
+                        ctx,
+                        ScrollBarData {
+                            min: 0.0,
+                            max: 1.0,
+                            value: config.sound.master_volume,
+                            step: 0.025,
+                            row: 0,
+                            column: 1,
+                            margin,
+                            show_value: true,
+                            orientation: Orientation::Horizontal,
+                            font: font.clone(),
+                        },
+                    );
+                    sound_volume
+                })
+                .with_child(make_text_mark("Music Volume", font.clone(), 1, ctx))
+                .with_child({
+                    music_volume = create_scroll_bar(
+                        ctx,
+                        ScrollBarData {
+                            min: 0.0,
+                            max: 1.0,
+                            value: config.sound.music_volume,
+                            step: 0.025,
+                            row: 1,
+                            column: 1,
+                            margin,
+                            show_value: true,
+                            orientation: Orientation::Horizontal,
+                            font: font.clone(),
+                        },
+                    );
+                    music_volume
+                })
+                .with_child(make_text_mark("Use HRTF", font.clone(), 2, ctx))
+                .with_child({
+                    use_hrtf = create_check_box(ctx, 2, 1, config.sound.use_hrtf);
+                    use_hrtf
+                })
+                .with_child({
+                    reset_audio_settings =
+                        ButtonBuilder::new(WidgetBuilder::new().on_row(4).with_margin(margin))
+                            .with_text("Reset")
+                            .build(ctx);
+                    reset_audio_settings
+                }),
+        )
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(common_row)
+        .add_row(Row::stretch())
+        .add_row(common_row)
+        .add_column(Column::strict(250.0))
+        .add_column(Column::stretch())
+        .build(ctx);
+
         let sound_tab = TabDefinition {
-            header: make_tab_header("Sound", ctx),
+            header: make_tab_header("Sound", font.clone(), ctx),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
-                    .with_content(
-                        GridBuilder::new(
-                            WidgetBuilder::new()
-                                .with_child(make_text_mark("Sound Volume", 0, ctx))
-                                .with_child({
-                                    sound_volume = create_scroll_bar(
-                                        ctx,
-                                        ScrollBarData {
-                                            min: 0.0,
-                                            max: 1.0,
-                                            value: sound_config.master_volume,
-                                            step: 0.025,
-                                            row: 0,
-                                            column: 1,
-                                            margin,
-                                            show_value: true,
-                                            orientation: Orientation::Horizontal,
-                                        },
-                                    );
-                                    sound_volume
-                                })
-                                .with_child(make_text_mark("Music Volume", 1, ctx))
-                                .with_child({
-                                    music_volume = create_scroll_bar(
-                                        ctx,
-                                        ScrollBarData {
-                                            min: 0.0,
-                                            max: 1.0,
-                                            value: sound_config.music_volume,
-                                            step: 0.025,
-                                            row: 1,
-                                            column: 1,
-                                            margin,
-                                            show_value: true,
-                                            orientation: Orientation::Horizontal,
-                                        },
-                                    );
-                                    music_volume
-                                })
-                                .with_child(make_text_mark("Use HRTF", 2, ctx))
-                                .with_child({
-                                    use_hrtf = create_check_box(ctx, 2, 1, sound_config.use_hrtf);
-                                    use_hrtf
-                                })
-                                .with_child({
-                                    reset_audio_settings = ButtonBuilder::new(
-                                        WidgetBuilder::new().on_row(4).with_margin(margin),
-                                    )
-                                    .with_text("Reset")
-                                    .build(ctx);
-                                    reset_audio_settings
-                                }),
-                        )
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_row(Row::stretch())
-                        .add_row(common_row)
-                        .add_column(Column::strict(250.0))
-                        .add_column(Column::stretch())
-                        .build(ctx),
-                    )
+                    .with_content(sound_content)
                     .build(ctx)
             },
+        };
+
+        let controls_content = {
+            let mut children = Vec::new();
+
+            for (row, button) in config.controls.buttons().iter().enumerate() {
+                // Offset by total amount of rows that goes before
+                let row = row + 2;
+
+                children.push(make_text_mark(
+                    button.description.as_str(),
+                    font.clone(),
+                    row,
+                    ctx,
+                ));
+
+                let button = ButtonBuilder::new(
+                    WidgetBuilder::new()
+                        .with_margin(margin)
+                        .on_row(row)
+                        .on_column(1),
+                )
+                .with_content(
+                    TextBuilder::new(WidgetBuilder::new())
+                        .with_vertical_text_alignment(VerticalAlignment::Center)
+                        .with_horizontal_text_alignment(HorizontalAlignment::Center)
+                        .with_font(font.clone())
+                        .with_font_size(16.0)
+                        .with_text(button.button.name())
+                        .build(ctx),
+                )
+                .build(ctx);
+                children.push(button);
+                control_scheme_buttons.push(button);
+            }
+
+            GridBuilder::new(
+                WidgetBuilder::new()
+                    .with_child(make_text_mark("Mouse Sensitivity", font.clone(), 0, ctx))
+                    .with_child({
+                        mouse_sens = create_scroll_bar(
+                            ctx,
+                            ScrollBarData {
+                                min: 0.05,
+                                max: 2.0,
+                                value: config.controls.mouse_sens,
+                                step: 0.05,
+                                row: 0,
+                                column: 1,
+                                margin,
+                                show_value: true,
+                                orientation: Orientation::Horizontal,
+                                font: font.clone(),
+                            },
+                        );
+                        mouse_sens
+                    })
+                    .with_child(make_text_mark("Inverse Mouse Y", font.clone(), 1, ctx))
+                    .with_child({
+                        mouse_y_inverse =
+                            create_check_box(ctx, 1, 1, config.controls.mouse_y_inverse);
+                        mouse_y_inverse
+                    })
+                    .with_child({
+                        reset_control_scheme = ButtonBuilder::new(
+                            WidgetBuilder::new()
+                                .on_row(2 + config.controls.buttons().len())
+                                .with_margin(margin),
+                        )
+                        .with_text("Reset")
+                        .build(ctx);
+                        reset_control_scheme
+                    })
+                    .with_children(children),
+            )
+            .add_column(Column::strict(250.0))
+            .add_column(Column::stretch())
+            .add_row(common_row)
+            .add_row(common_row)
+            .add_rows(
+                (0..config.controls.buttons().len())
+                    .map(|_| common_row)
+                    .collect(),
+            )
+            .add_row(common_row)
+            .build(ctx)
         };
 
         let controls_tab = TabDefinition {
-            header: make_tab_header("Controls", ctx),
+            header: make_tab_header("Controls", font.clone(), ctx),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
-                    .with_content({
-                        let mut children = Vec::new();
-
-                        for (row, button) in control_scheme.buttons().iter().enumerate() {
-                            // Offset by total amount of rows that goes before
-                            let row = row + 2;
-
-                            children.push(make_text_mark(button.description.as_str(), row, ctx));
-
-                            let button = ButtonBuilder::new(
-                                WidgetBuilder::new()
-                                    .with_margin(margin)
-                                    .on_row(row)
-                                    .on_column(1),
-                            )
-                            .with_text(button.button.name())
-                            .build(ctx);
-                            children.push(button);
-                            control_scheme_buttons.push(button);
-                        }
-
-                        GridBuilder::new(
-                            WidgetBuilder::new()
-                                .with_child(make_text_mark("Mouse Sensitivity", 0, ctx))
-                                .with_child({
-                                    mouse_sens = create_scroll_bar(
-                                        ctx,
-                                        ScrollBarData {
-                                            min: 0.05,
-                                            max: 2.0,
-                                            value: control_scheme.mouse_sens,
-                                            step: 0.05,
-                                            row: 0,
-                                            column: 1,
-                                            margin,
-                                            show_value: true,
-                                            orientation: Orientation::Horizontal,
-                                        },
-                                    );
-                                    mouse_sens
-                                })
-                                .with_child(make_text_mark("Inverse Mouse Y", 1, ctx))
-                                .with_child({
-                                    mouse_y_inverse =
-                                        create_check_box(ctx, 1, 1, control_scheme.mouse_y_inverse);
-                                    mouse_y_inverse
-                                })
-                                .with_child({
-                                    reset_control_scheme = ButtonBuilder::new(
-                                        WidgetBuilder::new()
-                                            .on_row(2 + control_scheme.buttons().len())
-                                            .with_margin(margin),
-                                    )
-                                    .with_text("Reset")
-                                    .build(ctx);
-                                    reset_control_scheme
-                                })
-                                .with_children(children),
-                        )
-                        .add_column(Column::strict(250.0))
-                        .add_column(Column::stretch())
-                        .add_row(common_row)
-                        .add_row(common_row)
-                        .add_rows(
-                            (0..control_scheme.buttons().len())
-                                .map(|_| common_row)
-                                .collect(),
-                        )
-                        .add_row(common_row)
-                        .build(ctx)
-                    })
+                    .with_content(controls_content)
                     .build(ctx)
             },
         };
@@ -504,6 +588,7 @@ impl OptionsMenu {
                 .with_max_size(Vector2::new(f32::INFINITY, 600.0))
                 .with_width(500.0),
         )
+        .can_maximize(false)
         .can_minimize(false)
         .with_title(WindowTitle::text("Options"))
         .open(false)
@@ -534,16 +619,11 @@ impl OptionsMenu {
             ssao,
             spot_shadows_quality,
             show_debug_info,
+            font,
         }
     }
 
-    pub fn sync_to_model(
-        &mut self,
-        ctx: &mut PluginContext,
-        control_scheme: &ControlScheme,
-        show_debug_info: bool,
-        sound_config: &SoundConfig,
-    ) {
+    pub fn sync_to_model(&mut self, ctx: &mut PluginContext, config: &Config) {
         let ui = &mut ctx.user_interfaces.first_mut();
 
         let sync_check_box = |handle: Handle<UiNode>, value: bool| {
@@ -577,18 +657,18 @@ impl OptionsMenu {
             sync_scroll_bar(self.spot_shadow_distance, settings.spot_shadows_distance);
         }
 
-        sync_check_box(self.mouse_y_inverse, control_scheme.mouse_y_inverse);
-        sync_check_box(self.use_hrtf, sound_config.use_hrtf);
-        sync_check_box(self.show_debug_info, show_debug_info);
+        sync_check_box(self.mouse_y_inverse, config.controls.mouse_y_inverse);
+        sync_check_box(self.use_hrtf, config.sound.use_hrtf);
+        sync_check_box(self.show_debug_info, config.show_debug_info);
 
-        sync_scroll_bar(self.mouse_sens, control_scheme.mouse_sens);
-        sync_scroll_bar(self.sound_volume, sound_config.master_volume);
-        sync_scroll_bar(self.music_volume, sound_config.music_volume);
+        sync_scroll_bar(self.mouse_sens, config.controls.mouse_sens);
+        sync_scroll_bar(self.sound_volume, config.sound.master_volume);
+        sync_scroll_bar(self.music_volume, config.sound.music_volume);
 
         for (btn, def) in self
             .control_scheme_buttons
             .iter()
-            .zip(control_scheme.buttons().iter())
+            .zip(config.controls.buttons().iter())
         {
             if let Some(button) = ui.node(*btn).cast::<Button>() {
                 ui.send_message(TextMessage::text(
@@ -621,18 +701,11 @@ impl OptionsMenu {
         let video_modes = Self::video_mode_list(graphics_context);
 
         let ctx = &mut ui.build_ctx();
-        let mut modes = vec![DecoratorBuilder::new(BorderBuilder::new(
-            WidgetBuilder::new().with_child(
-                TextBuilder::new(WidgetBuilder::new())
-                    .with_text("Windowed")
-                    .build(ctx),
-            ),
-        ))
-        .build(ctx)];
+        let mut modes = vec![make_video_mode_item_raw("Windowed", self.font.clone(), ctx)];
         modes.extend(
             video_modes
                 .iter()
-                .map(|video_mode| make_video_mode_item(video_mode, ctx)),
+                .map(|video_mode| make_video_mode_item(video_mode, self.font.clone(), ctx)),
         );
 
         ui.send_message(DropdownListMessage::items(
@@ -712,39 +785,30 @@ impl OptionsMenu {
         &mut self,
         context: &mut PluginContext,
         message: &UiMessage,
-        control_scheme: &mut ControlScheme,
-        show_debug_info: &mut bool,
-        sound_config: &SoundConfig,
+        config: &mut Config,
         sender: &MessageSender,
     ) {
-        let old_settings =
+        let old_graphics_settings =
             if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
                 graphics_context.renderer.get_quality_settings()
             } else {
                 Default::default()
             };
 
-        let mut settings = old_settings;
-
-        let mut changed = false;
+        let mut graphics_settings = old_graphics_settings;
 
         if let Some(ScrollBarMessage::Value(new_value)) = message.data() {
             if message.direction() == MessageDirection::FromWidget {
                 if message.destination() == self.sound_volume {
                     sender.send(Message::SetMasterVolume(*new_value));
-                    changed = true;
                 } else if message.destination() == self.point_shadow_distance {
-                    settings.point_shadows_distance = *new_value;
-                    changed = true;
+                    graphics_settings.point_shadows_distance = *new_value;
                 } else if message.destination() == self.spot_shadow_distance {
-                    settings.spot_shadows_distance = *new_value;
-                    changed = true;
+                    graphics_settings.spot_shadows_distance = *new_value;
                 } else if message.destination() == self.mouse_sens {
-                    control_scheme.mouse_sens = *new_value;
-                    changed = true;
+                    config.controls.mouse_sens = *new_value;
                 } else if message.destination() == self.music_volume {
                     sender.send(Message::SetMusicVolume(*new_value));
-                    changed = true;
                 }
             }
         } else if let Some(DropdownListMessage::SelectionChanged(Some(index))) = message.data() {
@@ -757,70 +821,54 @@ impl OptionsMenu {
                         Self::video_mode_list(graphics_context).get(index.saturating_sub(1))
                     {
                         window.set_fullscreen(Some(Fullscreen::Exclusive(video_mode.clone())));
-                        changed = true;
                     } else {
                         window.set_fullscreen(None);
-                        changed = true;
                     }
                 }
             } else if message.destination() == self.spot_shadows_quality {
-                settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
+                graphics_settings.spot_shadow_map_size = index_to_shadow_map_size(*index);
                 if *index > 0 {
-                    settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
+                    graphics_settings.spot_shadow_map_precision = ShadowMapPrecision::Full;
                 } else {
-                    settings.spot_shadow_map_precision = ShadowMapPrecision::Half;
+                    graphics_settings.spot_shadow_map_precision = ShadowMapPrecision::Half;
                 }
-                changed = true;
             } else if message.destination() == self.point_shadows_quality {
-                settings.point_shadow_map_size = index_to_shadow_map_size(*index);
+                graphics_settings.point_shadow_map_size = index_to_shadow_map_size(*index);
                 if *index > 0 {
-                    settings.point_shadow_map_precision = ShadowMapPrecision::Full;
+                    graphics_settings.point_shadow_map_precision = ShadowMapPrecision::Full;
                 } else {
-                    settings.point_shadow_map_precision = ShadowMapPrecision::Half;
+                    graphics_settings.point_shadow_map_precision = ShadowMapPrecision::Half;
                 }
-                changed = true;
             }
         } else if let Some(CheckBoxMessage::Check(value)) = message.data() {
             let value = value.unwrap_or(false);
             if message.destination() == self.point_shadows {
-                settings.point_shadows_enabled = value;
-                changed = true;
+                graphics_settings.point_shadows_enabled = value;
             } else if message.destination() == self.spot_shadows {
-                settings.spot_shadows_enabled = value;
-                changed = true;
+                graphics_settings.spot_shadows_enabled = value;
             } else if message.destination() == self.soft_spot_shadows {
-                settings.spot_soft_shadows = value;
-                changed = true;
+                graphics_settings.spot_soft_shadows = value;
             } else if message.destination() == self.soft_point_shadows {
-                settings.point_soft_shadows = value;
-                changed = true;
+                graphics_settings.point_soft_shadows = value;
             } else if message.destination() == self.mouse_y_inverse {
-                control_scheme.mouse_y_inverse = value;
-                changed = true;
+                config.controls.mouse_y_inverse = value;
             } else if message.destination() == self.use_light_scatter {
-                settings.light_scatter_enabled = value;
-                changed = true;
+                graphics_settings.light_scatter_enabled = value;
             } else if message.destination() == self.fxaa {
-                settings.fxaa = value;
-                changed = true;
+                graphics_settings.fxaa = value;
             } else if message.destination() == self.ssao {
-                settings.use_ssao = value;
-                changed = true;
+                graphics_settings.use_ssao = value;
             } else if message.destination() == self.use_hrtf {
-                changed = true;
                 sender.send(Message::SetUseHrtf(value));
             } else if message.destination() == self.show_debug_info {
-                changed = true;
-                *show_debug_info = value;
+                config.show_debug_info = value;
             }
         } else if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.reset_control_scheme {
-                control_scheme.reset();
-                self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
-                changed = true;
+                config.controls.reset();
+                self.sync_to_model(context, config);
             } else if message.destination() == self.reset_audio_settings {
-                self.sync_to_model(context, control_scheme, *show_debug_info, sound_config);
-                changed = true;
+                self.sync_to_model(context, config);
             }
 
             for (i, button) in self.control_scheme_buttons.iter().enumerate() {
@@ -840,20 +888,19 @@ impl OptionsMenu {
             }
         }
 
-        if settings != old_settings {
+        if graphics_settings != old_graphics_settings {
             if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context
             {
-                if let Err(err) = graphics_context.renderer.set_quality_settings(&settings) {
+                if let Err(err) = graphics_context
+                    .renderer
+                    .set_quality_settings(&graphics_settings)
+                {
                     Log::writeln(
                         MessageKind::Error,
                         format!("Failed to set renderer quality settings! Reason: {err:?}"),
                     );
                 }
             }
-        }
-
-        if changed {
-            sender.send(Message::SaveConfig);
         }
     }
 }

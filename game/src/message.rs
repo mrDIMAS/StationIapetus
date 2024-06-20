@@ -26,7 +26,6 @@ pub enum Message {
     EndGame,
     SyncInventory,
     SyncJournal,
-    SaveConfig,
     // Sound-related messages.
     SetMusicVolume(f32),
     SetUseHrtf(bool),

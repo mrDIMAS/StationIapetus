@@ -32,15 +32,12 @@ pub struct StateMachine {
     pub machine_handle: Handle<Node>,
     pub jump_animation: Handle<Animation>,
     pub land_animation: Handle<Animation>,
-    pub dying_animation: Handle<Animation>,
     pub hit_reaction_pistol_animation: Handle<Animation>,
     pub hit_reaction_rifle_animation: Handle<Animation>,
     pub fall_state: Handle<State>,
     pub land_state: Handle<State>,
     pub aim_state: Handle<State>,
-    pub put_back_state: Handle<State>,
     pub grab_animation: Handle<Animation>,
-    pub melee_state: Handle<State>,
 }
 
 impl StateMachine {
@@ -70,18 +67,15 @@ impl StateMachine {
             machine_handle,
             jump_animation: animations.find_by_name_ref("agent_jump")?.0,
             land_animation: animations.find_by_name_ref("agent_landing")?.0,
-            dying_animation: animations.find_by_name_ref("agent_dying")?.0,
             hit_reaction_pistol_animation: animations
                 .find_by_name_ref("agent_hit_reaction_pistol")?
                 .0,
             hit_reaction_rifle_animation: animations
                 .find_by_name_ref("agent_hit_reaction_rifle")?
                 .0,
-            melee_state: upper_body.find_state_by_name_ref("Melee")?.0,
             fall_state: lower_body.find_state_by_name_ref("Fall")?.0,
             land_state: lower_body.find_state_by_name_ref("Land")?.0,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,
-            put_back_state: upper_body.find_state_by_name_ref("PutBack")?.0,
             grab_animation: animations.find_by_name_ref("agent_grab")?.0,
         })
     }

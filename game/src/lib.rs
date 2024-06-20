@@ -28,8 +28,7 @@ use crate::level::trigger::BotCounter;
 use crate::{
     bot::{Bot, BotHostility},
     character::{Character, HitBox},
-    config::{Config, SoundConfig},
-    control_scheme::ControlScheme,
+    config::Config,
     door::Door,
     effects::{beam::Beam, rail::Rail},
     elevator::{
@@ -73,7 +72,7 @@ use fyrox::{
     core::{
         color::Color,
         futures::executor::block_on,
-        log::{Log, MessageKind},
+        log::Log,
         pool::Handle,
         reflect::prelude::*,
         visitor::{Visit, VisitResult, Visitor},
@@ -119,7 +118,8 @@ pub struct Game {
     debug_string: String,
     running: bool,
     #[visit(skip)]
-    control_scheme: ControlScheme,
+    #[reflect(hidden)]
+    config: Config,
     #[visit(skip)]
     message_receiver: Receiver<Message>,
     #[visit(skip)]
@@ -131,11 +131,6 @@ pub struct Game {
     inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
-    // We're storing sound config separately because we can adjust sound
-    // setting in the options but don't have a level loaded. This field
-    // is data-model for options menu.
-    sound_config: SoundConfig,
-    show_debug_info: bool,
     #[visit(skip)]
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
 }
@@ -144,12 +139,12 @@ impl Default for Game {
     fn default() -> Self {
         let (tx, rx) = mpsc::channel();
         Self {
+            config: Config::load(),
             menu: Default::default(),
             level: None,
             debug_text: Default::default(),
             debug_string: Default::default(),
             running: Default::default(),
-            control_scheme: Default::default(),
             message_receiver: rx,
             message_sender: MessageSender { sender: tx },
             loading_screen: Default::default(),
@@ -159,8 +154,6 @@ impl Default for Game {
             inventory_interface: Default::default(),
             item_display: Default::default(),
             journal_display: Default::default(),
-            sound_config: Default::default(),
-            show_debug_info: Default::default(),
             highlighter: Default::default(),
         }
     }
@@ -185,14 +178,8 @@ impl MessageSender {
 
 impl Game {
     fn handle_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
-        self.menu.handle_ui_message(
-            context,
-            message,
-            &mut self.control_scheme,
-            &mut self.show_debug_info,
-            &self.sound_config,
-            &self.message_sender,
-        );
+        self.menu
+            .handle_ui_message(context, message, &mut self.config, &self.message_sender);
 
         self.death_screen
             .handle_ui_message(message, &self.message_sender);
@@ -309,6 +296,8 @@ impl Game {
     pub fn update(&mut self, ctx: &mut PluginContext) {
         let debug = false;
 
+        self.config.save_if_needed();
+
         if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
             let window = &graphics_context.window;
             window.set_cursor_visible(self.is_any_menu_visible(ctx));
@@ -345,7 +334,7 @@ impl Game {
                 .state()
                 .bus_graph_mut()
                 .primary_bus_mut()
-                .set_gain(self.sound_config.master_volume);
+                .set_gain(self.config.sound.master_volume);
         }
 
         self.handle_messages(ctx);
@@ -392,18 +381,18 @@ impl Game {
                     self.menu.sync_to_model(context, false);
                 }
                 Message::SetMusicVolume(volume) => {
-                    self.sound_config.music_volume = *volume;
+                    self.config.sound.music_volume = *volume;
                     // TODO: Apply to sound manager of level when it will handle music!
                     context.scenes[self.menu.scene.scene].graph[self.menu.scene.music]
                         .as_sound_mut()
                         .set_gain(*volume);
                 }
                 Message::SetUseHrtf(state) => {
-                    self.sound_config.use_hrtf = *state;
+                    self.config.sound.use_hrtf = *state;
                     // Hrtf is applied **only** to game scene!
                     if let Some(level) = self.level.as_ref() {
                         let scene = &mut context.scenes[level.scene];
-                        if self.sound_config.use_hrtf {
+                        if self.config.sound.use_hrtf {
                             block_on(use_hrtf(
                                 &mut scene.graph.sound_context,
                                 context.resource_manager,
@@ -418,23 +407,7 @@ impl Game {
                     }
                 }
                 Message::SetMasterVolume(volume) => {
-                    self.sound_config.master_volume = *volume;
-                }
-                Message::SaveConfig => {
-                    match Config::save(
-                        context,
-                        self.control_scheme.clone(),
-                        self.sound_config.clone(),
-                        self.show_debug_info,
-                    ) {
-                        Ok(_) => {
-                            Log::info("Settings saved!");
-                        }
-                        Err(e) => Log::writeln(
-                            MessageKind::Error,
-                            format!("Failed to save settings. Reason: {e:?}"),
-                        ),
-                    }
+                    self.config.sound.master_volume = *volume;
                 }
                 Message::ToggleMainMenu => {
                     self.menu.set_visible(context, true);
@@ -478,7 +451,7 @@ impl Game {
     pub fn update_statistics(&mut self, elapsed: f64, context: &mut PluginContext) {
         let ui = context.user_interfaces.first_mut();
 
-        if self.show_debug_info {
+        if self.config.show_debug_info {
             if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
                 self.debug_string.clear();
                 use std::fmt::Write;
@@ -507,7 +480,7 @@ impl Game {
         ui.send_message(WidgetMessage::visibility(
             self.debug_text,
             MessageDirection::ToWidget,
-            self.show_debug_info,
+            self.config.show_debug_info,
         ));
     }
 
@@ -525,13 +498,13 @@ impl Game {
                     {
                         self.inventory_interface.process_os_event(
                             &event,
-                            &self.control_scheme,
+                            &self.config.controls,
                             player_ref,
                             player_handle,
                             &self.message_sender,
                         );
                         self.journal_display
-                            .process_os_event(&event, &self.control_scheme);
+                            .process_os_event(&event, &self.config.controls);
                     }
                 }
             }
@@ -594,7 +567,7 @@ impl Game {
         }
 
         self.menu
-            .process_input_event(context, event, &mut self.control_scheme);
+            .process_input_event(context, event, &mut self.config.controls);
     }
 }
 
@@ -663,24 +636,6 @@ impl Plugin for Game {
             .resource_manager
             .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));
 
-        let mut control_scheme = ControlScheme::default();
-        let mut sound_config = SoundConfig::default();
-        let mut show_debug_info = false;
-
-        match Config::load() {
-            Ok(config) => {
-                show_debug_info = config.show_debug_info;
-                sound_config = config.sound;
-                control_scheme = config.controls;
-            }
-            Err(e) => {
-                Log::writeln(
-                    MessageKind::Error,
-                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
-                );
-            }
-        }
-
         let (tx, rx) = mpsc::channel();
 
         let message_sender = MessageSender { sender: tx };
@@ -690,21 +645,18 @@ impl Plugin for Game {
         let journal_display = JournalDisplay::new();
 
         *self = Game {
-            show_debug_info,
+            config: self.config.clone(),
             loading_screen: LoadingScreen::new(
                 &mut context.user_interfaces.first_mut().build_ctx(),
             ),
             running: true,
             menu: fyrox::core::futures::executor::block_on(Menu::new(
                 &mut context,
-                &control_scheme,
                 font.clone(),
-                show_debug_info,
-                &sound_config,
+                &self.config,
             )),
             death_screen: DeathScreen::new(context.user_interfaces.first_mut(), font.clone()),
             final_screen: FinalScreen::new(context.user_interfaces.first_mut(), font),
-            control_scheme,
             debug_text: Handle::NONE,
             weapon_display,
             item_display,
@@ -714,7 +666,6 @@ impl Plugin for Game {
             inventory_interface,
             message_receiver: rx,
             message_sender,
-            sound_config,
             highlighter: None,
         };
 
@@ -784,27 +735,6 @@ impl Plugin for Game {
         window.set_resizable(true);
         let _ = window.request_inner_size(inner_size);
 
-        // Re-load config here as well.
-        match Config::load() {
-            Ok(config) => {
-                match graphics_context
-                    .renderer
-                    .set_quality_settings(&config.graphics_settings)
-                {
-                    Ok(_) => {
-                        Log::warn("Graphics settings were applied correctly!");
-                    }
-                    Err(e) => Log::err(format!("Failed to set graphics settings. Reason: {e:?}")),
-                }
-            }
-            Err(e) => {
-                Log::writeln(
-                    MessageKind::Error,
-                    format!("Failed to load config. Recovering to default values... Reason: {e:?}"),
-                );
-            }
-        }
-
         self.menu
             .on_graphics_context_initialized(context.user_interfaces.first_mut(), graphics_context);
 
@@ -864,7 +794,7 @@ impl Plugin for Game {
                     &mut ctx.scenes[scene],
                     scene,
                     self.message_sender.clone(),
-                    self.sound_config.clone(),
+                    self.config.sound.clone(),
                     ctx.resource_manager.clone(),
                 ));
             }

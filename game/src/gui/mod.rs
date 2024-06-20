@@ -40,6 +40,7 @@ pub struct ScrollBarData {
     pub margin: Thickness,
     pub show_value: bool,
     pub orientation: Orientation,
+    pub font: FontResource,
 }
 
 pub fn create_scroll_bar(ctx: &mut BuildContext, data: ScrollBarData) -> Handle<UiNode> {
@@ -60,6 +61,8 @@ pub fn create_scroll_bar(ctx: &mut BuildContext, data: ScrollBarData) -> Handle<
     .with_step(data.step)
     .with_value(data.value)
     .with_value_precision(1)
+    .with_font(data.font)
+    .with_font_size(16.0)
     .build(ctx)
 }
 
@@ -72,8 +75,8 @@ pub fn create_check_box(
     CheckBoxBuilder::new(
         WidgetBuilder::new()
             .with_margin(Thickness::uniform(2.0))
-            .with_width(24.0)
-            .with_height(24.0)
+            .with_width(32.0)
+            .with_height(32.0)
             .on_row(row)
             .on_column(column)
             .with_vertical_alignment(VerticalAlignment::Center)

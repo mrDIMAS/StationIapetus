@@ -223,7 +223,12 @@ impl ScriptTrait for Door {
                     };
 
                     if let Some(ui) = self.ui.as_mut() {
-                        ui.update_text(text.to_owned(), &game.control_scheme, can_interact, locked);
+                        ui.update_text(
+                            text.to_owned(),
+                            &game.config.controls,
+                            can_interact,
+                            locked,
+                        );
                     }
                 }
             }

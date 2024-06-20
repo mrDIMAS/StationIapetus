@@ -406,7 +406,7 @@ impl Player {
                         game.item_display.sync_to_model(
                             resource,
                             *item.stack_size,
-                            &game.control_scheme,
+                            &game.config.controls,
                         );
                     }
 
@@ -1124,7 +1124,7 @@ impl ScriptTrait for Player {
 
     fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) {
         let game = ctx.plugins.get::<Game>();
-        let control_scheme = &game.control_scheme;
+        let control_scheme = &game.config.controls;
         let sender = &game.message_sender;
 
         let button_state = match event {

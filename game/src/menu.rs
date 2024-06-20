@@ -1,21 +1,24 @@
 use crate::{
-    config::SoundConfig, control_scheme::ControlScheme, message::Message,
+    config::Config, config::SoundConfig, control_scheme::ControlScheme, message::Message,
     options_menu::OptionsMenu, MessageSender,
 };
 use fyrox::{
     asset::io::FsResourceIo,
     core::{color::Color, pool::Handle, visitor::prelude::*},
     engine::InitializedGraphicsContext,
-    event::{Event, WindowEvent},
+    event::Event,
     graph::BaseSceneGraph,
     gui::{
+        border::BorderBuilder,
         button::{ButtonBuilder, ButtonMessage},
         font::FontResource,
-        grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
+        screen::ScreenBuilder,
+        stack_panel::StackPanelBuilder,
+        text::TextBuilder,
         widget::{WidgetBuilder, WidgetMessage},
-        window::{WindowBuilder, WindowMessage, WindowTitle},
-        HorizontalAlignment, Thickness, UiNode, UserInterface,
+        window::WindowMessage,
+        BuildContext, HorizontalAlignment, Thickness, UiNode, UserInterface, VerticalAlignment,
     },
     plugin::PluginContext,
     scene::{
@@ -30,7 +33,6 @@ use fyrox::{
 pub struct Menu {
     pub scene: MenuScene,
     root: Handle<UiNode>,
-    btn_load_test_bed: Handle<UiNode>,
     btn_new_game: Handle<UiNode>,
     btn_save_game: Handle<UiNode>,
     btn_settings: Handle<UiNode>,
@@ -83,124 +85,95 @@ impl MenuScene {
     }
 }
 
+fn make_button(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<UiNode> {
+    ButtonBuilder::new(
+        WidgetBuilder::new()
+            .with_height(75.0)
+            .with_margin(Thickness::uniform(4.0)),
+    )
+    .with_content(
+        TextBuilder::new(WidgetBuilder::new())
+            .with_text(text)
+            .with_font(font)
+            .with_font_size(30.0)
+            .with_vertical_text_alignment(VerticalAlignment::Center)
+            .with_horizontal_text_alignment(HorizontalAlignment::Center)
+            .build(ctx),
+    )
+    .build(ctx)
+}
+
 impl Menu {
     pub async fn new(
         context: &mut PluginContext<'_, '_>,
-        control_scheme: &ControlScheme,
         font: FontResource,
-        show_debug_info: bool,
-        sound_config: &SoundConfig,
+        config: &Config,
     ) -> Self {
-        let scene = MenuScene::new(context, sound_config).await;
+        let scene = MenuScene::new(context, &config.sound).await;
 
         let ctx = &mut context.user_interfaces.first_mut().build_ctx();
 
-        let btn_load_test_bed;
         let btn_new_game;
         let btn_settings;
         let btn_save_game;
         let btn_load_game;
         let btn_quit_game;
-        let root: Handle<UiNode> = GridBuilder::new(
+        let content = StackPanelBuilder::new(
             WidgetBuilder::new()
-                .with_width(100.0)
-                .with_height(100.0)
+                .with_margin(Thickness::uniform(20.0))
                 .with_child({
-                    btn_load_test_bed = ButtonBuilder::new(
-                        WidgetBuilder::new()
-                            .with_width(300.0)
-                            .with_height(64.0)
-                            .with_horizontal_alignment(HorizontalAlignment::Center)
-                            .on_column(1)
-                            .on_row(0)
-                            .with_margin(Thickness::uniform(4.0)),
-                    )
-                    .with_text_and_font("Load Testbed", font.clone())
-                    .build(ctx);
-                    btn_load_test_bed
+                    btn_new_game = make_button("New Game", font.clone(), ctx);
+                    btn_new_game
                 })
+                .with_child({
+                    btn_save_game = make_button("Save Game", font.clone(), ctx);
+                    btn_save_game
+                })
+                .with_child({
+                    btn_load_game = make_button("Load Game", font.clone(), ctx);
+                    btn_load_game
+                })
+                .with_child({
+                    btn_settings = make_button("Settings", font.clone(), ctx);
+                    btn_settings
+                })
+                .with_child({
+                    btn_quit_game = make_button("Quit", font.clone(), ctx);
+                    btn_quit_game
+                }),
+        )
+        .build(ctx);
+
+        let root = ScreenBuilder::new(
+            WidgetBuilder::new()
                 .with_child(
-                    WindowBuilder::new(WidgetBuilder::new().on_row(1).on_column(0))
-                        .can_resize(false)
-                        .can_minimize(false)
-                        .can_close(false)
-                        .with_title(WindowTitle::text("Station Iapetus"))
-                        .with_content(
-                            GridBuilder::new(
-                                WidgetBuilder::new()
-                                    .with_margin(Thickness::uniform(20.0))
-                                    .with_child({
-                                        btn_new_game = ButtonBuilder::new(
-                                            WidgetBuilder::new()
-                                                .on_column(0)
-                                                .on_row(0)
-                                                .with_margin(Thickness::uniform(4.0)),
-                                        )
-                                        .with_text_and_font("New Game", font.clone())
-                                        .build(ctx);
-                                        btn_new_game
-                                    })
-                                    .with_child({
-                                        btn_save_game = ButtonBuilder::new(
-                                            WidgetBuilder::new()
-                                                .on_column(0)
-                                                .on_row(1)
-                                                .with_enabled(false)
-                                                .with_margin(Thickness::uniform(4.0)),
-                                        )
-                                        .with_text_and_font("Save Game", font.clone())
-                                        .build(ctx);
-                                        btn_save_game
-                                    })
-                                    .with_child({
-                                        btn_load_game = ButtonBuilder::new(
-                                            WidgetBuilder::new()
-                                                .on_column(0)
-                                                .on_row(2)
-                                                .with_margin(Thickness::uniform(4.0)),
-                                        )
-                                        .with_text_and_font("Load Game", font.clone())
-                                        .build(ctx);
-                                        btn_load_game
-                                    })
-                                    .with_child({
-                                        btn_settings = ButtonBuilder::new(
-                                            WidgetBuilder::new()
-                                                .on_column(0)
-                                                .on_row(3)
-                                                .with_margin(Thickness::uniform(4.0)),
-                                        )
-                                        .with_text_and_font("Settings", font.clone())
-                                        .build(ctx);
-                                        btn_settings
-                                    })
-                                    .with_child({
-                                        btn_quit_game = ButtonBuilder::new(
-                                            WidgetBuilder::new()
-                                                .on_column(0)
-                                                .on_row(4)
-                                                .with_margin(Thickness::uniform(4.0)),
-                                        )
-                                        .with_text_and_font("Quit", font.clone())
-                                        .build(ctx);
-                                        btn_quit_game
-                                    }),
-                            )
-                            .add_column(Column::stretch())
-                            .add_row(Row::strict(75.0))
-                            .add_row(Row::strict(75.0))
-                            .add_row(Row::strict(75.0))
-                            .add_row(Row::strict(75.0))
-                            .add_row(Row::strict(75.0))
-                            .build(ctx),
-                        )
-                        .build(ctx),
+                    BorderBuilder::new(
+                        WidgetBuilder::new()
+                            .on_row(1)
+                            .on_column(0)
+                            .with_width(400.0)
+                            .with_height(500.0)
+                            .with_horizontal_alignment(HorizontalAlignment::Left)
+                            .with_vertical_alignment(VerticalAlignment::Center)
+                            .with_margin(Thickness::uniform(4.0))
+                            .with_child(content),
+                    )
+                    .with_corner_radius(4.0)
+                    .with_pad_by_corner_radius(false)
+                    .build(ctx),
+                )
+                .with_child(
+                    TextBuilder::new(
+                        WidgetBuilder::new()
+                            .with_horizontal_alignment(HorizontalAlignment::Center)
+                            .with_vertical_alignment(VerticalAlignment::Top),
+                    )
+                    .with_font_size(60.0)
+                    .with_font(font.clone())
+                    .with_text("Station Iapetus")
+                    .build(ctx),
                 ),
         )
-        .add_row(Row::stretch())
-        .add_row(Row::strict(500.0))
-        .add_column(Column::strict(400.0))
-        .add_column(Column::stretch())
         .build(ctx);
 
         Self {
@@ -211,8 +184,7 @@ impl Menu {
             btn_save_game,
             btn_load_game,
             btn_quit_game,
-            btn_load_test_bed,
-            options_menu: OptionsMenu::new(context, control_scheme, show_debug_info, sound_config),
+            options_menu: OptionsMenu::new(context, config),
         }
     }
 
@@ -255,25 +227,6 @@ impl Menu {
         event: &Event<()>,
         control_scheme: &mut ControlScheme,
     ) {
-        let ui = ctx.user_interfaces.first_mut();
-
-        if let Event::WindowEvent {
-            event: WindowEvent::Resized(new_size),
-            ..
-        } = event
-        {
-            ui.send_message(WidgetMessage::width(
-                self.root,
-                MessageDirection::ToWidget,
-                new_size.width as f32,
-            ));
-            ui.send_message(WidgetMessage::height(
-                self.root,
-                MessageDirection::ToWidget,
-                new_size.height as f32,
-            ));
-        }
-
         self.options_menu
             .process_input_event(ctx, event, control_scheme);
     }
@@ -292,9 +245,7 @@ impl Menu {
         &mut self,
         ctx: &mut PluginContext,
         message: &UiMessage,
-        control_scheme: &mut ControlScheme,
-        show_debug_info: &mut bool,
-        sound_config: &SoundConfig,
+        config: &mut Config,
         sender: &MessageSender,
     ) {
         let ui = ctx.user_interfaces.first_mut();
@@ -308,8 +259,6 @@ impl Menu {
                 sender.send(Message::LoadGame);
             } else if message.destination() == self.btn_quit_game {
                 sender.send(Message::QuitGame);
-            } else if message.destination() == self.btn_load_test_bed {
-                sender.send(Message::LoadTestbed);
             } else if message.destination() == self.btn_settings {
                 let is_visible = ui.node(self.options_menu.window).visibility();
 
@@ -329,13 +278,7 @@ impl Menu {
             }
         }
 
-        self.options_menu.handle_ui_event(
-            ctx,
-            message,
-            control_scheme,
-            show_debug_info,
-            sound_config,
-            sender,
-        );
+        self.options_menu
+            .handle_ui_event(ctx, message, config, sender);
     }
 }

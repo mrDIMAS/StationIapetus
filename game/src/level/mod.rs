@@ -44,7 +44,7 @@ pub struct Level {
 }
 
 impl Level {
-    pub const ARRIVAL_PATH: &'static str = "data/levels/arrival_new.rgs";
+    pub const ARRIVAL_PATH: &'static str = "data/levels/lab1.rgs";
     pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
     pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
 

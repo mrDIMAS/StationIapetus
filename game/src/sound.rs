@@ -107,7 +107,7 @@ impl SoundMap {
                         if let Some(descendant_mesh) = descendant.cast::<Mesh>() {
                             for surface in descendant_mesh.surfaces() {
                                 let data = surface.data();
-                                let data = data.lock();
+                                let data = data.data_ref();
 
                                 if let Some(PropertyValue::Sampler {
                                     value: Some(diffuse_texture),

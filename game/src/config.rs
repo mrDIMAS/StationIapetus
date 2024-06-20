@@ -1,11 +1,47 @@
 use crate::control_scheme::ControlScheme;
-use fyrox::{
-    core::visitor::prelude::*, engine::GraphicsContext, plugin::PluginContext,
-    renderer::QualitySettings,
-};
+use fyrox::{core::log::Log, core::visitor::prelude::*, renderer::QualitySettings};
 use ron::ser::PrettyConfig;
 use serde::{Deserialize, Serialize};
-use std::fs::File;
+use std::{
+    fs::File,
+    ops::{Deref, DerefMut},
+};
+
+#[derive(Debug, Clone)]
+pub struct Config {
+    need_save: bool,
+    data: ConfigData,
+}
+
+impl Config {
+    pub fn load() -> Self {
+        Self {
+            need_save: false,
+            data: ConfigData::load(),
+        }
+    }
+
+    pub fn save_if_needed(&self) {
+        if self.need_save {
+            self.data.save();
+        }
+    }
+}
+
+impl Deref for Config {
+    type Target = ConfigData;
+
+    fn deref(&self) -> &Self::Target {
+        &self.data
+    }
+}
+
+impl DerefMut for Config {
+    fn deref_mut(&mut self) -> &mut Self::Target {
+        self.need_save = true;
+        &mut self.data
+    }
+}
 
 #[derive(Deserialize, Serialize, Clone, Visit, Debug)]
 pub struct SoundConfig {
@@ -24,67 +60,34 @@ impl Default for SoundConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Default, Clone)]
-pub struct Config {
-    pub graphics_settings: QualitySettings,
+#[derive(Deserialize, Serialize, Debug, Default, Clone)]
+pub struct ConfigData {
+    pub graphics: QualitySettings,
     pub controls: ControlScheme,
     pub sound: SoundConfig,
     pub show_debug_info: bool,
 }
 
-#[derive(Debug)]
-pub enum ConfigError {
-    Io(std::io::Error),
-    RonSpanned(ron::error::SpannedError),
-    Ron(ron::Error),
-    Custom(String),
-}
-
-impl From<std::io::Error> for ConfigError {
-    fn from(e: std::io::Error) -> Self {
-        Self::Io(e)
-    }
-}
-
-impl From<ron::error::SpannedError> for ConfigError {
-    fn from(e: ron::error::SpannedError) -> Self {
-        Self::RonSpanned(e)
-    }
-}
-
-impl From<ron::Error> for ConfigError {
-    fn from(e: ron::Error) -> Self {
-        Self::Ron(e)
-    }
-}
-
-impl Config {
+impl ConfigData {
     const PATH: &'static str = "data/configs/settings.ron";
 
-    pub fn load() -> Result<Self, ConfigError> {
-        let file = File::open(Self::PATH)?;
-        Ok(ron::de::from_reader(file)?)
+    fn load() -> Self {
+        File::open(Self::PATH)
+            .ok()
+            .and_then(|file| ron::de::from_reader(file).ok())
+            .unwrap_or_default()
     }
 
-    pub fn save(
-        context: &PluginContext,
-        control_scheme: ControlScheme,
-        sound_config: SoundConfig,
-        show_debug_info: bool,
-    ) -> Result<(), ConfigError> {
-        if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
-            let config = Self {
-                graphics_settings: graphics_context.renderer.get_quality_settings(),
-                controls: control_scheme,
-                sound: sound_config,
-                show_debug_info,
-            };
-            let file = File::create(Self::PATH)?;
-            ron::ser::to_writer_pretty(file, &config, PrettyConfig::default())?;
+    fn save(&self) {
+        let Ok(file) = File::create(Self::PATH) else {
+            Log::err("Unable to save config!");
+            return;
+        };
 
-            Ok(())
-        } else {
-            Err(ConfigError::Custom("No graphics context!".to_string()))
-        }
+        Log::verify(ron::ser::to_writer_pretty(
+            file,
+            self,
+            PrettyConfig::default(),
+        ));
     }
 }
