@@ -9,6 +9,7 @@ ron = "0.8.1"
 serde = "^1.0.0"
 strum = "0.26.1"
 strum_macros = "0.26.1"
+chrono = "0.4.33"
 
 [features]
 default = ["fyrox/default"]

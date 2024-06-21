@@ -1,3 +1,4 @@
+use crate::gui::save_load::{Mode, SaveLoadDialog};
 use crate::{
     config::Config, config::SoundConfig, control_scheme::ControlScheme,
     gui::options_menu::OptionsMenu, message::Message, MessageSender,
@@ -39,6 +40,8 @@ pub struct Menu {
     btn_load_game: Handle<UiNode>,
     btn_quit_game: Handle<UiNode>,
     options_menu: OptionsMenu,
+    save_load_dialog: Option<SaveLoadDialog>,
+    font: FontResource,
 }
 
 #[derive(Visit, Default, Debug)]
@@ -185,6 +188,8 @@ impl Menu {
             btn_load_game,
             btn_quit_game,
             options_menu: OptionsMenu::new(context, config),
+            save_load_dialog: None,
+            font,
         }
     }
 
@@ -254,9 +259,17 @@ impl Menu {
             if message.destination() == self.btn_new_game {
                 sender.send(Message::StartNewGame);
             } else if message.destination() == self.btn_save_game {
-                sender.send(Message::SaveGame);
+                self.save_load_dialog = Some(SaveLoadDialog::new(
+                    Mode::Save,
+                    self.font.clone(),
+                    &mut ui.build_ctx(),
+                ));
             } else if message.destination() == self.btn_load_game {
-                sender.send(Message::LoadGame);
+                self.save_load_dialog = Some(SaveLoadDialog::new(
+                    Mode::Load,
+                    self.font.clone(),
+                    &mut ui.build_ctx(),
+                ));
             } else if message.destination() == self.btn_quit_game {
                 sender.send(Message::QuitGame);
             } else if message.destination() == self.btn_settings {
@@ -276,6 +289,10 @@ impl Menu {
                     ));
                 }
             }
+        }
+
+        if let Some(save_load_dialog) = self.save_load_dialog.take() {
+            self.save_load_dialog = save_load_dialog.handle_ui_message(message, ui, sender);
         }
 
         self.options_menu

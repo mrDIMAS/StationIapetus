@@ -31,6 +31,7 @@ pub mod journal;
 pub mod loading_screen;
 pub mod menu;
 pub mod options_menu;
+pub mod save_load;
 pub mod weapon_display;
 
 pub struct ScrollBarData {
@@ -196,7 +197,8 @@ impl DeathScreen {
     pub fn handle_ui_message(&mut self, message: &UiMessage, sender: &MessageSender) {
         if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.load_game {
-                sender.send(Message::LoadGame);
+                // TODO: Add quick saves.
+                // sender.send(Message::LoadGame);
             } else if message.destination() == self.exit_to_menu {
                 sender.send(Message::ToggleMainMenu);
             } else if message.destination() == self.exit_game {

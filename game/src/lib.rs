@@ -158,7 +158,7 @@ impl Default for Game {
 #[repr(u16)]
 pub enum CollisionGroups {
     ActorCapsule = 1 << 0,
-    All = std::u16::MAX,
+    All = u16::MAX,
 }
 
 #[derive(Clone, Debug)]
@@ -244,7 +244,7 @@ impl Game {
             .build(&mut context.user_interfaces.first_mut().build_ctx());
     }
 
-    pub fn save_game(&mut self, context: &mut PluginContext) -> VisitResult {
+    pub fn save_game(&mut self, path: &Path, context: &mut PluginContext) -> VisitResult {
         if let Some(level) = self.level.as_mut() {
             let mut visitor = Visitor::new();
 
@@ -252,18 +252,20 @@ impl Game {
             level.visit("Level", &mut visitor)?;
 
             // Debug output
-            if let Ok(mut file) = File::create(Path::new("save.txt")) {
+            let mut debug_path = path.to_path_buf();
+            debug_path.set_extension("txt");
+            if let Ok(mut file) = File::create(debug_path) {
                 file.write_all(visitor.save_text().as_bytes()).unwrap();
             }
 
-            visitor.save_binary(Path::new("save.rgs"))
+            visitor.save_binary(path)
         } else {
             Ok(())
         }
     }
 
-    pub fn load_game(&mut self, context: &mut PluginContext) {
-        context.async_scene_loader.request_raw("save.rgs");
+    pub fn load_game(&mut self, context: &mut PluginContext, path: &Path) {
+        context.async_scene_loader.request_raw(path);
     }
 
     fn destroy_level(&mut self, context: &mut PluginContext) {
@@ -349,12 +351,12 @@ impl Game {
                 Message::StartNewGame => {
                     self.load_level(Level::TESTBED_PATH.into(), context);
                 }
-                Message::SaveGame => match self.save_game(context) {
+                Message::SaveGame(path) => match self.save_game(path, context) {
                     Ok(_) => Log::info("Successfully saved"),
-                    Err(e) => Log::err(format!("Failed to make a save, reason: {e}")),
+                    Err(e) => Log::err(format!("Failed to make a save at {path:?}, reason: {e}")),
                 },
-                Message::LoadGame => {
-                    self.load_game(context);
+                Message::LoadGame(path) => {
+                    self.load_game(context, path);
                 }
                 Message::LoadLevel { path } => self.load_level(path.clone(), context),
                 Message::QuitGame => {

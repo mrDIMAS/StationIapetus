@@ -50,7 +50,7 @@ impl CameraController {
         let ray_origin = scene.graph[self.camera_hinge].global_position();
         let ray_end = scene.graph[self.camera].global_position();
         let dir = (ray_end - ray_origin)
-            .try_normalize(std::f32::EPSILON)
+            .try_normalize(f32::EPSILON)
             .unwrap_or_default()
             .scale(10.0);
         let ray = Ray {

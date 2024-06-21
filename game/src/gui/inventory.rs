@@ -371,7 +371,7 @@ impl InventoryInterface {
         }
         .scale(999.0);
 
-        direction += Vector2::new(std::f32::EPSILON, std::f32::EPSILON);
+        direction += Vector2::new(f32::EPSILON, f32::EPSILON);
 
         if !items.is_empty() {
             let current_selection = self.selection();
@@ -385,7 +385,7 @@ impl InventoryInterface {
                 .scale(0.5);
 
             let mut closest = Handle::NONE;
-            let mut closest_distance = std::f32::MAX;
+            let mut closest_distance = f32::MAX;
 
             for &item_handle in items {
                 let item_bounds = self.ui.node(item_handle).screen_bounds();

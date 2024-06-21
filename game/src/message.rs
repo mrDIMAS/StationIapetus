@@ -7,19 +7,12 @@ use std::path::PathBuf;
 
 #[derive(Debug)]
 pub enum Message {
-    Play2DSound {
-        path: PathBuf,
-        gain: f32,
-    },
-    /// Save game state to a file. TODO: Add filename field.
-    SaveGame,
-    /// Loads game state from a file. TODO: Add filename field.
-    LoadGame,
+    Play2DSound { path: PathBuf, gain: f32 },
+    SaveGame(PathBuf),
+    LoadGame(PathBuf),
     StartNewGame,
     QuitGame,
-    LoadLevel {
-        path: PathBuf,
-    },
+    LoadLevel { path: PathBuf },
     ToggleMainMenu,
     EndMatch,
     EndGame,
