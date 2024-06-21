@@ -28,6 +28,9 @@ use fyrox::{
 pub mod inventory;
 pub mod item_display;
 pub mod journal;
+pub mod loading_screen;
+pub mod menu;
+pub mod options_menu;
 pub mod weapon_display;
 
 pub struct ScrollBarData {

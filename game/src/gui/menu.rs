@@ -1,6 +1,6 @@
 use crate::{
-    config::Config, config::SoundConfig, control_scheme::ControlScheme, message::Message,
-    options_menu::OptionsMenu, MessageSender,
+    config::Config, config::SoundConfig, control_scheme::ControlScheme,
+    gui::options_menu::OptionsMenu, message::Message, MessageSender,
 };
 use fyrox::{
     asset::io::FsResourceIo,

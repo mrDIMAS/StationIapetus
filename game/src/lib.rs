@@ -12,10 +12,7 @@ pub mod highlight;
 pub mod inventory;
 pub mod level;
 pub mod light;
-pub mod loading_screen;
-pub mod menu;
 pub mod message;
-pub mod options_menu;
 pub mod player;
 pub mod sound;
 pub mod utils;
@@ -37,7 +34,8 @@ use crate::{
     },
     gui::{
         inventory::InventoryInterface, inventory::InventoryItem, item_display::ItemDisplay,
-        journal::JournalDisplay, weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
+        journal::JournalDisplay, loading_screen::LoadingScreen, menu::Menu,
+        weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
     },
     highlight::HighlightRenderPass,
     inventory::{Inventory, ItemEntry},
@@ -54,8 +52,6 @@ use crate::{
         Level,
     },
     light::AnimatedLight,
-    loading_screen::LoadingScreen,
-    menu::Menu,
     message::Message,
     player::{camera::CameraController, Player},
     sound::SoundManager,
@@ -351,9 +347,6 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::ARRIVAL_PATH.into(), context);
-                }
-                Message::LoadTestbed => {
                     self.load_level(Level::TESTBED_PATH.into(), context);
                 }
                 Message::SaveGame => match self.save_game(context) {
