@@ -105,17 +105,22 @@ impl ScriptTrait for EnemyTrap {
                     let this_bounds =
                         AxisAlignedBoundingBox::unit().transform(&this.global_transform());
 
-                    let player_position = ctx.scene.graph[level.player].global_position();
+                    if let Some(player_position) = ctx
+                        .scene
+                        .graph
+                        .try_get(level.player)
+                        .map(|player| player.global_position())
+                    {
+                        if this_bounds.is_contains_point(player_position) {
+                            self.state = State::Active;
 
-                    if this_bounds.is_contains_point(player_position) {
-                        self.state = State::Active;
-
-                        self.find_enemies(ctx.scene, &level.actors, &this_bounds);
-                        self.lock_doors(ctx.scene, true);
-                        self.enable_nodes(
-                            &mut ctx.scene.graph,
-                            &self.nodes_to_enable_on_activation,
-                        );
+                            self.find_enemies(ctx.scene, &level.actors, &this_bounds);
+                            self.lock_doors(ctx.scene, true);
+                            self.enable_nodes(
+                                &mut ctx.scene.graph,
+                                &self.nodes_to_enable_on_activation,
+                            );
+                        }
                     }
                 }
             }

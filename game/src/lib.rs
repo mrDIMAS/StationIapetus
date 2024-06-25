@@ -349,7 +349,7 @@ impl Game {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::TESTBED_PATH.into(), context);
+                    self.load_level(Level::ARRIVAL_PATH.into(), context);
                 }
                 Message::SaveGame(path) => match self.save_game(path, context) {
                     Ok(_) => Log::info("Successfully saved"),

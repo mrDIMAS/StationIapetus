@@ -44,9 +44,7 @@ pub struct Level {
 }
 
 impl Level {
-    pub const ARRIVAL_PATH: &'static str = "data/levels/lab1.rgs";
-    pub const TESTBED_PATH: &'static str = "data/levels/testbed.rgs";
-    pub const LAB_PATH: &'static str = "data/levels/lab.rgs";
+    pub const ARRIVAL_PATH: &'static str = "data/levels/arrival.rgs";
 
     pub fn get_ref<'a, 'b: 'a>(plugins: &'b mut PluginsRefMut<'a>) -> &'a Self {
         plugins
