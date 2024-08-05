@@ -208,7 +208,7 @@ impl JournalDisplay {
                         self.ui.send_message(ListViewMessage::selection(
                             self.messages,
                             MessageDirection::ToWidget,
-                            self.current_message,
+                            self.current_message.map(|n| vec![n]).unwrap_or_default(),
                         ));
                     }
                 }
@@ -221,7 +221,7 @@ impl JournalDisplay {
                         self.ui.send_message(ListViewMessage::selection(
                             self.messages,
                             MessageDirection::ToWidget,
-                            self.current_message,
+                            self.current_message.map(|n| vec![n]).unwrap_or_default(),
                         ));
                     }
                 }
@@ -237,9 +237,11 @@ impl JournalDisplay {
         );
 
         while let Some(message) = self.ui.poll_message() {
-            if let Some(ListViewMessage::SelectionChanged(Some(value))) = message.data() {
+            if let Some(ListViewMessage::SelectionChanged(value)) = message.data() {
                 if message.direction() == MessageDirection::FromWidget {
-                    if let Some(entry) = journal.messages.get(*value) {
+                    if let Some(entry) =
+                        value.first().cloned().and_then(|n| journal.messages.get(n))
+                    {
                         self.ui.send_message(TextMessage::text(
                             self.message_text,
                             MessageDirection::ToWidget,

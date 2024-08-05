@@ -262,9 +262,10 @@ impl SaveLoadDialog {
             if message.destination() == self.saved_games
                 && message.direction() == MessageDirection::FromWidget
             {
-                self.selected_entry = *index;
+                self.selected_entry = index.first().cloned();
 
-                if let Some(file_stem) = index
+                if let Some(file_stem) = self
+                    .selected_entry
                     .and_then(|index| self.saved_games_list.get(index))
                     .and_then(|path| path.file_stem())
                 {
@@ -280,7 +281,7 @@ impl SaveLoadDialog {
                 ui.send_message(WidgetMessage::enabled(
                     self.confirm,
                     MessageDirection::ToWidget,
-                    index.is_some() && is_file_stem_valid(&self.file_stem),
+                    self.selected_entry.is_some() && is_file_stem_valid(&self.file_stem),
                 ));
             }
         }
