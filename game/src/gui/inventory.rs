@@ -1,13 +1,12 @@
+use crate::inventory::Inventory;
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     control_scheme::{ControlButton, ControlScheme},
     gui,
     level::item::Item,
-    message::Message,
     player::Player,
-    MessageSender,
 };
-use fyrox::graph::BaseSceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
@@ -321,34 +320,6 @@ impl InventoryInterface {
         }
     }
 
-    pub fn sync_to_model(&mut self, player: &Player) {
-        for &child in self.ui.node(self.items_panel).children() {
-            self.ui
-                .send_message(WidgetMessage::remove(child, MessageDirection::ToWidget));
-        }
-
-        for item in player.inventory().items() {
-            let ctx = &mut self.ui.build_ctx();
-
-            if let Some(resource) = item.resource.as_ref() {
-                let widget = InventoryItemBuilder::new(
-                    WidgetBuilder::new()
-                        .with_margin(Thickness::uniform(1.0))
-                        .with_width(70.0)
-                        .with_height(100.0),
-                )
-                .with_count(item.amount as usize)
-                .build(resource, ctx);
-
-                self.ui.send_message(WidgetMessage::link(
-                    widget,
-                    MessageDirection::ToWidget,
-                    self.items_panel,
-                ));
-            }
-        }
-    }
-
     pub fn selection(&self) -> Handle<UiNode> {
         for &item_handle in self.ui.node(self.items_panel).children() {
             if let Some(inventory_item) = self.ui.node(item_handle).cast::<InventoryItem>() {
@@ -422,7 +393,6 @@ impl InventoryInterface {
         control_scheme: &ControlScheme,
         player: &mut Player,
         player_handle: Handle<Node>,
-        sender: &MessageSender,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -467,7 +437,6 @@ impl InventoryInterface {
                                                         == 1
                                                 {
                                                     player.use_item(item);
-                                                    sender.send(Message::SyncInventory);
                                                 }
 
                                                 player
@@ -513,7 +482,6 @@ impl InventoryInterface {
                                                 },
                                             },
                                         );
-                                    sender.send(Message::SyncInventory);
                                 } else {
                                     unreachable!()
                                 }
@@ -525,14 +493,59 @@ impl InventoryInterface {
         }
     }
 
-    pub fn update(&mut self, delta: f32) {
+    fn item_model_of(&self, item_view: Handle<UiNode>) -> ModelResource {
+        self.ui
+            .try_get_of_type::<InventoryItem>(item_view)
+            .unwrap()
+            .item
+            .clone()
+    }
+
+    pub fn update(&mut self, delta: f32, inventory: &Inventory) {
+        let mut item_views = self.ui.node(self.items_panel).children().to_vec();
+        let mut i = item_views.len();
+        while i > 0 {
+            i -= 1;
+            let item_view = item_views[i];
+            let item_model = &self.item_model_of(item_view);
+            if !inventory.has_item(&item_model) {
+                self.ui
+                    .send_message(WidgetMessage::remove(item_view, MessageDirection::ToWidget));
+                item_views.remove(i);
+            }
+        }
+
+        for entry in inventory.items() {
+            if item_views
+                .iter()
+                .all(|item_view| Some(self.item_model_of(*item_view)) != entry.resource)
+            {
+                if let Some(resource) = entry.resource.as_ref() {
+                    let widget = InventoryItemBuilder::new(
+                        WidgetBuilder::new()
+                            .with_margin(Thickness::uniform(1.0))
+                            .with_width(70.0)
+                            .with_height(100.0),
+                    )
+                    .with_count(entry.amount as usize)
+                    .build(resource, &mut self.ui.build_ctx());
+
+                    self.ui.send_message(WidgetMessage::link(
+                        widget,
+                        MessageDirection::ToWidget,
+                        self.items_panel,
+                    ));
+                }
+            }
+        }
+
         while let Some(message) = self.ui.poll_message() {
             if let Some(&InventoryItemMessage::Select(select)) = message.data() {
                 if select {
                     if let Some(item) = self.ui.node(message.destination()).cast::<InventoryItem>()
                     {
                         // Deselect every other item.
-                        for &item_handle in self.ui.node(self.items_panel).children() {
+                        for &item_handle in item_views.iter() {
                             if item_handle != message.destination() {
                                 self.ui.send_message(InventoryItemMessage::select(
                                     item_handle,

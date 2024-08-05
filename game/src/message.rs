@@ -16,7 +16,6 @@ pub enum Message {
     ToggleMainMenu,
     EndMatch,
     EndGame,
-    SyncInventory,
     SyncJournal,
     // Sound-related messages.
     SetMusicVolume(f32),

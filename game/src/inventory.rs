@@ -70,6 +70,10 @@ impl Inventory {
         }
     }
 
+    pub fn has_item(&self, item: &ModelResource) -> bool {
+        self.item_count(item) != 0
+    }
+
     fn entry(&self, item: &ModelResource) -> Option<&ItemEntry> {
         self.items
             .iter()

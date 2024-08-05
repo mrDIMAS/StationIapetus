@@ -335,51 +335,55 @@ impl Character {
                 let stack_size = *item.stack_size;
                 let position = item_node.global_position();
 
-                if let Some(item_resource) = item_resource {
-                    self.inventory.add_item(&item_resource, stack_size);
+                if item_node.is_globally_enabled() {
+                    if let Some(item_resource) = item_resource {
+                        self.inventory.add_item(&item_resource, stack_size);
 
-                    // It might be a weapon-like item.
-                    if Weapon::is_weapon_resource(&item_resource) {
-                        let mut found_weapon = false;
-                        for weapon_handle in self.weapons.iter() {
-                            if scene.graph[*weapon_handle].root_resource()
-                                == Some(item_resource.clone())
-                            {
-                                found_weapon = true;
-                                break;
+                        // It might be a weapon-like item.
+                        if Weapon::is_weapon_resource(&item_resource) {
+                            let mut found_weapon = false;
+                            for weapon_handle in self.weapons.iter() {
+                                if scene.graph[*weapon_handle].root_resource()
+                                    == Some(item_resource.clone())
+                                {
+                                    found_weapon = true;
+                                    break;
+                                }
+                            }
+                            if found_weapon {
+                                Weapon::from_resource(&item_resource, |weapon| {
+                                    if let Some(associated_weapon) = weapon {
+                                        if let Some(ammo_item) =
+                                            associated_weapon.ammo_item.as_ref()
+                                        {
+                                            self.inventory.add_item(ammo_item, 24);
+                                        }
+                                    }
+                                });
+                            } else {
+                                // Finally if actor does not have such weapon, give new one to him.
+                                script_message_sender.send_to_target(
+                                    self_handle,
+                                    CharacterMessage {
+                                        character: self_handle,
+                                        data: CharacterMessageData::AddWeapon(item_resource),
+                                    },
+                                );
                             }
                         }
-                        if found_weapon {
-                            Weapon::from_resource(&item_resource, |weapon| {
-                                if let Some(associated_weapon) = weapon {
-                                    if let Some(ammo_item) = associated_weapon.ammo_item.as_ref() {
-                                        self.inventory.add_item(ammo_item, 24);
-                                    }
-                                }
-                            });
-                        } else {
-                            // Finally if actor does not have such weapon, give new one to him.
-                            script_message_sender.send_to_target(
-                                self_handle,
-                                CharacterMessage {
-                                    character: self_handle,
-                                    data: CharacterMessageData::AddWeapon(item_resource),
-                                },
-                            );
-                        }
                     }
+
+                    sound_manager.play_sound(
+                        &mut scene.graph,
+                        "data/sounds/item_pickup.ogg",
+                        position,
+                        1.0,
+                        3.0,
+                        2.0,
+                    );
+
+                    scene.graph[item_handle].set_enabled(false);
                 }
-
-                sound_manager.play_sound(
-                    &mut scene.graph,
-                    "data/sounds/item_pickup.ogg",
-                    position,
-                    1.0,
-                    3.0,
-                    2.0,
-                );
-
-                scene.graph[item_handle].set_enabled(false);
             }
             CharacterMessageData::DropItems { item, count } => {
                 let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);

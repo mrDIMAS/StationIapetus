@@ -319,10 +319,15 @@ impl Game {
             ctx.scenes[level.scene]
                 .enabled
                 .set_value_silent(!self.menu.is_visible(ui));
+            if let Some(player) = ctx.scenes[level.scene]
+                .graph
+                .try_get_script_component_of::<Player>(level.player)
+            {
+                self.inventory_interface.update(ctx.dt, &player.inventory);
+            }
         }
 
         self.weapon_display.update(ctx.dt);
-        self.inventory_interface.update(ctx.dt);
         self.item_display.update(ctx.dt);
 
         for scene in ctx.scenes.iter_mut() {
@@ -410,14 +415,6 @@ impl Game {
                     self.death_screen.set_visible(ui, false);
                     self.final_screen.set_visible(ui, false);
                 }
-                Message::SyncInventory => {
-                    if let Some(ref mut level) = self.level {
-                        let player_ref = context.scenes[level.scene].graph[level.player]
-                            .try_get_script::<Player>()
-                            .unwrap();
-                        self.inventory_interface.sync_to_model(player_ref);
-                    }
-                }
                 Message::SyncJournal => {
                     if let Some(ref mut level) = self.level {
                         let player_ref = context.scenes[level.scene].graph[level.player]
@@ -496,7 +493,6 @@ impl Game {
                             &self.config.controls,
                             player_ref,
                             player_handle,
-                            &self.message_sender,
                         );
                         self.journal_display
                             .process_os_event(&event, &self.config.controls);

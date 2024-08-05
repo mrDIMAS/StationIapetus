@@ -383,7 +383,6 @@ impl Player {
         self_handle: Handle<Node>,
         script_message_sender: &ScriptMessageSender,
     ) {
-        let sender = &game.message_sender;
         let items = &game.level.as_ref().unwrap().items;
         for &item_handle in items.iter() {
             if let Some(item_node) = scene.graph.try_get(item_handle) {
@@ -418,8 +417,6 @@ impl Player {
                                 data: CharacterMessageData::PickupItem(item_handle),
                             },
                         );
-
-                        sender.send(Message::SyncInventory);
 
                         self.controller.action = false;
                     }
@@ -1312,9 +1309,6 @@ impl ScriptTrait for Player {
                 let inventory = &mut ctx.scene.graph[self.inventory_display];
                 let new_visibility = !inventory.visibility();
                 inventory.set_visibility(new_visibility);
-                if new_visibility {
-                    sender.send(Message::SyncInventory);
-                }
             } else if button == control_scheme.journal.button
                 && state == ElementState::Pressed
                 && !self.controller.aim
