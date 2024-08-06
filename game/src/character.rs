@@ -316,7 +316,10 @@ impl Character {
 
                     weapon_script.set_owner(self_handle);
 
-                    self.inventory_mut().add_item(weapon_resource, 1);
+                    let inventory = self.inventory_mut();
+                    if !inventory.has_item(weapon_resource) {
+                        inventory.add_item(weapon_resource, 1)
+                    };
 
                     self.add_weapon(weapon, &mut scene.graph);
 
