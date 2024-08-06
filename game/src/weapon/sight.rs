@@ -13,11 +13,9 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         reflect::Reflect,
-        sstorage::ImmutableString,
         type_traits::prelude::*,
         visitor::prelude::*,
     },
-    material::PropertyValue,
     scene::{
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
@@ -102,10 +100,7 @@ impl LaserSight {
                 .unwrap()
                 .material()
                 .data_ref()
-                .set_property(
-                    &ImmutableString::new("diffuseColor"),
-                    PropertyValue::Color(color),
-                ),
+                .set_property("diffuseColor", color),
         );
         graph[self.light]
             .query_component_mut::<BaseLight>()

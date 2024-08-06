@@ -257,10 +257,10 @@ impl Door {
             if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
-                Log::verify(material.set_texture(&"diffuseTexture".into(), Some(texture.clone())));
-                Log::verify(material.set_texture(
-                    &"emissionTexture".into(),
-                    Some(resource_manager.request::<Texture>("data/ui/white_pixel.bmp")),
+                Log::verify(material.set_property("diffuseTexture", texture.clone()));
+                Log::verify(material.set_property(
+                    "emissionTexture",
+                    resource_manager.request::<Texture>("data/ui/white_pixel.bmp"),
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {

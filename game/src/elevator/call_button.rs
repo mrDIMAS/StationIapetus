@@ -4,12 +4,12 @@ use fyrox::material::MaterialResourceExtension;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        log::Log, pool::Handle, reflect::prelude::*, sstorage::ImmutableString, stub_uuid_provider,
-        type_traits::prelude::*, variable::InheritableVariable, visitor::prelude::*,
+        log::Log, pool::Handle, reflect::prelude::*, stub_uuid_provider, type_traits::prelude::*,
+        variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
     gui::UserInterface,
-    material::{Material, MaterialResource, PropertyValue},
+    material::{Material, MaterialResource},
     resource::texture::{Texture, TextureResource},
     scene::{graph::Graph, mesh::Mesh, node::Node},
     script::{ScriptContext, ScriptTrait},
@@ -60,20 +60,11 @@ impl CallButton {
             if let Some(ref mut mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
-                Log::verify(material.set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(texture.clone()),
-                        fallback: Default::default(),
-                    },
-                ));
+                Log::verify(material.set_property("diffuseTexture", texture.clone()));
 
                 Log::verify(material.set_property(
-                    &ImmutableString::new("emissionTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(resource_manager.request::<Texture>("data/ui/white_pixel.bmp")),
-                        fallback: Default::default(),
-                    },
+                    "emissionTexture",
+                    resource_manager.request::<Texture>("data/ui/white_pixel.bmp"),
                 ));
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {

@@ -29,7 +29,6 @@ use fyrox::{
         math::{SmoothAngle, Vector2Ext, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
-        sstorage::ImmutableString,
         type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
@@ -37,7 +36,6 @@ use fyrox::{
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashSet,
     keyboard::PhysicalKey,
-    material::{shader::SamplerFallback, PropertyValue},
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,
@@ -718,14 +716,8 @@ impl Player {
             .get_color(self.health / *self.max_health);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
         let mut material = surface.material().data_ref();
-        Log::verify(material.set_property(
-            &ImmutableString::new("diffuseColor"),
-            PropertyValue::Color(color),
-        ));
-        Log::verify(material.set_property(
-            &ImmutableString::new("emissionStrength"),
-            PropertyValue::Vector3(color.as_frgb().scale(10.0)),
-        ));
+        Log::verify(material.set_property("diffuseColor", color));
+        Log::verify(material.set_property("emissionStrength", color.as_frgb().scale(10.0)));
         drop(material);
         scene.graph[self.rig_light]
             .query_component_mut::<BaseLight>()
@@ -1017,13 +1009,7 @@ impl Player {
                 .unwrap()
                 .material()
                 .data_ref()
-                .set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(display_texture),
-                        fallback: SamplerFallback::White,
-                    },
-                ),
+                .set_property("diffuseTexture", display_texture),
         );
 
         Log::verify(
@@ -1034,13 +1020,7 @@ impl Player {
                 .unwrap()
                 .material()
                 .data_ref()
-                .set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(inventory_texture),
-                        fallback: SamplerFallback::White,
-                    },
-                ),
+                .set_property("diffuseTexture", inventory_texture),
         );
 
         Log::verify(
@@ -1051,20 +1031,14 @@ impl Player {
                 .unwrap()
                 .material()
                 .data_ref()
-                .set_property(
-                    &ImmutableString::new("diffuseTexture"),
-                    PropertyValue::Sampler {
-                        value: Some(journal_texture),
-                        fallback: SamplerFallback::White,
-                    },
-                ),
+                .set_property("diffuseTexture", journal_texture),
         );
 
         scene.graph[self.item_display]
             .as_sprite_mut()
             .material()
             .data_ref()
-            .set_texture(&("diffuseTexture".into()), Some(item_texture))
+            .set_property("diffuseTexture", item_texture)
             .unwrap();
 
         self.health_color_gradient = make_color_gradient();

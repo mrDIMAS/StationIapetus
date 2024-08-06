@@ -76,12 +76,10 @@ impl ScriptTrait for Item {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
         let mut material = Material::standard_sprite();
         material
-            .set_texture(
-                &"diffuseTexture".into(),
-                Some(
-                    ctx.resource_manager
-                        .request::<Texture>("data/particles/star_09.png"),
-                ),
+            .set_property(
+                "diffuseTexture",
+                ctx.resource_manager
+                    .request::<Texture>("data/particles/star_09.png"),
             )
             .unwrap();
 
