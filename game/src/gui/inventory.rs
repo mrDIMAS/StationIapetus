@@ -1,17 +1,17 @@
-use crate::inventory::Inventory;
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     control_scheme::{ControlButton, ControlScheme},
     gui,
+    inventory::Inventory,
     level::item::Item,
     player::Player,
 };
-use fyrox::graph::{BaseSceneGraph, SceneGraph};
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
         type_traits::prelude::*, uuid_provider, visitor::prelude::*,
     },
+    graph::{BaseSceneGraph, SceneGraph},
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -70,15 +70,24 @@ impl Control for InventoryItem {
     fn handle_routed_message(&mut self, ui: &mut UserInterface, message: &mut UiMessage) {
         self.widget.handle_routed_message(ui, message);
 
-        if let Some(&InventoryItemMessage::Select(select)) = message.data() {
+        if let Some(msg) = message.data::<InventoryItemMessage>() {
             if message.destination() == self.handle() {
-                self.is_selected = select;
+                match msg {
+                    &InventoryItemMessage::Select(select) => {
+                        self.is_selected = select;
 
-                self.set_foreground(if select {
-                    Brush::Solid(Color::opaque(0, 0, 255))
-                } else {
-                    Brush::Solid(Color::opaque(255, 255, 255))
-                });
+                        self.set_foreground(if select {
+                            Brush::Solid(Color::opaque(0, 0, 255))
+                        } else {
+                            Brush::Solid(Color::opaque(255, 255, 255))
+                        });
+                    }
+                    &InventoryItemMessage::StackCount(count) => ui.send_message(TextMessage::text(
+                        self.count,
+                        MessageDirection::ToWidget,
+                        format!("x{}", count),
+                    )),
+                }
             }
         }
     }
@@ -87,10 +96,12 @@ impl Control for InventoryItem {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum InventoryItemMessage {
     Select(bool),
+    StackCount(u32),
 }
 
 impl InventoryItemMessage {
     define_constructor!(InventoryItemMessage:Select => fn select(bool), layout: false);
+    define_constructor!(InventoryItemMessage:StackCount => fn stack_count(u32), layout: false);
 }
 
 impl Deref for InventoryItem {
@@ -493,12 +504,10 @@ impl InventoryInterface {
         }
     }
 
-    fn item_model_of(&self, item_view: Handle<UiNode>) -> ModelResource {
+    fn item_model_of(&self, item_view: Handle<UiNode>) -> Option<ModelResource> {
         self.ui
             .try_get_of_type::<InventoryItem>(item_view)
-            .unwrap()
-            .item
-            .clone()
+            .map(|item| item.item.clone())
     }
 
     pub fn update(&mut self, delta: f32, inventory: &Inventory) {
@@ -507,7 +516,7 @@ impl InventoryInterface {
         while i > 0 {
             i -= 1;
             let item_view = item_views[i];
-            let item_model = &self.item_model_of(item_view);
+            let item_model = &self.item_model_of(item_view).unwrap();
             if !inventory.has_item(&item_model) {
                 self.ui
                     .send_message(WidgetMessage::remove(item_view, MessageDirection::ToWidget));
@@ -516,10 +525,16 @@ impl InventoryInterface {
         }
 
         for entry in inventory.items() {
-            if item_views
+            if let Some(item_view) = item_views
                 .iter()
-                .all(|item_view| Some(self.item_model_of(*item_view)) != entry.resource)
+                .find(|item_view| self.item_model_of(**item_view) == entry.resource)
             {
+                self.ui.send_message(InventoryItemMessage::stack_count(
+                    *item_view,
+                    MessageDirection::ToWidget,
+                    entry.amount,
+                ))
+            } else {
                 if let Some(resource) = entry.resource.as_ref() {
                     let widget = InventoryItemBuilder::new(
                         WidgetBuilder::new()
@@ -535,6 +550,8 @@ impl InventoryInterface {
                         MessageDirection::ToWidget,
                         self.items_panel,
                     ));
+
+                    item_views.push(widget);
                 }
             }
         }
