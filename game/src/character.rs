@@ -350,17 +350,7 @@ impl Character {
                                     break;
                                 }
                             }
-                            if found_weapon {
-                                Weapon::from_resource(&item_resource, |weapon| {
-                                    if let Some(associated_weapon) = weapon {
-                                        if let Some(ammo_item) =
-                                            associated_weapon.ammo_item.as_ref()
-                                        {
-                                            self.inventory.add_item(ammo_item, 24);
-                                        }
-                                    }
-                                });
-                            } else {
+                            if !found_weapon {
                                 // Finally if actor does not have such weapon, give new one to him.
                                 script_message_sender.send_to_target(
                                     self_handle,
