@@ -10,6 +10,7 @@ use fyrox::{
         pool::Handle,
         visitor::prelude::*,
     },
+    graph::BaseSceneGraph,
     scene::{
         collider::{ColliderShape, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
@@ -67,11 +68,15 @@ impl<'a> Behavior<'a> for FindTarget {
             .iter()
             .filter(|actor_handle| **actor_handle != ctx.bot_handle)
         {
-            let character_node = &ctx.scene.graph[actor_handle];
+            let Some(character_node) = ctx.scene.graph.try_get(actor_handle) else {
+                continue;
+            };
 
-            let character = character_node
-                .try_get_script_component::<Character>()
-                .unwrap();
+            let character_position = character_node.global_position();
+
+            let Some(character) = character_node.try_get_script_component::<Character>() else {
+                continue;
+            };
 
             // Ignore dead targets.
             if character.is_dead() {
@@ -98,13 +103,11 @@ impl<'a> Behavior<'a> for FindTarget {
             // Check each target for two criteria:
             // 1) Is close enough to bot ("can hear")
             // 2) Is visible to bot ("can see")
-            let distance = position.metric_distance(&character_node.global_position());
+            let distance = position.metric_distance(&character_position);
             if distance != 0.0 && distance < 1.6
-                || self
-                    .frustum
-                    .is_contains_point(character_node.global_position())
+                || self.frustum.is_contains_point(character_position)
             {
-                let ray = Ray::from_two_points(character_node.global_position(), position);
+                let ray = Ray::from_two_points(character_position, position);
                 ctx.scene.graph.physics.cast_ray(
                     RayCastOptions {
                         ray_origin: Point3::from(ray.origin),
@@ -132,7 +135,7 @@ impl<'a> Behavior<'a> for FindTarget {
 
                 if distance < closest_distance {
                     *ctx.target = Some(Target {
-                        position: character_node.global_position(),
+                        position: character_position,
                         handle: actor_handle,
                     });
                     closest_distance = distance;
