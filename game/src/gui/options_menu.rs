@@ -1,6 +1,6 @@
 use crate::{
     config::Config,
-    control_scheme::{ControlButton, ControlScheme},
+    control_scheme::ControlButton,
     gui::{create_check_box, create_scroll_bar, ScrollBarData},
     message::Message,
     MessageSender,
@@ -719,7 +719,7 @@ impl OptionsMenu {
         &mut self,
         engine: &mut PluginContext,
         event: &Event<()>,
-        control_scheme: &mut ControlScheme,
+        config: &mut Config,
     ) {
         if let Event::WindowEvent { event, .. } = event {
             let mut control_button = None;
@@ -772,7 +772,7 @@ impl OptionsMenu {
                         ));
                     }
 
-                    control_scheme.buttons_mut()[active_control_button].button = control_button;
+                    config.controls.buttons_mut()[active_control_button].button = control_button;
 
                     self.active_control_button = None;
                 }

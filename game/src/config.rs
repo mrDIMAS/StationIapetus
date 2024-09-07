@@ -21,9 +21,10 @@ impl Config {
         }
     }
 
-    pub fn save_if_needed(&self) {
+    pub fn save_if_needed(&mut self) {
         if self.need_save {
             self.data.save();
+            self.need_save = false;
         }
     }
 }

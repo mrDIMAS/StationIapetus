@@ -1,7 +1,7 @@
 use crate::gui::save_load::{Mode, SaveLoadDialog};
 use crate::{
-    config::Config, config::SoundConfig, control_scheme::ControlScheme,
-    gui::options_menu::OptionsMenu, message::Message, MessageSender,
+    config::Config, config::SoundConfig, gui::options_menu::OptionsMenu, message::Message,
+    MessageSender,
 };
 use fyrox::{
     asset::io::FsResourceIo,
@@ -230,10 +230,9 @@ impl Menu {
         &mut self,
         ctx: &mut PluginContext,
         event: &Event<()>,
-        control_scheme: &mut ControlScheme,
+        config: &mut Config,
     ) {
-        self.options_menu
-            .process_input_event(ctx, event, control_scheme);
+        self.options_menu.process_input_event(ctx, event, config);
     }
 
     pub fn sync_to_model(&mut self, ctx: &mut PluginContext, level_loaded: bool) {

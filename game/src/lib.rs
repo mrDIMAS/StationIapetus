@@ -558,7 +558,7 @@ impl Game {
         }
 
         self.menu
-            .process_input_event(context, event, &mut self.config.controls);
+            .process_input_event(context, event, &mut self.config);
     }
 }
 
