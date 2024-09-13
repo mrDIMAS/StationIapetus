@@ -1047,7 +1047,7 @@ impl Player {
 
 impl ScriptTrait for Player {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.item_display = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.05))
+        self.item_display = SpriteBuilder::new(BaseBuilder::new())
             .with_size(0.18)
             .build(&mut ctx.scene.graph);
 

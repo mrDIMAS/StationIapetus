@@ -84,7 +84,7 @@ impl ScriptTrait for Item {
             .unwrap();
 
         // Create spark from code, since it is the same across all items.
-        self.spark = SpriteBuilder::new(BaseBuilder::new().with_depth_offset(0.0025))
+        self.spark = SpriteBuilder::new(BaseBuilder::new())
             .with_size(0.04)
             .with_color(Color::from_rgba(255, 255, 255, 160))
             .with_material(MaterialResource::new(material))

@@ -1,4 +1,5 @@
 use crate::Game;
+use fyrox::renderer::framework::GeometryBufferExt;
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
