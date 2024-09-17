@@ -28,8 +28,8 @@ pub struct ItemDisplay {
 }
 
 impl ItemDisplay {
-    pub const WIDTH: f32 = 128.0;
-    pub const HEIGHT: f32 = 160.0;
+    pub const WIDTH: f32 = 250.0;
+    pub const HEIGHT: f32 = 300.0;
 
     pub fn new(font: FontResource) -> Self {
         let mut ui = UserInterface::new(Vector2::new(Self::WIDTH, Self::HEIGHT));
@@ -53,8 +53,8 @@ impl ItemDisplay {
                                     WidgetBuilder::new()
                                         .with_background(Brush::Solid(Color::WHITE))
                                         .with_foreground(Brush::Solid(Color::WHITE))
-                                        .with_width(128.0)
-                                        .with_height(128.0)
+                                        .with_width(170.0)
+                                        .with_height(170.0)
                                         .on_row(0)
                                         .on_column(0),
                                 )
@@ -73,7 +73,7 @@ impl ItemDisplay {
                             .on_column(0),
                     )
                     .with_font(font.clone())
-                    .with_font_size(31.0)
+                    .with_font_size(30.0)
                     .build(&mut ui.build_ctx());
                     item_name
                 })
@@ -87,14 +87,13 @@ impl ItemDisplay {
                             .on_column(0),
                     )
                     .with_shadow(true)
-                    .with_wrap(WrapMode::Letter)
                     .with_font_size(20.0)
                     .with_font(font)
                     .build(&mut ui.build_ctx());
                     action_text
                 }),
         )
-        .add_column(Column::auto())
+        .add_column(Column::stretch())
         .add_row(Row::stretch())
         .add_row(Row::auto())
         .add_row(Row::auto())

@@ -3,7 +3,9 @@ use fyrox::engine::executor::Executor;
 
 fn main() {
     let mut executor = Executor::new();
-	
+
+    executor.set_throttle_frame_interval(1000);
+
     // Dynamic linking with hot reloading.
     #[cfg(feature = "dylib")]
     {
@@ -21,7 +23,7 @@ fn main() {
     {
         use station_iapetus::Game;
         executor.add_plugin(Game::default());
-    }  
-	
+    }
+
     executor.run()
 }
