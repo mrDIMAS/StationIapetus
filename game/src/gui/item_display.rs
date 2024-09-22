@@ -5,7 +5,6 @@ use fyrox::{
         border::BorderBuilder,
         brush::Brush,
         font::FontResource,
-        formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         image::{ImageBuilder, ImageMessage},
         message::MessageDirection,

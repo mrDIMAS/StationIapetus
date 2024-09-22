@@ -1,4 +1,5 @@
 use crate::Game;
+use fyrox::renderer::framework::{CompareFunc, GeometryBufferExt};
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -12,16 +13,15 @@ use fyrox::{
         bundle::{RenderContext, RenderDataBundleStorage},
         framework::{
             error::FrameworkError,
-            framebuffer::{
-                Attachment, AttachmentKind, BlendParameters, DrawParameters, FrameBuffer,
-            },
-            geometry_buffer::{ElementRange, GeometryBuffer, GeometryBufferKind},
+            framebuffer::{Attachment, AttachmentKind, FrameBuffer},
+            geometry_buffer::{GeometryBuffer, GeometryBufferKind},
             gpu_program::{GpuProgram, UniformLocation},
             gpu_texture::{
                 Coordinate, GpuTexture, GpuTextureKind, MagnificationFilter, MinificationFilter,
                 PixelKind, WrapMode,
             },
-            state::{BlendFactor, BlendFunc, PipelineState},
+            state::GlGraphicsServer,
+            BlendFactor, BlendFunc, BlendParameters, DrawParameters, ElementRange,
         },
         RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
     },
@@ -37,7 +37,7 @@ struct EdgeDetectShader {
 }
 
 impl EdgeDetectShader {
-    pub fn new(state: &PipelineState) -> Result<Self, FrameworkError> {
+    pub fn new(state: &GlGraphicsServer) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 uniform sampler2D frameTexture;
 
@@ -102,7 +102,7 @@ struct FlatShader {
 }
 
 impl FlatShader {
-    pub fn new(state: &PipelineState) -> Result<Self, FrameworkError> {
+    pub fn new(server: &GlGraphicsServer) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 out vec4 FragColor;
 
@@ -123,12 +123,13 @@ void main()
     gl_Position = worldViewProjection * vec4(vertexPosition, 1.0);
 }"#;
 
-        let program = GpuProgram::from_source(state, "FlatShader", vertex_source, fragment_source)?;
+        let program =
+            GpuProgram::from_source(server, "FlatShader", vertex_source, fragment_source)?;
         Ok(Self {
             wvp_matrix: program
-                .uniform_location(state, &ImmutableString::new("worldViewProjection"))?,
+                .uniform_location(server, &ImmutableString::new("worldViewProjection"))?,
             diffuse_color: program
-                .uniform_location(state, &ImmutableString::new("diffuseColor"))?,
+                .uniform_location(server, &ImmutableString::new("diffuseColor"))?,
             program,
         })
     }
@@ -156,9 +157,9 @@ impl Debug for HighlightRenderPass {
 }
 
 impl HighlightRenderPass {
-    pub fn new(state: &PipelineState, width: usize, height: usize) -> Rc<RefCell<Self>> {
+    pub fn new(server: &GlGraphicsServer, width: usize, height: usize) -> Rc<RefCell<Self>> {
         let mut depth_stencil_texture = GpuTexture::new(
-            state,
+            server,
             GpuTextureKind::Rectangle { width, height },
             PixelKind::D24S8,
             MinificationFilter::Nearest,
@@ -168,14 +169,14 @@ impl HighlightRenderPass {
         )
         .unwrap();
         depth_stencil_texture
-            .bind_mut(state, 0)
+            .bind_mut(server, 0)
             .set_wrap(Coordinate::S, WrapMode::ClampToEdge)
             .set_wrap(Coordinate::T, WrapMode::ClampToEdge);
 
         let depth_stencil = Rc::new(RefCell::new(depth_stencil_texture));
 
         let frame_texture = GpuTexture::new(
-            state,
+            server,
             GpuTextureKind::Rectangle { width, height },
             PixelKind::RGBA8,
             MinificationFilter::Linear,
@@ -186,7 +187,7 @@ impl HighlightRenderPass {
         .unwrap();
 
         let framebuffer = FrameBuffer::new(
-            state,
+            server,
             Some(Attachment {
                 kind: AttachmentKind::DepthStencil,
                 texture: depth_stencil,
@@ -203,11 +204,11 @@ impl HighlightRenderPass {
             quad: GeometryBuffer::from_surface_data(
                 &SurfaceData::make_unit_xy_quad(),
                 GeometryBufferKind::StaticDraw,
-                state,
+                server,
             )
             .unwrap(),
-            edge_detect_shader: EdgeDetectShader::new(state).unwrap(),
-            flat_shader: FlatShader::new(state).unwrap(),
+            edge_detect_shader: EdgeDetectShader::new(server).unwrap(),
+            flat_shader: FlatShader::new(server).unwrap(),
             scene_handle: Default::default(),
             nodes_to_highlight: Default::default(),
         }))
@@ -284,9 +285,10 @@ impl SceneRenderPass for HighlightRenderPass {
                             color_write: Default::default(),
                             depth_write: true,
                             stencil_test: None,
-                            depth_test: true,
+                            depth_test: Some(CompareFunc::Less),
                             blend: None,
                             stencil_op: Default::default(),
+                            scissor_box: None,
                         },
                         instance.element_range,
                         |mut program_binding| {
@@ -334,12 +336,13 @@ impl SceneRenderPass for HighlightRenderPass {
                     color_write: Default::default(),
                     depth_write: false,
                     stencil_test: None,
-                    depth_test: true,
+                    depth_test: Some(CompareFunc::Less),
                     blend: Some(BlendParameters {
                         func: BlendFunc::new(BlendFactor::SrcAlpha, BlendFactor::OneMinusSrcAlpha),
                         ..Default::default()
                     }),
                     stencil_op: Default::default(),
+                    scissor_box: None,
                 },
                 ElementRange::Full,
                 |mut program_binding| {

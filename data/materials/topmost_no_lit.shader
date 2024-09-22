@@ -13,7 +13,7 @@
                 ),
                 depth_write: true,
                 stencil_test: None,
-                depth_test: true,
+                depth_test: Some(Less),
                 blend: Some(BlendParameters(
                     func: BlendFunc(
                         sfactor: SrcAlpha,
@@ -32,6 +32,7 @@
                     zpass: Keep,
                     write_mask: 0xFFFF_FFFF,
                 ),
+                scissor_box: None
             ),
             vertex_shader:
                r#"
@@ -62,7 +63,7 @@
                 void main()
                 {
                     FragColor = texture(diffuseTexture, texCoord);
-                    gl_FragDepth = gl_FragCoord.z * 0.005;
+                    gl_FragDepth = gl_FragCoord.z * 0.93;
                 }
                "#,
         ),

@@ -16,8 +16,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::graph::{BaseSceneGraph, SceneGraph};
-use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -35,6 +33,7 @@ use fyrox::{
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashSet,
+    graph::{BaseSceneGraph, SceneGraph},
     keyboard::PhysicalKey,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
@@ -42,17 +41,16 @@ use fyrox::{
     },
     scene::{
         animation::{absm, absm::prelude::*, prelude::*},
-        base::BaseBuilder,
         collider::Collider,
         graph::Graph,
         light::BaseLight,
         node::Node,
-        sprite::SpriteBuilder,
+        sprite::Sprite,
         Scene,
     },
     script::{
-        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
-        ScriptMessageSender, ScriptTrait,
+        PluginsRefMut, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
+        ScriptMessagePayload, ScriptMessageSender, ScriptTrait,
     },
 };
 use std::ops::{Deref, DerefMut};
@@ -170,6 +168,7 @@ pub struct Player {
     target_yaw: f32,
     target_pitch: f32,
 
+    item_display_prefab: Option<ModelResource>,
     #[reflect(hidden)]
     item_display: Handle<Node>,
 
@@ -287,6 +286,7 @@ impl Default for Player {
             melee_hit_sound: Default::default(),
             melee_hit_effect_prefab: Default::default(),
             target_pitch: 0.0,
+            item_display_prefab: None,
         }
     }
 }
@@ -345,6 +345,7 @@ impl Clone for Player {
             melee_hit_sound: self.melee_hit_sound.clone(),
             melee_hit_effect_prefab: self.melee_hit_effect_prefab.clone(),
             target_pitch: self.target_pitch,
+            item_display_prefab: self.item_display_prefab.clone(),
         }
     }
 }
@@ -419,11 +420,12 @@ impl Player {
                         self.controller.action = false;
                     }
 
-                    let display = &mut scene.graph[self.item_display];
-                    display
-                        .local_transform_mut()
-                        .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
-                    display.set_visibility(true);
+                    if let Some(display) = scene.graph.try_get_mut(self.item_display) {
+                        display
+                            .local_transform_mut()
+                            .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
+                        display.set_visibility(true);
+                    }
 
                     break;
                 }
@@ -1034,12 +1036,14 @@ impl Player {
                 .set_property("diffuseTexture", journal_texture),
         );
 
-        scene.graph[self.item_display]
-            .as_sprite_mut()
-            .material()
-            .data_ref()
-            .set_property("diffuseTexture", item_texture)
-            .unwrap();
+        if let Some(item_display) = scene.graph.try_get_of_type::<Sprite>(self.item_display) {
+            Log::verify(
+                item_display
+                    .material()
+                    .data_ref()
+                    .set_property("diffuseTexture", item_texture),
+            );
+        }
 
         self.health_color_gradient = make_color_gradient();
     }
@@ -1047,9 +1051,9 @@ impl Player {
 
 impl ScriptTrait for Player {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.item_display = SpriteBuilder::new(BaseBuilder::new())
-            .with_size(0.18)
-            .build(&mut ctx.scene.graph);
+        if let Some(item_display_prefab) = self.item_display_prefab.as_ref() {
+            self.item_display = item_display_prefab.instantiate(ctx.scene);
+        }
 
         if let Some(grenade_item) = self.grenade_item.deref().clone() {
             self.inventory.add_item(&grenade_item, 10);
@@ -1508,7 +1512,9 @@ impl ScriptTrait for Player {
                 self.in_air_time += ctx.dt;
             }
 
-            ctx.scene.graph[self.item_display].set_visibility(false);
+            if let Some(item_display) = ctx.scene.graph.try_get_mut(self.item_display) {
+                item_display.set_visibility(false);
+            }
 
             self.check_doors(ctx.scene, &level.doors_container);
             self.check_elevators(ctx.scene, &level.elevators);
