@@ -1,4 +1,6 @@
 use crate::Game;
+use fyrox::renderer::framework::buffer::BufferUsage;
+use fyrox::renderer::framework::state::GraphicsServer;
 use fyrox::renderer::framework::{CompareFunc, GeometryBufferExt};
 use fyrox::{
     core::{
@@ -14,11 +16,11 @@ use fyrox::{
         framework::{
             error::FrameworkError,
             framebuffer::{Attachment, AttachmentKind, FrameBuffer},
-            geometry_buffer::{GeometryBuffer, GeometryBufferKind},
+            geometry_buffer::GeometryBuffer,
             gpu_program::{GpuProgram, UniformLocation},
             gpu_texture::{
-                Coordinate, GpuTexture, GpuTextureKind, MagnificationFilter, MinificationFilter,
-                PixelKind, WrapMode,
+                Coordinate, GpuTextureKind, MagnificationFilter, MinificationFilter, PixelKind,
+                WrapMode,
             },
             state::GlGraphicsServer,
             BlendFactor, BlendFunc, BlendParameters, DrawParameters, ElementRange,
@@ -158,33 +160,33 @@ impl Debug for HighlightRenderPass {
 
 impl HighlightRenderPass {
     pub fn new(server: &GlGraphicsServer, width: usize, height: usize) -> Rc<RefCell<Self>> {
-        let mut depth_stencil_texture = GpuTexture::new(
-            server,
-            GpuTextureKind::Rectangle { width, height },
-            PixelKind::D24S8,
-            MinificationFilter::Nearest,
-            MagnificationFilter::Nearest,
-            1,
-            None,
-        )
-        .unwrap();
-        depth_stencil_texture
-            .bind_mut(server, 0)
-            .set_wrap(Coordinate::S, WrapMode::ClampToEdge)
+        let depth_stencil = server
+            .create_texture(
+                GpuTextureKind::Rectangle { width, height },
+                PixelKind::D24S8,
+                MinificationFilter::Nearest,
+                MagnificationFilter::Nearest,
+                1,
+                None,
+            )
+            .unwrap();
+        depth_stencil
+            .borrow_mut()
+            .set_wrap(Coordinate::S, WrapMode::ClampToEdge);
+        depth_stencil
+            .borrow_mut()
             .set_wrap(Coordinate::T, WrapMode::ClampToEdge);
 
-        let depth_stencil = Rc::new(RefCell::new(depth_stencil_texture));
-
-        let frame_texture = GpuTexture::new(
-            server,
-            GpuTextureKind::Rectangle { width, height },
-            PixelKind::RGBA8,
-            MinificationFilter::Linear,
-            MagnificationFilter::Linear,
-            1,
-            None,
-        )
-        .unwrap();
+        let frame_texture = server
+            .create_texture(
+                GpuTextureKind::Rectangle { width, height },
+                PixelKind::RGBA8,
+                MinificationFilter::Linear,
+                MagnificationFilter::Linear,
+                1,
+                None,
+            )
+            .unwrap();
 
         let framebuffer = FrameBuffer::new(
             server,
@@ -194,7 +196,7 @@ impl HighlightRenderPass {
             }),
             vec![Attachment {
                 kind: AttachmentKind::Color,
-                texture: Rc::new(RefCell::new(frame_texture)),
+                texture: frame_texture,
             }],
         )
         .unwrap();
@@ -203,7 +205,7 @@ impl HighlightRenderPass {
             framebuffer,
             quad: GeometryBuffer::from_surface_data(
                 &SurfaceData::make_unit_xy_quad(),
-                GeometryBufferKind::StaticDraw,
+                BufferUsage::StaticDraw,
                 server,
             )
             .unwrap(),
