@@ -144,7 +144,7 @@ pub struct HighlightEntry {
 }
 
 pub struct HighlightRenderPass {
-    framebuffer: FrameBuffer,
+    framebuffer: Box<dyn FrameBuffer>,
     quad: GeometryBuffer,
     edge_detect_shader: EdgeDetectShader,
     flat_shader: FlatShader,
@@ -188,18 +188,18 @@ impl HighlightRenderPass {
             )
             .unwrap();
 
-        let framebuffer = FrameBuffer::new(
-            server,
-            Some(Attachment {
-                kind: AttachmentKind::DepthStencil,
-                texture: depth_stencil,
-            }),
-            vec![Attachment {
-                kind: AttachmentKind::Color,
-                texture: frame_texture,
-            }],
-        )
-        .unwrap();
+        let framebuffer = server
+            .create_frame_buffer(
+                Some(Attachment {
+                    kind: AttachmentKind::DepthStencil,
+                    texture: depth_stencil,
+                }),
+                vec![Attachment {
+                    kind: AttachmentKind::Color,
+                    texture: frame_texture,
+                }],
+            )
+            .unwrap();
 
         Rc::new(RefCell::new(Self {
             framebuffer,
@@ -259,18 +259,13 @@ impl SceneRenderPass for HighlightRenderPass {
 
             render_batch_storage.sort();
 
-            self.framebuffer.clear(
-                ctx.pipeline_state,
-                ctx.viewport,
-                Some(Color::TRANSPARENT),
-                Some(1.0),
-                None,
-            );
+            self.framebuffer
+                .clear(ctx.viewport, Some(Color::TRANSPARENT), Some(1.0), None);
 
             for batch in render_batch_storage.bundles.iter() {
                 let Some(geometry) =
                     ctx.geometry_cache
-                        .get(ctx.pipeline_state, &batch.data, batch.time_to_live)
+                        .get(ctx.server, &batch.data, batch.time_to_live)
                 else {
                     continue;
                 };
@@ -279,7 +274,6 @@ impl SceneRenderPass for HighlightRenderPass {
                     let shader = &self.flat_shader;
                     self.framebuffer.draw(
                         geometry,
-                        ctx.pipeline_state,
                         ctx.viewport,
                         &shader.program,
                         &DrawParameters {
@@ -293,7 +287,7 @@ impl SceneRenderPass for HighlightRenderPass {
                             scissor_box: None,
                         },
                         instance.element_range,
-                        |mut program_binding| {
+                        &mut |mut program_binding| {
                             program_binding
                                 .set_matrix4(
                                     &shader.wvp_matrix,
@@ -330,7 +324,6 @@ impl SceneRenderPass for HighlightRenderPass {
             let frame_texture = self.framebuffer.color_attachments()[0].texture.clone();
             ctx.framebuffer.draw(
                 &self.quad,
-                ctx.pipeline_state,
                 ctx.viewport,
                 &shader.program,
                 &DrawParameters {
@@ -347,7 +340,7 @@ impl SceneRenderPass for HighlightRenderPass {
                     scissor_box: None,
                 },
                 ElementRange::Full,
-                |mut program_binding| {
+                &mut |mut program_binding| {
                     program_binding
                         .set_matrix4(&shader.wvp_matrix, &frame_matrix)
                         .set_texture(&shader.frame_texture, &frame_texture);
