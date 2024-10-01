@@ -39,7 +39,9 @@
                 layout(location = 0) in vec3 vertexPosition;
                 layout(location = 1) in vec2 vertexTexCoord;
 
-                uniform mat4 fyrox_worldViewProjection;
+                layout(std140) uniform FyroxInstanceData {
+                    TInstanceData fyrox_instanceData;
+                };
 
                 out vec3 position;
                 out vec2 texCoord;
@@ -47,7 +49,7 @@
                 void main()
                 {
                     vec4 localPosition = vec4(vertexPosition, 1.0);
-                    gl_Position = fyrox_worldViewProjection * localPosition;
+                    gl_Position = fyrox_instanceData.worldViewProjection * localPosition;
                     texCoord = vertexTexCoord;
                 }
                "#,

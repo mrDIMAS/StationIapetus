@@ -1,5 +1,6 @@
 use crate::Game;
 use fyrox::renderer::framework::buffer::BufferUsage;
+use fyrox::renderer::framework::framebuffer::{ResourceBindGroup, ResourceBinding};
 use fyrox::renderer::framework::state::GraphicsServer;
 use fyrox::renderer::framework::{CompareFunc, GeometryBufferExt};
 use fyrox::{
@@ -286,6 +287,7 @@ impl SceneRenderPass for HighlightRenderPass {
                             stencil_op: Default::default(),
                             scissor_box: None,
                         },
+                        &[], // TODO
                         instance.element_range,
                         &mut |mut program_binding| {
                             program_binding
@@ -339,11 +341,15 @@ impl SceneRenderPass for HighlightRenderPass {
                     stencil_op: Default::default(),
                     scissor_box: None,
                 },
+                &[ResourceBindGroup {
+                    bindings: &[ResourceBinding::texture(
+                        &frame_texture,
+                        &shader.frame_texture,
+                    )],
+                }],
                 ElementRange::Full,
                 &mut |mut program_binding| {
-                    program_binding
-                        .set_matrix4(&shader.wvp_matrix, &frame_matrix)
-                        .set_texture(&shader.frame_texture, &frame_texture);
+                    program_binding.set_matrix4(&shader.wvp_matrix, &frame_matrix);
                 },
             )?;
         }
