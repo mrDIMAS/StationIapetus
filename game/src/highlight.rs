@@ -1,8 +1,5 @@
 use crate::Game;
-use fyrox::renderer::framework::buffer::BufferUsage;
-use fyrox::renderer::framework::framebuffer::{ResourceBindGroup, ResourceBinding};
-use fyrox::renderer::framework::state::GraphicsServer;
-use fyrox::renderer::framework::{CompareFunc, GeometryBufferExt};
+use fyrox::renderer::framework::gl::server::GlGraphicsServer;
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -15,32 +12,41 @@ use fyrox::{
     renderer::{
         bundle::{RenderContext, RenderDataBundleStorage},
         framework::{
+            buffer::BufferUsage,
             error::FrameworkError,
-            framebuffer::{Attachment, AttachmentKind, FrameBuffer},
+            framebuffer::{
+                Attachment, AttachmentKind, FrameBuffer, ResourceBindGroup, ResourceBinding,
+            },
             geometry_buffer::GeometryBuffer,
             gpu_program::{GpuProgram, UniformLocation},
             gpu_texture::{
                 Coordinate, GpuTextureKind, MagnificationFilter, MinificationFilter, PixelKind,
                 WrapMode,
             },
-            state::GlGraphicsServer,
-            BlendFactor, BlendFunc, BlendParameters, DrawParameters, ElementRange,
+            server::GraphicsServer,
+            uniform::StaticUniformBuffer,
+            BlendFactor, BlendFunc, BlendParameters, CompareFunc, DrawParameters, ElementRange,
+            GeometryBufferExt,
         },
         RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
     },
     scene::{mesh::surface::SurfaceData, node::Node, Scene},
 };
-use std::fmt::{Debug, Formatter};
-use std::{any::TypeId, cell::RefCell, rc::Rc};
+use std::{
+    any::TypeId,
+    cell::RefCell,
+    fmt::{Debug, Formatter},
+    rc::Rc,
+};
 
 struct EdgeDetectShader {
-    program: GpuProgram,
-    wvp_matrix: UniformLocation,
+    program: Box<dyn GpuProgram>,
+    uniform_buffer_binding: usize,
     frame_texture: UniformLocation,
 }
 
 impl EdgeDetectShader {
-    pub fn new(state: &GlGraphicsServer) -> Result<Self, FrameworkError> {
+    pub fn new(state: &dyn GraphicsServer) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 uniform sampler2D frameTexture;
 
@@ -76,7 +82,9 @@ void main() {
 layout(location = 0) in vec3 vertexPosition;
 layout(location = 1) in vec2 vertexTexCoord;
 
-uniform mat4 worldViewProjection;
+layout(std140) uniform Uniforms {
+    mat4 worldViewProjection;
+};
 
 out vec2 texCoord;
 
@@ -86,30 +94,30 @@ void main()
     gl_Position = worldViewProjection * vec4(vertexPosition, 1.0);
 }"#;
 
-        let program =
-            GpuProgram::from_source(state, "EdgeDetectShader", vertex_source, fragment_source)?;
+        let program = state.create_program("EdgeDetectShader", vertex_source, fragment_source)?;
         Ok(Self {
-            wvp_matrix: program
-                .uniform_location(state, &ImmutableString::new("worldViewProjection"))?,
-            frame_texture: program
-                .uniform_location(state, &ImmutableString::new("frameTexture"))?,
+            uniform_buffer_binding: program
+                .uniform_block_index(&ImmutableString::new("Uniforms"))?,
+            frame_texture: program.uniform_location(&ImmutableString::new("frameTexture"))?,
             program,
         })
     }
 }
 
 struct FlatShader {
-    program: GpuProgram,
-    wvp_matrix: UniformLocation,
-    diffuse_color: UniformLocation,
+    program: Box<dyn GpuProgram>,
+    uniform_buffer_binding: usize,
 }
 
 impl FlatShader {
-    pub fn new(server: &GlGraphicsServer) -> Result<Self, FrameworkError> {
+    pub fn new(server: &dyn GraphicsServer) -> Result<Self, FrameworkError> {
         let fragment_source = r#"
 out vec4 FragColor;
 
-uniform vec4 diffuseColor;
+layout(std140) uniform Uniforms {
+    mat4 worldViewProjection;
+    vec4 diffuseColor;
+};
 
 void main()
 {
@@ -119,20 +127,20 @@ void main()
         let vertex_source = r#"
 layout(location = 0) in vec3 vertexPosition;
 
-uniform mat4 worldViewProjection;
+layout(std140) uniform Uniforms {
+    mat4 worldViewProjection;
+    vec4 diffuseColor;
+};
 
 void main()
 {
     gl_Position = worldViewProjection * vec4(vertexPosition, 1.0);
 }"#;
 
-        let program =
-            GpuProgram::from_source(server, "FlatShader", vertex_source, fragment_source)?;
+        let program = server.create_program("FlatShader", vertex_source, fragment_source)?;
         Ok(Self {
-            wvp_matrix: program
-                .uniform_location(server, &ImmutableString::new("worldViewProjection"))?,
-            diffuse_color: program
-                .uniform_location(server, &ImmutableString::new("diffuseColor"))?,
+            uniform_buffer_binding: program
+                .uniform_block_index(&ImmutableString::new("Uniforms"))?,
             program,
         })
     }
@@ -272,11 +280,22 @@ impl SceneRenderPass for HighlightRenderPass {
                 };
 
                 for instance in batch.instances.iter() {
+                    let color = &additional_data_map
+                        .get(&instance.node_handle)
+                        .map(|e| e.color)
+                        .unwrap_or_default();
+                    let uniform_buffer = ctx.uniform_buffer_cache.write(
+                        ctx.server,
+                        StaticUniformBuffer::<512>::new()
+                            .with(&(view_projection * instance.world_transform))
+                            .with(&color.srgb_to_linear_f32()),
+                    )?;
+
                     let shader = &self.flat_shader;
                     self.framebuffer.draw(
                         geometry,
                         ctx.viewport,
-                        &shader.program,
+                        &*shader.program,
                         &DrawParameters {
                             cull_face: None,
                             color_write: Default::default(),
@@ -287,22 +306,13 @@ impl SceneRenderPass for HighlightRenderPass {
                             stencil_op: Default::default(),
                             scissor_box: None,
                         },
-                        &[], // TODO
+                        &[ResourceBindGroup {
+                            bindings: &[ResourceBinding::Buffer {
+                                buffer: uniform_buffer,
+                                shader_location: shader.uniform_buffer_binding,
+                            }],
+                        }],
                         instance.element_range,
-                        &mut |mut program_binding| {
-                            program_binding
-                                .set_matrix4(
-                                    &shader.wvp_matrix,
-                                    &(view_projection * instance.world_transform),
-                                )
-                                .set_linear_color(
-                                    &shader.diffuse_color,
-                                    &additional_data_map
-                                        .get(&instance.node_handle)
-                                        .map(|e| e.color)
-                                        .unwrap_or_default(),
-                                );
-                        },
                     )?;
                 }
             }
@@ -327,7 +337,7 @@ impl SceneRenderPass for HighlightRenderPass {
             ctx.framebuffer.draw(
                 &self.quad,
                 ctx.viewport,
-                &shader.program,
+                &*shader.program,
                 &DrawParameters {
                     cull_face: None,
                     color_write: Default::default(),
@@ -342,15 +352,18 @@ impl SceneRenderPass for HighlightRenderPass {
                     scissor_box: None,
                 },
                 &[ResourceBindGroup {
-                    bindings: &[ResourceBinding::texture(
-                        &frame_texture,
-                        &shader.frame_texture,
-                    )],
+                    bindings: &[
+                        ResourceBinding::texture(&frame_texture, &shader.frame_texture),
+                        ResourceBinding::Buffer {
+                            buffer: ctx.uniform_buffer_cache.write(
+                                ctx.server,
+                                StaticUniformBuffer::<512>::new().with(&frame_matrix),
+                            )?,
+                            shader_location: shader.uniform_buffer_binding,
+                        },
+                    ],
                 }],
                 ElementRange::Full,
-                &mut |mut program_binding| {
-                    program_binding.set_matrix4(&shader.wvp_matrix, &frame_matrix);
-                },
             )?;
         }
 

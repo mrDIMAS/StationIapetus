@@ -56,8 +56,6 @@
 
            fragment_shader:
                r#"
-                uniform sampler2D diffuseTexture;
-
                 out vec4 FragColor;
 
                 in vec2 texCoord;
