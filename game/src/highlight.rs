@@ -310,6 +310,7 @@ impl SceneRenderPass for HighlightRenderPass {
                             bindings: &[ResourceBinding::Buffer {
                                 buffer: uniform_buffer,
                                 shader_location: shader.uniform_buffer_binding,
+                                data_usage: Default::default(),
                             }],
                         }],
                         instance.element_range,
@@ -360,6 +361,7 @@ impl SceneRenderPass for HighlightRenderPass {
                                 StaticUniformBuffer::<512>::new().with(&frame_matrix),
                             )?,
                             shader_location: shader.uniform_buffer_binding,
+                            data_usage: Default::default(),
                         },
                     ],
                 }],
