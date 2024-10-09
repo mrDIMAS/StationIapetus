@@ -1,5 +1,4 @@
 use crate::Game;
-use fyrox::renderer::framework::gl::server::GlGraphicsServer;
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -154,7 +153,7 @@ pub struct HighlightEntry {
 
 pub struct HighlightRenderPass {
     framebuffer: Box<dyn FrameBuffer>,
-    quad: GeometryBuffer,
+    quad: Box<dyn GeometryBuffer>,
     edge_detect_shader: EdgeDetectShader,
     flat_shader: FlatShader,
     pub scene_handle: Handle<Scene>,
@@ -168,7 +167,7 @@ impl Debug for HighlightRenderPass {
 }
 
 impl HighlightRenderPass {
-    pub fn new(server: &GlGraphicsServer, width: usize, height: usize) -> Rc<RefCell<Self>> {
+    pub fn new(server: &dyn GraphicsServer, width: usize, height: usize) -> Rc<RefCell<Self>> {
         let depth_stencil = server
             .create_texture(
                 GpuTextureKind::Rectangle { width, height },
@@ -212,7 +211,7 @@ impl HighlightRenderPass {
 
         Rc::new(RefCell::new(Self {
             framebuffer,
-            quad: GeometryBuffer::from_surface_data(
+            quad: <dyn GeometryBuffer>::from_surface_data(
                 &SurfaceData::make_unit_xy_quad(),
                 BufferUsage::StaticDraw,
                 server,
@@ -285,7 +284,6 @@ impl SceneRenderPass for HighlightRenderPass {
                         .map(|e| e.color)
                         .unwrap_or_default();
                     let uniform_buffer = ctx.uniform_buffer_cache.write(
-                        ctx.server,
                         StaticUniformBuffer::<512>::new()
                             .with(&(view_projection * instance.world_transform))
                             .with(&color.srgb_to_linear_f32()),
@@ -336,7 +334,7 @@ impl SceneRenderPass for HighlightRenderPass {
             let shader = &self.edge_detect_shader;
             let frame_texture = self.framebuffer.color_attachments()[0].texture.clone();
             ctx.framebuffer.draw(
-                &self.quad,
+                &*self.quad,
                 ctx.viewport,
                 &*shader.program,
                 &DrawParameters {
@@ -356,10 +354,9 @@ impl SceneRenderPass for HighlightRenderPass {
                     bindings: &[
                         ResourceBinding::texture(&frame_texture, &shader.frame_texture),
                         ResourceBinding::Buffer {
-                            buffer: ctx.uniform_buffer_cache.write(
-                                ctx.server,
-                                StaticUniformBuffer::<512>::new().with(&frame_matrix),
-                            )?,
+                            buffer: ctx
+                                .uniform_buffer_cache
+                                .write(StaticUniformBuffer::<512>::new().with(&frame_matrix))?,
                             shader_location: shader.uniform_buffer_binding,
                             data_usage: Default::default(),
                         },

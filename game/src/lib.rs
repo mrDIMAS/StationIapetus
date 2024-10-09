@@ -528,7 +528,7 @@ impl Game {
             }
 
             let highlighter =
-                HighlightRenderPass::new(&graphics_context.renderer.state, width, height);
+                HighlightRenderPass::new(&*graphics_context.renderer.server, width, height);
 
             if let Some(level) = self.level.as_ref() {
                 highlighter.borrow_mut().scene_handle = level.scene;
