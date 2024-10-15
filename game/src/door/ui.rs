@@ -15,6 +15,7 @@ pub struct DoorUi {
     sector: Handle<UiNode>,
     text: Handle<UiNode>,
     action_text: Handle<UiNode>,
+    need_render: bool,
 }
 
 impl DoorUi {
@@ -28,6 +29,7 @@ impl DoorUi {
             logo: ui.find_handle_by_name_from_root("Logo"),
             sector: ui.find_handle_by_name_from_root("Sector"),
             ui,
+            need_render: true,
         }
     }
 
@@ -84,13 +86,16 @@ impl DoorUi {
     }
 
     pub fn render(&mut self, renderer: &mut Renderer) {
-        Log::verify(renderer.render_ui_to_texture(
-            self.render_target.clone(),
-            self.ui.screen_size(),
-            self.ui.draw(),
-            Color::TRANSPARENT,
-            PixelKind::SRGBA8,
-        ));
+        if self.need_render {
+            Log::verify(renderer.render_ui_to_texture(
+                self.render_target.clone(),
+                self.ui.screen_size(),
+                self.ui.draw(),
+                Color::TRANSPARENT,
+                PixelKind::SRGBA8,
+            ));
+            self.need_render = false;
+        }
     }
 
     pub fn update(&mut self, delta: f32) {

@@ -1,4 +1,5 @@
 use crate::Game;
+use fyrox::renderer::framework::framebuffer::BufferLocation;
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -307,7 +308,9 @@ impl SceneRenderPass for HighlightRenderPass {
                         &[ResourceBindGroup {
                             bindings: &[ResourceBinding::Buffer {
                                 buffer: uniform_buffer,
-                                shader_location: shader.uniform_buffer_binding,
+                                binding: BufferLocation::Auto {
+                                    shader_location: shader.uniform_buffer_binding,
+                                },
                                 data_usage: Default::default(),
                             }],
                         }],
@@ -357,7 +360,9 @@ impl SceneRenderPass for HighlightRenderPass {
                             buffer: ctx
                                 .uniform_buffer_cache
                                 .write(StaticUniformBuffer::<512>::new().with(&frame_matrix))?,
-                            shader_location: shader.uniform_buffer_binding,
+                            binding: BufferLocation::Auto {
+                                shader_location: shader.uniform_buffer_binding,
+                            },
                             data_usage: Default::default(),
                         },
                     ],

@@ -1,4 +1,5 @@
 use fyrox::graph::SceneGraph;
+use fyrox::material::MaterialResourceBinding;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -6,9 +7,7 @@ use fyrox::{
         futures::executor::block_on,
         log::{Log, MessageKind},
         pool::Handle,
-        sstorage::ImmutableString,
     },
-    material::PropertyValue,
     rand::{self, seq::SliceRandom},
     scene::{
         base::BaseBuilder,
@@ -109,16 +108,14 @@ impl SoundMap {
                                 let data = surface.data();
                                 let data = data.data_ref();
 
-                                if let Some(PropertyValue::Sampler {
-                                    value: Some(diffuse_texture),
-                                    ..
-                                }) = surface
-                                    .material()
-                                    .data_ref()
-                                    .property_ref(&ImmutableString::new("diffuseTexture"))
+                                if let Some(MaterialResourceBinding::Texture(binding)) =
+                                    surface.material().data_ref().binding_ref("diffuseTexture")
                                 {
-                                    let path =
-                                        diffuse_texture.kind().into_path().unwrap_or_default();
+                                    let path = binding
+                                        .value
+                                        .as_ref()
+                                        .and_then(|tex| tex.kind().into_path())
+                                        .unwrap_or_default();
                                     match path.canonicalize() {
                                         Ok(path) => {
                                             if let Some(&material) =

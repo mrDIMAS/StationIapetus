@@ -718,8 +718,8 @@ impl Player {
             .get_color(self.health / *self.max_health);
         let surface = mesh.surfaces_mut().first_mut().unwrap();
         let mut material = surface.material().data_ref();
-        Log::verify(material.set_property("diffuseColor", color));
-        Log::verify(material.set_property("emissionStrength", color.as_frgb().scale(10.0)));
+        material.set_property("diffuseColor", color);
+        material.set_property("emissionStrength", color.as_frgb().scale(10.0));
         drop(material);
         scene.graph[self.rig_light]
             .query_component_mut::<BaseLight>()
@@ -1003,46 +1003,38 @@ impl Player {
         item_texture: TextureResource,
         journal_texture: TextureResource,
     ) {
-        Log::verify(
-            scene.graph[self.weapon_display]
-                .as_mesh_mut()
-                .surfaces_mut()
-                .first_mut()
-                .unwrap()
-                .material()
-                .data_ref()
-                .set_property("diffuseTexture", display_texture),
-        );
+        scene.graph[self.weapon_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .material()
+            .data_ref()
+            .bind("diffuseTexture", display_texture);
 
-        Log::verify(
-            scene.graph[self.inventory_display]
-                .as_mesh_mut()
-                .surfaces_mut()
-                .first_mut()
-                .unwrap()
-                .material()
-                .data_ref()
-                .set_property("diffuseTexture", inventory_texture),
-        );
+        scene.graph[self.inventory_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .material()
+            .data_ref()
+            .bind("diffuseTexture", inventory_texture);
 
-        Log::verify(
-            scene.graph[self.journal_display]
-                .as_mesh_mut()
-                .surfaces_mut()
-                .first_mut()
-                .unwrap()
-                .material()
-                .data_ref()
-                .set_property("diffuseTexture", journal_texture),
-        );
+        scene.graph[self.journal_display]
+            .as_mesh_mut()
+            .surfaces_mut()
+            .first_mut()
+            .unwrap()
+            .material()
+            .data_ref()
+            .bind("diffuseTexture", journal_texture);
 
         if let Some(item_display) = scene.graph.try_get_of_type::<Sprite>(self.item_display) {
-            Log::verify(
-                item_display
-                    .material()
-                    .data_ref()
-                    .set_property("diffuseTexture", item_texture),
-            );
+            item_display
+                .material()
+                .data_ref()
+                .bind("diffuseTexture", item_texture);
         }
 
         self.health_color_gradient = make_color_gradient();

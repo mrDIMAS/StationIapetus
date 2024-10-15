@@ -4,7 +4,7 @@ use fyrox::material::MaterialResourceExtension;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        log::Log, pool::Handle, reflect::prelude::*, stub_uuid_provider, type_traits::prelude::*,
+        pool::Handle, reflect::prelude::*, stub_uuid_provider, type_traits::prelude::*,
         variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
@@ -60,12 +60,12 @@ impl CallButton {
             if let Some(ref mut mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
-                Log::verify(material.set_property("diffuseTexture", texture.clone()));
+                material.bind("diffuseTexture", texture.clone());
 
-                Log::verify(material.set_property(
+                material.bind(
                     "emissionTexture",
                     resource_manager.request::<Texture>("data/ui/white_pixel.bmp"),
-                ));
+                );
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
                     first_surface.set_material(MaterialResource::new(material));

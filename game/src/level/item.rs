@@ -75,13 +75,11 @@ impl Default for Item {
 impl ScriptTrait for Item {
     fn on_init(&mut self, ctx: &mut ScriptContext) {
         let mut material = Material::standard_sprite();
-        material
-            .set_property(
-                "diffuseTexture",
-                ctx.resource_manager
-                    .request::<Texture>("data/particles/star_09.png"),
-            )
-            .unwrap();
+        material.bind(
+            "diffuseTexture",
+            ctx.resource_manager
+                .request::<Texture>("data/particles/star_09.png"),
+        );
 
         // Create spark from code, since it is the same across all items.
         self.spark = SpriteBuilder::new(BaseBuilder::new())

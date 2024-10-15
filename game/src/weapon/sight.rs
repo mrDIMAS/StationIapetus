@@ -8,7 +8,6 @@ use fyrox::{
         algebra::{Point3, Vector3},
         arrayvec::ArrayVec,
         color::Color,
-        log::Log,
         math::{lerpf, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
@@ -92,16 +91,15 @@ impl LaserSight {
     }
 
     fn set_color(&self, graph: &mut Graph, color: Color) {
-        Log::verify(
-            graph[self.ray_mesh]
-                .as_mesh_mut()
-                .surfaces()
-                .first()
-                .unwrap()
-                .material()
-                .data_ref()
-                .set_property("diffuseColor", color),
-        );
+        graph[self.ray_mesh]
+            .as_mesh_mut()
+            .surfaces()
+            .first()
+            .unwrap()
+            .material()
+            .data_ref()
+            .set_property("diffuseColor", color);
+
         graph[self.light]
             .query_component_mut::<BaseLight>()
             .unwrap()

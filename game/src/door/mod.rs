@@ -4,7 +4,7 @@ use crate::{
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        algebra::Vector3, log::Log, pool::Handle, reflect::prelude::*, type_traits::prelude::*,
+        algebra::Vector3, pool::Handle, reflect::prelude::*, type_traits::prelude::*,
         variable::InheritableVariable, visitor::prelude::*,
     },
     engine::GraphicsContext,
@@ -257,11 +257,11 @@ impl Door {
             if let Some(mesh) = graph[node_handle].cast_mut::<Mesh>() {
                 let mut material = Material::standard();
 
-                Log::verify(material.set_property("diffuseTexture", texture.clone()));
-                Log::verify(material.set_property(
+                material.bind("diffuseTexture", texture.clone());
+                material.bind(
                     "emissionTexture",
                     resource_manager.request::<Texture>("data/ui/white_pixel.bmp"),
-                ));
+                );
 
                 if let Some(first_surface) = mesh.surfaces_mut().get_mut(0) {
                     first_surface.set_material(MaterialResource::new(material));
