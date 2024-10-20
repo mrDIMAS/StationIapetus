@@ -299,13 +299,14 @@ impl Game {
         if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
             let window = &graphics_context.window;
             window.set_cursor_visible(self.is_any_menu_visible(ctx));
+            /*
             if !debug {
                 let _ = window.set_cursor_grab(if !self.is_any_menu_visible(ctx) {
                     CursorGrabMode::Confined
                 } else {
                     CursorGrabMode::None
                 });
-            }
+            }*/
         }
 
         let ui = ctx.user_interfaces.first();

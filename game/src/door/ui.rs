@@ -1,8 +1,14 @@
 use crate::{control_scheme::ControlScheme, MessageDirection, UiNode};
-use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
-    gui::{brush::Brush, text::TextMessage, widget::WidgetMessage, UserInterface},
+    graph::SceneGraph,
+    gui::{
+        brush::Brush,
+        message::UiMessage,
+        text::{Text, TextMessage},
+        widget::{Widget, WidgetMessage},
+        UserInterface,
+    },
     renderer::{framework::gpu_texture::PixelKind, Renderer},
     resource::texture::{TextureResource, TextureResourceExtension},
 };
@@ -40,49 +46,76 @@ impl DoorUi {
         can_interact: bool,
         locked: bool,
     ) {
-        self.ui.send_message(TextMessage::text(
-            self.text,
-            MessageDirection::ToWidget,
-            text,
-        ));
+        self.try_update_text(self.text, text);
 
         if can_interact {
-            self.ui.send_message(TextMessage::text(
+            self.try_update_text(
                 self.action_text,
-                MessageDirection::ToWidget,
                 format!("[{}] - Interact", control_scheme.action.button.name()),
-            ));
+            );
         }
 
-        self.ui.send_message(WidgetMessage::visibility(
-            self.action_text,
-            MessageDirection::ToWidget,
-            can_interact,
-        ));
+        self.try_update_visibility(self.action_text, can_interact);
 
         let brush = Brush::Solid(if locked { Color::RED } else { Color::GREEN });
-
         for widget in [self.action_text, self.text, self.sector] {
-            self.ui.send_message(WidgetMessage::foreground(
-                widget,
-                MessageDirection::ToWidget,
-                brush.clone(),
-            ));
+            self.try_update_foreground(widget, brush.clone());
         }
 
-        self.ui.send_message(WidgetMessage::background(
-            self.logo,
-            MessageDirection::ToWidget,
-            brush.clone(),
-        ));
+        self.try_update_background(self.logo, brush.clone());
     }
 
-    pub fn set_color(&mut self, color: Color) {
-        self.ui.send_message(WidgetMessage::foreground(
-            self.text,
-            MessageDirection::ToWidget,
-            Brush::Solid(color),
-        ));
+    fn try_update_widget_value<Widget: 'static, Param: PartialEq>(
+        &mut self,
+        widget: Handle<UiNode>,
+        value: Param,
+        get: impl Fn(&Widget) -> Param,
+        make_msg: impl FnOnce(Handle<UiNode>, Param) -> UiMessage,
+    ) {
+        if self
+            .ui
+            .try_get_of_type::<Widget>(widget)
+            .map_or(false, |widget_ref| &get(widget_ref) != &value)
+        {
+            self.ui.send_message(make_msg(widget, value));
+            self.need_render = true;
+        }
+    }
+
+    fn try_update_text(&mut self, widget: Handle<UiNode>, text: String) {
+        self.try_update_widget_value::<Text, _>(
+            widget,
+            text,
+            |w| w.text(),
+            |h, value| TextMessage::text(h, MessageDirection::ToWidget, value),
+        )
+    }
+
+    fn try_update_background(&mut self, widget: Handle<UiNode>, brush: Brush) {
+        self.try_update_widget_value::<Widget, _>(
+            widget,
+            brush,
+            |w| w.background(),
+            |h, value| WidgetMessage::background(h, MessageDirection::ToWidget, value),
+        )
+    }
+
+    fn try_update_foreground(&mut self, widget: Handle<UiNode>, brush: Brush) {
+        self.try_update_widget_value::<Widget, _>(
+            widget,
+            brush,
+            |w| w.foreground(),
+            |h, value| WidgetMessage::foreground(h, MessageDirection::ToWidget, value),
+        )
+    }
+
+    fn try_update_visibility(&mut self, widget: Handle<UiNode>, visibility: bool) {
+        self.try_update_widget_value::<Widget, _>(
+            widget,
+            visibility,
+            |w| w.visibility(),
+            |h, value| WidgetMessage::visibility(h, MessageDirection::ToWidget, value),
+        )
     }
 
     pub fn render(&mut self, renderer: &mut Renderer) {

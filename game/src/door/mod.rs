@@ -135,13 +135,6 @@ impl ScriptTrait for Door {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
-        if let Some(ui) = self.ui.as_mut() {
-            ui.update(ctx.dt);
-            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
-                ui.render(&mut graphics_context.renderer);
-            }
-        }
-
         let game = ctx.plugins.get_mut::<Game>();
         let level = game.level.as_ref().unwrap();
 
@@ -234,6 +227,13 @@ impl ScriptTrait for Door {
             }
 
             utils::try_play_sound(sound, &mut ctx.scene.graph);
+        }
+
+        if let Some(ui) = self.ui.as_mut() {
+            ui.update(ctx.dt);
+            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
+                ui.render(&mut graphics_context.renderer);
+            }
         }
     }
 }

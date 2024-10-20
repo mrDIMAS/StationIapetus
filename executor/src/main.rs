@@ -1,8 +1,17 @@
 //! Executor with your game connected to it as a plugin.
 use fyrox::engine::executor::Executor;
+use fyrox::engine::GraphicsContextParams;
+use fyrox::event_loop::EventLoop;
 
 fn main() {
-    let mut executor = Executor::new();
+    let mut executor = Executor::from_params(
+        EventLoop::new().unwrap(),
+        GraphicsContextParams {
+            window_attributes: Default::default(),
+            vsync: false,
+            msaa_sample_count: None,
+        },
+    );
 
     executor.set_throttle_frame_interval(1000);
 
