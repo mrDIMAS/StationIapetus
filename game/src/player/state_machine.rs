@@ -42,7 +42,6 @@ pub struct StateMachine {
 
 impl StateMachine {
     pub const FOOTSTEP_SIGNAL: &'static str = "Footstep";
-    pub const JUMP_SIGNAL: &'static str = "Jump";
     pub const GRAB_WEAPON_SIGNAL: &'static str = "Grab";
     pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
     pub const HIT_STARTED_SIGNAL: &'static str = "HitStarted";

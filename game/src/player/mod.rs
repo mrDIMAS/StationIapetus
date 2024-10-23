@@ -141,7 +141,7 @@ pub struct Player {
     run_factor: f32,
     target_run_factor: f32,
     in_air_time: f32,
-    velocity: Vector3<f32>, // Horizontal velocity, Y is ignored.
+    velocity: Vector3<f32>,
     jump_inertia: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
@@ -175,10 +175,6 @@ pub struct Player {
     #[reflect(hidden)]
     #[visit(skip)]
     state_machine: StateMachine,
-
-    #[reflect(hidden)]
-    #[visit(skip)]
-    jump_y_velocity: Option<f32>,
 
     #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
@@ -280,7 +276,6 @@ impl Default for Player {
             glock_weapon: None,
             plasma_gun_weapon: None,
             grenade_item: Default::default(),
-            jump_y_velocity: None,
             melee_hit_box: Default::default(),
             melee_attack_context: Default::default(),
             melee_hit_sound: Default::default(),
@@ -340,7 +335,6 @@ impl Clone for Player {
             glock_weapon: self.glock_weapon.clone(),
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
-            jump_y_velocity: self.jump_y_velocity,
             melee_hit_box: self.melee_hit_box.clone(),
             melee_hit_sound: self.melee_hit_sound.clone(),
             melee_hit_effect_prefab: self.melee_hit_effect_prefab.clone(),
@@ -636,9 +630,7 @@ impl Player {
                 }
 
                 for (_, event) in lower_layer_all_events.events {
-                    if event.name == StateMachine::JUMP_SIGNAL {
-                        self.jump_y_velocity = Some(0.064 / dt);
-                    } else if event.name == "Died" {
+                    if event.name == "Died" {
                         game_message_sender.send(Message::EndMatch);
                     }
                 }
@@ -675,9 +667,11 @@ impl Player {
         body.set_ang_vel(Default::default());
         body.set_lin_vel(Vector3::new(
             self.velocity.x + self.jump_inertia.x,
-            self.jump_y_velocity
-                .take()
-                .unwrap_or_else(|| body.lin_vel().y),
+            if self.velocity.y > 0.001 {
+                self.velocity.y
+            } else {
+                body.lin_vel().y
+            },
             self.velocity.z + self.jump_inertia.z,
         ));
 
