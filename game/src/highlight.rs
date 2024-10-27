@@ -1,34 +1,29 @@
 use crate::Game;
-use fyrox::renderer::framework::framebuffer::BufferLocation;
-use fyrox::renderer::framework::gpu_texture::GpuTextureDescriptor;
 use fyrox::{
-    core::{
-        algebra::{Matrix4, Vector3},
-        color::Color,
-        pool::Handle,
-        sstorage::ImmutableString,
-    },
+    core::{color::Color, pool::Handle, sstorage::ImmutableString},
     fxhash::FxHashMap,
     graph::{BaseSceneGraph, SceneGraph},
     renderer::{
-        bundle::{RenderContext, RenderDataBundleStorage},
+        bundle::{ObserverInfo, RenderContext, RenderDataBundleStorage},
         framework::{
             buffer::BufferUsage,
             error::FrameworkError,
             framebuffer::{
-                Attachment, AttachmentKind, FrameBuffer, ResourceBindGroup, ResourceBinding,
+                Attachment, AttachmentKind, BufferLocation, FrameBuffer, ResourceBindGroup,
+                ResourceBinding,
             },
             geometry_buffer::GeometryBuffer,
             gpu_program::{GpuProgram, UniformLocation},
             gpu_texture::{
-                GpuTextureKind, MagnificationFilter, MinificationFilter, PixelKind, WrapMode,
+                GpuTextureDescriptor, GpuTextureKind, MagnificationFilter, MinificationFilter,
+                PixelKind, WrapMode,
             },
             server::GraphicsServer,
             uniform::StaticUniformBuffer,
             BlendFactor, BlendFunc, BlendParameters, CompareFunc, DrawParameters, ElementRange,
             GeometryBufferExt,
         },
-        RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
+        make_viewport_matrix, RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
     },
     scene::{mesh::surface::SurfaceData, node::Node, Scene},
 };
@@ -245,11 +240,13 @@ impl SceneRenderPass for HighlightRenderPass {
 
             let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
-                observer_position: &ctx.camera.global_position(),
-                z_near: ctx.camera.projection().z_near(),
-                z_far: ctx.camera.projection().z_far(),
-                view_matrix: &ctx.camera.view_matrix(),
-                projection_matrix: &ctx.camera.projection_matrix(),
+                observer_info: &ObserverInfo {
+                    observer_position: ctx.camera.global_position(),
+                    z_near: ctx.camera.projection().z_near(),
+                    z_far: ctx.camera.projection().z_far(),
+                    view_matrix: ctx.camera.view_matrix(),
+                    projection_matrix: ctx.camera.projection_matrix(),
+                },
                 frustum: Some(&frustum),
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,
@@ -324,18 +321,7 @@ impl SceneRenderPass for HighlightRenderPass {
 
         // Render full screen quad with edge detect shader to draw outline of selected objects.
         {
-            let frame_matrix = Matrix4::new_orthographic(
-                0.0,
-                ctx.viewport.w() as f32,
-                ctx.viewport.h() as f32,
-                0.0,
-                -1.0,
-                1.0,
-            ) * Matrix4::new_nonuniform_scaling(&Vector3::new(
-                ctx.viewport.w() as f32,
-                ctx.viewport.h() as f32,
-                0.0,
-            ));
+            let frame_matrix = make_viewport_matrix(ctx.viewport);
             let shader = &self.edge_detect_shader;
             let frame_texture = self.framebuffer.color_attachments()[0].texture.clone();
             ctx.framebuffer.draw(

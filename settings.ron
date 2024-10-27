@@ -29,7 +29,8 @@
             fxaa: true,
             use_parallax_mapping: true,
             use_bloom: true,
-            use_occlusion_culling: true,
+            use_occlusion_culling: false,
+            use_light_occlusion_culling: false,
         ),
         z_near: 0.025,
         z_far: 128.0,
@@ -486,38 +487,6 @@
         ),
     ),
     scene_settings: {
-        "data/models/agent/agent.rgs": (
-            camera_settings: (
-                position: (-1.6375595, -0.19523716, 0.091345444),
-                yaw: -1.5999994,
-                pitch: 0.31999996,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 90,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 91,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 10,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
         "data/levels/testbed.rgs": (
             camera_settings: (
                 position: (-3.619908, 1.1694207, 5.34752),
@@ -537,13 +506,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 245,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 4,
+                    index: 259,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -555,25 +518,63 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 344,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 259,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 348,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 245,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 205,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 344,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/agent/agent.rgs": (
+            camera_settings: (
+                position: (-1.6375595, -0.19523716, 0.091345444),
+                yaw: -1.5999994,
+                pitch: 0.31999996,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 91,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 90,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 10,
                     generation: 1,
                 ): (
                     is_expanded: true,
