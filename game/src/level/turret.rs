@@ -2,6 +2,7 @@ use crate::{
     character::try_get_character_ref, sound::SoundManager, weapon::projectile::Projectile, Game,
     Player,
 };
+use fyrox::graph::SceneGraphNode;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -244,7 +245,7 @@ impl ScriptTrait for Turret {
             .scene
             .graph
             .try_get_mut(self.projector)
-            .and_then(|p| p.query_component_mut::<BaseLight>())
+            .and_then(|p| p.component_mut::<BaseLight>())
         {
             projector.set_color(if self.target.is_some() {
                 Color::opaque(255, 0, 0)

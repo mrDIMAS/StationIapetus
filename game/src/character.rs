@@ -5,7 +5,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::graph::BaseSceneGraph;
+use fyrox::graph::{BaseSceneGraph, SceneGraphNode};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -168,10 +168,10 @@ impl Character {
                     for manifold in contact.manifolds.iter() {
                         for point in manifold.points.iter() {
                             let rb1 = graph[manifold.rigid_body1]
-                                .query_component_ref::<RigidBody>()
+                                .component_ref::<RigidBody>()
                                 .unwrap();
                             let rb2 = graph[manifold.rigid_body2]
-                                .query_component_ref::<RigidBody>()
+                                .component_ref::<RigidBody>()
                                 .unwrap();
 
                             let hit_strength = (rb1.lin_vel() - rb2.lin_vel()).norm();

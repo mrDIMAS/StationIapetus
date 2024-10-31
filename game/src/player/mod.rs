@@ -16,6 +16,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::graph::SceneGraphNode;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -24,7 +25,7 @@ use fyrox::{
         color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
         log::Log,
-        math::{SmoothAngle, Vector2Ext, Vector3Ext},
+        math::{SmoothAngle, Vector2Ext},
         pool::Handle,
         reflect::prelude::*,
         type_traits::prelude::*,
@@ -142,7 +143,6 @@ pub struct Player {
     target_run_factor: f32,
     in_air_time: f32,
     velocity: Vector3<f32>,
-    jump_inertia: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
     journal_display: Handle<Node>,
@@ -240,7 +240,6 @@ impl Default for Player {
             },
             in_air_time: Default::default(),
             velocity: Default::default(),
-            jump_inertia: Default::default(),
             run_factor: Default::default(),
             target_run_factor: Default::default(),
             weapon_display: Default::default(),
@@ -305,7 +304,6 @@ impl Clone for Player {
             target_run_factor: self.target_run_factor,
             in_air_time: self.in_air_time,
             velocity: self.velocity,
-            jump_inertia: self.jump_inertia,
             weapon_display: self.weapon_display,
             inventory_display: self.inventory_display,
             journal_display: self.journal_display,
@@ -516,7 +514,6 @@ impl Player {
         is_walking: bool,
         has_ground_contact: bool,
         sound_manager: &SoundManager,
-        dt: f32,
     ) {
         if let Some(absm) = scene
             .graph
@@ -666,20 +663,14 @@ impl Player {
 
         body.set_ang_vel(Default::default());
         body.set_lin_vel(Vector3::new(
-            self.velocity.x + self.jump_inertia.x,
+            self.velocity.x,
             if self.velocity.y > 0.001 {
                 self.velocity.y
             } else {
                 body.lin_vel().y
             },
-            self.velocity.z + self.jump_inertia.z,
+            self.velocity.z,
         ));
-
-        if self.has_ground_contact(&scene.graph) && self.in_air_time > 0.3 {
-            self.jump_inertia = Default::default();
-        } else {
-            self.jump_inertia.follow(&Vector3::default(), 0.025);
-        }
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
@@ -716,7 +707,7 @@ impl Player {
         material.set_property("emissionStrength", color.as_frgb().scale(10.0));
         drop(material);
         scene.graph[self.rig_light]
-            .query_component_mut::<BaseLight>()
+            .component_mut::<BaseLight>()
             .unwrap()
             .set_color(color);
     }
@@ -1172,10 +1163,6 @@ impl ScriptTrait for Player {
             } else if button == control_scheme.move_right.button {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == control_scheme.jump.button {
-                if state == ElementState::Pressed && can_jump {
-                    self.jump_inertia = self.velocity;
-                }
-
                 self.controller.jump = state == ElementState::Pressed && can_jump;
             } else if button == control_scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
@@ -1401,7 +1388,6 @@ impl ScriptTrait for Player {
             is_walking,
             has_ground_contact,
             &level.sound_manager,
-            ctx.dt,
         );
 
         if !self.is_dead() {

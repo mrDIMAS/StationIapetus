@@ -3,6 +3,7 @@ use crate::{
     weapon::find_parent_character,
     CollisionGroups,
 };
+use fyrox::graph::SceneGraphNode;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -101,7 +102,7 @@ impl LaserSight {
             .set_property("diffuseColor", color);
 
         graph[self.light]
-            .query_component_mut::<BaseLight>()
+            .component_mut::<BaseLight>()
             .unwrap()
             .set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);

@@ -114,7 +114,7 @@ impl KineticGun {
                             .aabb_of_descendants(potential_target_node, |_, _| true)
                             .unwrap_or_else(AxisAlignedBoundingBox::collapsed);
 
-                        return if aabb.volume() <= 0.6 {
+                        return if aabb.volume() <= 50000.6 {
                             Ok(Target {
                                 node: potential_target_node,
                                 grab_point: collider

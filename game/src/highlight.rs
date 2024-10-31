@@ -164,6 +164,9 @@ impl Debug for HighlightRenderPass {
 
 impl HighlightRenderPass {
     pub fn new(server: &dyn GraphicsServer, width: usize, height: usize) -> Rc<RefCell<Self>> {
+        let width = width.max(1);
+        let height = height.max(1);
+
         let depth_stencil = server
             .create_texture(GpuTextureDescriptor {
                 kind: GpuTextureKind::Rectangle { width, height },

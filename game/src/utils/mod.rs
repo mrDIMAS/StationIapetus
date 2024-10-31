@@ -1,4 +1,4 @@
-use fyrox::graph::{BaseSceneGraph, SceneGraph};
+use fyrox::graph::{BaseSceneGraph, SceneGraph, SceneGraphNode};
 use fyrox::{
     asset::{core::rand::Rng, manager::ResourceManager},
     core::{
@@ -135,7 +135,7 @@ pub fn try_play_random_sound(sounds: &[Handle<Node>], graph: &mut Graph) -> bool
 
 pub fn try_play_sound(sound_handle: Handle<Node>, graph: &mut Graph) {
     if let Some(node) = graph.try_get_mut(sound_handle) {
-        if let Some(sound_ref) = node.query_component_mut::<Sound>() {
+        if let Some(sound_ref) = node.component_mut::<Sound>() {
             sound_ref.try_play();
         } else {
             Log::err(format!(

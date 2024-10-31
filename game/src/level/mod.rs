@@ -20,6 +20,7 @@ pub mod arrival;
 pub mod death_zone;
 pub mod decal;
 pub mod explosion;
+pub mod explosive_barrel;
 pub mod item;
 pub mod point_of_interest;
 pub mod spawn;

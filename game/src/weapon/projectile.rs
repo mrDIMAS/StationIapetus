@@ -6,6 +6,7 @@ use crate::{
     level::decal::Decal,
     CollisionGroups, Game, Weapon,
 };
+use fyrox::graph::SceneGraphNode;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -319,9 +320,7 @@ impl ScriptTrait for Projectile {
         self.collider = ctx
             .scene
             .graph
-            .find(ctx.handle, &mut |n| {
-                n.query_component_ref::<Collider>().is_some()
-            })
+            .find(ctx.handle, &mut |n| n.component_ref::<Collider>().is_some())
             .map(|(h, _)| h)
             .unwrap_or_default();
     }

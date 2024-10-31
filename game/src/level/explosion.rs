@@ -1,4 +1,4 @@
-use fyrox::graph::SceneGraph;
+use fyrox::graph::{SceneGraph, SceneGraphNode};
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -39,7 +39,7 @@ impl ScriptTrait for Explosion {
             .scene
             .graph
             .linear_iter_mut()
-            .filter_map(|n| n.query_component_mut::<RigidBody>())
+            .filter_map(|n| n.component_mut::<RigidBody>())
         {
             if aabb.is_contains_point(rigid_body.global_position()) {
                 let d = rigid_body.global_position() - center;
