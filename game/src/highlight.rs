@@ -2,7 +2,7 @@ use crate::Game;
 use fyrox::{
     core::{color::Color, pool::Handle, sstorage::ImmutableString},
     fxhash::FxHashMap,
-    graph::{BaseSceneGraph, SceneGraph},
+    graph::SceneGraph,
     renderer::{
         bundle::{ObserverInfo, RenderContext, RenderDataBundleStorage},
         framework::{
@@ -259,12 +259,9 @@ impl SceneRenderPass for HighlightRenderPass {
             let mut additional_data_map = FxHashMap::default();
 
             for (&root_node_handle, entry) in self.nodes_to_highlight.iter() {
-                for node_handle in ctx.scene.graph.traverse_handle_iter(root_node_handle) {
-                    if let Some(node) = ctx.scene.graph.try_get(node_handle) {
-                        node.collect_render_data(&mut render_context);
-
-                        additional_data_map.insert(node_handle, entry.clone());
-                    }
+                for (node_handle, node) in ctx.scene.graph.traverse_iter(root_node_handle) {
+                    node.collect_render_data(&mut render_context);
+                    additional_data_map.insert(node_handle, entry.clone());
                 }
             }
 

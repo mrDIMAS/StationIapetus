@@ -1,10 +1,9 @@
 use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
-    sound::SoundManager, utils::use_hrtf, Game, MessageSender,
+    sound::SoundManager, utils::use_hrtf, MessageSender,
 };
 use fyrox::fxhash::FxHashSet;
 use fyrox::graph::SceneGraph;
-use fyrox::script::PluginsRefMut;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
@@ -21,6 +20,7 @@ pub mod death_zone;
 pub mod decal;
 pub mod explosion;
 pub mod explosive_barrel;
+pub mod hit_box;
 pub mod item;
 pub mod point_of_interest;
 pub mod spawn;
@@ -32,6 +32,8 @@ pub struct Level {
     pub scene: Handle<Scene>,
     pub player: Handle<Node>,
     pub actors: Vec<Handle<Node>>,
+    pub death_zones: FxHashSet<Handle<Node>>,
+    pub hit_boxes: FxHashSet<Handle<Node>>,
     pub items: ItemContainer,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
@@ -45,23 +47,8 @@ pub struct Level {
 }
 
 impl Level {
-    pub const ARRIVAL_PATH: &'static str = "data/levels/arrival.rgs";
-
-    pub fn get_ref<'a, 'b: 'a>(plugins: &'b mut PluginsRefMut<'a>) -> &'a Self {
-        plugins
-            .get::<Game>()
-            .level
-            .as_ref()
-            .expect("Level must exist!")
-    }
-
-    pub fn get_mut<'a, 'b: 'a>(plugins: &'b mut PluginsRefMut<'a>) -> &'a mut Self {
-        plugins
-            .get_mut::<Game>()
-            .level
-            .as_mut()
-            .expect("Level must exist!")
-    }
+    //pub const ARRIVAL_PATH: &'static str = "data/levels/arrival.rgs";
+    pub const ARRIVAL_PATH: &'static str = "data/levels/testbed.rgs";
 
     pub fn from_existing_scene(
         scene: &mut Scene,
@@ -94,6 +81,8 @@ impl Level {
             navmesh,
             player: Default::default(),
             actors: Default::default(),
+            death_zones: Default::default(),
+            hit_boxes: Default::default(),
             items: Default::default(),
             scene: scene_handle,
             sender: Some(sender),

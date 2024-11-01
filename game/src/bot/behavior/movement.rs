@@ -1,7 +1,9 @@
-use crate::{
-    bot::behavior::BehaviorContext, character::HitBox, door::door_mut, utils::BodyImpactHandler,
-    Game,
-};
+use crate::level::hit_box::HitBox;
+use crate::{bot::behavior::BehaviorContext, door::door_mut, utils::BodyImpactHandler, Game};
+use fyrox::core::pool::Handle;
+use fyrox::fxhash::FxHashSet;
+use fyrox::graph::BaseSceneGraph;
+use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
     scene::{navmesh::NavigationalMesh, Scene},
@@ -34,17 +36,21 @@ impl MoveToTarget {
 }
 
 fn calculate_movement_speed_factor(
-    hit_boxes: &[HitBox],
+    hit_boxes: &FxHashSet<Handle<Node>>,
     impact_handler: &BodyImpactHandler,
     scene: &Scene,
 ) -> f32 {
     let mut k = 1.0;
 
     // Slowdown bot according to damaged body parts.
-    for hitbox in hit_boxes.iter() {
-        let body = scene.graph[hitbox.collider].parent();
-        if impact_handler.is_affected(body) {
-            k = hitbox.movement_speed_factor.min(k);
+    for hit_box_handle in hit_boxes.iter() {
+        if let Some(hit_box_node) = scene.graph.try_get(*hit_box_handle) {
+            if let Some(hit_box_ref) = hit_box_node.try_get_script::<HitBox>() {
+                let body = hit_box_node.parent();
+                if impact_handler.is_affected(body) {
+                    k = hit_box_ref.movement_speed_factor.min(k);
+                }
+            }
         }
     }
 

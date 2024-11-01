@@ -1,9 +1,12 @@
+use crate::character::{DamageDealer, DamagePosition};
+use crate::level::hit_box::{HitBox, HitBoxMessage};
+use crate::level::Level;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
         state_machine::{StateMachine, StateMachineInput},
     },
-    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
+    character::{Character, CharacterMessage},
     door::{door_mut, door_ref, DoorContainer},
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
@@ -11,6 +14,7 @@ use crate::{
     Game,
 };
 use fyrox::resource::model::ModelResourceExtension;
+use fyrox::script::RoutingStrategy;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -271,6 +275,7 @@ impl Bot {
         sound_manager: &SoundManager,
         self_handle: Handle<Node>,
         is_melee_attacking: bool,
+        level: &Level,
     ) {
         if let Some(absm) = scene
             .graph
@@ -319,21 +324,40 @@ impl Bot {
                 for (_, event) in upper_layer_events.events {
                     if event.name == StateMachine::HIT_SIGNAL {
                         // Apply damage to target from melee attack
-                        if let Some(target) = self.target.as_ref() {
+                        if self.target.is_some() {
                             if is_melee_attacking {
-                                message_sender.send_global(CharacterMessage {
-                                    character: target.handle,
-                                    data: CharacterMessageData::Damage {
-                                        dealer: DamageDealer {
-                                            entity: self_handle,
-                                        },
-                                        hitbox: None,
-                                        amount: 20.0,
-                                        critical_hit_probability: 0.0,
-                                        position: None,
-                                        is_melee: true,
-                                    },
-                                });
+                                let self_position = scene.graph[self.model].global_position();
+                                // TODO: Replace with arm hit box intersection detection.
+                                for &hit_box in level.hit_boxes.iter() {
+                                    if hit_box == self.character.capsule_collider {
+                                        continue;
+                                    }
+
+                                    if dbg!(&self.character.hit_boxes).contains(&hit_box) {
+                                        continue;
+                                    }
+
+                                    let hit_box_pos = scene.graph[hit_box].global_position();
+
+                                    if hit_box_pos.metric_distance(&self_position) < 1.0 {
+                                        message_sender.send_hierarchical(
+                                            hit_box,
+                                            RoutingStrategy::Up,
+                                            HitBoxMessage {
+                                                hit_box,
+                                                amount: 20.0,
+                                                dealer: DamageDealer {
+                                                    entity: self_handle,
+                                                },
+                                                position: Some(DamagePosition {
+                                                    point: hit_box_pos,
+                                                    direction: Vector3::new(0.0, 0.0, 1.0),
+                                                }),
+                                                is_melee: true,
+                                            },
+                                        );
+                                    }
+                                }
 
                                 utils::try_play_random_sound(&self.punch_sounds, &mut scene.graph);
                             }
@@ -379,11 +403,14 @@ impl ScriptTrait for Bot {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.character.on_start(ctx);
         self.state_machine = StateMachine::new(self.absm, &ctx.scene.graph).unwrap();
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
         ctx.message_dispatcher
             .subscribe_to::<WeaponMessage>(ctx.handle);
+        ctx.message_dispatcher
+            .subscribe_to::<HitBoxMessage>(ctx.handle);
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
@@ -432,60 +459,54 @@ impl ScriptTrait for Bot {
                 ctx.message_sender,
                 &level.sound_manager,
             );
-
-            if let CharacterMessageData::Damage {
-                dealer,
-                amount,
-                hitbox,
-                critical_hit_probability: critical_shot_probability,
-                position,
-                ..
-            } = char_message.data
-            {
-                if let Some((character_handle, character)) = dealer.as_character(&ctx.scene.graph) {
-                    self.set_target(character_handle, character.position(&ctx.scene.graph));
-                }
-
-                if let Some(hitbox) = hitbox {
-                    // Handle critical head shots.
-                    let critical_head_shot_probability = critical_shot_probability.clamp(0.0, 1.0); // * 100.0%
-                    if hitbox.is_head
-                        && is_probability_event_occurred(critical_head_shot_probability)
-                    {
-                        self.damage(amount * 1000.0);
-
-                        self.blow_up_head(&mut ctx.scene.graph);
-                    }
-
-                    if let Some(position) = position {
-                        self.impact_handler.handle_impact(
-                            ctx.scene,
-                            hitbox.bone,
-                            position.point,
-                            position.direction,
-                        );
-                    }
-                }
-
-                // Prevent spamming with grunt sounds.
-                if self.last_health - self.health > 20.0 && !self.is_dead() {
-                    self.last_health = self.health;
-                    self.restoration_time = 0.8;
-
-                    utils::try_play_random_sound(&self.pain_sounds, &mut ctx.scene.graph);
-                }
-            }
         } else if let Some(weapon_message) = message.downcast_ref() {
             self.character
                 .on_weapon_message(weapon_message, &mut ctx.scene.graph);
+        } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
+            self.character.on_hit_box_message(hit_box_message);
+
+            if let Some((character_handle, character)) =
+                hit_box_message.dealer.as_character(&ctx.scene.graph)
+            {
+                self.set_target(character_handle, character.position(&ctx.scene.graph));
+            }
+
+            let hit_box = ctx
+                .scene
+                .graph
+                .try_get_script_of::<HitBox>(hit_box_message.hit_box)
+                .unwrap();
+
+            if let Some(position) = hit_box_message.position {
+                self.impact_handler.handle_impact(
+                    ctx.scene,
+                    *hit_box.bone,
+                    position.point,
+                    position.direction,
+                );
+            }
+
+            // Handle critical head shots.
+            let critical_head_shot_probability = hit_box.critical_hit_probability.clamp(0.0, 1.0); // * 100.0%
+            if *hit_box.is_head && is_probability_event_occurred(critical_head_shot_probability) {
+                self.damage(hit_box_message.amount * 1000.0);
+
+                self.blow_up_head(&mut ctx.scene.graph);
+            }
+
+            // Prevent spamming with grunt sounds.
+            if self.last_health - self.health > 20.0 && !self.is_dead() {
+                self.last_health = self.health;
+                self.restoration_time = 0.8;
+
+                utils::try_play_random_sound(&self.pain_sounds, &mut ctx.scene.graph);
+            }
         }
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
-
-        self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
 
         let movement_speed_factor;
         let need_to_melee_attack;
@@ -584,6 +605,7 @@ impl ScriptTrait for Bot {
             &level.sound_manager,
             ctx.handle,
             is_melee_attack,
+            level,
         );
 
         if self.head_exploded {

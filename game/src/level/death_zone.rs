@@ -1,7 +1,5 @@
-use crate::{
-    character::{CharacterMessage, CharacterMessageData, DamageDealer},
-    Game,
-};
+use crate::Game;
+use fyrox::script::ScriptDeinitContext;
 use fyrox::{
     core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
     script::{ScriptContext, ScriptTrait},
@@ -13,33 +11,23 @@ use fyrox::{
 pub struct DeathZone;
 
 impl ScriptTrait for DeathZone {
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
-        let self_bounds = ctx.scene.graph[ctx.handle].world_bounding_box();
-        for &actor in ctx
-            .plugins
-            .get::<Game>()
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        ctx.plugins
+            .get_mut::<Game>()
             .level
-            .as_ref()
+            .as_mut()
             .unwrap()
-            .actors
-            .iter()
-        {
-            let character_position = ctx.scene.graph[actor].global_position();
-            if self_bounds.is_contains_point(character_position) {
-                ctx.message_sender.send_global(CharacterMessage {
-                    character: actor,
-                    data: CharacterMessageData::Damage {
-                        dealer: DamageDealer {
-                            entity: Default::default(),
-                        },
-                        hitbox: None,
-                        amount: 99999.0,
-                        critical_hit_probability: 0.0,
-                        position: None,
-                        is_melee: false,
-                    },
-                })
-            }
-        }
+            .death_zones
+            .insert(ctx.handle);
+    }
+
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
+            .unwrap()
+            .death_zones
+            .remove(&ctx.node_handle);
     }
 }

@@ -20,12 +20,9 @@ pub mod weapon;
 
 pub use fyrox;
 
-use crate::level::explosive_barrel::ExplosiveBarrel;
-use crate::level::point_of_interest::PointOfInterest;
-use crate::level::trigger::BotCounter;
 use crate::{
     bot::{Bot, BotHostility},
-    character::{Character, HitBox},
+    character::Character,
     config::Config,
     door::Door,
     effects::{beam::Beam, rail::Rail},
@@ -45,9 +42,13 @@ use crate::{
         death_zone::DeathZone,
         decal::Decal,
         explosion::Explosion,
+        explosive_barrel::ExplosiveBarrel,
+        hit_box::HitBox,
         item::Item,
         item::ItemAction,
+        point_of_interest::PointOfInterest,
         spawn::CharacterSpawnPoint,
+        trigger::BotCounter,
         trigger::{Trigger, TriggerAction},
         turret::{Barrel, Hostility, ShootMode, Turret},
         Level,
@@ -64,7 +65,6 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
-use fyrox::window::CursorGrabMode;
 use fyrox::{
     core::{
         color::Color,
@@ -96,6 +96,7 @@ use fyrox::{
         Scene,
     },
     utils::translate_event,
+    window::CursorGrabMode,
 };
 use std::{
     cell::RefCell,
@@ -591,7 +592,8 @@ impl Plugin for Game {
             .add::<EnemyTrap>("ArrivalEnemyTrap")
             .add::<PointOfInterest>("Point Of Interest")
             .add::<Trigger>("Trigger")
-            .add::<ExplosiveBarrel>("ExplosiveBarrel");
+            .add::<ExplosiveBarrel>("ExplosiveBarrel")
+            .add::<HitBox>("HitBox");
 
         context.widget_constructors.add::<InventoryItem>();
     }
@@ -611,12 +613,10 @@ impl Plugin for Game {
         container.register_inheritable_inspectable::<Barrel>();
         container.register_inheritable_inspectable::<Character>();
         container.register_inheritable_inspectable::<CameraController>();
-        container.register_inheritable_inspectable::<HitBox>();
         container.register_inheritable_inspectable::<Item>();
         container.register_inheritable_inspectable::<Weapon>();
         container.register_inheritable_inspectable::<BotCounter>();
         container.register_inheritable_vec_collection::<Barrel>();
-        container.register_inheritable_vec_collection::<HitBox>();
         container.register_inheritable_vec_collection::<ItemEntry>();
         container
     }

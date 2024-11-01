@@ -1,3 +1,5 @@
+use crate::level::hit_box::HitBoxMessage;
+use fyrox::generic_animation::machine::Event;
 use fyrox::{
     core::variable::InheritableVariable,
     core::{
@@ -8,7 +10,7 @@ use fyrox::{
     graph::SceneGraph,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{animation::absm::AnimationBlendingStateMachine, node::Node},
-    script::{ScriptContext, ScriptTrait},
+    script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
@@ -37,6 +39,23 @@ impl Default for ExplosiveBarrel {
 }
 
 impl ScriptTrait for ExplosiveBarrel {
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        ctx.message_dispatcher
+            .subscribe_to::<HitBoxMessage>(ctx.handle);
+    }
+
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        _ctx: &mut ScriptMessageContext,
+    ) {
+        let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
+            return;
+        };
+
+        *self.health -= hit_box_message.amount;
+    }
+
     fn on_update(&mut self, context: &mut ScriptContext) {
         let position = context.scene.graph[context.handle].global_position();
 
@@ -48,15 +67,20 @@ impl ScriptTrait for ExplosiveBarrel {
             let machine = absm.machine_mut();
             machine.set_parameter("IsDamaged", Parameter::Rule(*self.health <= 0.0));
 
-            if let Some(layer) = machine.layers().first() {
-                if let Some(active_state) = layer.states().try_borrow(layer.active_state()) {
-                    if active_state.name.as_str() == self.exploded_state.as_str() {
-                        if let Some(explosion_prefab) = self.explosion_prefab.as_ref() {
-                            explosion_prefab.instantiate_at(
-                                context.scene,
-                                position,
-                                Default::default(),
-                            );
+            if let Some(layer) = machine.layers_mut().first_mut() {
+                while let Some(event) = layer.pop_event() {
+                    if let Event::StateEnter(state) = event {
+                        if let Some(state_ref) = layer.states().try_borrow(state) {
+                            if state_ref.name.as_str() == self.exploded_state.as_str() {
+                                if let Some(explosion_prefab) = self.explosion_prefab.as_ref() {
+                                    explosion_prefab.instantiate_at(
+                                        context.scene,
+                                        position,
+                                        Default::default(),
+                                    );
+                                    break;
+                                }
+                            }
                         }
                     }
                 }

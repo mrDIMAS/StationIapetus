@@ -1,3 +1,4 @@
+use crate::character::DamagePosition;
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
     control_scheme::ControlButton,
@@ -5,18 +6,19 @@ use crate::{
     elevator::call_button::{CallButton, CallButtonKind},
     gui::journal::Journal,
     inventory::Inventory,
+    level::hit_box::HitBoxMessage,
     level::item::ItemAction,
     message::Message,
     player::state_machine::{StateMachine, StateMachineInput},
     sound::SoundManager,
-    utils::{self, try_play_sound},
+    utils::{self},
     weapon::{
         projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
         WeaponMessageData,
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::graph::SceneGraphNode;
+use fyrox::fxhash::FxHashSet;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -33,8 +35,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
-    fxhash::FxHashSet,
-    graph::{BaseSceneGraph, SceneGraph},
+    graph::{BaseSceneGraph, SceneGraph, SceneGraphNode},
     keyboard::PhysicalKey,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
@@ -49,6 +50,7 @@ use fyrox::{
         sprite::Sprite,
         Scene,
     },
+    script::RoutingStrategy,
     script::{
         PluginsRefMut, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
         ScriptMessagePayload, ScriptMessageSender, ScriptTrait,
@@ -194,8 +196,6 @@ pub struct Player {
     #[reflect(hidden)]
     pub script_message_sender: Option<ScriptMessageSender>,
     pub grenade_item: InheritableVariable<Option<ModelResource>>,
-    pub melee_hit_sound: InheritableVariable<Handle<Node>>,
-    pub melee_hit_effect_prefab: InheritableVariable<Option<ModelResource>>,
 }
 
 impl Default for Player {
@@ -277,8 +277,6 @@ impl Default for Player {
             grenade_item: Default::default(),
             melee_hit_box: Default::default(),
             melee_attack_context: Default::default(),
-            melee_hit_sound: Default::default(),
-            melee_hit_effect_prefab: Default::default(),
             target_pitch: 0.0,
             item_display_prefab: None,
         }
@@ -334,8 +332,6 @@ impl Clone for Player {
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
             melee_hit_box: self.melee_hit_box.clone(),
-            melee_hit_sound: self.melee_hit_sound.clone(),
-            melee_hit_effect_prefab: self.melee_hit_effect_prefab.clone(),
             target_pitch: self.target_pitch,
             item_display_prefab: self.item_display_prefab.clone(),
         }
@@ -361,10 +357,6 @@ impl Player {
                 .filter_map(|w| graph[*w].root_resource())
                 .collect::<Vec<_>>(),
         }
-    }
-
-    pub fn can_be_removed(&self, _scene: &Scene) -> bool {
-        self.health <= 0.0
     }
 
     fn check_items(
@@ -921,63 +913,39 @@ impl Player {
             .try_get_of_type::<Collider>(*self.melee_hit_box)?;
         let level = plugins.get::<Game>().level.as_ref()?;
 
-        let mut hits = Vec::new();
-        for intersection in melee_hit_box_collider
-            .intersects(&scene.graph.physics)
-            .filter(|i| i.has_any_active_contact)
-        {
-            for (actor_handle, character) in level.actors.iter().filter_map(|&actor| {
-                if actor == self_handle {
-                    None
-                } else {
-                    scene
-                        .graph
-                        .try_get_script_component_of::<Character>(actor)
-                        .map(|c| (actor, c))
-                }
-            }) {
-                if attack_context.damaged_enemies.contains(&actor_handle) {
+        for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
+            for &hit_box in level.hit_boxes.iter() {
+                if hit_box == self.character.capsule_collider {
                     continue;
                 }
 
-                if character.capsule_collider == intersection.collider1
-                    || character.capsule_collider == intersection.collider2
-                {
-                    attack_context.damaged_enemies.insert(actor_handle);
+                if hit_box == intersection.collider1 || hit_box == intersection.collider2 {
+                    if attack_context.damaged_enemies.contains(&hit_box) {
+                        continue;
+                    }
+                    attack_context.damaged_enemies.insert(hit_box);
 
-                    hits.push(melee_hit_box_collider.global_position());
-
-                    script_message_sender.send_to_target(
-                        actor_handle,
-                        CharacterMessage {
-                            character: actor_handle,
-                            data: CharacterMessageData::Damage {
-                                dealer: DamageDealer {
-                                    entity: self_handle,
-                                },
-                                hitbox: None,
-                                amount: *self.melee_attack_damage,
-                                critical_hit_probability: 0.0,
-                                position: None,
-                                is_melee: true,
+                    script_message_sender.send_hierarchical(
+                        hit_box,
+                        RoutingStrategy::Up,
+                        HitBoxMessage {
+                            hit_box,
+                            amount: *self.melee_attack_damage,
+                            dealer: DamageDealer {
+                                entity: self_handle,
                             },
+                            position: Some(DamagePosition {
+                                point: melee_hit_box_collider.global_position(),
+                                direction: Vector3::new(0.0, 0.0, 1.0),
+                            }),
+                            is_melee: true,
                         },
                     );
                 }
             }
         }
 
-        if !hits.is_empty() {
-            try_play_sound(*self.melee_hit_sound, &mut scene.graph);
-
-            if let Some(melee_hit_effect_prefab) = &*self.melee_hit_effect_prefab {
-                for hit in hits {
-                    melee_hit_effect_prefab.instantiate_at(scene, hit, Default::default());
-                }
-            }
-        }
-
-        Some(())
+        None
     }
 
     pub fn resolve(
@@ -1044,12 +1012,16 @@ impl ScriptTrait for Player {
     }
 
     fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.character.on_start(ctx);
+
         let game = ctx.plugins.get::<Game>();
 
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
         ctx.message_dispatcher
             .subscribe_to::<WeaponMessage>(ctx.handle);
+        ctx.message_dispatcher
+            .subscribe_to::<HitBoxMessage>(ctx.handle);
 
         self.script_message_sender = Some(ctx.message_sender.clone());
 
@@ -1302,6 +1274,8 @@ impl ScriptTrait for Player {
         } else if let Some(weapon_message) = message.downcast_ref() {
             self.character
                 .on_weapon_message(weapon_message, &mut ctx.scene.graph);
+        } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
+            self.character.on_hit_box_message(hit_box_message);
         }
     }
 
@@ -1366,7 +1340,6 @@ impl ScriptTrait for Player {
             }
         }
 
-        self.handle_environment_damage(ctx.handle, &ctx.scene.graph, ctx.message_sender);
         self.update_health_cylinder(ctx.scene);
 
         let has_ground_contact = self.has_ground_contact(&ctx.scene.graph);

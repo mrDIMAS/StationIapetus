@@ -52,8 +52,14 @@ impl CallButton {
         texture: TextureResource,
     ) {
         let screens = graph
-            .traverse_handle_iter(self_handle)
-            .filter(|h| graph[*h].name().starts_with("Screen"))
+            .traverse_iter(self_handle)
+            .filter_map(|(h, n)| {
+                if n.name().starts_with("Screen") {
+                    Some(h)
+                } else {
+                    None
+                }
+            })
             .collect::<Vec<_>>();
 
         for node_handle in screens {

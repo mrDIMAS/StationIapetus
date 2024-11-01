@@ -1,3 +1,4 @@
+use crate::level::hit_box::HitBoxMessage;
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
     weapon::find_parent_character,
@@ -127,6 +128,8 @@ impl ScriptTrait for LaserSight {
     fn on_start(&mut self, ctx: &mut ScriptContext) {
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
+        ctx.message_dispatcher
+            .subscribe_to::<HitBoxMessage>(ctx.handle);
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
@@ -214,10 +217,10 @@ impl ScriptTrait for LaserSight {
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
     ) {
-        if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
-            if let Some((parent_character_handle, _)) =
-                find_parent_character(ctx.handle, &ctx.scene.graph)
-            {
+        if let Some((parent_character_handle, _)) =
+            find_parent_character(ctx.handle, &ctx.scene.graph)
+        {
+            if let Some(character_message) = message.downcast_ref::<CharacterMessage>() {
                 let this = &mut ctx.scene.graph[ctx.handle];
 
                 match character_message.data {
@@ -231,15 +234,16 @@ impl ScriptTrait for LaserSight {
                     {
                         this.set_visibility(false);
                     }
-                    CharacterMessageData::Damage { dealer, hitbox, .. } => {
-                        if let Some((character_dealer, _)) = dealer.as_character(&ctx.scene.graph) {
-                            if character_dealer == parent_character_handle && hitbox.is_some() {
-                                // If a parent character done some damage, then the laser sight must react to it.
-                                self.set_reaction(SightReaction::HitDetected);
-                            }
-                        }
-                    }
                     _ => (),
+                }
+            } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
+                if let Some((character_dealer, _)) =
+                    hit_box_message.dealer.as_character(&ctx.scene.graph)
+                {
+                    if character_dealer == parent_character_handle {
+                        // If a parent character done some damage, then the laser sight must react to it.
+                        self.set_reaction(SightReaction::HitDetected);
+                    }
                 }
             }
         }

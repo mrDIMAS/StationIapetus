@@ -1,11 +1,13 @@
 use crate::{
     inventory::Inventory,
-    level::item::ItemAction,
+    level::{
+        hit_box::{HitBox, HitBoxMessage},
+        item::ItemAction,
+    },
     sound::{SoundKind, SoundManager},
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::graph::{BaseSceneGraph, SceneGraphNode};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -13,22 +15,22 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
-        stub_uuid_provider,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
+    fxhash::FxHashSet,
+    graph::{BaseSceneGraph, SceneGraph},
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
         graph::{physics::RayCastOptions, Graph},
         node::Node,
-        rigidbody::RigidBody,
         Scene,
     },
-    script::ScriptMessageSender,
+    script::{ScriptContext, ScriptMessageSender},
 };
 
-#[derive(Copy, Clone, Debug)]
+#[derive(Copy, Clone, Debug, Default)]
 pub struct DamageDealer {
     pub entity: Handle<Node>,
 }
@@ -64,26 +66,10 @@ pub struct DamagePosition {
 pub enum CharacterMessageData {
     BeganAiming,
     EndedAiming,
-    Damage {
-        /// An entity which damaged the target actor. It could be a handle of a character that done a melee attack,
-        /// or a weapon that made a ray hit, or a projectile (such as grenade).
-        dealer: DamageDealer,
-        /// A body part which was hit.
-        hitbox: Option<HitBox>,
-        /// Numeric value of damage.
-        amount: f32,
-        /// Only takes effect iff damage was applied to a head hit box!
-        critical_hit_probability: f32,
-        position: Option<DamagePosition>,
-        is_melee: bool,
-    },
     SelectWeapon(ModelResource),
     AddWeapon(ModelResource),
     PickupItem(Handle<Node>),
-    DropItems {
-        item: ModelResource,
-        count: u32,
-    },
+    DropItems { item: ModelResource, count: u32 },
 }
 
 #[derive(Debug)]
@@ -103,8 +89,10 @@ pub struct Character {
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
-    pub hit_boxes: Vec<HitBox>,
     pub inventory: Inventory,
+    #[visit(skip)]
+    #[reflect(hidden)]
+    pub hit_boxes: FxHashSet<Handle<Node>>,
 }
 
 impl Default for Character {
@@ -147,66 +135,13 @@ impl Character {
         false
     }
 
-    pub fn handle_environment_damage(
-        &self,
-        self_handle: Handle<Node>,
-        graph: &Graph,
-        message_sender: &ScriptMessageSender,
-    ) {
-        'hit_box_loop: for hit_box in self.hit_boxes.iter().chain(&[HitBox {
-            bone: self.capsule_collider,
-            collider: self.capsule_collider,
-            damage_factor: 1.0,
-            movement_speed_factor: 1.0,
-            is_head: false,
-        }]) {
-            if let Some(collider) = graph
-                .try_get(hit_box.collider)
-                .and_then(|n| n.cast::<Collider>())
-            {
-                for contact in collider.contacts(&graph.physics) {
-                    for manifold in contact.manifolds.iter() {
-                        for point in manifold.points.iter() {
-                            let rb1 = graph[manifold.rigid_body1]
-                                .component_ref::<RigidBody>()
-                                .unwrap();
-                            let rb2 = graph[manifold.rigid_body2]
-                                .component_ref::<RigidBody>()
-                                .unwrap();
-
-                            let hit_strength = (rb1.lin_vel() - rb2.lin_vel()).norm();
-
-                            if hit_strength > 5.0 {
-                                message_sender.send_to_target(
-                                    self_handle,
-                                    CharacterMessage {
-                                        character: self_handle,
-                                        data: CharacterMessageData::Damage {
-                                            dealer: DamageDealer {
-                                                entity: Default::default(),
-                                            },
-                                            hitbox: Some(*hit_box),
-                                            amount: hit_strength,
-                                            critical_hit_probability: 0.0,
-                                            position: Some(DamagePosition {
-                                                point: graph[contact.collider1]
-                                                    .global_transform()
-                                                    .transform_point(&Point3::from(point.local_p1))
-                                                    .coords,
-                                                direction: manifold.normal,
-                                            }),
-                                            is_melee: true,
-                                        },
-                                    },
-                                );
-
-                                break 'hit_box_loop;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    pub fn on_start(&mut self, ctx: &mut ScriptContext) {
+        self.hit_boxes = ctx
+            .scene
+            .graph
+            .traverse_iter(ctx.handle)
+            .filter_map(|(handle, node)| node.try_get_script::<HitBox>().map(|_| handle))
+            .collect::<FxHashSet<_>>()
     }
 
     pub fn get_health(&self) -> f32 {
@@ -224,8 +159,12 @@ impl Character {
     }
 
     pub fn most_vulnerable_point(&self, graph: &Graph) -> Vector3<f32> {
-        if let Some(head) = self.hit_boxes.iter().find(|h| h.is_head) {
-            head.position(graph)
+        if let Some(head) = self.hit_boxes.iter().find(|h| {
+            graph
+                .try_get_script_component_of::<HitBox>(**h)
+                .map_or(false, |h| *h.is_head)
+        }) {
+            graph[*head].global_position()
         } else {
             self.position(graph)
         }
@@ -291,6 +230,14 @@ impl Character {
         }
     }
 
+    pub fn has_hit_box(&self, handle: Handle<Node>) -> bool {
+        self.hit_boxes.contains(&handle)
+    }
+
+    pub fn on_hit_box_message(&mut self, hit_box_message: &HitBoxMessage) {
+        self.damage(hit_box_message.amount);
+    }
+
     pub fn on_character_message(
         &mut self,
         message_data: &CharacterMessageData,
@@ -300,9 +247,6 @@ impl Character {
         sound_manager: &SoundManager,
     ) {
         match message_data {
-            CharacterMessageData::Damage { amount, .. } => {
-                self.damage(*amount);
-            }
             CharacterMessageData::SelectWeapon(weapon_resource) => {
                 self.select_weapon(weapon_resource.clone(), &mut scene.graph)
             }
@@ -512,23 +456,6 @@ impl Character {
         }
     }
 }
-
-#[derive(Default, Clone, Copy, PartialEq, Debug, Visit, Reflect)]
-pub struct HitBox {
-    pub bone: Handle<Node>,
-    pub collider: Handle<Node>,
-    pub damage_factor: f32,
-    pub movement_speed_factor: f32,
-    pub is_head: bool,
-}
-
-impl HitBox {
-    pub fn position(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.bone].global_position()
-    }
-}
-
-stub_uuid_provider!(HitBox);
 
 pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Character> {
     graph.try_get_script_component_of::<Character>(handle)

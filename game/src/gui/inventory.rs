@@ -72,8 +72,8 @@ impl Control for InventoryItem {
 
         if let Some(msg) = message.data::<InventoryItemMessage>() {
             if message.destination() == self.handle() {
-                match msg {
-                    &InventoryItemMessage::Select(select) => {
+                match *msg {
+                    InventoryItemMessage::Select(select) => {
                         self.is_selected = select;
 
                         self.set_foreground(if select {
@@ -82,7 +82,7 @@ impl Control for InventoryItem {
                             Brush::Solid(Color::opaque(255, 255, 255))
                         });
                     }
-                    &InventoryItemMessage::StackCount(count) => ui.send_message(TextMessage::text(
+                    InventoryItemMessage::StackCount(count) => ui.send_message(TextMessage::text(
                         self.count,
                         MessageDirection::ToWidget,
                         format!("x{}", count),
@@ -517,7 +517,7 @@ impl InventoryInterface {
             i -= 1;
             let item_view = item_views[i];
             let item_model = &self.item_model_of(item_view).unwrap();
-            if !inventory.has_item(&item_model) {
+            if !inventory.has_item(item_model) {
                 self.ui
                     .send_message(WidgetMessage::remove(item_view, MessageDirection::ToWidget));
                 item_views.remove(i);
@@ -534,25 +534,23 @@ impl InventoryInterface {
                     MessageDirection::ToWidget,
                     entry.amount,
                 ))
-            } else {
-                if let Some(resource) = entry.resource.as_ref() {
-                    let widget = InventoryItemBuilder::new(
-                        WidgetBuilder::new()
-                            .with_margin(Thickness::uniform(1.0))
-                            .with_width(70.0)
-                            .with_height(100.0),
-                    )
-                    .with_count(entry.amount as usize)
-                    .build(resource, &mut self.ui.build_ctx());
+            } else if let Some(resource) = entry.resource.as_ref() {
+                let widget = InventoryItemBuilder::new(
+                    WidgetBuilder::new()
+                        .with_margin(Thickness::uniform(1.0))
+                        .with_width(70.0)
+                        .with_height(100.0),
+                )
+                .with_count(entry.amount as usize)
+                .build(resource, &mut self.ui.build_ctx());
 
-                    self.ui.send_message(WidgetMessage::link(
-                        widget,
-                        MessageDirection::ToWidget,
-                        self.items_panel,
-                    ));
+                self.ui.send_message(WidgetMessage::link(
+                    widget,
+                    MessageDirection::ToWidget,
+                    self.items_panel,
+                ));
 
-                    item_views.push(widget);
-                }
+                item_views.push(widget);
             }
         }
 

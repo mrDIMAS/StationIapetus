@@ -75,7 +75,7 @@ impl DoorUi {
         if self
             .ui
             .try_get_of_type::<Widget>(widget)
-            .map_or(false, |widget_ref| &get(widget_ref) != &value)
+            .map_or(false, |widget_ref| get(widget_ref) != value)
         {
             self.ui.send_message(make_msg(widget, value));
             self.need_render = true;
