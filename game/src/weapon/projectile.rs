@@ -452,6 +452,15 @@ impl ScriptTrait for Projectile {
                         vector_to_quat(hit.normal),
                     );
                 }
+
+                Decal::new_bullet_hole(
+                    ctx.resource_manager,
+                    &mut ctx.scene.graph,
+                    hit.position,
+                    hit.normal,
+                    hit.collider,
+                    Color::opaque(20, 20, 20),
+                );
             }
 
             if let Some(collider) = ctx.scene.graph.try_get(hit.collider) {
@@ -465,19 +474,6 @@ impl ScriptTrait for Projectile {
                     rigid_body.wake_up();
                 }
             }
-
-            Decal::new_bullet_hole(
-                ctx.resource_manager,
-                &mut ctx.scene.graph,
-                hit.position,
-                hit.normal,
-                hit.collider,
-                if hit.hit_box.is_some() {
-                    Color::opaque(160, 0, 0)
-                } else {
-                    Color::opaque(20, 20, 20)
-                },
-            );
 
             // Defer destruction.
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));

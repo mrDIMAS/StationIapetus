@@ -1,13 +1,11 @@
 use crate::{
     character::{DamageDealer, DamagePosition},
-    level::decal::Decal,
     Game,
 };
 use fyrox::scene::graph::physics::RayCastOptions;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
-        color::Color,
         math::vector_to_quat,
         pool::Handle,
         reflect::prelude::*,
@@ -16,10 +14,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     graph::SceneGraph,
-    resource::{
-        model::{ModelResource, ModelResourceExtension},
-        texture::Texture,
-    },
+    resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::{Collider, ColliderShape},
         dim2::rigidbody::RigidBody,
@@ -49,10 +44,20 @@ pub struct HitBox {
     pub movement_speed_factor: InheritableVariable<f32>,
     pub critical_hit_probability: InheritableVariable<f32>,
     pub is_head: InheritableVariable<bool>,
-    pub hit_prefab: Option<ModelResource>,
-    pub melee_hit_prefab: Option<ModelResource>,
-    // TODO: Replace with configurable prefabs.
-    pub spawn_blood_on_hit: bool,
+    #[reflect(description = "An effect prefab that will be spawned by a non-melee hit.")]
+    pub hit_prefab: InheritableVariable<Option<ModelResource>>,
+    #[reflect(description = "An effect prefab that will be spawned by a melee hit.")]
+    pub melee_hit_prefab: InheritableVariable<Option<ModelResource>>,
+    #[reflect(
+        description = "A prefab that will be spawned behind the hit box at certain distance \
+        on hit (melee or not). Could be used for blood splatters."
+    )]
+    pub pierce_prefab: InheritableVariable<Option<ModelResource>>,
+    #[reflect(
+        description = "A prefab that will be spawned at the point of impact. Could be used for \
+        bullet holes or to add damage decals. It will also be attached to the hit box."
+    )]
+    pub damage_prefab: InheritableVariable<Option<ModelResource>>,
 }
 
 impl Default for HitBox {
@@ -63,9 +68,10 @@ impl Default for HitBox {
             movement_speed_factor: 1.0.into(),
             critical_hit_probability: 0.01.into(),
             is_head: false.into(),
-            hit_prefab: None,
-            melee_hit_prefab: None,
-            spawn_blood_on_hit: true,
+            hit_prefab: Default::default(),
+            melee_hit_prefab: Default::default(),
+            pierce_prefab: Default::default(),
+            damage_prefab: Default::default(),
         }
     }
 }
@@ -194,7 +200,17 @@ impl ScriptTrait for HitBox {
                 );
             }
 
-            if self.spawn_blood_on_hit {
+            if let Some(damage_prefab) = self.damage_prefab.as_ref() {
+                damage_prefab.instantiate_and_attach(
+                    ctx.scene,
+                    ctx.handle,
+                    position.point,
+                    position.direction,
+                    Vector3::repeat(1.0),
+                );
+            }
+
+            if let Some(pierce_prefab) = self.pierce_prefab.as_ref() {
                 let mut query_buffer = Vec::default();
 
                 ctx.scene.graph.physics.cast_ray(
@@ -218,16 +234,12 @@ impl ScriptTrait for HitBox {
                         .metric_distance(&position.point)
                         < 2.0
                     {
-                        Decal::spawn(
-                            &mut ctx.scene.graph,
+                        pierce_prefab.instantiate_and_attach(
+                            ctx.scene,
+                            intersection.collider,
                             intersection.position.coords,
-                            -position.direction,
-                            Handle::NONE,
-                            Color::opaque(255, 255, 255),
-                            Vector3::new(0.45, 0.45, 0.2),
-                            ctx.resource_manager.request::<Texture>(
-                                "data/textures/decals/BloodSplatter_BaseColor.png",
-                            ),
+                            position.direction,
+                            Vector3::repeat(1.0),
                         );
 
                         break;
