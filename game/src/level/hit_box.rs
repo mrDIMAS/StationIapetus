@@ -3,6 +3,7 @@ use crate::{
     Game,
 };
 use fyrox::scene::graph::physics::RayCastOptions;
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -17,7 +18,6 @@ use fyrox::{
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::{Collider, ColliderShape},
-        dim2::rigidbody::RigidBody,
         node::Node,
     },
     script::{
@@ -58,6 +58,7 @@ pub struct HitBox {
         bullet holes or to add damage decals. It will also be attached to the hit box."
     )]
     pub damage_prefab: InheritableVariable<Option<ModelResource>>,
+    pub environment_damage_timeout: f32,
 }
 
 impl Default for HitBox {
@@ -72,19 +73,25 @@ impl Default for HitBox {
             melee_hit_prefab: Default::default(),
             pierce_prefab: Default::default(),
             damage_prefab: Default::default(),
+            environment_damage_timeout: 0.0,
         }
     }
 }
 
 impl HitBox {
     fn handle_environment_interaction(&mut self, ctx: &mut ScriptContext) {
+        if self.environment_damage_timeout > 0.0 {
+            self.environment_damage_timeout -= ctx.dt;
+            return;
+        }
+
         let graph = &ctx.scene.graph;
 
         let Some(collider) = graph.try_get_of_type::<Collider>(ctx.handle) else {
             return;
         };
 
-        for contact in collider.contacts(&graph.physics) {
+        'contact_loop: for contact in collider.contacts(&graph.physics) {
             if !contact.has_any_active_contact {
                 continue;
             }
@@ -118,6 +125,10 @@ impl HitBox {
                                 is_melee: true,
                             },
                         );
+
+                        self.environment_damage_timeout = 0.25;
+
+                        break 'contact_loop;
                     }
                 }
             }
