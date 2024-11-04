@@ -43,9 +43,7 @@ impl ScriptTrait for Explosion {
         {
             if aabb.is_contains_point(rigid_body.global_position()) {
                 let d = rigid_body.global_position() - center;
-                let k = (Vector3::repeat(1.0) - d.component_div(&aabb.half_extents()))
-                    .scale(*self.strength);
-                let force = d.normalize().component_mul(&k);
+                let force = d.normalize().scale(*self.strength);
                 rigid_body.apply_force(force);
                 rigid_body.wake_up();
             }
