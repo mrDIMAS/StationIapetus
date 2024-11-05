@@ -386,12 +386,6 @@ impl Bot {
 
                             utils::try_play_random_sound(&self.attack_sounds, &mut scene.graph);
                         }
-                    } else if event.name == "Dead" {
-                        if let Some(ragdoll) =
-                            scene.graph.try_get_mut_of_type::<Ragdoll>(*self.ragdoll)
-                        {
-                            ragdoll.is_active.set_value_and_mark_modified(true);
-                        }
                     }
                 }
 
@@ -588,6 +582,16 @@ impl ScriptTrait for Bot {
             is_aiming = behavior_ctx.is_aiming_weapon;
             attack_animation_index = behavior_ctx.attack_animation_index;
             is_screaming = behavior_ctx.is_screaming;
+        }
+
+        if self.is_dead() {
+            if let Some(ragdoll) = ctx
+                .scene
+                .graph
+                .try_get_mut_of_type::<Ragdoll>(*self.ragdoll)
+            {
+                ragdoll.is_active.set_value_and_mark_modified(true);
+            }
         }
 
         self.check_doors(ctx.scene, &level.doors_container);
