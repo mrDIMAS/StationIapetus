@@ -1,4 +1,8 @@
-use fyrox::graph::{SceneGraph, SceneGraphNode};
+use crate::{
+    character::{DamageDealer, DamagePosition},
+    level::hit_box::HitBoxMessage,
+    Game,
+};
 use fyrox::{
     core::{
         algebra::{Matrix4, Vector3},
@@ -8,8 +12,9 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::prelude::*,
     },
+    graph::{SceneGraph, SceneGraphNode},
     scene::rigidbody::RigidBody,
-    script::{ScriptContext, ScriptTrait},
+    script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
@@ -18,6 +23,7 @@ use fyrox::{
 pub struct Explosion {
     strength: InheritableVariable<f32>,
     scale: InheritableVariable<Vector3<f32>>,
+    damage: InheritableVariable<Option<f32>>,
 }
 
 impl Default for Explosion {
@@ -25,17 +31,18 @@ impl Default for Explosion {
         Self {
             strength: 100.0f32.into(),
             scale: Vector3::new(2.0, 2.0, 2.0).into(),
+            damage: Default::default(),
         }
     }
 }
 
 impl ScriptTrait for Explosion {
-    fn on_start(&mut self, context: &mut ScriptContext) {
-        let node = &context.scene.graph[context.handle];
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        let node = &ctx.scene.graph[ctx.handle];
         let aabb = AxisAlignedBoundingBox::unit()
             .transform(&(node.global_transform() * Matrix4::new_nonuniform_scaling(&*self.scale)));
         let center = aabb.center();
-        for rigid_body in context
+        for rigid_body in ctx
             .scene
             .graph
             .linear_iter_mut()
@@ -46,6 +53,33 @@ impl ScriptTrait for Explosion {
                 let force = d.normalize().scale(*self.strength);
                 rigid_body.apply_force(force);
                 rigid_body.wake_up();
+            }
+        }
+
+        if let Some(damage) = *self.damage {
+            let game = ctx.plugins.get::<Game>();
+            let level = game.level.as_ref().unwrap();
+
+            for &hit_box in level.hit_boxes.iter() {
+                let hit_box_ref = &ctx.scene.graph[hit_box];
+                let position = hit_box_ref.global_position();
+                let direction = hit_box_ref.global_position() - center;
+                if aabb.is_contains_point(position) {
+                    ctx.message_sender.send_hierarchical(
+                        hit_box,
+                        RoutingStrategy::Up,
+                        HitBoxMessage {
+                            hit_box,
+                            damage,
+                            dealer: DamageDealer::default(),
+                            position: Some(DamagePosition {
+                                point: position,
+                                direction,
+                            }),
+                            is_melee: false,
+                        },
+                    );
+                }
             }
         }
     }
