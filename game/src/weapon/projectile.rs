@@ -10,7 +10,7 @@ use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         color::Color,
-        math::{ray::Ray, vector_to_quat, Vector3Ext},
+        math::{ray::Ray, vector_to_quat},
         pool::Handle,
         reflect::prelude::*,
         stub_uuid_provider,
@@ -113,9 +113,6 @@ pub struct Projectile {
     pub owner: Handle<Node>,
 
     #[reflect(hidden)]
-    initial_velocity: Vector3<f32>,
-
-    #[reflect(hidden)]
     last_position: Vector3<f32>,
 
     use_ray_casting: bool,
@@ -159,7 +156,6 @@ impl Default for Projectile {
         Self {
             dir: Default::default(),
             owner: Default::default(),
-            initial_velocity: Default::default(),
             last_position: Default::default(),
             use_ray_casting: true,
             speed: Some(1.0),
@@ -182,12 +178,10 @@ impl Projectile {
         dir: Vector3<f32>,
         position: Vector3<f32>,
         owner: Handle<Node>,
-        initial_velocity: Vector3<f32>,
     ) -> Handle<Node> {
         let instance_handle = resource.instantiate_at(scene, position, vector_to_quat(dir));
 
         if let Some(projectile) = scene.graph[instance_handle].try_get_script_mut::<Projectile>() {
-            projectile.initial_velocity = initial_velocity;
             projectile.dir = dir.try_normalize(f32::EPSILON).unwrap_or_else(Vector3::y);
             projectile.owner = owner;
         }
@@ -263,10 +257,6 @@ impl ScriptTrait for Projectile {
 
         self.last_position = current_position;
 
-        if let Some(rigid_body) = node.cast_mut::<RigidBody>() {
-            rigid_body.set_lin_vel(self.initial_velocity);
-        }
-
         if let Some(appear_effect) = self.appear_effect.as_ref() {
             appear_effect.instantiate_at(ctx.scene, current_position, vector_to_quat(self.dir));
         }
@@ -305,10 +295,6 @@ impl ScriptTrait for Projectile {
                     .update_hierarchical_data_for_descendants(ctx.handle);
             }
         }
-
-        // Reduce initial velocity down to zero over time. This is needed because projectile
-        // stabilizes its movement over time.
-        self.initial_velocity.follow(&Vector3::default(), 0.15);
 
         let position = ctx.scene.graph[ctx.handle].global_position();
 

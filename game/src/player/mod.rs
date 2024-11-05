@@ -595,7 +595,6 @@ impl Player {
                                         direction,
                                         position,
                                         self_handle,
-                                        direction.scale(10.0),
                                     );
                                 }
                             }

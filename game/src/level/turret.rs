@@ -305,7 +305,6 @@ impl Barrel {
                 target_position - shot_position,
                 shot_position,
                 owner_handle,
-                Default::default(),
             );
         }
 
