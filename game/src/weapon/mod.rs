@@ -187,7 +187,14 @@ impl Weapon {
         }
 
         if let Some(model) = self.projectile.as_ref() {
-            Projectile::spawn(model, scene, direction, shot_position, self_handle);
+            Projectile::spawn(
+                model,
+                scene,
+                direction,
+                shot_position,
+                self_handle,
+                Default::default(),
+            );
         }
     }
 }
