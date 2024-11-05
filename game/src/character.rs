@@ -235,7 +235,7 @@ impl Character {
     }
 
     pub fn on_hit_box_message(&mut self, hit_box_message: &HitBoxMessage) {
-        self.damage(hit_box_message.amount);
+        self.damage(hit_box_message.damage);
     }
 
     pub fn on_character_message(

@@ -929,7 +929,7 @@ impl Player {
                         RoutingStrategy::Up,
                         HitBoxMessage {
                             hit_box,
-                            amount: *self.melee_attack_damage,
+                            damage: *self.melee_attack_damage,
                             dealer: DamageDealer {
                                 entity: self_handle,
                             },

@@ -2,8 +2,6 @@ use crate::{
     character::{DamageDealer, DamagePosition},
     Game,
 };
-use fyrox::scene::graph::physics::RayCastOptions;
-use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -18,21 +16,56 @@ use fyrox::{
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::{Collider, ColliderShape},
+        graph::physics::RayCastOptions,
         node::Node,
+        rigidbody::RigidBody,
     },
     script::{
         RoutingStrategy, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
         ScriptMessagePayload, ScriptTrait,
     },
 };
+use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 #[derive(Debug)]
 pub struct HitBoxMessage {
     pub hit_box: Handle<Node>,
-    pub amount: f32,
+    pub damage: f32,
     pub dealer: DamageDealer,
     pub position: Option<DamagePosition>,
     pub is_melee: bool,
+}
+
+#[derive(
+    Default,
+    Copy,
+    Clone,
+    PartialOrd,
+    PartialEq,
+    Eq,
+    Ord,
+    Hash,
+    Debug,
+    Visit,
+    Reflect,
+    AsRefStr,
+    EnumString,
+    VariantNames,
+    TypeUuidProvider,
+)]
+#[type_uuid(id = "009bccb6-42e4-4dc6-bb26-6a8a70b3fab9")]
+pub enum LimbType {
+    Leg,
+    Arm,
+    Head,
+    #[default]
+    Body,
+}
+
+impl LimbType {
+    pub fn can_be_sliced_off(&self) -> bool {
+        !matches!(self, Self::Body)
+    }
 }
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
@@ -58,6 +91,8 @@ pub struct HitBox {
         bullet holes or to add damage decals. It will also be attached to the hit box."
     )]
     pub damage_prefab: InheritableVariable<Option<ModelResource>>,
+    pub health: InheritableVariable<f32>,
+    pub limb_type: InheritableVariable<LimbType>,
     pub environment_damage_timeout: f32,
 }
 
@@ -73,12 +108,18 @@ impl Default for HitBox {
             melee_hit_prefab: Default::default(),
             pierce_prefab: Default::default(),
             damage_prefab: Default::default(),
+            health: 100.0.into(),
+            limb_type: Default::default(),
             environment_damage_timeout: 0.0,
         }
     }
 }
 
 impl HitBox {
+    pub fn is_sliced_off(&self) -> bool {
+        self.limb_type.can_be_sliced_off() && *self.health <= 80.0
+    }
+
     fn handle_environment_interaction(&mut self, ctx: &mut ScriptContext) {
         if self.environment_damage_timeout > 0.0 {
             self.environment_damage_timeout -= ctx.dt;
@@ -113,7 +154,7 @@ impl HitBox {
                             RoutingStrategy::Up,
                             HitBoxMessage {
                                 hit_box: ctx.handle,
-                                amount: hit_strength,
+                                damage: hit_strength,
                                 dealer: DamageDealer::default(),
                                 position: Some(DamagePosition {
                                     point: graph[contact.collider1]
@@ -148,7 +189,7 @@ impl HitBox {
                     RoutingStrategy::Up,
                     HitBoxMessage {
                         hit_box: ctx.handle,
-                        amount: 10000.0,
+                        damage: 10000.0,
                         dealer: DamageDealer::default(),
                         position: None,
                         is_melee: false,
@@ -186,6 +227,11 @@ impl ScriptTrait for HitBox {
     fn on_update(&mut self, ctx: &mut ScriptContext) {
         self.handle_death_zones(ctx);
         self.handle_environment_interaction(ctx);
+        if self.is_sliced_off() {
+            if let Some(bone) = ctx.scene.graph.try_get_mut(*self.bone) {
+                bone.local_transform_mut().set_scale(Vector3::repeat(0.0));
+            }
+        }
     }
 
     fn on_message(
@@ -196,6 +242,8 @@ impl ScriptTrait for HitBox {
         let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
             return;
         };
+
+        *self.health -= hit_box_message.damage;
 
         if let Some(position) = hit_box_message.position {
             let prefab = if hit_box_message.is_melee {

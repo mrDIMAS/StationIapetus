@@ -1,20 +1,20 @@
-use crate::character::{DamageDealer, DamagePosition};
-use crate::level::hit_box::{HitBox, HitBoxMessage};
-use crate::level::Level;
+use crate::level::hit_box::LimbType;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
         state_machine::{StateMachine, StateMachineInput},
     },
-    character::{Character, CharacterMessage},
+    character::{Character, CharacterMessage, DamageDealer, DamagePosition},
     door::{door_mut, door_ref, DoorContainer},
+    level::{
+        hit_box::{HitBox, HitBoxMessage},
+        Level,
+    },
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::resource::model::ModelResourceExtension;
-use fyrox::script::RoutingStrategy;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -31,7 +31,7 @@ use fyrox::{
         TypeUuidProvider,
     },
     graph::SceneGraph,
-    resource::model::ModelResource,
+    resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         self,
         animation::{absm::prelude::*, prelude::*},
@@ -46,8 +46,8 @@ use fyrox::{
         Scene,
     },
     script::{
-        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
-        ScriptMessageSender, ScriptTrait,
+        RoutingStrategy, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
+        ScriptMessagePayload, ScriptMessageSender, ScriptTrait,
     },
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
@@ -79,6 +79,28 @@ pub enum BotHostility {
     Everyone = 0,
     OtherSpecies = 1,
     Player = 2,
+}
+
+#[derive(
+    Deserialize,
+    Copy,
+    Clone,
+    PartialOrd,
+    PartialEq,
+    Ord,
+    Eq,
+    Hash,
+    Debug,
+    Visit,
+    Reflect,
+    AsRefStr,
+    EnumString,
+    VariantNames,
+)]
+#[repr(u32)]
+pub enum MovementType {
+    Default,
+    Crawl,
 }
 
 stub_uuid_provider!(BotHostility);
@@ -345,7 +367,7 @@ impl Bot {
                                             RoutingStrategy::Up,
                                             HitBoxMessage {
                                                 hit_box,
-                                                amount: 20.0,
+                                                damage: 20.0,
                                                 dealer: DamageDealer {
                                                     entity: self_handle,
                                                 },
@@ -489,7 +511,7 @@ impl ScriptTrait for Bot {
             // Handle critical head shots.
             let critical_head_shot_probability = hit_box.critical_hit_probability.clamp(0.0, 1.0); // * 100.0%
             if *hit_box.is_head && is_probability_event_occurred(critical_head_shot_probability) {
-                self.damage(hit_box_message.amount * 1000.0);
+                self.damage(hit_box_message.damage * 1000.0);
 
                 self.blow_up_head(&mut ctx.scene.graph);
             }
@@ -570,6 +592,12 @@ impl ScriptTrait for Bot {
 
         self.check_doors(ctx.scene, &level.doors_container);
 
+        let no_leg = self
+            .hit_boxes
+            .iter()
+            .filter_map(|h| ctx.scene.graph.try_get_script_of::<HitBox>(*h))
+            .any(|h| *h.limb_type == LimbType::Leg && h.is_sliced_off());
+
         self.state_machine.apply(
             ctx.scene,
             StateMachineInput {
@@ -581,6 +609,11 @@ impl ScriptTrait for Bot {
                 attack_animation_index: attack_animation_index as u32,
                 aim: is_aiming,
                 badly_damaged: self.restoration_time > 0.0,
+                movement_type: if no_leg {
+                    MovementType::Crawl
+                } else {
+                    MovementType::Default
+                },
             },
         );
         self.impact_handler.update_and_apply(ctx.dt, ctx.scene);

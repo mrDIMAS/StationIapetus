@@ -20,6 +20,7 @@ pub mod weapon;
 
 pub use fyrox;
 
+use crate::level::hit_box::LimbType;
 use crate::{
     bot::{Bot, BotHostility},
     character::Character,
@@ -608,6 +609,7 @@ impl Plugin for Game {
         container.register_inheritable_enum::<TriggerAction, _>();
         container.register_inheritable_enum::<BotHostility, _>();
         container.register_inheritable_enum::<ItemAction, _>();
+        container.register_inheritable_enum::<LimbType, _>();
         container.register_inheritable_inspectable::<Inventory>();
         container.register_inheritable_inspectable::<ItemEntry>();
         container.register_inheritable_inspectable::<Barrel>();

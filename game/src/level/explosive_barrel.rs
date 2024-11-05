@@ -53,7 +53,7 @@ impl ScriptTrait for ExplosiveBarrel {
             return;
         };
 
-        *self.health -= hit_box_message.amount;
+        *self.health -= hit_box_message.damage;
     }
 
     fn on_update(&mut self, context: &mut ScriptContext) {

@@ -394,7 +394,7 @@ impl ScriptTrait for Projectile {
                                 RoutingStrategy::Up,
                                 HitBoxMessage {
                                     hit_box,
-                                    amount,
+                                    damage: amount,
                                     dealer: DamageDealer {
                                         entity: hit.shooter_actor,
                                     },
@@ -415,7 +415,7 @@ impl ScriptTrait for Projectile {
                             RoutingStrategy::Up,
                             HitBoxMessage {
                                 hit_box,
-                                amount,
+                                damage: amount,
                                 dealer: DamageDealer {
                                     entity: hit.shooter_actor,
                                 },
