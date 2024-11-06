@@ -1,3 +1,4 @@
+use crate::level::hit_box::LimbType;
 use crate::{
     inventory::Inventory,
     level::{
@@ -162,7 +163,7 @@ impl Character {
         if let Some(head) = self.hit_boxes.iter().find(|h| {
             graph
                 .try_get_script_component_of::<HitBox>(**h)
-                .map_or(false, |h| *h.is_head)
+                .map_or(false, |h| *h.limb_type == LimbType::Head)
         }) {
             graph[*head].global_position()
         } else {

@@ -504,7 +504,9 @@ impl ScriptTrait for Bot {
 
             // Handle critical head shots.
             let critical_head_shot_probability = hit_box.critical_hit_probability.clamp(0.0, 1.0); // * 100.0%
-            if *hit_box.is_head && is_probability_event_occurred(critical_head_shot_probability) {
+            if *hit_box.limb_type == LimbType::Head
+                && is_probability_event_occurred(critical_head_shot_probability)
+            {
                 self.damage(hit_box_message.damage * 1000.0);
 
                 self.blow_up_head(&mut ctx.scene.graph);

@@ -76,7 +76,6 @@ pub struct HitBox {
     pub damage_factor: InheritableVariable<f32>,
     pub movement_speed_factor: InheritableVariable<f32>,
     pub critical_hit_probability: InheritableVariable<f32>,
-    pub is_head: InheritableVariable<bool>,
     #[reflect(description = "An effect prefab that will be spawned by a non-melee hit.")]
     pub hit_prefab: InheritableVariable<Option<ModelResource>>,
     #[reflect(description = "An effect prefab that will be spawned by a melee hit.")]
@@ -103,7 +102,6 @@ impl Default for HitBox {
             damage_factor: 1.0.into(),
             movement_speed_factor: 1.0.into(),
             critical_hit_probability: 0.01.into(),
-            is_head: false.into(),
             hit_prefab: Default::default(),
             melee_hit_prefab: Default::default(),
             pierce_prefab: Default::default(),
