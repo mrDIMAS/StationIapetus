@@ -25,6 +25,7 @@ pub struct StateMachineInput<'a> {
     pub machine: Handle<Node>,
     pub scene: &'a mut Scene,
     pub local_velocity: Vector2<f32>,
+    pub hit_something: bool,
 }
 
 #[derive(Default, Debug, Clone)]
@@ -133,6 +134,7 @@ impl StateMachine {
             machine,
             scene,
             local_velocity,
+            hit_something,
         } = input;
 
         let animation_player = scene
@@ -178,6 +180,7 @@ impl StateMachine {
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("Recovered", Parameter::Rule(recovered))
             .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity))
+            .set_parameter("HitSomething", Parameter::Rule(dbg!(hit_something)))
             .set_parameter("MeleeAttack", Parameter::Rule(melee_attack));
     }
 

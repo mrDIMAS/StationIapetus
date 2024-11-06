@@ -727,6 +727,11 @@ impl Player {
             change_weapon: self.weapon_change_direction != RequiredWeapon::None,
             scene,
             local_velocity: self.local_velocity,
+            hit_something: self
+                .melee_attack_context
+                .as_ref()
+                .map(|ctx| !ctx.damaged_enemies.is_empty())
+                .unwrap_or_default(),
         });
     }
 
@@ -1346,8 +1351,17 @@ impl ScriptTrait for Player {
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
 
-        self.update_animation_machines(ctx.scene, is_walking, is_jumping);
         self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, &ctx.plugins);
+        self.update_animation_machines(ctx.scene, is_walking, is_jumping);
+
+        if self
+            .melee_attack_context
+            .as_ref()
+            .map(|ctx| !ctx.damaged_enemies.is_empty())
+            .unwrap_or_default()
+        {
+            self.melee_attack_context = None;
+        }
 
         let is_running = self.is_running(ctx.scene);
 
