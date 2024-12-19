@@ -37,7 +37,7 @@
         draw_grid: true,
     ),
     build: (
-        selected_profile: 1,
+        selected_profile: 0,
         profiles: [
             (
                 name: "Debug",
@@ -185,6 +185,7 @@
         max_history_entries: 512,
         generate_previews: true,
         max_log_entries: 100,
+        style: Dark,
     ),
     debugging: (
         show_physics: true,
@@ -488,11 +489,11 @@
         ),
     ),
     scene_settings: {
-        "data/models/agent/agent.rgs": (
+        "data/levels/testbed.rgs": (
             camera_settings: (
-                position: (-1.6375595, -0.19523716, 0.091345444),
-                yaw: -1.5999994,
-                pitch: 0.31999996,
+                position: (-0.26770473, 4.8889384, -1.5654621),
+                yaw: -18.559834,
+                pitch: 0.9907959,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -501,87 +502,55 @@
             ),
             node_infos: {
                 (
-                    index: 90,
+                    index: 412,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
+                    index: 348,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 91,
+                    index: 359,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 10,
+                    index: 26,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/barrels/explosive_barrel.rgs": (
-            camera_settings: (
-                position: (0.22069588, -1.2679262, -1.5227087),
-                yaw: 3.0200002,
-                pitch: 0.8000007,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 50,
-                    generation: 3,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 10,
+                    index: 137,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 8,
+                    index: 179,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 3,
+                    index: 354,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 49,
-                    generation: 3,
+                    index: 261,
+                    generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 52,
-                    generation: 2,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
+                    index: 176,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -593,7 +562,109 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 2,
+                    index: 364,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 207,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 27,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 262,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 429,
+                    generation: 2,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 360,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 14,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 178,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 182,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 373,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 22,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 366,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 33,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 209,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 405,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 371,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -605,7 +676,151 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 6,
+                    index: 19,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 21,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 18,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 186,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 344,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 363,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 193,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 286,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 183,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 15,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 356,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 362,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 29,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 194,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 351,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 226,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 415,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 177,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 190,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 416,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 128,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 361,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -617,25 +832,175 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
+                    index: 254,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 47,
+                    index: 444,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 48,
-                    generation: 3,
+                    index: 268,
+                    generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 7,
+                    index: 25,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 410,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 28,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 253,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 20,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 24,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 420,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 368,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 349,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 17,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 252,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 367,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 23,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 245,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 205,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 16,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 228,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 370,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 180,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 185,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 425,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 13,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: false,
+                ),
+                (
+                    index: 32,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 158,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 365,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -644,63 +1009,34 @@
                     index: 5,
                     generation: 1,
                 ): (
-                    is_expanded: true,
+                    is_expanded: false,
                 ),
-            },
-        ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\blood_decal.rgs": (
-            camera_settings: (
-                position: (0.0, 0.0, 0.0),
-                yaw: 0.09999998,
-                pitch: 0.79999995,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {},
-        ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\barrels\\explosive_barrel.rgs": (
-            camera_settings: (
-                position: (0.09628733, -0.10387826, 0.23867118),
-                yaw: 0.060000386,
-                pitch: 0.74920356,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
                 (
-                    index: 42,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/container/container.rgs": (
-            camera_settings: (
-                position: (0.059564546, 0.64086336, -0.02216959),
-                yaw: 0.02,
-                pitch: 0.099999994,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 3,
+                    index: 358,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 1,
+                    index: 181,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 259,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 125,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -712,33 +1048,31 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 195,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 4,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 5,
+                    index: 346,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
-            },
-        ),
-        "data/models/blood_splatter.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
                 (
-                    index: 1,
+                    index: 369,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 53,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -758,19 +1092,37 @@
             ),
             node_infos: {
                 (
-                    index: 107,
+                    index: 89,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 85,
+                    index: 115,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 87,
+                    index: 104,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 91,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 93,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 74,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -788,7 +1140,31 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 82,
+                    index: 72,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 107,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 85,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 99,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 113,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -800,13 +1176,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 93,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 95,
+                    index: 97,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -818,37 +1188,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 73,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 104,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 115,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 111,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 74,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 89,
+                    index: 105,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -866,67 +1206,48 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 72,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 113,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 105,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 91,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 97,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 117,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 99,
+                    index: 87,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 73,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 111,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 95,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 82,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
             },
         ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\bullet_hole.rgs": (
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\barrel_explosion.rgs": (
             camera_settings: (
-                position: (0.7776642, -0.7779072, 1.3761501),
-                yaw: 0.59999996,
-                pitch: 0.56000006,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {},
-        ),
-        "data/models/m4/m4.rgs": (
-            camera_settings: (
-                position: (1.0305846, -1.5763252, -0.86171865),
-                yaw: 2.4399989,
-                pitch: 0.74000007,
+                position: (0.06310037, 0.5705395, -0.120526075),
+                yaw: -0.099999934,
+                pitch: 0.4199998,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -935,7 +1256,7 @@
             ),
             node_infos: {
                 (
-                    index: 8,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -968,6 +1289,26 @@
                 ),
             },
         ),
+        "data/models/m4/m4.rgs": (
+            camera_settings: (
+                position: (1.0305846, -1.5763252, -0.86171865),
+                yaw: 2.4399989,
+                pitch: 0.74000007,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
         "data/models/bullet_hole.rgs": (
             camera_settings: (
                 position: (1.1680598, -1.1071538, 1.4487013),
@@ -981,13 +1322,7 @@
             ),
             node_infos: {
                 (
-                    index: 43,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
+                    index: 0,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -999,7 +1334,121 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
+                    index: 43,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\barrels\\explosive_barrel.rgs": (
+            camera_settings: (
+                position: (0.09628733, -0.10387826, 0.23867118),
+                yaw: 0.060000386,
+                pitch: 0.74920356,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 42,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/agent/agent.rgs": (
+            camera_settings: (
+                position: (-1.6375595, -0.19523716, 0.091345444),
+                yaw: -1.5999994,
+                pitch: 0.31999996,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 90,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 91,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/container/container.rgs": (
+            camera_settings: (
+                position: (0.059564546, 0.64086336, -0.02216959),
+                yaw: 0.02,
+                pitch: 0.099999994,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1031,24 +1480,63 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
             },
         ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\bullet_hole_flesh.rgs": (
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\blood_decal.rgs": (
             camera_settings: (
-                position: (1.1680598, -1.1071538, 1.4487013),
-                yaw: 0.7999998,
-                pitch: 0.64000005,
+                position: (0.0, 0.0, 0.0),
+                yaw: 0.09999998,
+                pitch: 0.79999995,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {},
+        ),
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\bullet_hole.rgs": (
+            camera_settings: (
+                position: (0.7776642, -0.7779072, 1.3761501),
+                yaw: 0.59999996,
+                pitch: 0.56000006,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {},
+        ),
+        "data/models/bullet_hole_flesh.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {},
+        ),
+        "data/models/barrel/barrel.rgs": (
+            camera_settings: (
+                position: (-0.29768082, -0.07682669, 0.06277388),
+                yaw: 0.00000010430813,
+                pitch: 0.870797,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -1057,18 +1545,24 @@
             ),
             node_infos: {
                 (
-                    index: 0,
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
             },
         ),
-        "data/levels/testbed.rgs": (
+        "data/models/barrels/explosive_barrel.rgs": (
             camera_settings: (
-                position: (-2.8813927, 6.422288, -4.245315),
-                yaw: -15.599838,
-                pitch: 1.4507959,
+                position: (0.22069588, -1.2679262, -1.5227087),
+                yaw: 3.0200002,
+                pitch: 0.8000007,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -1077,163 +1571,7 @@
             ),
             node_infos: {
                 (
-                    index: 18,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 268,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 178,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 23,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 362,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 367,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 183,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 360,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 364,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 370,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 33,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 259,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 253,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 365,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 373,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 177,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 254,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 349,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 13,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 429,
-                    generation: 2,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 252,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 193,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 356,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 182,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 354,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 15,
+                    index: 8,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1245,355 +1583,19 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 9,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 369,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 24,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 366,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 425,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 245,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 29,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 286,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 195,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 12,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 14,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 190,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 5,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 420,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 346,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 410,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 226,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 158,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 351,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 185,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 186,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 361,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 415,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 26,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 21,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 371,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 363,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 228,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 348,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 205,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 209,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 261,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 181,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 262,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 412,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 27,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 179,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 28,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 16,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 405,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 8,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 11,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 180,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 368,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 416,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 22,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 2,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 194,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 10,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 25,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 359,
-                    generation: 1,
+                    index: 50,
+                    generation: 3,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 176,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 20,
-                    generation: 1,
-                ): (
-                    is_expanded: false,
-                ),
-                (
-                    index: 358,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 444,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 207,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 32,
+                    index: 11,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1605,30 +1607,98 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 344,
+                    index: 49,
+                    generation: 3,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 19,
+                    index: 6,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 17,
+                    index: 52,
+                    generation: 2,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 48,
+                    generation: 3,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 9,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 47,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
             },
         ),
-        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\barrel_explosion.rgs": (
+        "data/models/blood_splatter.rgs": (
             camera_settings: (
-                position: (0.06310037, 0.5705395, -0.120526075),
-                yaw: -0.099999934,
-                pitch: 0.4199998,
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "\\\\?\\I:\\RustEngine\\StationIapetus\\data\\models\\bullet_hole_flesh.rgs": (
+            camera_settings: (
+                position: (1.1680598, -1.1071538, 1.4487013),
+                yaw: 0.7999998,
+                pitch: 0.64000005,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -1657,13 +1727,13 @@
             ),
             node_infos: {
                 (
-                    index: 1,
+                    index: 3,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 3,
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1676,45 +1746,6 @@
                 ),
                 (
                     index: 4,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/bullet_hole_flesh.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {},
-        ),
-        "data/models/barrel/barrel.rgs": (
-            camera_settings: (
-                position: (-0.29768082, -0.07682669, 0.06277388),
-                yaw: 0.00000010430813,
-                pitch: 0.870797,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1743,7 +1774,7 @@
     ),
     windows: (
         window_position: (-8.0, -8.0),
-        window_size: (2560.0, 1377.0),
+        window_size: (2560.0, 1315.0),
         window_maximized: true,
         layout: None,
     ),

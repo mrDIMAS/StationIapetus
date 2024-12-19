@@ -66,7 +66,7 @@ pub fn create_scroll_bar(ctx: &mut BuildContext, data: ScrollBarData) -> Handle<
     .with_value(data.value)
     .with_value_precision(1)
     .with_font(data.font)
-    .with_font_size(16.0)
+    .with_font_size(16.0.into())
     .build(ctx)
 }
 
@@ -108,21 +108,23 @@ impl DeathScreen {
                 .with_visibility(false)
                 .with_width(ui.screen_size().x)
                 .with_height(ui.screen_size().y)
-                .with_background(Brush::Solid(Color::opaque(30, 0, 0)))
+                .with_background(Brush::Solid(Color::opaque(30, 0, 0)).into())
                 .with_child(
                     GridBuilder::new(
                         WidgetBuilder::new()
                             .with_child(
                                 TextBuilder::new(
                                     WidgetBuilder::new()
-                                        .with_foreground(Brush::Solid(Color::opaque(255, 0, 0)))
+                                        .with_foreground(
+                                            Brush::Solid(Color::opaque(255, 0, 0)).into(),
+                                        )
                                         .on_row(0)
                                         .on_column(1)
                                         .with_horizontal_alignment(HorizontalAlignment::Center)
                                         .with_vertical_alignment(VerticalAlignment::Bottom),
                                 )
                                 .with_text("You Died")
-                                .with_font_size(31.0)
+                                .with_font_size(31.0.into())
                                 .with_font(font.clone())
                                 .build(&mut ui.build_ctx()),
                             )
@@ -236,14 +238,16 @@ impl FinalScreen {
                 .with_visibility(false)
                 .with_width(ui.screen_size().x)
                 .with_height(ui.screen_size().y)
-                .with_background(Brush::Solid(Color::opaque(40, 40, 40)))
+                .with_background(Brush::Solid(Color::opaque(40, 40, 40)).into())
                 .with_child(
                     GridBuilder::new(
                         WidgetBuilder::new()
                             .with_child(
                                 TextBuilder::new(
                                     WidgetBuilder::new()
-                                        .with_foreground(Brush::Solid(Color::opaque(255, 255, 255)))
+                                        .with_foreground(
+                                            Brush::Solid(Color::opaque(255, 255, 255)).into(),
+                                        )
                                         .on_row(0)
                                         .on_column(0)
                                         .with_horizontal_alignment(HorizontalAlignment::Center)
@@ -251,7 +255,7 @@ impl FinalScreen {
                                 )
                                 .with_text("Thanks for playing demo version of the game!")
                                 .with_font(font.clone())
-                                .with_font_size(31.0)
+                                .with_font_size(31.0.into())
                                 .build(&mut ui.build_ctx()),
                             )
                             .with_child(

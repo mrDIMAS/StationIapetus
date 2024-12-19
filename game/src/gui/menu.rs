@@ -98,7 +98,7 @@ fn make_button(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle
         TextBuilder::new(WidgetBuilder::new())
             .with_text(text)
             .with_font(font)
-            .with_font_size(30.0)
+            .with_font_size(30.0.into())
             .with_vertical_text_alignment(VerticalAlignment::Center)
             .with_horizontal_text_alignment(HorizontalAlignment::Center)
             .build(ctx),
@@ -161,7 +161,7 @@ impl Menu {
                             .with_margin(Thickness::uniform(4.0))
                             .with_child(content),
                     )
-                    .with_corner_radius(4.0)
+                    .with_corner_radius(4.0.into())
                     .with_pad_by_corner_radius(false)
                     .build(ctx),
                 )
@@ -171,7 +171,7 @@ impl Menu {
                             .with_horizontal_alignment(HorizontalAlignment::Center)
                             .with_vertical_alignment(VerticalAlignment::Top),
                     )
-                    .with_font_size(60.0)
+                    .with_font_size(60.0.into())
                     .with_font(font.clone())
                     .with_text("Station Iapetus")
                     .build(ctx),

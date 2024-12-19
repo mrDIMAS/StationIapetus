@@ -65,7 +65,7 @@ fn create_saved_game_entry(
         .with_vertical_text_alignment(VerticalAlignment::Center)
         .with_horizontal_text_alignment(HorizontalAlignment::Left)
         .with_font(font.clone())
-        .with_font_size(16.0)
+        .with_font_size(16.0.into())
         .with_text(text)
         .build(ctx);
 
@@ -107,7 +107,7 @@ impl SaveLoadDialog {
         )
         .with_text(file_stem)
         .with_font(font.clone())
-        .with_font_size(18.0)
+        .with_font_size(18.0.into())
         .with_text_commit_mode(TextCommitMode::Immediate)
         .build(ctx);
 
@@ -130,7 +130,7 @@ impl SaveLoadDialog {
                 .with_margin(Thickness::uniform(2.0))
                 .with_enabled(matches!(mode, Mode::Save)),
         )
-        .with_text_and_font_size(confirm_text, font.clone(), 24.0)
+        .with_text_and_font_size(confirm_text, font.clone(), 24.0.into())
         .build(ctx);
 
         let cancel = ButtonBuilder::new(
@@ -138,7 +138,7 @@ impl SaveLoadDialog {
                 .with_width(120.0)
                 .with_margin(Thickness::uniform(2.0)),
         )
-        .with_text_and_font_size("Cancel", font.clone(), 24.0)
+        .with_text_and_font_size("Cancel", font.clone(), 24.0.into())
         .build(ctx);
 
         let content = GridBuilder::new(

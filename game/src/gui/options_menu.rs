@@ -82,7 +82,7 @@ fn make_text_mark(
     )
     .with_text(text)
     .with_font(font)
-    .with_font_size(16.0)
+    .with_font_size(16.0.into())
     .with_vertical_text_alignment(VerticalAlignment::Center)
     .build(ctx)
 }
@@ -96,7 +96,7 @@ fn make_tab_header(text: &str, font: FontResource, ctx: &mut BuildContext) -> Ha
     )
     .with_text(text)
     .with_font(font)
-    .with_font_size(22.0)
+    .with_font_size(22.0.into())
     .with_vertical_text_alignment(VerticalAlignment::Center)
     .with_horizontal_text_alignment(HorizontalAlignment::Center)
     .build(ctx)
@@ -129,16 +129,19 @@ fn make_video_mode_item_raw(
                     .with_vertical_text_alignment(VerticalAlignment::Center)
                     .with_horizontal_text_alignment(HorizontalAlignment::Center)
                     .with_font(font)
-                    .with_font_size(16.0)
+                    .with_font_size(16.0.into())
                     .build(ctx),
             ),
         )
-        .with_stroke_thickness(Thickness {
-            left: 1.0,
-            top: 0.0,
-            right: 1.0,
-            bottom: 1.0,
-        }),
+        .with_stroke_thickness(
+            Thickness {
+                left: 1.0,
+                top: 0.0,
+                right: 1.0,
+                bottom: 1.0,
+            }
+            .into(),
+        ),
     )
     .build(ctx)
 }
@@ -165,7 +168,7 @@ fn make_shadows_quality_drop_down(
                             .with_vertical_text_alignment(VerticalAlignment::Center)
                             .with_horizontal_text_alignment(HorizontalAlignment::Center)
                             .with_font(font.clone())
-                            .with_font_size(16.0)
+                            .with_font_size(16.0.into())
                             .with_text(o)
                             .build(ctx),
                     ),
@@ -505,7 +508,7 @@ impl OptionsMenu {
                         .with_vertical_text_alignment(VerticalAlignment::Center)
                         .with_horizontal_text_alignment(HorizontalAlignment::Center)
                         .with_font(font.clone())
-                        .with_font_size(16.0)
+                        .with_font_size(16.0.into())
                         .with_text(button.button.name())
                         .build(ctx),
                 )

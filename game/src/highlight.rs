@@ -239,17 +239,19 @@ impl SceneRenderPass for HighlightRenderPass {
         {
             let view_projection = ctx.camera.view_projection_matrix();
 
-            let mut render_batch_storage = RenderDataBundleStorage::default();
+            let observer_info = ObserverInfo {
+                observer_position: ctx.camera.global_position(),
+                z_near: ctx.camera.projection().z_near(),
+                z_far: ctx.camera.projection().z_far(),
+                view_matrix: ctx.camera.view_matrix(),
+                projection_matrix: ctx.camera.projection_matrix(),
+            };
+
+            let mut render_batch_storage = RenderDataBundleStorage::new_empty(observer_info.clone());
 
             let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
-                observer_info: &ObserverInfo {
-                    observer_position: ctx.camera.global_position(),
-                    z_near: ctx.camera.projection().z_near(),
-                    z_far: ctx.camera.projection().z_far(),
-                    view_matrix: ctx.camera.view_matrix(),
-                    projection_matrix: ctx.camera.projection_matrix(),
-                },
+                observer_info: &observer_info,
                 frustum: Some(&frustum),
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,

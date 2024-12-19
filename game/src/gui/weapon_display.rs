@@ -59,12 +59,12 @@ impl WeaponDisplay {
                     ammo = TextBuilder::new(
                         WidgetBuilder::new()
                             .with_vertical_alignment(VerticalAlignment::Center)
-                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
+                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)).into())
                             .on_row(0)
                             .on_column(1),
                     )
                     .with_font(font.clone())
-                    .with_font_size(31.0)
+                    .with_font_size(31.0.into())
                     .build(&mut ui.build_ctx());
                     ammo
                 })
@@ -87,12 +87,12 @@ impl WeaponDisplay {
                     grenades = TextBuilder::new(
                         WidgetBuilder::new()
                             .with_vertical_alignment(VerticalAlignment::Center)
-                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)))
+                            .with_foreground(Brush::Solid(Color::opaque(0, 162, 232)).into())
                             .on_row(1)
                             .on_column(1),
                     )
                     .with_font(font)
-                    .with_font_size(31.0)
+                    .with_font_size(31.0.into())
                     .build(&mut ui.build_ctx());
                     grenades
                 }),

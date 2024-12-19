@@ -96,7 +96,7 @@ impl DoorUi {
             widget,
             brush,
             |w| w.background(),
-            |h, value| WidgetMessage::background(h, MessageDirection::ToWidget, value),
+            |h, value| WidgetMessage::background(h, MessageDirection::ToWidget, value.into()),
         )
     }
 
@@ -105,7 +105,7 @@ impl DoorUi {
             widget,
             brush,
             |w| w.foreground(),
-            |h, value| WidgetMessage::foreground(h, MessageDirection::ToWidget, value),
+            |h, value| WidgetMessage::foreground(h, MessageDirection::ToWidget, value.into()),
         )
     }
 

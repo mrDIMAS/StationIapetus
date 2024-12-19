@@ -6,6 +6,7 @@ use crate::{
     level::item::Item,
     player::Player,
 };
+use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
@@ -51,6 +52,18 @@ pub struct InventoryItem {
     item: ModelResource,
     #[allow(dead_code)]
     count: Handle<UiNode>,
+}
+
+impl ConstructorProvider<UiNode, UserInterface> for InventoryItem {
+    fn constructor() -> GraphNodeConstructor<UiNode, UserInterface> {
+        GraphNodeConstructor::new::<Self>()
+            .with_variant("Canvas", |ui| {
+                InventoryItemBuilder::new(WidgetBuilder::new().with_name("InventoryItem"))
+                    .build(&Default::default(), &mut ui.build_ctx())
+                    .into()
+            })
+            .with_group("Layout")
+    }
 }
 
 uuid_provider!(InventoryItem = "346f2207-0868-4577-89a3-a4b36f3bf45d");
@@ -143,7 +156,7 @@ impl InventoryItemBuilder {
                 let body = BorderBuilder::new(
                     WidgetBuilder::new()
                         .with_margin(Thickness::uniform(1.0))
-                        .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)))
+                        .with_foreground(Brush::Solid(Color::opaque(140, 140, 140)).into())
                         .with_child(
                             GridBuilder::new(
                                 WidgetBuilder::new()
@@ -198,7 +211,7 @@ impl InventoryItemBuilder {
                 .build(ctx);
 
                 let item = InventoryItem {
-                    widget: builder.with_child(body).build(),
+                    widget: builder.with_child(body).build(ctx),
                     count,
                     is_selected: false,
                     item: item_resource.clone(),
@@ -233,7 +246,7 @@ impl InventoryInterface {
         let scroll_viewer;
         BorderBuilder::new(
             WidgetBuilder::new()
-                .with_foreground(Brush::Solid(Color::opaque(120, 120, 120)))
+                .with_foreground(Brush::Solid(Color::opaque(120, 120, 120)).into())
                 .with_opacity(Some(0.9))
                 .with_width(Self::WIDTH)
                 .with_height(Self::HEIGHT)
@@ -275,9 +288,10 @@ impl InventoryInterface {
                                             BorderBuilder::new(
                                                 WidgetBuilder::new()
                                                     .on_column(1)
-                                                    .with_background(Brush::Solid(Color::opaque(
-                                                        80, 80, 80,
-                                                    )))
+                                                    .with_background(
+                                                        Brush::Solid(Color::opaque(80, 80, 80))
+                                                            .into(),
+                                                    )
                                                     .with_child(
                                                         StackPanelBuilder::new(
                                                             WidgetBuilder::new()

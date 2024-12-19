@@ -45,13 +45,13 @@ impl ItemDisplay {
                 .with_child(
                     BorderBuilder::new(
                         WidgetBuilder::new()
-                            .with_foreground(Brush::Solid(Color::WHITE))
-                            .with_background(Brush::Solid(Color::opaque(120, 120, 120)))
+                            .with_foreground(Brush::Solid(Color::WHITE).into())
+                            .with_background(Brush::Solid(Color::opaque(120, 120, 120)).into())
                             .with_child({
                                 item_image = ImageBuilder::new(
                                     WidgetBuilder::new()
-                                        .with_background(Brush::Solid(Color::WHITE))
-                                        .with_foreground(Brush::Solid(Color::WHITE))
+                                        .with_background(Brush::Solid(Color::WHITE).into())
+                                        .with_foreground(Brush::Solid(Color::WHITE).into())
                                         .with_width(170.0)
                                         .with_height(170.0)
                                         .on_row(0)
@@ -72,21 +72,21 @@ impl ItemDisplay {
                             .on_column(0),
                     )
                     .with_font(font.clone())
-                    .with_font_size(30.0)
+                    .with_font_size(30.0.into())
                     .build(&mut ui.build_ctx());
                     item_name
                 })
                 .with_child({
                     action_text = TextBuilder::new(
                         WidgetBuilder::new()
-                            .with_foreground(Brush::Solid(Color::GREEN))
+                            .with_foreground(Brush::Solid(Color::GREEN).into())
                             .with_vertical_alignment(VerticalAlignment::Center)
                             .with_horizontal_alignment(HorizontalAlignment::Center)
                             .on_row(2)
                             .on_column(0),
                     )
                     .with_shadow(true)
-                    .with_font_size(20.0)
+                    .with_font_size(20.0.into())
                     .with_font(font)
                     .build(&mut ui.build_ctx());
                     action_text
