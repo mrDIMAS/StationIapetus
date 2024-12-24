@@ -14,10 +14,7 @@ use fyrox::{
             },
             geometry_buffer::GeometryBuffer,
             gpu_program::{GpuProgram, UniformLocation},
-            gpu_texture::{
-                GpuTextureDescriptor, GpuTextureKind, MagnificationFilter, MinificationFilter,
-                PixelKind, WrapMode,
-            },
+            gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind, WrapMode},
             server::GraphicsServer,
             uniform::StaticUniformBuffer,
             BlendFactor, BlendFunc, BlendParameters, CompareFunc, DrawParameters, ElementRange,
@@ -168,32 +165,17 @@ impl HighlightRenderPass {
         let height = height.max(1);
 
         let depth_stencil = server
-            .create_texture(GpuTextureDescriptor {
-                kind: GpuTextureKind::Rectangle { width, height },
-                pixel_kind: PixelKind::D24S8,
-                min_filter: MinificationFilter::Nearest,
-                mag_filter: MagnificationFilter::Nearest,
-                mip_count: 1,
-                s_wrap_mode: WrapMode::ClampToEdge,
-                t_wrap_mode: WrapMode::ClampToEdge,
-                r_wrap_mode: WrapMode::ClampToEdge,
-                anisotropy: 1.0,
-                data: None,
-            })
+            .create_2d_render_target(PixelKind::D24S8, width, height)
             .unwrap();
 
         let frame_texture = server
             .create_texture(GpuTextureDescriptor {
                 kind: GpuTextureKind::Rectangle { width, height },
                 pixel_kind: PixelKind::RGBA8,
-                min_filter: MinificationFilter::Linear,
-                mag_filter: MagnificationFilter::Linear,
-                mip_count: 1,
                 s_wrap_mode: WrapMode::ClampToEdge,
                 t_wrap_mode: WrapMode::ClampToEdge,
                 r_wrap_mode: WrapMode::ClampToEdge,
-                anisotropy: 1.0,
-                data: None,
+                ..Default::default()
             })
             .unwrap();
 
@@ -247,7 +229,8 @@ impl SceneRenderPass for HighlightRenderPass {
                 projection_matrix: ctx.camera.projection_matrix(),
             };
 
-            let mut render_batch_storage = RenderDataBundleStorage::new_empty(observer_info.clone());
+            let mut render_batch_storage =
+                RenderDataBundleStorage::new_empty(observer_info.clone());
 
             let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
