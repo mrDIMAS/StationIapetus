@@ -1,4 +1,6 @@
 use crate::Game;
+use fyrox::renderer::framework::framebuffer::GpuFrameBuffer;
+use fyrox::renderer::framework::geometry_buffer::GpuGeometryBuffer;
 use fyrox::{
     core::{color::Color, pool::Handle, sstorage::ImmutableString},
     fxhash::FxHashMap,
@@ -9,10 +11,8 @@ use fyrox::{
             buffer::BufferUsage,
             error::FrameworkError,
             framebuffer::{
-                Attachment, AttachmentKind, BufferLocation, FrameBuffer, ResourceBindGroup,
-                ResourceBinding,
+                Attachment, AttachmentKind, BufferLocation, ResourceBindGroup, ResourceBinding,
             },
-            geometry_buffer::GeometryBuffer,
             gpu_program::{GpuProgram, UniformLocation},
             gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind, WrapMode},
             server::GraphicsServer,
@@ -32,7 +32,7 @@ use std::{
 };
 
 struct EdgeDetectShader {
-    program: Box<dyn GpuProgram>,
+    program: GpuProgram,
     uniform_buffer_binding: usize,
     frame_texture: UniformLocation,
 }
@@ -97,7 +97,7 @@ void main()
 }
 
 struct FlatShader {
-    program: Box<dyn GpuProgram>,
+    program: GpuProgram,
     uniform_buffer_binding: usize,
 }
 
@@ -145,8 +145,8 @@ pub struct HighlightEntry {
 }
 
 pub struct HighlightRenderPass {
-    framebuffer: Box<dyn FrameBuffer>,
-    quad: Box<dyn GeometryBuffer>,
+    framebuffer: GpuFrameBuffer,
+    quad: GpuGeometryBuffer,
     edge_detect_shader: EdgeDetectShader,
     flat_shader: FlatShader,
     pub scene_handle: Handle<Scene>,
@@ -194,7 +194,7 @@ impl HighlightRenderPass {
 
         Rc::new(RefCell::new(Self {
             framebuffer,
-            quad: <dyn GeometryBuffer>::from_surface_data(
+            quad: GpuGeometryBuffer::from_surface_data(
                 &SurfaceData::make_unit_xy_quad(),
                 BufferUsage::StaticDraw,
                 server,
@@ -239,6 +239,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,
                 render_pass_name: &Default::default(),
+                elapsed_time: ctx.elapsed_time,
             };
 
             let mut additional_data_map = FxHashMap::default();
@@ -256,7 +257,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 .clear(ctx.viewport, Some(Color::TRANSPARENT), Some(1.0), None);
 
             for batch in render_batch_storage.bundles.iter() {
-                let Some(geometry) =
+                let Ok(geometry) =
                     ctx.geometry_cache
                         .get(ctx.server, &batch.data, batch.time_to_live)
                 else {
