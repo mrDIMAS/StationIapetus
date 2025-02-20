@@ -213,8 +213,10 @@ impl SceneRenderPass for HighlightRenderPass {
         &mut self,
         ctx: SceneRenderPassContext,
     ) -> Result<RenderPassStatistics, FrameworkError> {
+        let mut stats = RenderPassStatistics::default();
+
         if self.scene_handle != ctx.scene_handle {
-            return Ok(Default::default());
+            return Ok(stats);
         }
 
         // Draw selected nodes in the temporary frame buffer first.
@@ -276,10 +278,10 @@ impl SceneRenderPass for HighlightRenderPass {
                     )?;
 
                     let shader = &self.flat_shader;
-                    self.framebuffer.draw(
+                    stats += self.framebuffer.draw(
                         geometry,
                         ctx.viewport,
-                        &*shader.program,
+                        &shader.program,
                         &DrawParameters {
                             cull_face: None,
                             color_write: Default::default(),
@@ -310,10 +312,10 @@ impl SceneRenderPass for HighlightRenderPass {
             let frame_matrix = make_viewport_matrix(ctx.viewport);
             let shader = &self.edge_detect_shader;
             let frame_texture = self.framebuffer.color_attachments()[0].texture.clone();
-            ctx.framebuffer.draw(
-                &*self.quad,
+            stats += ctx.framebuffer.draw(
+                &self.quad,
                 ctx.viewport,
-                &*shader.program,
+                &shader.program,
                 &DrawParameters {
                     cull_face: None,
                     color_write: Default::default(),
@@ -347,7 +349,7 @@ impl SceneRenderPass for HighlightRenderPass {
 
         self.nodes_to_highlight.retain(|_, e| !e.auto_remove);
 
-        Ok(Default::default())
+        Ok(stats)
     }
 
     fn source_type_id(&self) -> TypeId {
