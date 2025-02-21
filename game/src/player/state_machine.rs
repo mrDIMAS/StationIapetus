@@ -180,7 +180,7 @@ impl StateMachine {
             .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
             .set_parameter("Recovered", Parameter::Rule(recovered))
             .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity))
-            .set_parameter("HitSomething", Parameter::Rule(dbg!(hit_something)))
+            .set_parameter("HitSomething", Parameter::Rule(hit_something))
             .set_parameter("MeleeAttack", Parameter::Rule(melee_attack));
     }
 
