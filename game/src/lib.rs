@@ -444,11 +444,11 @@ impl Game {
         }
     }
 
-    pub fn update_statistics(&mut self, elapsed: f64, context: &mut PluginContext) {
-        let ui = context.user_interfaces.first_mut();
+    pub fn update_statistics(&mut self, elapsed: f64, ctx: &mut PluginContext) {
+        let ui = ctx.user_interfaces.first_mut();
 
         if self.config.show_debug_info {
-            if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+            if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
                 self.debug_string.clear();
                 use std::fmt::Write;
                 write!(
@@ -457,13 +457,22 @@ impl Game {
                     elapsed,
                     graphics_context.renderer.get_statistics(),
                     if let Some(level) = self.level.as_ref() {
-                        context.scenes[level.scene].performance_statistics.clone()
+                        ctx.scenes[level.scene].performance_statistics.clone()
                     } else {
                         Default::default()
                     },
-                    context.performance_statistics,
+                    ctx.performance_statistics,
                 )
                 .unwrap();
+
+                if let Some(ref mut level) = self.level {
+                    write!(
+                        self.debug_string,
+                        "Node Count: {}",
+                        ctx.scenes[level.scene].graph.node_count()
+                    )
+                    .unwrap();
+                }
 
                 ui.send_message(TextMessage::text(
                     self.debug_text,
