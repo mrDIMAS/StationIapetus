@@ -1,4 +1,7 @@
-use crate::bot::{behavior::Action, behavior::BehaviorContext};
+use crate::{
+    bot::{behavior::Action, behavior::BehaviorContext},
+    level::hit_box::LimbType,
+};
 use fyrox::{
     core::{
         algebra::{UnitQuaternion, Vector3},
@@ -6,6 +9,7 @@ use fyrox::{
         pool::Handle,
         visitor::prelude::*,
     },
+    rand::{thread_rng, Rng},
     scene::{graph::Graph, node::Node, Scene},
     utils::behavior::{Behavior, Status},
 };
@@ -21,11 +25,26 @@ pub enum AimTarget {
 pub struct AimOnTarget {
     spine: Handle<Node>,
     target: AimTarget,
+    yaw_random_smooth_angle: SmoothAngle,
+    pitch_random_smooth_angle: SmoothAngle,
 }
 
 impl AimOnTarget {
     pub fn new_action(spine: Handle<Node>, target: AimTarget) -> Action {
-        Action::AimOnTarget(Self { spine, target })
+        Action::AimOnTarget(Self {
+            spine,
+            target,
+            yaw_random_smooth_angle: SmoothAngle::new(0.0, std::f32::consts::PI),
+            pitch_random_smooth_angle: SmoothAngle::new(0.0, std::f32::consts::PI),
+        })
+    }
+}
+
+fn random_offset(no_head: bool) -> f32 {
+    if no_head {
+        thread_rng().gen_range(-90.0f32.to_radians()..90.0f32.to_radians())
+    } else {
+        0.0
     }
 }
 
@@ -37,10 +56,21 @@ impl AimOnTarget {
         graph: &mut Graph,
         dt: f32,
         angle_hack: f32,
+        no_head: bool,
     ) -> bool {
+        if no_head {
+            if self.pitch_random_smooth_angle.at_target() {
+                self.pitch_random_smooth_angle
+                    .set_target(random_offset(no_head));
+            }
+            self.pitch_random_smooth_angle.update(dt);
+        }
+
         pitch
             .set_target(
-                look_dir.dot(&Vector3::y()).acos() - std::f32::consts::PI / 2.0 + angle_hack,
+                look_dir.dot(&Vector3::y()).acos() - std::f32::consts::PI / 2.0
+                    + angle_hack
+                    + self.pitch_random_smooth_angle.angle(),
             )
             .update(dt);
 
@@ -65,14 +95,25 @@ impl AimOnTarget {
         dt: f32,
         body: Handle<Node>,
         angle_hack: f32,
+        no_head: bool,
     ) -> bool {
+        if no_head {
+            if self.yaw_random_smooth_angle.at_target() {
+                self.yaw_random_smooth_angle
+                    .set_target(random_offset(no_head));
+            }
+            self.yaw_random_smooth_angle.update(dt);
+        }
+
         if yaw.angle.is_nan() {
             let local_look = scene.graph[model].look_vector();
             yaw.angle = local_look.x.atan2(local_look.z);
         }
 
-        yaw.set_target(look_dir.x.atan2(look_dir.z) + angle_hack)
-            .update(dt);
+        yaw.set_target(
+            look_dir.x.atan2(look_dir.z) + angle_hack + self.yaw_random_smooth_angle.angle(),
+        )
+        .update(dt);
 
         if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
@@ -97,6 +138,9 @@ impl<'a> Behavior<'a> for AimOnTarget {
         .unwrap_or_else(|| ctx.agent.target());
 
         let look_dir = target_pos - ctx.character.position(&ctx.scene.graph);
+        let no_head = ctx
+            .character
+            .is_limb_sliced_off(&ctx.scene.graph, LimbType::Head);
 
         let aimed_horizontally = self.aim_horizontally(
             ctx.yaw,
@@ -106,6 +150,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
             ctx.dt,
             ctx.character.body,
             ctx.h_aim_angle_hack.to_radians(),
+            no_head,
         );
         let aimed_vertically = self.aim_vertically(
             ctx.pitch,
@@ -113,9 +158,10 @@ impl<'a> Behavior<'a> for AimOnTarget {
             &mut ctx.scene.graph,
             ctx.dt,
             ctx.v_aim_angle_hack.to_radians(),
+            no_head,
         );
 
-        if aimed_horizontally && aimed_vertically {
+        if no_head || aimed_horizontally && aimed_vertically {
             Status::Success
         } else {
             ctx.character.stand_still(&mut ctx.scene.graph);

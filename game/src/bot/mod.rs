@@ -629,10 +629,8 @@ impl ScriptTrait for Bot {
         self.check_doors(ctx.scene, &level.doors_container);
 
         let no_leg = self
-            .hit_boxes
-            .iter()
-            .filter_map(|h| ctx.scene.graph.try_get_script_of::<HitBox>(*h))
-            .any(|h| *h.limb_type == LimbType::Leg && h.is_sliced_off());
+            .character
+            .is_limb_sliced_off(&ctx.scene.graph, LimbType::Leg);
 
         self.state_machine.apply(
             ctx.scene,

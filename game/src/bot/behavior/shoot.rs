@@ -1,7 +1,7 @@
 use crate::{
     bot::behavior::BehaviorContext,
     character::{CharacterMessage, CharacterMessageData},
-    level::hit_box::{HitBox, LimbType},
+    level::hit_box::LimbType,
     weapon::{weapon_ref, Weapon, WeaponMessage, WeaponMessageData},
 };
 use fyrox::{
@@ -79,10 +79,7 @@ impl<'a> Behavior<'a> for CanShootTarget {
 
         let no_arm = context
             .character
-            .hit_boxes
-            .iter()
-            .filter_map(|h| context.scene.graph.try_get_script_of::<HitBox>(*h))
-            .any(|h| *h.limb_type == LimbType::Arm && h.is_sliced_off());
+            .is_limb_sliced_off(&context.scene.graph, LimbType::Arm);
 
         let weapon_node =
             some_or_return!(context.scene.graph.try_get(current_weapon), Status::Failure);

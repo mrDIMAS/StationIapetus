@@ -175,6 +175,13 @@ impl Character {
         self.health -= amount.abs();
     }
 
+    pub fn is_limb_sliced_off(&self, graph: &Graph, limb_type: LimbType) -> bool {
+        self.hit_boxes
+            .iter()
+            .filter_map(|h| graph.try_get_script_of::<HitBox>(*h))
+            .any(|h| *h.limb_type == limb_type && h.is_sliced_off())
+    }
+
     pub fn heal(&mut self, amount: f32) {
         self.health += amount.abs();
 
