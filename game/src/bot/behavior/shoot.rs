@@ -1,9 +1,12 @@
 use crate::{
     bot::behavior::BehaviorContext,
-    weapon::{weapon_ref, WeaponMessage, WeaponMessageData},
+    character::{CharacterMessage, CharacterMessageData},
+    level::hit_box::{HitBox, LimbType},
+    weapon::{weapon_ref, Weapon, WeaponMessage, WeaponMessageData},
 };
 use fyrox::{
-    core::visitor::prelude::*,
+    core::{some_or_return, visitor::prelude::*},
+    graph::BaseSceneGraph,
     utils::behavior::{Behavior, Status},
 };
 
@@ -68,24 +71,52 @@ impl<'a> Behavior<'a> for CanShootTarget {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, context: &mut Self::Context) -> Status {
-        if let Some(weapon) = context
-            .character
-            .weapons
-            .get(context.character.current_weapon)
-        {
-            let weapon_handle = *weapon;
-            let weapon = weapon_ref(weapon_handle, &context.scene.graph);
-            let ammo_per_shot = *weapon.ammo_consumption_per_shot;
+        let current_weapon_index = context.character.current_weapon;
+        let current_weapon = *some_or_return!(
+            context.character.weapons.get(current_weapon_index),
+            Status::Failure
+        );
 
-            if let Some(ammo_item) = weapon.ammo_item.as_ref() {
-                if context.restoration_time <= 0.0
-                    && context.character.inventory.item_count(ammo_item) >= ammo_per_shot
-                {
-                    return Status::Success;
-                }
+        let no_arm = context
+            .character
+            .hit_boxes
+            .iter()
+            .filter_map(|h| context.scene.graph.try_get_script_of::<HitBox>(*h))
+            .any(|h| *h.limb_type == LimbType::Arm && h.is_sliced_off());
+
+        let weapon_node =
+            some_or_return!(context.scene.graph.try_get(current_weapon), Status::Failure);
+
+        if no_arm {
+            if let Some(weapon_resource) = weapon_node.root_resource() {
+                context.script_message_sender.send_to_target(
+                    context.bot_handle,
+                    CharacterMessage {
+                        character: context.bot_handle,
+                        data: CharacterMessageData::DropItems {
+                            item: weapon_resource,
+                            count: 1,
+                        },
+                    },
+                );
             }
+
+            return Status::Failure;
         }
 
-        Status::Failure
+        let weapon_script =
+            some_or_return!(weapon_node.try_get_script::<Weapon>(), Status::Failure);
+        let ammo_per_shot = *weapon_script.ammo_consumption_per_shot;
+        if let Some(ammo_item) = weapon_script.ammo_item.as_ref() {
+            if context.restoration_time <= 0.0
+                && context.character.inventory.item_count(ammo_item) >= ammo_per_shot
+            {
+                Status::Success
+            } else {
+                Status::Failure
+            }
+        } else {
+            Status::Failure
+        }
     }
 }
