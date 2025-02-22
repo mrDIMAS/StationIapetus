@@ -1,20 +1,22 @@
-use crate::level::hit_box::LimbType;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
         state_machine::{StateMachine, StateMachineInput},
     },
-    character::{Character, CharacterMessage, DamageDealer, DamagePosition},
+    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer, DamagePosition},
     door::{door_mut, door_ref, DoorContainer},
     level::{
+        hit_box::LimbType,
         hit_box::{HitBox, HitBoxMessage},
         Level,
     },
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
+    weapon::Weapon,
     weapon::WeaponMessage,
     Game,
 };
+use fyrox::core::some_or_continue;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -427,6 +429,34 @@ impl ScriptTrait for Bot {
             .subscribe_to::<WeaponMessage>(ctx.handle);
         ctx.message_dispatcher
             .subscribe_to::<HitBoxMessage>(ctx.handle);
+
+        // Try to equip the first available weapon.
+        if !ctx
+            .scene
+            .graph
+            .has_component::<Weapon>(self.character.current_weapon())
+        {
+            for item in self.inventory.items() {
+                let resource = some_or_continue!(item.resource.as_ref());
+                if Weapon::is_weapon_resource(&resource) {
+                    ctx.message_sender.send_to_target(
+                        ctx.handle,
+                        CharacterMessage {
+                            character: ctx.handle,
+                            data: CharacterMessageData::AddWeapon(resource.clone()),
+                        },
+                    );
+                    ctx.message_sender.send_to_target(
+                        ctx.handle,
+                        CharacterMessage {
+                            character: ctx.handle,
+                            data: CharacterMessageData::SelectWeapon(resource.clone()),
+                        },
+                    );
+                    break;
+                }
+            }
+        }
     }
 
     fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
