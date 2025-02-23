@@ -1,8 +1,7 @@
-use crate::level::hit_box::LimbType;
 use crate::{
     inventory::Inventory,
     level::{
-        hit_box::{HitBox, HitBoxMessage},
+        hit_box::{HitBox, HitBoxMessage, LimbType},
         item::ItemAction,
     },
     sound::{SoundKind, SoundManager},
@@ -10,8 +9,6 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Game, Item, Weapon,
 };
-use fyrox::core::some_or_continue;
-use fyrox::script::{PluginsRefMut, RoutingStrategy};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -19,6 +16,7 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
+        some_or_continue,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -31,7 +29,7 @@ use fyrox::{
         node::Node,
         Scene,
     },
-    script::{ScriptContext, ScriptMessageSender},
+    script::{PluginsRefMut, RoutingStrategy, ScriptContext, ScriptMessageSender},
 };
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -110,6 +108,7 @@ pub struct Character {
 #[derive(Default, Clone, Debug)]
 pub struct MeleeAttackContext {
     pub damaged_hitboxes: FxHashSet<Handle<Node>>,
+    pub damaged_characters: FxHashSet<Handle<Node>>,
 }
 
 impl Default for Character {
@@ -133,6 +132,16 @@ impl Default for Character {
             melee_attack_context: None,
         }
     }
+}
+
+fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Handle<Node>> {
+    while let Some(node) = graph.try_get(node_handle) {
+        if node.try_get_script_component::<Character>().is_some() {
+            return Some(node_handle);
+        }
+        node_handle = node.parent();
+    }
+    None
 }
 
 impl Character {
@@ -300,6 +309,17 @@ impl Character {
                             continue;
                         }
                         attack_context.damaged_hitboxes.insert(hit_box);
+
+                        // Do not over-damage characters.
+                        if let Some(parent_character) = parent_character(hit_box, &scene.graph) {
+                            if attack_context
+                                .damaged_characters
+                                .contains(&parent_character)
+                            {
+                                continue;
+                            }
+                            attack_context.damaged_characters.insert(parent_character);
+                        }
 
                         need_play_punch_sound = true;
 
