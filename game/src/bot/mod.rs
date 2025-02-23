@@ -17,6 +17,7 @@ use crate::{
     Game,
 };
 use fyrox::core::some_or_continue;
+use fyrox::scene::sound::Sound;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -664,8 +665,10 @@ impl ScriptTrait for Bot {
 
         let node = &mut ctx.scene.graph[ctx.handle];
 
+        let mut died = false;
         if !self.prev_is_dead && self.is_dead() {
             self.prev_is_dead = true;
+            died = true;
             node.set_lifetime(Some(self.despawn_timeout));
         }
 
@@ -677,5 +680,17 @@ impl ScriptTrait for Bot {
         }
 
         self.last_position = node.global_position();
+
+        if died {
+            for node in ctx
+                .scene
+                .graph
+                .traverse_handle_iter(ctx.handle)
+                .collect::<Vec<_>>()
+            {
+                let sound = some_or_continue!(ctx.scene.graph.try_get_mut_of_type::<Sound>(node));
+                sound.set_gain(0.0);
+            }
+        }
     }
 }
