@@ -924,6 +924,10 @@ impl Player {
                     continue;
                 }
 
+                if self.character.hit_boxes.contains(&hit_box) {
+                    continue;
+                }
+
                 if hit_box == intersection.collider1 || hit_box == intersection.collider2 {
                     if attack_context.damaged_enemies.contains(&hit_box) {
                         continue;

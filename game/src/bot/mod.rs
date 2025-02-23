@@ -357,7 +357,7 @@ impl Bot {
                                         continue;
                                     }
 
-                                    if dbg!(&self.character.hit_boxes).contains(&hit_box) {
+                                    if self.character.hit_boxes.contains(&hit_box) {
                                         continue;
                                     }
 

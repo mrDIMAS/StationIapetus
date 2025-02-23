@@ -31,7 +31,7 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageSender},
 };
 
-#[derive(Copy, Clone, Debug, Default)]
+#[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct DamageDealer {
     pub entity: Handle<Node>,
 }
