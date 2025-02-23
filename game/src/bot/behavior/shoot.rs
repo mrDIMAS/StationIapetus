@@ -80,11 +80,15 @@ impl<'a> Behavior<'a> for CanShootTarget {
         let no_arm = context
             .character
             .is_limb_sliced_off(&context.scene.graph, LimbType::Arm);
+        let no_leg = context
+            .character
+            .is_limb_sliced_off(&context.scene.graph, LimbType::Leg);
+        let no_arm_or_leg = no_leg || no_arm;
 
         let weapon_node =
             some_or_return!(context.scene.graph.try_get(current_weapon), Status::Failure);
 
-        if no_arm {
+        if no_arm_or_leg {
             if let Some(weapon_resource) = weapon_node.root_resource() {
                 context.script_message_sender.send_to_target(
                     context.bot_handle,
