@@ -247,11 +247,11 @@ impl ScriptTrait for HitBox {
             return;
         };
 
-        let prev_health = *self.health;
+        let prev_is_sliced_off = self.is_sliced_off();
         *self.health -= hit_box_message.damage;
 
         if let Some(position) = hit_box_message.position {
-            if prev_health > 0.0 && *self.health < 0.0 {
+            if !prev_is_sliced_off && self.is_sliced_off() {
                 if let Some(prefab) = self.destruction_prefab.as_ref() {
                     prefab.instantiate_at(
                         ctx.scene,
