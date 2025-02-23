@@ -90,6 +90,11 @@ pub struct HitBox {
         bullet holes or to add damage decals. It will also be attached to the hit box."
     )]
     pub damage_prefab: InheritableVariable<Option<ModelResource>>,
+    #[reflect(
+        description = "A prefab that will be spawned at the point of impact if the hit box is about \
+        to be destroyed. Could be used to spawn various visual effects."
+    )]
+    pub destruction_prefab: InheritableVariable<Option<ModelResource>>,
     pub health: InheritableVariable<f32>,
     pub limb_type: InheritableVariable<LimbType>,
     pub environment_damage_timeout: f32,
@@ -106,6 +111,7 @@ impl Default for HitBox {
             melee_hit_prefab: Default::default(),
             pierce_prefab: Default::default(),
             damage_prefab: Default::default(),
+            destruction_prefab: Default::default(),
             health: 100.0.into(),
             limb_type: Default::default(),
             environment_damage_timeout: 0.0,
@@ -241,9 +247,20 @@ impl ScriptTrait for HitBox {
             return;
         };
 
+        let prev_health = *self.health;
         *self.health -= hit_box_message.damage;
 
         if let Some(position) = hit_box_message.position {
+            if prev_health > 0.0 && *self.health < 0.0 {
+                if let Some(prefab) = self.destruction_prefab.as_ref() {
+                    prefab.instantiate_at(
+                        ctx.scene,
+                        position.point,
+                        vector_to_quat(position.direction),
+                    );
+                }
+            }
+
             let prefab = if hit_box_message.is_melee {
                 self.melee_hit_prefab.as_ref()
             } else {
