@@ -708,7 +708,7 @@ impl Player {
             hit_something: self
                 .melee_attack_context
                 .as_ref()
-                .map(|ctx| !ctx.damaged_enemies.is_empty())
+                .map(|ctx| !ctx.damaged_hitboxes.is_empty())
                 .unwrap_or_default(),
         });
     }
@@ -1287,7 +1287,7 @@ impl ScriptTrait for Player {
         if self
             .melee_attack_context
             .as_ref()
-            .map(|ctx| !ctx.damaged_enemies.is_empty())
+            .map(|ctx| !ctx.damaged_hitboxes.is_empty())
             .unwrap_or_default()
         {
             self.melee_attack_context = None;

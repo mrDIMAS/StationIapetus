@@ -109,7 +109,7 @@ pub struct Character {
 
 #[derive(Default, Clone, Debug)]
 pub struct MeleeAttackContext {
-    pub damaged_enemies: FxHashSet<Handle<Node>>,
+    pub damaged_hitboxes: FxHashSet<Handle<Node>>,
 }
 
 impl Default for Character {
@@ -277,7 +277,15 @@ impl Character {
                 .graph
                 .try_get_of_type::<Collider>(*melee_hit_box_handle));
 
-            for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
+            for (collider1, collider2) in melee_hit_box_collider
+                .intersects(&scene.graph.physics)
+                .map(|i| (i.collider1, i.collider2))
+                .chain(
+                    melee_hit_box_collider
+                        .contacts(&scene.graph.physics)
+                        .map(|i| (i.collider1, i.collider2)),
+                )
+            {
                 for &hit_box in level.hit_boxes.iter() {
                     if hit_box == self.capsule_collider {
                         continue;
@@ -287,11 +295,11 @@ impl Character {
                         continue;
                     }
 
-                    if hit_box == intersection.collider1 || hit_box == intersection.collider2 {
-                        if attack_context.damaged_enemies.contains(&hit_box) {
+                    if hit_box == collider1 || hit_box == collider2 {
+                        if attack_context.damaged_hitboxes.contains(&hit_box) {
                             continue;
                         }
-                        attack_context.damaged_enemies.insert(hit_box);
+                        attack_context.damaged_hitboxes.insert(hit_box);
 
                         need_play_punch_sound = true;
 
