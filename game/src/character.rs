@@ -6,9 +6,12 @@ use crate::{
         item::ItemAction,
     },
     sound::{SoundKind, SoundManager},
+    utils,
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
-    Item, Weapon,
+    Game, Item, Weapon,
 };
+use fyrox::core::some_or_continue;
+use fyrox::script::{PluginsRefMut, RoutingStrategy};
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -91,9 +94,22 @@ pub struct Character {
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
     pub inventory: Inventory,
+    pub melee_hit_boxes: InheritableVariable<Vec<Handle<Node>>>,
+    pub attack_sounds: InheritableVariable<Vec<Handle<Node>>>,
+    pub punch_sounds: InheritableVariable<Vec<Handle<Node>>>,
+    #[reflect(min_value = 0.0, max_value = 20.0)]
+    melee_attack_damage: InheritableVariable<f32>,
     #[visit(skip)]
     #[reflect(hidden)]
     pub hit_boxes: FxHashSet<Handle<Node>>,
+    #[reflect(hidden)]
+    #[visit(skip)]
+    pub melee_attack_context: Option<MeleeAttackContext>,
+}
+
+#[derive(Default, Clone, Debug)]
+pub struct MeleeAttackContext {
+    pub damaged_enemies: FxHashSet<Handle<Node>>,
 }
 
 impl Default for Character {
@@ -110,6 +126,11 @@ impl Default for Character {
             weapon_pivot: Handle::NONE,
             hit_boxes: Default::default(),
             inventory: Default::default(),
+            melee_hit_boxes: Default::default(),
+            attack_sounds: Default::default(),
+            punch_sounds: Default::default(),
+            melee_attack_damage: 20.0.into(),
+            melee_attack_context: None,
         }
     }
 }
@@ -236,6 +257,70 @@ impl Character {
                 self.set_current_weapon_enabled(true, graph);
             }
         }
+    }
+
+    pub fn update_melee_attack(
+        &mut self,
+        scene: &mut Scene,
+        script_message_sender: &ScriptMessageSender,
+        self_handle: Handle<Node>,
+        plugins: &PluginsRefMut,
+    ) -> Option<()> {
+        let attack_context = self.melee_attack_context.as_mut()?;
+
+        let level = plugins.get::<Game>().level.as_ref()?;
+
+        let mut need_play_punch_sound = false;
+
+        for melee_hit_box_handle in self.melee_hit_boxes.iter() {
+            let melee_hit_box_collider = some_or_continue!(scene
+                .graph
+                .try_get_of_type::<Collider>(*melee_hit_box_handle));
+
+            for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
+                for &hit_box in level.hit_boxes.iter() {
+                    if hit_box == self.capsule_collider {
+                        continue;
+                    }
+
+                    if self.hit_boxes.contains(&hit_box) {
+                        continue;
+                    }
+
+                    if hit_box == intersection.collider1 || hit_box == intersection.collider2 {
+                        if attack_context.damaged_enemies.contains(&hit_box) {
+                            continue;
+                        }
+                        attack_context.damaged_enemies.insert(hit_box);
+
+                        need_play_punch_sound = true;
+
+                        script_message_sender.send_hierarchical(
+                            hit_box,
+                            RoutingStrategy::Up,
+                            HitBoxMessage {
+                                hit_box,
+                                damage: *self.melee_attack_damage,
+                                dealer: DamageDealer {
+                                    entity: self_handle,
+                                },
+                                position: Some(DamagePosition {
+                                    point: melee_hit_box_collider.global_position(),
+                                    direction: Vector3::new(0.0, 0.0, 1.0),
+                                }),
+                                is_melee: true,
+                            },
+                        );
+                    }
+                }
+            }
+        }
+
+        if need_play_punch_sound {
+            utils::try_play_random_sound(&self.punch_sounds, &mut scene.graph);
+        }
+
+        None
     }
 
     pub fn has_hit_box(&self, handle: Handle<Node>) -> bool {

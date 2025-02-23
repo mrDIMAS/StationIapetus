@@ -1,6 +1,5 @@
-use crate::character::DamagePosition;
 use crate::{
-    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer},
+    character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
     door::{door_mut, DoorContainer},
     elevator::call_button::{CallButton, CallButtonKind},
@@ -18,7 +17,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::fxhash::FxHashSet;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -43,17 +41,15 @@ use fyrox::{
     },
     scene::{
         animation::{absm, absm::prelude::*, prelude::*},
-        collider::Collider,
         graph::Graph,
         light::BaseLight,
         node::Node,
         sprite::Sprite,
         Scene,
     },
-    script::RoutingStrategy,
     script::{
-        PluginsRefMut, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
-        ScriptMessagePayload, ScriptMessageSender, ScriptTrait,
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
+        ScriptMessageSender, ScriptTrait,
     },
 };
 use std::ops::{Deref, DerefMut};
@@ -119,11 +115,6 @@ pub struct PlayerPersistentData {
     pub weapons: Vec<ModelResource>,
 }
 
-#[derive(Default, Clone, Debug)]
-struct MeleeAttackContext {
-    damaged_enemies: FxHashSet<Handle<Node>>,
-}
-
 #[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
 #[visit(optional)]
@@ -159,13 +150,10 @@ pub struct Player {
     target_local_velocity: Vector2<f32>,
     flash_light: InheritableVariable<Handle<Node>>,
     flash_light_enabled: InheritableVariable<bool>,
-    #[reflect(min_value = 0.0, max_value = 20.0)]
-    melee_attack_damage: InheritableVariable<f32>,
     ak47_weapon: Option<ModelResource>,
     m4_weapon: Option<ModelResource>,
     glock_weapon: Option<ModelResource>,
     plasma_gun_weapon: Option<ModelResource>,
-    melee_hit_box: InheritableVariable<Handle<Node>>,
     animation_player: Handle<Node>,
     target_yaw: f32,
     target_pitch: f32,
@@ -180,10 +168,6 @@ pub struct Player {
 
     #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
-
-    #[reflect(hidden)]
-    #[visit(skip)]
-    melee_attack_context: Option<MeleeAttackContext>,
 
     #[reflect(hidden)]
     pub journal: Journal,
@@ -269,14 +253,11 @@ impl Default for Player {
             target_local_velocity: Default::default(),
             flash_light: Default::default(),
             flash_light_enabled: true.into(),
-            melee_attack_damage: 7.5.into(),
             ak47_weapon: None,
             m4_weapon: None,
             glock_weapon: None,
             plasma_gun_weapon: None,
             grenade_item: Default::default(),
-            melee_hit_box: Default::default(),
-            melee_attack_context: Default::default(),
             target_pitch: 0.0,
             item_display_prefab: None,
         }
@@ -313,7 +294,6 @@ impl Clone for Player {
             h_recoil: self.h_recoil.clone(),
             rig_light: self.rig_light,
             weapon_change_direction: self.weapon_change_direction.clone(),
-            melee_attack_context: self.melee_attack_context.clone(),
             journal: Default::default(),
             controller: Default::default(),
             animation_player: self.animation_player,
@@ -325,13 +305,11 @@ impl Clone for Player {
             target_local_velocity: self.target_local_velocity,
             flash_light: self.flash_light.clone(),
             flash_light_enabled: self.flash_light_enabled.clone(),
-            melee_attack_damage: self.melee_attack_damage.clone(),
             ak47_weapon: self.ak47_weapon.clone(),
             m4_weapon: self.m4_weapon.clone(),
             glock_weapon: self.glock_weapon.clone(),
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
-            melee_hit_box: self.melee_hit_box.clone(),
             target_pitch: self.target_pitch,
             item_display_prefab: self.item_display_prefab.clone(),
         }
@@ -903,58 +881,6 @@ impl Player {
 
     pub fn is_aiming(&self) -> bool {
         self.controller.aim
-    }
-
-    fn update_melee_attack(
-        &mut self,
-        scene: &mut Scene,
-        script_message_sender: &ScriptMessageSender,
-        self_handle: Handle<Node>,
-        plugins: &PluginsRefMut,
-    ) -> Option<()> {
-        let attack_context = self.melee_attack_context.as_mut()?;
-        let melee_hit_box_collider = scene
-            .graph
-            .try_get_of_type::<Collider>(*self.melee_hit_box)?;
-        let level = plugins.get::<Game>().level.as_ref()?;
-
-        for intersection in melee_hit_box_collider.intersects(&scene.graph.physics) {
-            for &hit_box in level.hit_boxes.iter() {
-                if hit_box == self.character.capsule_collider {
-                    continue;
-                }
-
-                if self.character.hit_boxes.contains(&hit_box) {
-                    continue;
-                }
-
-                if hit_box == intersection.collider1 || hit_box == intersection.collider2 {
-                    if attack_context.damaged_enemies.contains(&hit_box) {
-                        continue;
-                    }
-                    attack_context.damaged_enemies.insert(hit_box);
-
-                    script_message_sender.send_hierarchical(
-                        hit_box,
-                        RoutingStrategy::Up,
-                        HitBoxMessage {
-                            hit_box,
-                            damage: *self.melee_attack_damage,
-                            dealer: DamageDealer {
-                                entity: self_handle,
-                            },
-                            position: Some(DamagePosition {
-                                point: melee_hit_box_collider.global_position(),
-                                direction: Vector3::new(0.0, 0.0, 1.0),
-                            }),
-                            is_melee: true,
-                        },
-                    );
-                }
-            }
-        }
-
-        None
     }
 
     pub fn resolve(

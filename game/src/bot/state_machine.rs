@@ -28,7 +28,8 @@ pub struct StateMachine {
 }
 
 impl StateMachine {
-    pub const HIT_SIGNAL: &'static str = "Hit";
+    pub const HIT_BEGIN_SIGNAL: &'static str = "HitBegin";
+    pub const HIT_END_SIGNAL: &'static str = "HitEnd";
     pub const STEP_SIGNAL: &'static str = "Footstep";
 
     const LOWER_BODY_LAYER_INDEX: usize = 0;

@@ -3,12 +3,11 @@ use crate::{
         behavior::{BehaviorContext, BotBehavior},
         state_machine::{StateMachine, StateMachineInput},
     },
-    character::{Character, CharacterMessage, CharacterMessageData, DamageDealer, DamagePosition},
+    character::{Character, CharacterMessage, CharacterMessageData},
     door::{door_mut, door_ref, DoorContainer},
     level::{
         hit_box::LimbType,
         hit_box::{HitBox, HitBoxMessage},
-        Level,
     },
     sound::SoundManager,
     utils::{self, is_probability_event_occurred, BodyImpactHandler},
@@ -46,8 +45,7 @@ use fyrox::{
         Scene,
     },
     script::{
-        RoutingStrategy, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
-        ScriptMessagePayload, ScriptMessageSender, ScriptTrait,
+        ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait,
     },
     utils::navmesh::{NavmeshAgent, NavmeshAgentBuilder},
 };
@@ -149,8 +147,6 @@ pub struct Bot {
     pub pain_sounds: Vec<Handle<Node>>,
     pub scream_sounds: Vec<Handle<Node>>,
     pub idle_sounds: Vec<Handle<Node>>,
-    pub attack_sounds: Vec<Handle<Node>>,
-    pub punch_sounds: Vec<Handle<Node>>,
     pub hostility: BotHostility,
     prev_is_dead: bool,
     despawn_asset: Option<ModelResource>,
@@ -198,8 +194,6 @@ impl Default for Bot {
             pain_sounds: Default::default(),
             scream_sounds: Default::default(),
             idle_sounds: Default::default(),
-            attack_sounds: Default::default(),
-            punch_sounds: Default::default(),
             hostility: BotHostility::Player,
             yaw: SmoothAngle {
                 angle: f32::NAN, // Nan means undefined.
@@ -282,15 +276,7 @@ impl Bot {
         self.target = Some(Target { position, handle });
     }
 
-    fn handle_animation_events(
-        &self,
-        scene: &mut Scene,
-        message_sender: &ScriptMessageSender,
-        sound_manager: &SoundManager,
-        self_handle: Handle<Node>,
-        is_melee_attacking: bool,
-        level: &Level,
-    ) {
+    fn handle_animation_events(&mut self, scene: &mut Scene, sound_manager: &SoundManager) {
         if let Some(absm) = scene
             .graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.state_machine.absm)
@@ -336,48 +322,11 @@ impl Bot {
                 }
 
                 for (_, event) in upper_layer_events.events {
-                    if event.name == StateMachine::HIT_SIGNAL {
-                        // Apply damage to target from melee attack
-                        if self.target.is_some() {
-                            if is_melee_attacking {
-                                let self_position = scene.graph[self.model].global_position();
-                                // TODO: Replace with arm hit box intersection detection.
-                                for &hit_box in level.hit_boxes.iter() {
-                                    if hit_box == self.character.capsule_collider {
-                                        continue;
-                                    }
-
-                                    if self.character.hit_boxes.contains(&hit_box) {
-                                        continue;
-                                    }
-
-                                    let hit_box_pos = scene.graph[hit_box].global_position();
-
-                                    if hit_box_pos.metric_distance(&self_position) < 1.0 {
-                                        message_sender.send_hierarchical(
-                                            hit_box,
-                                            RoutingStrategy::Up,
-                                            HitBoxMessage {
-                                                hit_box,
-                                                damage: 20.0,
-                                                dealer: DamageDealer {
-                                                    entity: self_handle,
-                                                },
-                                                position: Some(DamagePosition {
-                                                    point: hit_box_pos,
-                                                    direction: Vector3::new(0.0, 0.0, 1.0),
-                                                }),
-                                                is_melee: true,
-                                            },
-                                        );
-                                    }
-                                }
-
-                                utils::try_play_random_sound(&self.punch_sounds, &mut scene.graph);
-                            }
-
-                            utils::try_play_random_sound(&self.attack_sounds, &mut scene.graph);
-                        }
+                    if event.name == StateMachine::HIT_BEGIN_SIGNAL {
+                        self.melee_attack_context = Some(Default::default());
+                        utils::try_play_random_sound(&self.attack_sounds, &mut scene.graph);
+                    } else if event.name == StateMachine::HIT_END_SIGNAL {
+                        self.melee_attack_context = None;
                     }
                 }
 
@@ -546,7 +495,7 @@ impl ScriptTrait for Bot {
 
         let movement_speed_factor;
         let need_to_melee_attack;
-        let is_melee_attack;
+
         let is_moving;
         let is_aiming;
         let attack_animation_index;
@@ -575,7 +524,6 @@ impl ScriptTrait for Bot {
                 navmesh: level.navmesh,
                 yaw: &mut self.yaw,
                 pitch: &mut self.pitch,
-                attack_sounds: &self.attack_sounds,
                 scream_sounds: &self.scream_sounds,
                 plugins: &ctx.plugins,
 
@@ -588,7 +536,7 @@ impl ScriptTrait for Bot {
                 movement_speed_factor: 1.0,
                 is_moving: false,
                 need_to_melee_attack: false,
-                is_melee_attack: false,
+
                 is_aiming_weapon: false,
                 is_screaming: false,
             };
@@ -597,7 +545,6 @@ impl ScriptTrait for Bot {
 
             movement_speed_factor = behavior_ctx.movement_speed_factor;
             need_to_melee_attack = behavior_ctx.need_to_melee_attack;
-            is_melee_attack = behavior_ctx.is_melee_attack;
             is_moving = behavior_ctx.is_moving;
             is_aiming = behavior_ctx.is_aiming_weapon;
             attack_animation_index = behavior_ctx.attack_animation_index;
@@ -614,6 +561,7 @@ impl ScriptTrait for Bot {
             }
         }
 
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, &ctx.plugins);
         self.check_doors(ctx.scene, &level.doors_container);
 
         let no_leg = self
@@ -654,14 +602,7 @@ impl ScriptTrait for Bot {
                 * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
         );
 
-        self.handle_animation_events(
-            ctx.scene,
-            ctx.message_sender,
-            &level.sound_manager,
-            ctx.handle,
-            is_melee_attack,
-            level,
-        );
+        self.handle_animation_events(ctx.scene, &level.sound_manager);
 
         let node = &mut ctx.scene.graph[ctx.handle];
 

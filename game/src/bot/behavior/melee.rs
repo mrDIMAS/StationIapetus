@@ -15,8 +15,6 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        ctx.is_melee_attack = true;
-
         if let Some(upper_body_layer) = ctx.state_machine.upper_body_layer(&ctx.scene.graph) {
             if upper_body_layer.active_state() == ctx.state_machine.attack_state {
                 self.attack_timeout = 0.3;

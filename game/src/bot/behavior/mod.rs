@@ -99,7 +99,6 @@ pub struct BehaviorContext<'a> {
     pub hostility: BotHostility,
     pub h_aim_angle_hack: f32,
     pub v_aim_angle_hack: f32,
-    pub attack_sounds: &'a [Handle<Node>],
     pub scream_sounds: &'a [Handle<Node>],
     pub yaw: &'a mut SmoothAngle,
     pub pitch: &'a mut SmoothAngle,
@@ -110,7 +109,6 @@ pub struct BehaviorContext<'a> {
     pub movement_speed_factor: f32,
     pub is_moving: bool,
     pub need_to_melee_attack: bool,
-    pub is_melee_attack: bool,
     pub is_aiming_weapon: bool,
     pub is_screaming: bool,
 }
