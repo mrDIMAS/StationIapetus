@@ -165,7 +165,7 @@ impl ScriptTrait for Door {
                 .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
                 .set_parameter(
                     "Open",
-                    Parameter::Rule(open_request.as_ref().map_or(false, |r| r.open)),
+                    Parameter::Rule(open_request.as_ref().is_some_and(|r| r.open)),
                 );
 
             let mut sound = Handle::NONE;

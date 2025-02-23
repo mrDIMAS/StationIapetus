@@ -38,10 +38,7 @@ use fyrox::{
         self,
         animation::{absm::prelude::*, prelude::*},
         debug::SceneDrawingContext,
-        graph::{
-            physics::{Intersection, RayCastOptions},
-            Graph,
-        },
+        graph::physics::{Intersection, RayCastOptions},
         node::Node,
         ragdoll::Ragdoll,
         rigidbody::RigidBody,
@@ -130,7 +127,6 @@ pub struct Bot {
     hips: Handle<Node>,
     #[reflect(hidden)]
     agent: NavmeshAgent,
-    head_exploded: bool,
     #[visit(skip)]
     #[reflect(hidden)]
     pub impact_handler: BodyImpactHandler,
@@ -185,7 +181,6 @@ impl Default for Bot {
             restoration_time: 0.0,
             hips: Default::default(),
             agent: Default::default(),
-            head_exploded: false,
             impact_handler: Default::default(),
             behavior: Default::default(),
             v_recoil: Default::default(),
@@ -284,12 +279,6 @@ impl Bot {
 
     pub fn set_target(&mut self, handle: Handle<Node>, position: Vector3<f32>) {
         self.target = Some(Target { position, handle });
-    }
-
-    pub fn blow_up_head(&mut self, _graph: &mut Graph) {
-        self.head_exploded = true;
-
-        // TODO: Add effect.
     }
 
     fn handle_animation_events(
@@ -438,7 +427,7 @@ impl ScriptTrait for Bot {
         {
             for item in self.inventory.items() {
                 let resource = some_or_continue!(item.resource.as_ref());
-                if Weapon::is_weapon_resource(&resource) {
+                if Weapon::is_weapon_resource(resource) {
                     ctx.message_sender.send_to_target(
                         ctx.handle,
                         CharacterMessage {
@@ -538,8 +527,6 @@ impl ScriptTrait for Bot {
                 && is_probability_event_occurred(critical_head_shot_probability)
             {
                 self.damage(hit_box_message.damage * 1000.0);
-
-                self.blow_up_head(&mut ctx.scene.graph);
             }
 
             // Prevent spamming with grunt sounds.
@@ -674,13 +661,6 @@ impl ScriptTrait for Bot {
             is_melee_attack,
             level,
         );
-
-        if self.head_exploded {
-            if let Some(head) = ctx.scene.graph.try_get_mut(self.head) {
-                head.local_transform_mut()
-                    .set_scale(Vector3::new(0.0, 0.0, 0.0));
-            }
-        }
 
         let node = &mut ctx.scene.graph[ctx.handle];
 

@@ -166,9 +166,7 @@ impl InventoryItemBuilder {
                                                 .with_margin(Thickness::uniform(1.0))
                                                 .on_row(0),
                                         )
-                                        .with_opt_texture(
-                                            item.preview.deref().clone().map(Into::into),
-                                        )
+                                        .with_opt_texture(item.preview.deref().clone())
                                         .build(ctx),
                                     )
                                     .with_child(

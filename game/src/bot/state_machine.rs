@@ -91,6 +91,6 @@ impl StateMachine {
 
     pub fn is_in_aim_state(&self, graph: &Graph) -> bool {
         self.upper_body_layer(graph)
-            .map_or(false, |layer| layer.active_state() == self.aim_state)
+            .is_some_and(|layer| layer.active_state() == self.aim_state)
     }
 }

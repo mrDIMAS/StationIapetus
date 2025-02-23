@@ -357,7 +357,7 @@ impl Turret {
     fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {
         let self_position = scene.graph[self.model].global_position();
 
-        if try_get_character_ref(self.target, &scene.graph).map_or(true, |c| !c.is_dead()) {
+        if try_get_character_ref(self.target, &scene.graph).is_none_or(|c| !c.is_dead()) {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {

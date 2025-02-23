@@ -114,11 +114,7 @@ impl ItemDisplay {
         count: u32,
         control_scheme: &ControlScheme,
     ) {
-        if self
-            .current_item
-            .as_ref()
-            .map_or(true, |current_item| current_item != &item)
-        {
+        if self.current_item.as_ref() != Some(&item) {
             self.current_item = Some(item.clone());
 
             Item::from_resource(&item, |item| {
@@ -132,7 +128,7 @@ impl ItemDisplay {
                     self.ui.send_message(ImageMessage::texture(
                         self.item_image,
                         MessageDirection::ToWidget,
-                        item_script.preview.deref().clone().map(Into::into),
+                        item_script.preview.deref().clone(),
                     ));
                 }
             });

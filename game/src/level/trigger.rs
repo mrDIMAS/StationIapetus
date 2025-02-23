@@ -54,7 +54,7 @@ impl ScriptTrait for Trigger {
 
             let contains_player = try_get_character_ref(level.player, &ctx.scene.graph)
                 .map(|c| c.position(&ctx.scene.graph))
-                .map_or(false, |pos| this_bounds.is_contains_point(pos));
+                .is_some_and(|pos| this_bounds.is_contains_point(pos));
 
             match self.kind {
                 TriggerAction::LoadLevel { ref path } => {

@@ -808,7 +808,7 @@ impl Player {
                     let ammo_per_shot = *current_weapon.ammo_consumption_per_shot;
 
                     // A weapon could have infinite ammo, in this case ammo item is not specified.
-                    let enough_ammo = current_weapon.ammo_item.as_ref().map_or(true, |ammo_item| {
+                    let enough_ammo = current_weapon.ammo_item.as_ref().is_none_or(|ammo_item| {
                         self.inventory
                             .try_extract_exact_items(ammo_item, ammo_per_shot)
                             == ammo_per_shot
