@@ -1,4 +1,5 @@
 use crate::level::hit_box::HitBoxMessage;
+use fyrox::core::some_or_return;
 use fyrox::generic_animation::machine::Event;
 use fyrox::{
     core::variable::InheritableVariable,
@@ -49,11 +50,11 @@ impl ScriptTrait for ExplosiveBarrel {
         message: &mut dyn ScriptMessagePayload,
         _ctx: &mut ScriptMessageContext,
     ) {
-        let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
-            return;
-        };
-
-        *self.health -= hit_box_message.damage;
+        if let HitBoxMessage::Damage(hit_box_damage) =
+            some_or_return!(message.downcast_ref::<HitBoxMessage>())
+        {
+            *self.health -= hit_box_damage.damage;
+        }
     }
 
     fn on_update(&mut self, context: &mut ScriptContext) {

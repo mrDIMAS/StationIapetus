@@ -1,3 +1,4 @@
+use crate::level::hit_box::HitBoxDamage;
 use crate::{
     character::{Character, DamageDealer, DamagePosition},
     level::{
@@ -406,7 +407,7 @@ impl ScriptTrait for Projectile {
                             ctx.message_sender.send_hierarchical(
                                 hit_box,
                                 RoutingStrategy::Up,
-                                HitBoxMessage {
+                                HitBoxMessage::Damage(HitBoxDamage {
                                     hit_box,
                                     damage: amount,
                                     dealer: DamageDealer {
@@ -417,7 +418,7 @@ impl ScriptTrait for Projectile {
                                         direction,
                                     }),
                                     is_melee: false,
-                                },
+                                }),
                             );
                         }
                     }
@@ -427,7 +428,7 @@ impl ScriptTrait for Projectile {
                         ctx.message_sender.send_hierarchical(
                             hit_box,
                             RoutingStrategy::Up,
-                            HitBoxMessage {
+                            HitBoxMessage::Damage(HitBoxDamage {
                                 hit_box,
                                 damage: amount,
                                 dealer: DamageDealer {
@@ -438,7 +439,7 @@ impl ScriptTrait for Projectile {
                                     direction,
                                 }),
                                 is_melee: false,
-                            },
+                            }),
                         );
                     }
                 }

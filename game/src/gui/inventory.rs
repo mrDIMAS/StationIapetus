@@ -4,9 +4,9 @@ use crate::{
     gui,
     inventory::Inventory,
     level::item::Item,
-    player::Player,
 };
 use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
+use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
@@ -35,7 +35,7 @@ use fyrox::{
 };
 use std::ops::{Deref, DerefMut};
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, Default, Debug, Clone)]
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,
@@ -414,8 +414,8 @@ impl InventoryInterface {
         &mut self,
         os_event: &OsEvent,
         control_scheme: &ControlScheme,
-        player: &mut Player,
         player_handle: Handle<Node>,
+        script_message_sender: &ScriptMessageSender,
     ) {
         self.ui.process_os_event(os_event);
 
@@ -453,29 +453,15 @@ impl InventoryInterface {
                                     Item::from_resource(item_resource, |item| {
                                         if let Some(item) = item {
                                             if item.enabled {
-                                                if *item.consumable
-                                                    && player
-                                                        .inventory_mut()
-                                                        .try_extract_exact_items(item_resource, 1)
-                                                        == 1
-                                                {
-                                                    player.use_item(item);
-                                                }
-
-                                                player
-                                                    .script_message_sender
-                                                    .as_ref()
-                                                    .unwrap()
-                                                    .send_to_target(
-                                                        player_handle,
-                                                        CharacterMessage {
-                                                            character: player_handle,
-                                                            data:
-                                                                CharacterMessageData::SelectWeapon(
-                                                                    item_resource.clone(),
-                                                                ),
+                                                script_message_sender.send_to_target(
+                                                    player_handle,
+                                                    CharacterMessage {
+                                                        character: player_handle,
+                                                        data: CharacterMessageData::UseItem {
+                                                            item: item_resource.clone(),
                                                         },
-                                                    );
+                                                    },
+                                                );
                                             }
                                         }
                                     });
@@ -491,20 +477,16 @@ impl InventoryInterface {
                             if selection.is_some() {
                                 if let Some(item) = self.ui.node(selection).cast::<InventoryItem>()
                                 {
-                                    player
-                                        .script_message_sender
-                                        .as_ref()
-                                        .unwrap()
-                                        .send_to_target(
-                                            player_handle,
-                                            CharacterMessage {
-                                                character: player_handle,
-                                                data: CharacterMessageData::DropItems {
-                                                    item: item.item.clone(),
-                                                    count: 1,
-                                                },
+                                    script_message_sender.send_to_target(
+                                        player_handle,
+                                        CharacterMessage {
+                                            character: player_handle,
+                                            data: CharacterMessageData::DropItems {
+                                                item: item.item.clone(),
+                                                count: 1,
                                             },
-                                        );
+                                        },
+                                    );
                                 } else {
                                     unreachable!()
                                 }

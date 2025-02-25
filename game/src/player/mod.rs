@@ -1,3 +1,4 @@
+use crate::gui::inventory::InventoryInterface;
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
@@ -17,12 +18,16 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::core::color::Color;
+use fyrox::engine::GraphicsContext;
+use fyrox::fxhash::FxHashMap;
+use fyrox::graph::SceneGraphNode;
+use fyrox::renderer::framework::gpu_texture::PixelKind;
+use fyrox::utils::translate_event;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
         algebra::{UnitQuaternion, Vector2, Vector3},
-        color::Color,
-        color_gradient::{ColorGradient, ColorGradientBuilder, GradientPoint},
         futures::executor::block_on,
         log::Log,
         math::{SmoothAngle, Vector2Ext},
@@ -33,7 +38,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
-    graph::{BaseSceneGraph, SceneGraph, SceneGraphNode},
+    graph::{BaseSceneGraph, SceneGraph},
     keyboard::PhysicalKey,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
@@ -42,7 +47,6 @@ use fyrox::{
     scene::{
         animation::{absm, absm::prelude::*, prelude::*},
         graph::Graph,
-        light::BaseLight,
         node::Node,
         sprite::Sprite,
         Scene,
@@ -110,9 +114,9 @@ impl Default for RequiredWeapon {
 #[derive(Clone)]
 pub struct PlayerPersistentData {
     pub inventory: Inventory,
-    pub health: f32,
     pub current_weapon: usize,
     pub weapons: Vec<ModelResource>,
+    pub hit_box_health: FxHashMap<Handle<Node>, f32>,
 }
 
 #[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
@@ -139,12 +143,8 @@ pub struct Player {
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
     journal_display: Handle<Node>,
-    health_cylinder: Handle<Node>,
-    last_health: f32,
-    health_color_gradient: ColorGradient,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
-    rig_light: Handle<Node>,
     machine: Handle<Node>,
     local_velocity: Vector2<f32>,
     target_local_velocity: Vector2<f32>,
@@ -157,6 +157,10 @@ pub struct Player {
     animation_player: Handle<Node>,
     target_yaw: f32,
     target_pitch: f32,
+
+    #[reflect(hidden)]
+    #[visit(skip)]
+    inventory_gui: InventoryInterface,
 
     item_display_prefab: Option<ModelResource>,
     #[reflect(hidden)]
@@ -187,12 +191,10 @@ impl Default for Player {
         let angular_speed = 570.0f32.to_radians();
         Self {
             character: Default::default(),
-            rig_light: Default::default(),
             camera_controller: Default::default(),
             inventory_display: Default::default(),
             model: Default::default(),
             controller: Default::default(),
-            health_cylinder: Default::default(),
             spine: Default::default(),
             hips: Default::default(),
             model_yaw: SmoothAngle {
@@ -227,8 +229,6 @@ impl Default for Player {
             run_factor: Default::default(),
             target_run_factor: Default::default(),
             weapon_display: Default::default(),
-            last_health: 100.0,
-            health_color_gradient: make_color_gradient(),
             item_display: Default::default(),
             v_recoil: SmoothAngle {
                 angle: 0.0,
@@ -259,6 +259,7 @@ impl Default for Player {
             plasma_gun_weapon: None,
             grenade_item: Default::default(),
             target_pitch: 0.0,
+            inventory_gui: Default::default(),
             item_display_prefab: None,
         }
     }
@@ -287,12 +288,8 @@ impl Clone for Player {
             inventory_display: self.inventory_display,
             journal_display: self.journal_display,
             item_display: self.item_display,
-            health_cylinder: self.health_cylinder,
-            last_health: self.last_health,
-            health_color_gradient: self.health_color_gradient.clone(),
             v_recoil: self.v_recoil.clone(),
             h_recoil: self.h_recoil.clone(),
-            rig_light: self.rig_light,
             weapon_change_direction: self.weapon_change_direction.clone(),
             journal: Default::default(),
             controller: Default::default(),
@@ -311,23 +308,22 @@ impl Clone for Player {
             plasma_gun_weapon: self.plasma_gun_weapon.clone(),
             grenade_item: self.grenade_item.clone(),
             target_pitch: self.target_pitch,
+            inventory_gui: self.inventory_gui.clone(),
             item_display_prefab: self.item_display_prefab.clone(),
         }
     }
-}
-
-fn make_color_gradient() -> ColorGradient {
-    ColorGradientBuilder::new()
-        .with_point(GradientPoint::new(0.0, Color::from_rgba(255, 0, 0, 200)))
-        .with_point(GradientPoint::new(1.0, Color::from_rgba(0, 255, 0, 200)))
-        .build()
 }
 
 impl Player {
     pub fn persistent_data(&self, graph: &Graph) -> PlayerPersistentData {
         PlayerPersistentData {
             inventory: self.inventory.clone(),
-            health: self.health,
+            hit_box_health: self
+                .hit_box_iter(graph)
+                .map(|(node_handle, hb)| {
+                    (graph[node_handle].original_handle_in_resource(), *hb.health)
+                })
+                .collect::<FxHashMap<_, _>>(),
             current_weapon: self.current_weapon,
             weapons: self
                 .weapons
@@ -651,14 +647,6 @@ impl Player {
         }
     }
 
-    fn should_be_stunned(&self) -> bool {
-        self.last_health - self.health >= 15.0
-    }
-
-    fn stun(&mut self) {
-        self.last_health = self.health;
-    }
-
     fn is_walking(&self) -> bool {
         self.controller.walk_backward
             || self.controller.walk_forward
@@ -666,29 +654,8 @@ impl Player {
             || self.controller.walk_left
     }
 
-    fn update_health_cylinder(&self, scene: &mut Scene) {
-        let mesh = scene.graph[self.health_cylinder].as_mesh_mut();
-        let color = self
-            .health_color_gradient
-            .get_color(self.health / *self.max_health);
-        let surface = mesh.surfaces_mut().first_mut().unwrap();
-        let mut material = surface.material().data_ref();
-        material.set_property("diffuseColor", color);
-        material.set_property("emissionStrength", color.as_frgb().scale(10.0));
-        drop(material);
-        scene.graph[self.rig_light]
-            .component_mut::<BaseLight>()
-            .unwrap()
-            .set_color(color);
-    }
-
     fn update_animation_machines(&mut self, scene: &mut Scene, is_walking: bool, is_jumping: bool) {
         let weapon_kind = self.current_weapon_kind(&scene.graph);
-
-        let should_be_stunned = self.should_be_stunned();
-        if should_be_stunned {
-            self.stun();
-        }
 
         self.state_machine.apply(StateMachineInput {
             is_walking,
@@ -696,8 +663,9 @@ impl Player {
             has_ground_contact: self.in_air_time <= 0.3,
             is_aiming: self.controller.aim && !self.character.weapons.is_empty(),
             run_factor: self.run_factor,
-            is_dead: self.is_dead(),
-            should_be_stunned,
+            is_dead: self.is_dead(&scene.graph),
+            // TODO: Handle stun properly.
+            should_be_stunned: false,
             melee_attack: self.controller.shoot && !self.controller.aim,
             machine: self.machine,
             weapon_kind,
@@ -873,7 +841,7 @@ impl Player {
     }
 
     fn is_running(&self, scene: &Scene) -> bool {
-        !self.is_dead()
+        !self.is_dead(&scene.graph)
             && self.controller.run
             && !self.controller.aim
             && !self.state_machine.is_stunned(scene, self.animation_player)
@@ -924,8 +892,25 @@ impl Player {
                 .data_ref()
                 .bind("diffuseTexture", item_texture);
         }
+    }
 
-        self.health_color_gradient = make_color_gradient();
+    fn render_offscreen_ui(&mut self, context: &mut ScriptContext) {
+        if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
+            let renderer = &mut graphics_context.renderer;
+
+            for (rt, ui) in [(
+                self.inventory_gui.render_target.clone(),
+                &mut self.inventory_gui.ui,
+            )] {
+                Log::verify(renderer.render_ui_to_texture(
+                    rt,
+                    ui.screen_size(),
+                    ui.draw(),
+                    Color::TRANSPARENT,
+                    PixelKind::SRGBA8,
+                ));
+            }
+        }
     }
 }
 
@@ -959,13 +944,13 @@ impl ScriptTrait for Player {
             .subscribe_to::<HitBoxMessage>(ctx.handle);
 
         self.script_message_sender = Some(ctx.message_sender.clone());
-
         self.state_machine = StateMachine::new(self.machine, &ctx.scene.graph).unwrap();
+        self.inventory_gui = InventoryInterface::new();
 
         self.resolve(
             ctx.scene,
             game.weapon_display.render_target.clone(),
-            game.inventory_interface.render_target.clone(),
+            self.inventory_gui.render_target.clone(),
             game.item_display.render_target.clone(),
             game.journal_display.render_target.clone(),
         );
@@ -988,6 +973,15 @@ impl ScriptTrait for Player {
 
         let button_state = match event {
             Event::WindowEvent { event, .. } => {
+                if let Some(event) = translate_event(event) {
+                    self.inventory_gui.process_os_event(
+                        &event,
+                        &game.config.controls,
+                        ctx.handle,
+                        ctx.message_sender,
+                    );
+                }
+
                 if let WindowEvent::KeyboardInput { event: input, .. } = event {
                     if let PhysicalKey::Code(key) = input.physical_key {
                         Some((ControlButton::Key(key), input.state))
@@ -1121,7 +1115,8 @@ impl ScriptTrait for Player {
                     }
                 }
             } else if button == control_scheme.quick_heal.button {
-                if state == ElementState::Pressed && self.health < *self.max_health {
+                let most_wounded = self.most_wounded_hit_box(&ctx.scene.graph);
+                if state == ElementState::Pressed && most_wounded.is_some() {
                     let mut min_health = f32::MAX;
                     let mut suitable_item = None;
                     for item in self.inventory.items() {
@@ -1145,7 +1140,7 @@ impl ScriptTrait for Player {
                             == 1
                         {
                             Item::from_resource(&suitable_item, |item| {
-                                self.use_item(item.unwrap());
+                                self.use_item(item.unwrap(), &ctx.scene.graph, ctx.message_sender);
                             })
                         }
                     }
@@ -1209,12 +1204,13 @@ impl ScriptTrait for Player {
         } else if let Some(weapon_message) = message.downcast_ref() {
             self.character
                 .on_weapon_message(weapon_message, &mut ctx.scene.graph);
-        } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
-            self.character.on_hit_box_message(hit_box_message);
         }
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) {
+        self.inventory_gui.update(ctx.dt, &self.character.inventory);
+        self.render_offscreen_ui(ctx);
+
         let game = ctx.plugins.get_mut::<Game>();
         game.weapon_display.sync_to_model(self, &ctx.scene.graph);
         game.journal_display.update(ctx.dt, &self.journal);
@@ -1275,8 +1271,6 @@ impl ScriptTrait for Player {
             }
         }
 
-        self.update_health_cylinder(ctx.scene);
-
         let has_ground_contact = self.has_ground_contact(&ctx.scene.graph);
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
@@ -1307,7 +1301,7 @@ impl ScriptTrait for Player {
             &level.sound_manager,
         );
 
-        if !self.is_dead() {
+        if !self.is_dead(&ctx.scene.graph) {
             if is_running {
                 self.target_run_factor = 1.0;
             } else {

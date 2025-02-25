@@ -1,3 +1,4 @@
+use crate::level::hit_box::HitBoxDamage;
 use crate::{
     bot::{
         behavior::{BehaviorContext, BotBehavior},
@@ -10,14 +11,13 @@ use crate::{
         hit_box::{HitBox, HitBoxMessage},
     },
     sound::SoundManager,
-    utils::{self, is_probability_event_occurred, BodyImpactHandler},
+    utils::{self, BodyImpactHandler},
     weapon::Weapon,
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::core::some_or_continue;
-use fyrox::scene::sound::Sound;
 use fyrox::{
+    core::some_or_continue,
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
         arrayvec::ArrayVec,
@@ -34,6 +34,7 @@ use fyrox::{
     },
     graph::SceneGraph,
     resource::model::{ModelResource, ModelResourceExtension},
+    scene::sound::Sound,
     scene::{
         self,
         animation::{absm::prelude::*, prelude::*},
@@ -340,6 +341,34 @@ impl Bot {
             }
         }
     }
+
+    fn on_damage(&mut self, damage: &HitBoxDamage, ctx: &mut ScriptMessageContext) {
+        if let Some((character_handle, character)) = damage.dealer.as_character(&ctx.scene.graph) {
+            self.set_target(character_handle, character.position(&ctx.scene.graph));
+        }
+
+        let hit_box = ctx
+            .scene
+            .graph
+            .try_get_script_of::<HitBox>(damage.hit_box)
+            .unwrap();
+
+        if let Some(position) = damage.position {
+            self.impact_handler.handle_impact(
+                ctx.scene,
+                *hit_box.bone,
+                position.point,
+                position.direction,
+            );
+        }
+
+        // Prevent spamming with grunt sounds.
+        let graph = &ctx.scene.graph;
+        if !self.is_dead(graph) && !utils::is_any_sound_playing(&self.pain_sounds, graph) {
+            self.restoration_time = 0.8;
+            utils::try_play_random_sound(&self.pain_sounds, &mut ctx.scene.graph);
+        }
+    }
 }
 
 impl ScriptTrait for Bot {
@@ -447,45 +476,10 @@ impl ScriptTrait for Bot {
         } else if let Some(weapon_message) = message.downcast_ref() {
             self.character
                 .on_weapon_message(weapon_message, &mut ctx.scene.graph);
-        } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
-            self.character.on_hit_box_message(hit_box_message);
-
-            if let Some((character_handle, character)) =
-                hit_box_message.dealer.as_character(&ctx.scene.graph)
-            {
-                self.set_target(character_handle, character.position(&ctx.scene.graph));
-            }
-
-            let hit_box = ctx
-                .scene
-                .graph
-                .try_get_script_of::<HitBox>(hit_box_message.hit_box)
-                .unwrap();
-
-            if let Some(position) = hit_box_message.position {
-                self.impact_handler.handle_impact(
-                    ctx.scene,
-                    *hit_box.bone,
-                    position.point,
-                    position.direction,
-                );
-            }
-
-            // Handle critical head shots.
-            let critical_head_shot_probability = hit_box.critical_hit_probability.clamp(0.0, 1.0); // * 100.0%
-            if *hit_box.limb_type == LimbType::Head
-                && is_probability_event_occurred(critical_head_shot_probability)
-            {
-                self.damage(hit_box_message.damage * 1000.0);
-            }
-
-            // Prevent spamming with grunt sounds.
-            if self.last_health - self.health > 20.0 && !self.is_dead() {
-                self.last_health = self.health;
-                self.restoration_time = 0.8;
-
-                utils::try_play_random_sound(&self.pain_sounds, &mut ctx.scene.graph);
-            }
+        } else if let Some(HitBoxMessage::Damage(hit_box_damage)) =
+            message.downcast_ref::<HitBoxMessage>()
+        {
+            self.on_damage(hit_box_damage, ctx)
         }
     }
 
@@ -551,7 +545,8 @@ impl ScriptTrait for Bot {
             is_screaming = behavior_ctx.is_screaming;
         }
 
-        if self.is_dead() {
+        let is_dead = self.is_dead(&ctx.scene.graph);
+        if is_dead {
             if let Some(ragdoll) = ctx
                 .scene
                 .graph
@@ -573,7 +568,7 @@ impl ScriptTrait for Bot {
             StateMachineInput {
                 walk: is_moving,
                 scream: is_screaming,
-                dead: self.is_dead(),
+                dead: is_dead,
                 movement_speed_factor,
                 attack: need_to_melee_attack,
                 attack_animation_index: attack_animation_index as u32,
@@ -607,7 +602,7 @@ impl ScriptTrait for Bot {
         let node = &mut ctx.scene.graph[ctx.handle];
 
         let mut died = false;
-        if !self.prev_is_dead && self.is_dead() {
+        if !self.prev_is_dead && is_dead {
             self.prev_is_dead = true;
             died = true;
             node.set_lifetime(Some(self.despawn_timeout));

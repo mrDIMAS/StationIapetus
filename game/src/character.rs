@@ -1,3 +1,4 @@
+use crate::level::hit_box::{HitBoxDamage, HitBoxHeal};
 use crate::{
     inventory::Inventory,
     level::{
@@ -72,6 +73,7 @@ pub enum CharacterMessageData {
     AddWeapon(ModelResource),
     PickupItem(Handle<Node>),
     DropItems { item: ModelResource, count: u32 },
+    UseItem { item: ModelResource },
 }
 
 #[derive(Debug)]
@@ -85,9 +87,6 @@ pub struct CharacterMessage {
 pub struct Character {
     pub capsule_collider: Handle<Node>,
     pub body: Handle<Node>,
-    pub health: f32,
-    pub max_health: InheritableVariable<f32>,
-    pub last_health: f32,
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
@@ -113,13 +112,9 @@ pub struct MeleeAttackContext {
 
 impl Default for Character {
     fn default() -> Self {
-        let max_health = 150.0f32;
         Self {
             capsule_collider: Default::default(),
             body: Default::default(),
-            health: max_health,
-            max_health: max_health.into(),
-            last_health: max_health,
             weapons: Vec::new(),
             current_weapon: 0,
             weapon_pivot: Handle::NONE,
@@ -175,8 +170,15 @@ impl Character {
             .collect::<FxHashSet<_>>()
     }
 
-    pub fn get_health(&self) -> f32 {
-        self.health
+    pub fn hit_box_iter<'a>(
+        &self,
+        graph: &'a Graph,
+    ) -> impl Iterator<Item = (Handle<Node>, &'a HitBox)> + use<'a, '_> {
+        self.hit_boxes.iter().filter_map(|h| {
+            graph
+                .try_get_script_component_of::<HitBox>(*h)
+                .map(|hitbox| (*h, hitbox))
+        })
     }
 
     pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) {
@@ -190,38 +192,51 @@ impl Character {
     }
 
     pub fn most_vulnerable_point(&self, graph: &Graph) -> Vector3<f32> {
-        if let Some(head) = self.hit_boxes.iter().find(|h| {
-            graph
-                .try_get_script_component_of::<HitBox>(**h)
-                .is_some_and(|h| *h.limb_type == LimbType::Head)
-        }) {
-            graph[*head].global_position()
+        if let Some((head_handle, _)) = self
+            .hit_box_iter(graph)
+            .find(|(_, h)| *h.limb_type == LimbType::Head)
+        {
+            graph[head_handle].global_position()
         } else {
             self.position(graph)
         }
     }
 
-    pub fn damage(&mut self, amount: f32) {
-        self.health -= amount.abs();
-    }
-
     pub fn is_limb_sliced_off(&self, graph: &Graph, limb_type: LimbType) -> bool {
-        self.hit_boxes
-            .iter()
-            .filter_map(|h| graph.try_get_script_of::<HitBox>(*h))
-            .any(|h| *h.limb_type == limb_type && h.is_sliced_off())
+        self.hit_box_iter(graph)
+            .any(|(_, hitbox)| *hitbox.limb_type == limb_type && hitbox.is_sliced_off())
     }
 
-    pub fn heal(&mut self, amount: f32) {
-        self.health += amount.abs();
+    pub fn combined_health(&self, graph: &Graph) -> f32 {
+        self.hit_box_iter(graph)
+            .fold(0.0, |acc, (_, hitbox)| acc + *hitbox.health)
+    }
 
-        if self.health > *self.max_health {
-            self.health = *self.max_health;
+    pub fn most_wounded_hit_box(&self, graph: &Graph) -> Option<Handle<Node>> {
+        let mut min_health = f32::MAX;
+        let mut result = None;
+        for (handle, hitbox) in self.hit_box_iter(graph) {
+            if *hitbox.health < min_health {
+                min_health = *hitbox.health;
+                result = Some(handle);
+            }
         }
+        result
     }
 
-    pub fn is_dead(&self) -> bool {
-        self.health <= 0.0
+    pub fn is_dead(&self, graph: &Graph) -> bool {
+        let mut total_hit_boxes = 0;
+        let mut sliced_off_hit_boxes = 0;
+        let mut combined_health = 0.0;
+        for (_, hit_box) in self.hit_box_iter(graph) {
+            total_hit_boxes += 1;
+            if hit_box.is_sliced_off() {
+                sliced_off_hit_boxes += 1;
+            }
+            combined_health += *hit_box.health;
+        }
+
+        combined_health <= 0.0 || sliced_off_hit_boxes > total_hit_boxes / 2
     }
 
     pub fn weapon_pivot(&self) -> Handle<Node> {
@@ -243,11 +258,26 @@ impl Character {
         self.set_current_weapon_enabled(true, graph);
     }
 
-    pub fn use_item(&mut self, item: &Item) {
+    pub fn use_item(
+        &mut self,
+        item: &Item,
+        graph: &Graph,
+        script_message_sender: &ScriptMessageSender,
+    ) {
         match *item.action {
             ItemAction::None => {}
             ItemAction::Heal { amount } => {
-                self.heal(amount);
+                let hit_boxes = self.hit_box_iter(graph).map(|(h, _)| h).collect::<Vec<_>>();
+                let hit_box_count = hit_boxes.len();
+                for hit_box in hit_boxes {
+                    script_message_sender.send_to_target(
+                        hit_box,
+                        HitBoxMessage::Heal(HitBoxHeal {
+                            hit_box,
+                            amount: amount / hit_box_count as f32,
+                        }),
+                    )
+                }
             }
         }
     }
@@ -326,7 +356,7 @@ impl Character {
                         script_message_sender.send_hierarchical(
                             hit_box,
                             RoutingStrategy::Up,
-                            HitBoxMessage {
+                            HitBoxMessage::Damage(HitBoxDamage {
                                 hit_box,
                                 damage: *self.melee_attack_damage,
                                 dealer: DamageDealer {
@@ -337,7 +367,7 @@ impl Character {
                                     direction: Vector3::new(0.0, 0.0, 1.0),
                                 }),
                                 is_melee: true,
-                            },
+                            }),
                         );
                     }
                 }
@@ -353,10 +383,6 @@ impl Character {
 
     pub fn has_hit_box(&self, handle: Handle<Node>) -> bool {
         self.hit_boxes.contains(&handle)
-    }
-
-    pub fn on_hit_box_message(&mut self, hit_box_message: &HitBoxMessage) {
-        self.damage(hit_box_message.damage);
     }
 
     pub fn on_character_message(
@@ -457,6 +483,30 @@ impl Character {
 
                     Item::add_to_scene(scene, item.clone(), drop_position, true, *count);
                 }
+            }
+            CharacterMessageData::UseItem {
+                item: item_resource,
+            } => {
+                Item::from_resource(item_resource, |item| {
+                    if let Some(item) = item {
+                        if *item.consumable
+                            && self
+                                .inventory_mut()
+                                .try_extract_exact_items(item_resource, 1)
+                                == 1
+                        {
+                            self.use_item(item, &scene.graph, script_message_sender);
+                        } else {
+                            script_message_sender.send_to_target(
+                                self_handle,
+                                CharacterMessage {
+                                    character: self_handle,
+                                    data: CharacterMessageData::SelectWeapon(item_resource.clone()),
+                                },
+                            );
+                        }
+                    }
+                });
             }
             _ => (),
         }

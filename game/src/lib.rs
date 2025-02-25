@@ -32,9 +32,9 @@ use crate::{
         Elevator,
     },
     gui::{
-        inventory::InventoryInterface, inventory::InventoryItem, item_display::ItemDisplay,
-        journal::JournalDisplay, loading_screen::LoadingScreen, menu::Menu,
-        weapon_display::WeaponDisplay, DeathScreen, FinalScreen,
+        inventory::InventoryItem, item_display::ItemDisplay, journal::JournalDisplay,
+        loading_screen::LoadingScreen, menu::Menu, weapon_display::WeaponDisplay, DeathScreen,
+        FinalScreen,
     },
     highlight::HighlightRenderPass,
     inventory::{Inventory, ItemEntry},
@@ -127,7 +127,6 @@ pub struct Game {
     death_screen: DeathScreen,
     final_screen: FinalScreen,
     weapon_display: WeaponDisplay,
-    inventory_interface: InventoryInterface,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
     #[visit(skip)]
@@ -150,7 +149,6 @@ impl Default for Game {
             death_screen: Default::default(),
             final_screen: Default::default(),
             weapon_display: Default::default(),
-            inventory_interface: Default::default(),
             item_display: Default::default(),
             journal_display: Default::default(),
             highlighter: Default::default(),
@@ -211,10 +209,6 @@ impl Game {
                 (
                     self.weapon_display.render_target.clone(),
                     &mut self.weapon_display.ui,
-                ),
-                (
-                    self.inventory_interface.render_target.clone(),
-                    &mut self.inventory_interface.ui,
                 ),
                 (
                     self.item_display.render_target.clone(),
@@ -323,12 +317,6 @@ impl Game {
             ctx.scenes[level.scene]
                 .enabled
                 .set_value_silent(!self.menu.is_visible(ui));
-            if let Some(player) = ctx.scenes[level.scene]
-                .graph
-                .try_get_script_component_of::<Player>(level.player)
-            {
-                self.inventory_interface.update(ctx.dt, &player.inventory);
-            }
         }
 
         self.weapon_display.update(ctx.dt);
@@ -489,28 +477,11 @@ impl Game {
         ));
     }
 
-    fn process_dispatched_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
+    fn process_dispatched_event(&mut self, event: &Event<()>) {
         if let Event::WindowEvent { event, .. } = event {
             if let Some(event) = translate_event(event) {
-                if let Some(level) = self.level.as_mut() {
-                    let player_handle = level.get_player();
-                    if let Some(player_ref) =
-                        context.scenes.try_get_mut(level.scene).and_then(|s| {
-                            s.graph
-                                .try_get_mut(player_handle)
-                                .and_then(|p| p.try_get_script_mut::<Player>())
-                        })
-                    {
-                        self.inventory_interface.process_os_event(
-                            &event,
-                            &self.config.controls,
-                            player_ref,
-                            player_handle,
-                        );
-                        self.journal_display
-                            .process_os_event(&event, &self.config.controls);
-                    }
-                }
+                self.journal_display
+                    .process_os_event(&event, &self.config.controls);
             }
         }
     }
@@ -556,7 +527,7 @@ impl Game {
     }
 
     pub fn process_input_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
-        self.process_dispatched_event(event, context);
+        self.process_dispatched_event(event);
 
         if let Event::WindowEvent {
             event: WindowEvent::KeyboardInput { event: input, .. },
@@ -645,7 +616,7 @@ impl Plugin for Game {
 
         let message_sender = MessageSender { sender: tx };
         let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
-        let inventory_interface = InventoryInterface::new();
+
         let item_display = ItemDisplay::new(font.clone());
         let journal_display = JournalDisplay::new();
 
@@ -668,7 +639,6 @@ impl Plugin for Game {
             journal_display,
             level: None,
             debug_string: String::new(),
-            inventory_interface,
             message_receiver: rx,
             message_sender,
             highlighter: None,

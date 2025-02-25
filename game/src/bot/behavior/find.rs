@@ -41,17 +41,19 @@ impl<'a> Behavior<'a> for FindTarget {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        let position = ctx.character.position(&ctx.scene.graph);
+        let graph = &ctx.scene.graph;
 
-        self.update_frustum(position, &ctx.scene.graph, ctx.model);
+        let position = ctx.character.position(graph);
+
+        self.update_frustum(position, graph, ctx.model);
 
         // Check if existing target is valid.
         if let Some(target) = ctx.target {
             for &actor_handle in ctx.actors {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
-                    if let Some(character) = try_get_character_ref(actor_handle, &ctx.scene.graph) {
-                        if character.health > 0.0 {
-                            target.position = character.position(&ctx.scene.graph);
+                    if let Some(character) = try_get_character_ref(actor_handle, graph) {
+                        if !character.is_dead(graph) {
+                            target.position = character.position(graph);
                             return Status::Success;
                         }
                     }
@@ -68,7 +70,9 @@ impl<'a> Behavior<'a> for FindTarget {
             .iter()
             .filter(|actor_handle| **actor_handle != ctx.bot_handle)
         {
-            let Some(character_node) = ctx.scene.graph.try_get(actor_handle) else {
+            let graph = &ctx.scene.graph;
+
+            let Some(character_node) = graph.try_get(actor_handle) else {
                 continue;
             };
 
@@ -79,16 +83,14 @@ impl<'a> Behavior<'a> for FindTarget {
             };
 
             // Ignore dead targets.
-            if character.is_dead() {
+            if character.is_dead(graph) {
                 continue 'target_loop;
             }
 
             // Check hostility.
             match ctx.hostility {
                 BotHostility::OtherSpecies => {
-                    if character_node.root_resource()
-                        == ctx.scene.graph[ctx.bot_handle].root_resource()
-                    {
+                    if character_node.root_resource() == graph[ctx.bot_handle].root_resource() {
                         continue 'target_loop;
                     }
                 }

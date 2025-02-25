@@ -1,4 +1,5 @@
 use fyrox::graph::{BaseSceneGraph, SceneGraph, SceneGraphNode};
+use fyrox::scene::sound::Status;
 use fyrox::{
     asset::{core::rand::Rng, manager::ResourceManager},
     core::{
@@ -118,6 +119,14 @@ pub fn fetch_animation_container_mut(
         .unwrap()
         .animations_mut()
         .get_value_mut_silent()
+}
+
+pub fn is_any_sound_playing(sounds: &[Handle<Node>], graph: &Graph) -> bool {
+    sounds.iter().any(|h| {
+        graph
+            .try_get_of_type::<Sound>(*h)
+            .is_some_and(|s| s.status() == Status::Playing)
+    })
 }
 
 pub fn try_play_random_sound(sounds: &[Handle<Node>], graph: &mut Graph) -> bool {

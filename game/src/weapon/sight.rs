@@ -236,9 +236,11 @@ impl ScriptTrait for LaserSight {
                     }
                     _ => (),
                 }
-            } else if let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() {
+            } else if let Some(HitBoxMessage::Damage(hit_box_damage)) =
+                message.downcast_ref::<HitBoxMessage>()
+            {
                 if let Some((character_dealer, _)) =
-                    hit_box_message.dealer.as_character(&ctx.scene.graph)
+                    hit_box_damage.dealer.as_character(&ctx.scene.graph)
                 {
                     if character_dealer == parent_character_handle {
                         // If a parent character done some damage, then the laser sight must react to it.

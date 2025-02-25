@@ -52,7 +52,7 @@ impl EnemyTrap {
         for enemy in self.enemies.iter() {
             if let Some(actor_node) = scene.graph.try_get(*enemy) {
                 if let Some(bot) = actor_node.try_get_script_component::<Bot>() {
-                    if !bot.is_dead() {
+                    if !bot.is_dead(&scene.graph) {
                         return false;
                     }
                 }

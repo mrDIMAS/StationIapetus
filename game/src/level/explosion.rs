@@ -1,3 +1,4 @@
+use crate::level::hit_box::HitBoxDamage;
 use crate::{
     character::{DamageDealer, DamagePosition},
     level::hit_box::HitBoxMessage,
@@ -68,7 +69,7 @@ impl ScriptTrait for Explosion {
                     ctx.message_sender.send_hierarchical(
                         hit_box,
                         RoutingStrategy::Up,
-                        HitBoxMessage {
+                        HitBoxMessage::Damage(HitBoxDamage {
                             hit_box,
                             damage,
                             dealer: DamageDealer::default(),
@@ -77,7 +78,7 @@ impl ScriptTrait for Explosion {
                                 direction,
                             }),
                             is_melee: false,
-                        },
+                        }),
                     );
                 }
             }

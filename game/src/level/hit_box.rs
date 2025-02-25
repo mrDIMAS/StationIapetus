@@ -27,13 +27,25 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Debug)]
-pub struct HitBoxMessage {
+#[derive(Debug, Clone)]
+pub struct HitBoxDamage {
     pub hit_box: Handle<Node>,
     pub damage: f32,
     pub dealer: DamageDealer,
     pub position: Option<DamagePosition>,
     pub is_melee: bool,
+}
+
+#[derive(Debug, Clone)]
+pub struct HitBoxHeal {
+    pub hit_box: Handle<Node>,
+    pub amount: f32,
+}
+
+#[derive(Debug)]
+pub enum HitBoxMessage {
+    Damage(HitBoxDamage),
+    Heal(HitBoxHeal),
 }
 
 #[derive(
@@ -75,7 +87,6 @@ pub struct HitBox {
     pub bone: InheritableVariable<Handle<Node>>,
     pub damage_factor: InheritableVariable<f32>,
     pub movement_speed_factor: InheritableVariable<f32>,
-    pub critical_hit_probability: InheritableVariable<f32>,
     #[reflect(description = "An effect prefab that will be spawned by a non-melee hit.")]
     pub hit_prefab: InheritableVariable<Option<ModelResource>>,
     #[reflect(description = "An effect prefab that will be spawned by a melee hit.")]
@@ -98,6 +109,7 @@ pub struct HitBox {
     pub health: InheritableVariable<f32>,
     pub limb_type: InheritableVariable<LimbType>,
     pub environment_damage_timeout: f32,
+    pub children_hit_boxes: InheritableVariable<Vec<Handle<Node>>>,
 }
 
 impl Default for HitBox {
@@ -106,7 +118,6 @@ impl Default for HitBox {
             bone: Default::default(),
             damage_factor: 1.0.into(),
             movement_speed_factor: 1.0.into(),
-            critical_hit_probability: 0.01.into(),
             hit_prefab: Default::default(),
             melee_hit_prefab: Default::default(),
             pierce_prefab: Default::default(),
@@ -115,13 +126,14 @@ impl Default for HitBox {
             health: 100.0.into(),
             limb_type: Default::default(),
             environment_damage_timeout: 0.0,
+            children_hit_boxes: Default::default(),
         }
     }
 }
 
 impl HitBox {
     pub fn is_sliced_off(&self) -> bool {
-        self.limb_type.can_be_sliced_off() && *self.health <= 80.0
+        self.limb_type.can_be_sliced_off() && *self.health <= 0.0
     }
 
     fn handle_environment_interaction(&mut self, ctx: &mut ScriptContext) {
@@ -156,7 +168,7 @@ impl HitBox {
                         ctx.message_sender.send_hierarchical(
                             ctx.handle,
                             RoutingStrategy::Up,
-                            HitBoxMessage {
+                            HitBoxMessage::Damage(HitBoxDamage {
                                 hit_box: ctx.handle,
                                 damage: hit_strength,
                                 dealer: DamageDealer::default(),
@@ -168,7 +180,7 @@ impl HitBox {
                                     direction: manifold.normal,
                                 }),
                                 is_melee: true,
-                            },
+                            }),
                         );
 
                         self.environment_damage_timeout = 0.25;
@@ -191,66 +203,23 @@ impl HitBox {
                 ctx.message_sender.send_hierarchical(
                     ctx.handle,
                     RoutingStrategy::Up,
-                    HitBoxMessage {
+                    HitBoxMessage::Damage(HitBoxDamage {
                         hit_box: ctx.handle,
                         damage: 10000.0,
                         dealer: DamageDealer::default(),
                         position: None,
                         is_melee: false,
-                    },
+                    }),
                 );
             }
         }
     }
-}
 
-impl ScriptTrait for HitBox {
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
-        ctx.plugins
-            .get_mut::<Game>()
-            .level
-            .as_mut()
-            .unwrap()
-            .hit_boxes
-            .insert(ctx.handle);
-
-        ctx.message_dispatcher
-            .subscribe_to::<HitBoxMessage>(ctx.handle);
-    }
-
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
-        ctx.plugins
-            .get_mut::<Game>()
-            .level
-            .as_mut()
-            .unwrap()
-            .hit_boxes
-            .remove(&ctx.node_handle);
-    }
-
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
-        self.handle_death_zones(ctx);
-        self.handle_environment_interaction(ctx);
-        if self.is_sliced_off() {
-            if let Some(bone) = ctx.scene.graph.try_get_mut(*self.bone) {
-                bone.local_transform_mut().set_scale(Vector3::repeat(0.0));
-            }
-        }
-    }
-
-    fn on_message(
-        &mut self,
-        message: &mut dyn ScriptMessagePayload,
-        ctx: &mut ScriptMessageContext,
-    ) {
-        let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
-            return;
-        };
-
+    fn on_damage(&mut self, damage: &HitBoxDamage, ctx: &mut ScriptMessageContext) {
         let prev_is_sliced_off = self.is_sliced_off();
-        *self.health -= hit_box_message.damage;
+        *self.health -= damage.damage;
 
-        if let Some(position) = hit_box_message.position {
+        if let Some(position) = damage.position {
             if !prev_is_sliced_off && self.is_sliced_off() {
                 if let Some(prefab) = self.destruction_prefab.as_ref() {
                     prefab.instantiate_at(
@@ -261,7 +230,7 @@ impl ScriptTrait for HitBox {
                 }
             }
 
-            let prefab = if hit_box_message.is_melee {
+            let prefab = if damage.is_melee {
                 self.melee_hit_prefab.as_ref()
             } else {
                 self.hit_prefab.as_ref()
@@ -320,6 +289,74 @@ impl ScriptTrait for HitBox {
                     }
                 }
             }
+        }
+
+        // Propagate the damage down.
+        for child in self.children_hit_boxes.iter() {
+            ctx.message_sender.send_to_target(
+                *child,
+                HitBoxMessage::Damage(HitBoxDamage {
+                    hit_box: *child,
+                    damage: damage.damage,
+                    dealer: damage.dealer,
+                    position: damage.position,
+                    is_melee: damage.is_melee,
+                }),
+            );
+        }
+    }
+
+    fn on_heal(&mut self, heal: &HitBoxHeal) {
+        *self.health += heal.amount;
+    }
+}
+
+impl ScriptTrait for HitBox {
+    fn on_start(&mut self, ctx: &mut ScriptContext) {
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
+            .unwrap()
+            .hit_boxes
+            .insert(ctx.handle);
+
+        ctx.message_dispatcher
+            .subscribe_to::<HitBoxMessage>(ctx.handle);
+    }
+
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+        ctx.plugins
+            .get_mut::<Game>()
+            .level
+            .as_mut()
+            .unwrap()
+            .hit_boxes
+            .remove(&ctx.node_handle);
+    }
+
+    fn on_update(&mut self, ctx: &mut ScriptContext) {
+        self.handle_death_zones(ctx);
+        self.handle_environment_interaction(ctx);
+        if self.is_sliced_off() {
+            if let Some(bone) = ctx.scene.graph.try_get_mut(*self.bone) {
+                bone.local_transform_mut().set_scale(Vector3::repeat(0.0));
+            }
+        }
+    }
+
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        ctx: &mut ScriptMessageContext,
+    ) {
+        let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
+            return;
+        };
+
+        match hit_box_message {
+            HitBoxMessage::Damage(damage) => self.on_damage(damage, ctx),
+            HitBoxMessage::Heal(heal) => self.on_heal(heal),
         }
     }
 }

@@ -20,7 +20,7 @@ impl<'a> Behavior<'a> for IsDead {
     type Context = BehaviorContext<'a>;
 
     fn tick(&mut self, context: &mut Self::Context) -> Status {
-        if context.character.is_dead() {
+        if context.character.is_dead(&context.scene.graph) {
             Status::Success
         } else {
             Status::Failure
