@@ -229,8 +229,14 @@ impl Character {
         let mut sliced_off_hit_boxes = 0;
         let mut combined_health = 0.0;
         for (_, hit_box) in self.hit_box_iter(graph) {
+            let is_sliced_off = hit_box.is_sliced_off();
+
+            if* hit_box.critical_for_survival && is_sliced_off {
+                return true;
+            }
+
             total_hit_boxes += 1;
-            if hit_box.is_sliced_off() {
+            if is_sliced_off {
                 sliced_off_hit_boxes += 1;
             }
             combined_health += *hit_box.health;

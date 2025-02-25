@@ -110,6 +110,7 @@ pub struct HitBox {
     pub limb_type: InheritableVariable<LimbType>,
     pub environment_damage_timeout: f32,
     pub children_hit_boxes: InheritableVariable<Vec<Handle<Node>>>,
+    pub critical_for_survival: InheritableVariable<bool>,
 }
 
 impl Default for HitBox {
@@ -127,6 +128,7 @@ impl Default for HitBox {
             limb_type: Default::default(),
             environment_damage_timeout: 0.0,
             children_hit_boxes: Default::default(),
+            critical_for_survival: Default::default(),
         }
     }
 }
