@@ -236,7 +236,7 @@ impl Character {
             combined_health += *hit_box.health;
         }
 
-        combined_health <= 0.0 || sliced_off_hit_boxes > total_hit_boxes / 2
+        combined_health <= 0.0 || sliced_off_hit_boxes >= total_hit_boxes / 4
     }
 
     pub fn weapon_pivot(&self) -> Handle<Node> {
