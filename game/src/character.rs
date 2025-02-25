@@ -231,7 +231,7 @@ impl Character {
         for (_, hit_box) in self.hit_box_iter(graph) {
             let is_sliced_off = hit_box.is_sliced_off();
 
-            if* hit_box.critical_for_survival && is_sliced_off {
+            if *hit_box.critical_for_survival && is_sliced_off {
                 return true;
             }
 

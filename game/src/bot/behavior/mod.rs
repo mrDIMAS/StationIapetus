@@ -93,7 +93,6 @@ pub struct BehaviorContext<'a> {
     pub move_speed: f32,
     pub threaten_timeout: &'a mut f32,
     pub sound_manager: &'a SoundManager,
-    pub animation_player: Handle<Node>,
     pub script_message_sender: &'a ScriptMessageSender,
     pub navmesh: Handle<Node>,
     pub hostility: BotHostility,

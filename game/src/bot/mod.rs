@@ -98,8 +98,8 @@ pub enum BotHostility {
 )]
 #[repr(u32)]
 pub enum MovementType {
-    Default,
-    Crawl,
+    Default = 0,
+    Crawl = 1,
 }
 
 stub_uuid_provider!(BotHostility);
@@ -124,7 +124,6 @@ pub struct Bot {
     #[visit(skip)]
     state_machine: StateMachine,
     pub restoration_time: f32,
-    hips: Handle<Node>,
     #[reflect(hidden)]
     agent: NavmeshAgent,
     #[visit(skip)]
@@ -136,8 +135,6 @@ pub struct Bot {
     h_recoil: SmoothAngle,
     spine: Handle<Node>,
     threaten_timeout: f32,
-    head: Handle<Node>,
-    animation_player: Handle<Node>,
     absm: Handle<Node>,
     yaw: SmoothAngle,
     pitch: SmoothAngle,
@@ -177,7 +174,6 @@ impl Default for Bot {
             target: Default::default(),
             state_machine: Default::default(),
             restoration_time: 0.0,
-            hips: Default::default(),
             agent: Default::default(),
             impact_handler: Default::default(),
             behavior: Default::default(),
@@ -185,8 +181,6 @@ impl Default for Bot {
             h_recoil: Default::default(),
             spine: Default::default(),
             threaten_timeout: 0.0,
-            head: Default::default(),
-            animation_player: Default::default(),
             absm: Default::default(),
             walk_speed: 1.2,
             v_aim_angle_hack: 0.0,
@@ -525,7 +519,6 @@ impl ScriptTrait for Bot {
                 hostility: self.hostility,
                 v_aim_angle_hack: self.v_aim_angle_hack,
                 h_aim_angle_hack: self.h_aim_angle_hack,
-                animation_player: self.animation_player,
                 attack_animation_index: 0,
                 movement_speed_factor: 1.0,
                 is_moving: false,

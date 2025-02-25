@@ -65,7 +65,7 @@ impl StateMachine {
             .get_value_mut_silent()
             .set_parameter("Attack", Parameter::Rule(input.attack))
             .set_parameter(
-                "AttackAnimationIndex",
+                "AttackAnimation",
                 Parameter::Index(input.attack_animation_index),
             )
             .set_parameter("Walk", Parameter::Rule(input.walk))
