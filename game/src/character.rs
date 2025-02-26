@@ -1,14 +1,13 @@
-use crate::level::hit_box::{HitBoxDamage, HitBoxHeal};
 use crate::{
     inventory::Inventory,
     level::{
-        hit_box::{HitBox, HitBoxMessage, LimbType},
+        hit_box::{HitBox, HitBoxDamage, HitBoxHeal, HitBoxMessage, LimbType},
         item::ItemAction,
     },
     sound::{SoundKind, SoundManager},
     utils,
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
-    Game, Item, Weapon,
+    Item, Weapon,
 };
 use fyrox::{
     core::{
@@ -30,7 +29,7 @@ use fyrox::{
         node::Node,
         Scene,
     },
-    script::{PluginsRefMut, RoutingStrategy, ScriptContext, ScriptMessageSender},
+    script::{RoutingStrategy, ScriptContext, ScriptMessageSender},
 };
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -307,13 +306,10 @@ impl Character {
     pub fn update_melee_attack(
         &mut self,
         scene: &mut Scene,
-        script_message_sender: &ScriptMessageSender,
+        message_sender: &ScriptMessageSender,
         self_handle: Handle<Node>,
-        plugins: &PluginsRefMut,
     ) -> Option<()> {
         let attack_context = self.melee_attack_context.as_mut()?;
-
-        let level = plugins.get::<Game>().level.as_ref()?;
 
         let mut need_play_punch_sound = false;
 
@@ -331,52 +327,62 @@ impl Character {
                         .map(|i| (i.collider1, i.collider2)),
                 )
             {
-                for &hit_box in level.hit_boxes.iter() {
-                    if hit_box == self.capsule_collider {
-                        continue;
-                    }
+                let intersected_hit_box = if collider1 == *melee_hit_box_handle {
+                    collider2
+                } else {
+                    collider1
+                };
 
-                    if self.hit_boxes.contains(&hit_box) {
-                        continue;
-                    }
-
-                    if hit_box == collider1 || hit_box == collider2 {
-                        if attack_context.damaged_hitboxes.contains(&hit_box) {
-                            continue;
-                        }
-                        attack_context.damaged_hitboxes.insert(hit_box);
-
-                        // Do not over-damage characters.
-                        if let Some(parent_character) = parent_character(hit_box, &scene.graph) {
-                            if attack_context
-                                .damaged_characters
-                                .contains(&parent_character)
-                            {
-                                continue;
-                            }
-                            attack_context.damaged_characters.insert(parent_character);
-                        }
-
-                        need_play_punch_sound = true;
-
-                        script_message_sender.send_hierarchical(
-                            hit_box,
-                            RoutingStrategy::Up,
-                            HitBoxMessage::Damage(HitBoxDamage {
-                                hit_box,
-                                damage: *self.melee_attack_damage,
-                                dealer: DamageDealer {
-                                    entity: self_handle,
-                                },
-                                position: Some(DamagePosition {
-                                    point: melee_hit_box_collider.global_position(),
-                                    direction: Vector3::new(0.0, 0.0, 1.0),
-                                }),
-                                is_melee: true,
-                            }),
-                        );
-                    }
+                if scene
+                    .graph
+                    .try_get_script_of::<HitBox>(intersected_hit_box)
+                    .is_none()
+                {
+                    return None;
                 }
+
+                if self.hit_boxes.contains(&intersected_hit_box) {
+                    continue;
+                }
+
+                if attack_context
+                    .damaged_hitboxes
+                    .contains(&intersected_hit_box)
+                {
+                    continue;
+                }
+                attack_context.damaged_hitboxes.insert(intersected_hit_box);
+
+                // Do not over-damage characters.
+                if let Some(parent_character) = parent_character(intersected_hit_box, &scene.graph)
+                {
+                    if attack_context
+                        .damaged_characters
+                        .contains(&parent_character)
+                    {
+                        continue;
+                    }
+                    attack_context.damaged_characters.insert(parent_character);
+                }
+
+                need_play_punch_sound = true;
+
+                message_sender.send_hierarchical(
+                    intersected_hit_box,
+                    RoutingStrategy::Up,
+                    HitBoxMessage::Damage(HitBoxDamage {
+                        hit_box: intersected_hit_box,
+                        damage: *self.melee_attack_damage,
+                        dealer: DamageDealer {
+                            entity: self_handle,
+                        },
+                        position: Some(DamagePosition {
+                            point: melee_hit_box_collider.global_position(),
+                            direction: Vector3::new(0.0, 0.0, 1.0),
+                        }),
+                        is_melee: true,
+                    }),
+                );
             }
         }
 

@@ -549,7 +549,7 @@ impl ScriptTrait for Bot {
             }
         }
 
-        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, &ctx.plugins);
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle);
         self.check_doors(ctx.scene, &level.doors_container);
 
         let no_leg = self

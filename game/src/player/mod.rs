@@ -1,9 +1,9 @@
-use crate::gui::inventory::InventoryInterface;
 use crate::{
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
     door::{door_mut, DoorContainer},
     elevator::call_button::{CallButton, CallButtonKind},
+    gui::inventory::InventoryInterface,
     gui::journal::Journal,
     inventory::Inventory,
     level::hit_box::HitBoxMessage,
@@ -18,16 +18,11 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::core::color::Color;
-use fyrox::engine::GraphicsContext;
-use fyrox::fxhash::FxHashMap;
-use fyrox::graph::SceneGraphNode;
-use fyrox::renderer::framework::gpu_texture::PixelKind;
-use fyrox::utils::translate_event;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
         algebra::{UnitQuaternion, Vector2, Vector3},
+        color::Color,
         futures::executor::block_on,
         log::Log,
         math::{SmoothAngle, Vector2Ext},
@@ -37,9 +32,13 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::prelude::*,
     },
+    engine::GraphicsContext,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
+    fxhash::FxHashMap,
+    graph::SceneGraphNode,
     graph::{BaseSceneGraph, SceneGraph},
     keyboard::PhysicalKey,
+    renderer::framework::gpu_texture::PixelKind,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,
@@ -55,6 +54,7 @@ use fyrox::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
         ScriptMessageSender, ScriptTrait,
     },
+    utils::translate_event,
 };
 use std::ops::{Deref, DerefMut};
 
@@ -1275,7 +1275,7 @@ impl ScriptTrait for Player {
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
 
-        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle, &ctx.plugins);
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle);
         self.update_animation_machines(ctx.scene, is_walking, is_jumping);
 
         if self
