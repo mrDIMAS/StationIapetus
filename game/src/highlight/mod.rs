@@ -11,7 +11,7 @@ use fyrox::{
             error::FrameworkError,
             framebuffer::{Attachment, AttachmentKind, GpuFrameBuffer},
             geometry_buffer::GpuGeometryBuffer,
-            gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind, WrapMode},
+            gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind},
             server::GraphicsServer,
             GeometryBufferExt,
         },
@@ -60,9 +60,6 @@ impl HighlightRenderPass {
             .create_texture(GpuTextureDescriptor {
                 kind: GpuTextureKind::Rectangle { width, height },
                 pixel_kind: PixelKind::RGBA8,
-                s_wrap_mode: WrapMode::ClampToEdge,
-                t_wrap_mode: WrapMode::ClampToEdge,
-                r_wrap_mode: WrapMode::ClampToEdge,
                 ..Default::default()
             })
             .unwrap();
@@ -135,6 +132,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 graph: &ctx.scene.graph,
                 render_pass_name: &Default::default(),
                 elapsed_time: ctx.elapsed_time,
+                dynamic_surface_cache: ctx.dynamic_surface_cache,
             };
 
             let mut additional_data_map = FxHashMap::default();
@@ -195,7 +193,10 @@ impl SceneRenderPass for HighlightRenderPass {
 
             let properties = PropertyGroup::from([property("worldViewProjection", &frame_matrix)]);
             let material = RenderMaterial::from([
-                binding("frameTexture", frame_texture),
+                binding(
+                    "frameTexture",
+                    (frame_texture, &ctx.fallback_resources.linear_clamp_sampler),
+                ),
                 binding("properties", &properties),
             ]);
 

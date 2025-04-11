@@ -5,7 +5,7 @@ use fyrox::event_loop::EventLoop;
 
 fn main() {
     let mut executor = Executor::from_params(
-        EventLoop::new().unwrap(),
+        Some(EventLoop::new().unwrap()),
         GraphicsContextParams {
             window_attributes: Default::default(),
             vsync: false,

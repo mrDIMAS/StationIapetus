@@ -9,6 +9,7 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
+use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -84,8 +85,8 @@ pub struct CharacterMessage {
 #[derive(Visit, Reflect, Debug, Clone)]
 #[visit(optional)]
 pub struct Character {
-    pub capsule_collider: Handle<Node>,
-    pub body: Handle<Node>,
+    pub capsule_collider: Handle<Collider>,
+    pub body: Handle<RigidBody>,
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
@@ -140,15 +141,12 @@ fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Hand
 
 impl Character {
     pub fn stand_still(&self, graph: &mut Graph) {
-        let body = graph[self.body].as_rigid_body_mut();
+        let body = &mut graph[self.body];
         body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
     }
 
     pub fn has_ground_contact(&self, graph: &Graph) -> bool {
-        if let Some(collider) = graph
-            .try_get(self.capsule_collider)
-            .and_then(|n| n.cast::<Collider>())
-        {
+        if let Some(collider) = graph.typed_ref(self.capsule_collider) {
             for contact in collider.contacts(&graph.physics) {
                 for manifold in contact.manifolds.iter() {
                     if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
@@ -181,7 +179,7 @@ impl Character {
     }
 
     pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) {
-        if let Some(body) = graph.try_get_mut(self.body) {
+        if let Some(body) = graph.typed_mut(self.body) {
             body.local_transform_mut().set_position(position);
         }
     }
@@ -624,7 +622,7 @@ impl Character {
 
         for intersection in query_buffer
             .into_iter()
-            .filter(|i| i.collider != self.capsule_collider)
+            .filter(|i| i.collider.transmute() != self.capsule_collider)
         {
             manager.play_environment_sound(
                 &mut scene.graph,

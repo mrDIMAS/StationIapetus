@@ -5,7 +5,7 @@ use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
-        reflect::{FieldInfo, Reflect},
+        reflect::{prelude::*},
         type_traits::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,

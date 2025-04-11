@@ -23,9 +23,8 @@ impl ModelMap {
             .into_iter()
             .map(|r| {
                 let resource = r.unwrap();
-                let key = resource
-                    .kind()
-                    .into_path()
+                let key = resource_manager
+                    .resource_path(resource.as_ref())
                     .unwrap_or_default()
                     .to_string_lossy()
                     .into_owned();

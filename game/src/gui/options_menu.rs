@@ -169,7 +169,7 @@ fn make_shadows_quality_drop_down(
                             .with_horizontal_text_alignment(HorizontalAlignment::Center)
                             .with_font(font.clone())
                             .with_font_size(16.0.into())
-                            .with_text(o)
+                            .with_text(*o)
                             .build(ctx),
                     ),
                 ))

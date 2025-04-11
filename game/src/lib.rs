@@ -652,7 +652,7 @@ impl Plugin for Game {
         self.update(ctx);
 
         if !self.running {
-            ctx.window_target.unwrap().exit();
+            ctx.loop_controller.exit();
         }
     }
 
@@ -663,7 +663,7 @@ impl Plugin for Game {
             match event {
                 WindowEvent::CloseRequested => {
                     self.destroy_level(&mut ctx);
-                    ctx.window_target.unwrap().exit();
+                    ctx.loop_controller.exit();
                 }
                 WindowEvent::Resized(new_size) => self.on_window_resized(
                     ctx.user_interfaces.first(),

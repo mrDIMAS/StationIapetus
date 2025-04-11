@@ -46,6 +46,7 @@ pub struct InventoryInterface {
 }
 
 #[derive(Default, Debug, Clone, Reflect, Visit, ComponentProvider)]
+#[reflect(derived_type = "UiNode")]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,

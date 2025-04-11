@@ -86,7 +86,7 @@ pub struct SoundMap {
 }
 
 impl SoundMap {
-    pub fn new(scene: &Scene, sound_base: &SoundBase) -> Self {
+    pub fn new(scene: &Scene, sound_base: &SoundBase, resource_manager: ResourceManager) -> Self {
         let mut sound_map = HashMap::new();
 
         let mut stack = Vec::new();
@@ -114,7 +114,9 @@ impl SoundMap {
                                     let path = binding
                                         .value
                                         .as_ref()
-                                        .and_then(|tex| tex.kind().into_path())
+                                        .and_then(|tex| {
+                                            resource_manager.resource_path(tex.as_ref())
+                                        })
                                         .unwrap_or_default();
                                     match path.canonicalize() {
                                         Ok(path) => {
@@ -203,7 +205,7 @@ impl SoundManager {
         let sound_base = SoundBase::load();
 
         Self {
-            sound_map: SoundMap::new(scene, &sound_base),
+            sound_map: SoundMap::new(scene, &sound_base, resource_manager.clone()),
             sound_base,
             resource_manager: Some(resource_manager),
         }

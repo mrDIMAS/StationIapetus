@@ -76,7 +76,9 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let mut body_ref = multiborrow_context.try_get_mut(ctx.character.body).unwrap();
+        let mut body_ref = multiborrow_context
+            .try_get_mut(ctx.character.body.transmute())
+            .unwrap();
         let body = body_ref.as_rigid_body_mut();
         let position = body.global_position();
 

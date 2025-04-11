@@ -126,7 +126,7 @@ impl<'a> Behavior<'a> for FindTarget {
 
                     if let ColliderShape::Capsule(_) = collider.shape() {
                         // Prevent setting self as target.
-                        if ctx.character.capsule_collider == hit.collider {
+                        if ctx.character.capsule_collider == hit.collider.transmute() {
                             continue 'hit_loop;
                         }
                     } else {
