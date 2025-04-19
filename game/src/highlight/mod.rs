@@ -1,4 +1,5 @@
 use crate::Game;
+use fyrox::scene::collider::BitMask;
 use fyrox::{
     core::{color::Color, pool::Handle, sstorage::ImmutableString},
     fxhash::FxHashMap,
@@ -126,6 +127,7 @@ impl SceneRenderPass for HighlightRenderPass {
 
             let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
+                render_mask: BitMask::all(),
                 observer_info: &observer_info,
                 frustum: Some(&frustum),
                 storage: &mut render_batch_storage,

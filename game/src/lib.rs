@@ -101,8 +101,6 @@ use fyrox::{
 };
 use std::{
     cell::RefCell,
-    fs::File,
-    io::Write,
     path::{Path, PathBuf},
     rc::Rc,
     sync::mpsc::{self, Receiver, Sender},
@@ -251,11 +249,8 @@ impl Game {
             // Debug output
             let mut debug_path = path.to_path_buf();
             debug_path.set_extension("txt");
-            if let Ok(mut file) = File::create(debug_path) {
-                file.write_all(visitor.save_text().as_bytes()).unwrap();
-            }
-
-            visitor.save_binary(path)
+            visitor.save_ascii_to_file(debug_path)?;
+            visitor.save_binary_to_file(path)
         } else {
             Ok(())
         }
