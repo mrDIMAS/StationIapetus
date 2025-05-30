@@ -25,14 +25,14 @@ use std::{
     time::SystemTime,
 };
 
-#[derive(Visit, Reflect, Default, Debug)]
+#[derive(Visit, Reflect, Clone, Default, Debug)]
 pub enum Mode {
     #[default]
     Save,
     Load,
 }
 
-#[derive(Default, Debug, Visit, Reflect)]
+#[derive(Default, Debug, Visit, Clone, Reflect)]
 pub struct SaveLoadDialog {
     pub window: Handle<UiNode>,
     confirm: Handle<UiNode>,

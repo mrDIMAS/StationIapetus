@@ -107,7 +107,7 @@ use std::{
 };
 
 #[derive(Visit, Reflect, Debug)]
-#[reflect(hide_all)]
+#[reflect(hide_all, non_cloneable)]
 pub struct Game {
     menu: Menu,
     level: Option<Level>,

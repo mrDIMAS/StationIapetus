@@ -5,7 +5,7 @@ use fyrox::{
     fxhash::FxHashMap,
     graph::SceneGraph,
     renderer::{
-        bundle::{ObserverInfo, RenderContext, RenderDataBundleStorage},
+        bundle::{RenderContext, RenderDataBundleStorage},
         cache::shader::{binding, property, PropertyGroup, RenderMaterial, RenderPassContainer},
         framework::{
             buffer::BufferUsage,
@@ -112,24 +112,15 @@ impl SceneRenderPass for HighlightRenderPass {
 
         // Draw selected nodes in the temporary frame buffer first.
         {
-            let view_projection = ctx.camera.view_projection_matrix();
-
-            let observer_info = ObserverInfo {
-                observer_position: ctx.camera.global_position(),
-                z_near: ctx.camera.projection().z_near(),
-                z_far: ctx.camera.projection().z_far(),
-                view_matrix: ctx.camera.view_matrix(),
-                projection_matrix: ctx.camera.projection_matrix(),
-            };
+            let view_projection = ctx.observer.position.view_projection_matrix;
 
             let mut render_batch_storage =
-                RenderDataBundleStorage::new_empty(observer_info.clone());
+                RenderDataBundleStorage::new_empty(ctx.observer.position.clone());
 
-            let frustum = ctx.camera.frustum();
             let mut render_context = RenderContext {
                 render_mask: BitMask::all(),
-                observer_info: &observer_info,
-                frustum: Some(&frustum),
+                observer_position: &ctx.observer.position,
+                frustum: Some(&ctx.observer.frustum),
                 storage: &mut render_batch_storage,
                 graph: &ctx.scene.graph,
                 render_pass_name: &Default::default(),
@@ -148,8 +139,12 @@ impl SceneRenderPass for HighlightRenderPass {
 
             render_batch_storage.sort();
 
-            self.framebuffer
-                .clear(ctx.viewport, Some(Color::TRANSPARENT), Some(1.0), None);
+            self.framebuffer.clear(
+                ctx.observer.viewport,
+                Some(Color::TRANSPARENT),
+                Some(1.0),
+                None,
+            );
 
             for batch in render_batch_storage.bundles.iter() {
                 let Ok(geometry) =
@@ -178,7 +173,7 @@ impl SceneRenderPass for HighlightRenderPass {
                         &ImmutableString::new("Primary"),
                         &self.framebuffer,
                         geometry,
-                        ctx.viewport,
+                        ctx.observer.viewport,
                         &material,
                         ctx.uniform_buffer_cache,
                         Default::default(),
@@ -190,7 +185,7 @@ impl SceneRenderPass for HighlightRenderPass {
 
         // Render full screen quad with edge detect shader to draw outline of selected objects.
         {
-            let frame_matrix = make_viewport_matrix(ctx.viewport);
+            let frame_matrix = make_viewport_matrix(ctx.observer.viewport);
             let frame_texture = &self.framebuffer.color_attachments()[0].texture;
 
             let properties = PropertyGroup::from([property("worldViewProjection", &frame_matrix)]);
@@ -207,7 +202,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 &ImmutableString::new("Primary"),
                 ctx.framebuffer,
                 &self.quad,
-                ctx.viewport,
+                ctx.observer.viewport,
                 &material,
                 ctx.uniform_buffer_cache,
                 Default::default(),

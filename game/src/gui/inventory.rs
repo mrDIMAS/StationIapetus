@@ -77,6 +77,7 @@ impl Control for InventoryItem {
             self.clip_bounds(),
             self.foreground(),
             CommandTexture::None,
+            &self.material,
             None,
         );
     }
