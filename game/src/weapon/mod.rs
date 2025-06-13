@@ -30,7 +30,7 @@ fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<N
     graph.find_up_map(sight, &mut |n| n.try_get_script_component::<Character>())
 }
 
-#[derive(Debug)]
+#[derive(Debug, ScriptMessagePayload)]
 pub struct WeaponMessage {
     pub weapon: Handle<Node>,
     pub data: WeaponMessageData,

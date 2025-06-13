@@ -10,7 +10,7 @@ use fyrox::{
         framework::{
             buffer::BufferUsage,
             error::FrameworkError,
-            framebuffer::{Attachment, AttachmentKind, GpuFrameBuffer},
+            framebuffer::{Attachment, GpuFrameBuffer},
             geometry_buffer::GpuGeometryBuffer,
             gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind},
             server::GraphicsServer,
@@ -186,7 +186,7 @@ impl SceneRenderPass for HighlightRenderPass {
             let material = RenderMaterial::from([
                 binding(
                     "frameTexture",
-                    (frame_texture, &ctx.fallback_resources.linear_clamp_sampler),
+                    (frame_texture, &ctx.renderer_resources.linear_clamp_sampler),
                 ),
                 binding("properties", &properties),
             ]);

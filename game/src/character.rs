@@ -10,6 +10,7 @@ use crate::{
     Item, Weapon,
 };
 use fyrox::scene::rigidbody::RigidBody;
+use fyrox::script::ScriptMessagePayload;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -76,7 +77,7 @@ pub enum CharacterMessageData {
     UseItem { item: ModelResource },
 }
 
-#[derive(Debug)]
+#[derive(Debug, ScriptMessagePayload)]
 pub struct CharacterMessage {
     pub character: Handle<Node>,
     pub data: CharacterMessageData,

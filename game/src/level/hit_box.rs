@@ -42,7 +42,7 @@ pub struct HitBoxHeal {
     pub amount: f32,
 }
 
-#[derive(Debug)]
+#[derive(Debug, ScriptMessagePayload)]
 pub enum HitBoxMessage {
     Damage(HitBoxDamage),
     Heal(HitBoxHeal),
