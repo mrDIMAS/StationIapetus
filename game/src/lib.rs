@@ -223,6 +223,7 @@ impl Game {
                     ui.draw(),
                     Color::TRANSPARENT,
                     PixelKind::SRGBA8,
+                    context.resource_manager,
                 ));
             }
         }
@@ -572,6 +573,18 @@ impl Plugin for Game {
             .add::<HitBox>("HitBox");
 
         context.widget_constructors.add::<InventoryItem>();
+
+        context
+            .resource_manager
+            .state()
+            .constructors_container
+            .add::<custom_resource::CustomResource>();
+        context
+            .resource_manager
+            .state()
+            .loaders
+            .lock()
+            .set(custom_resource::CustomResourceLoader);
     }
 
     fn register_property_editors(&self) -> PropertyEditorDefinitionContainer {
@@ -781,5 +794,75 @@ impl Plugin for Game {
         self.menu.sync_to_model(ctx, true);
 
         Log::info("Level was loaded successfully!");
+    }
+}
+
+pub mod custom_resource {
+    use fyrox::asset::io::ResourceIo;
+    use fyrox::asset::loader::{BoxedLoaderFuture, LoaderPayload, ResourceLoader};
+    use fyrox::asset::state::LoadError;
+    use fyrox::asset::ResourceData;
+    use fyrox::core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*};
+    use std::error::Error;
+    use std::fs::File;
+    use std::io::Write;
+    use std::path::{Path, PathBuf};
+    use std::sync::Arc;
+
+    #[derive(Default, Debug, Clone, Visit, Reflect, TypeUuidProvider)]
+    // Every resource must provide a unique identifier, that is used for dynamic type
+    // casting, serialization, etc.
+    #[type_uuid(id = "15551157-651b-4f1d-a5fb-6874fbfe8637")]
+    pub struct CustomResource {
+        some_data: String,
+    }
+
+    impl ResourceData for CustomResource {
+        fn type_uuid(&self) -> Uuid {
+            <Self as TypeUuidProvider>::type_uuid()
+        }
+
+        fn save(&mut self, path: &Path) -> Result<(), Box<dyn Error>> {
+            File::create(path)?.write_all(self.some_data.as_bytes())?;
+            Ok(())
+        }
+
+        fn can_be_saved(&self) -> bool {
+            true
+        }
+
+        fn try_clone_box(&self) -> Option<Box<dyn ResourceData>> {
+            Some(Box::new(self.clone()))
+        }
+    }
+
+    pub struct CustomResourceLoader;
+
+    impl ResourceLoader for CustomResourceLoader {
+        fn extensions(&self) -> &[&str] {
+            // An array of extensions, supported by this loader. There could be any number of extensions
+            // since sometimes multiple extensions map to a single resource (for instance, jpg, png, bmp, are
+            // all images).
+            &["my_resource"]
+        }
+
+        fn data_type_uuid(&self) -> Uuid {
+            <CustomResource as TypeUuidProvider>::type_uuid()
+        }
+
+        fn load(&self, path: PathBuf, io: Arc<dyn ResourceIo>) -> BoxedLoaderFuture {
+            Box::pin(async move {
+                match io.load_file(&path).await {
+                    Ok(content) => {
+                        let my_resource = CustomResource {
+                            some_data: String::from_utf8(content).unwrap(),
+                        };
+
+                        Ok(LoaderPayload::new(my_resource))
+                    }
+                    Err(err) => Err(LoadError::new("Failed to load resource")),
+                }
+            })
+        }
     }
 }

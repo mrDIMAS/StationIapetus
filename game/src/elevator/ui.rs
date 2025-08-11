@@ -1,4 +1,5 @@
 use crate::{gui, MessageDirection, UiNode};
+use fyrox::asset::manager::ResourceManager;
 use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
@@ -61,13 +62,14 @@ impl CallButtonUi {
         while self.ui.poll_message().is_some() {}
     }
 
-    pub fn render(&mut self, renderer: &mut Renderer) {
+    pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
         Log::verify(renderer.render_ui_to_texture(
             self.render_target.clone(),
             self.ui.screen_size(),
             self.ui.draw(),
             Color::TRANSPARENT,
             PixelKind::SRGBA8,
+            resource_manager,
         ));
     }
 }

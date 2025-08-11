@@ -908,6 +908,7 @@ impl Player {
                     ui.draw(),
                     Color::TRANSPARENT,
                     PixelKind::SRGBA8,
+                    context.resource_manager,
                 ));
             }
         }

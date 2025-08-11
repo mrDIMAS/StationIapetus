@@ -1,4 +1,5 @@
 use crate::character::{CharacterMessage, CharacterMessageData};
+use fyrox::resource::model::Model;
 use fyrox::{
     core::{log::Log, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
     resource::model::{ModelResource, ModelResourceExtension},

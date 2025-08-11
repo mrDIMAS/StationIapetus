@@ -100,7 +100,7 @@ impl ScriptTrait for CallButton {
             ui.update(context.dt);
 
             if let GraphicsContext::Initialized(graphics_context) = context.graphics_context {
-                ui.render(&mut graphics_context.renderer);
+                ui.render(&mut graphics_context.renderer, context.resource_manager);
             }
         }
 

@@ -232,7 +232,7 @@ impl ScriptTrait for Door {
         if let Some(ui) = self.ui.as_mut() {
             ui.update(ctx.dt);
             if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
-                ui.render(&mut graphics_context.renderer);
+                ui.render(&mut graphics_context.renderer, ctx.resource_manager);
             }
         }
     }

@@ -8,17 +8,14 @@ use fyrox::{
         bundle::{RenderContext, RenderDataBundleStorage},
         cache::shader::{binding, property, PropertyGroup, RenderMaterial, RenderPassContainer},
         framework::{
-            buffer::BufferUsage,
             error::FrameworkError,
             framebuffer::{Attachment, GpuFrameBuffer},
-            geometry_buffer::GpuGeometryBuffer,
             gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind},
             server::GraphicsServer,
-            GeometryBufferExt,
         },
         make_viewport_matrix, RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
     },
-    scene::{mesh::surface::SurfaceData, node::Node, Scene},
+    scene::{node::Node, Scene},
 };
 use std::{
     any::TypeId,
@@ -35,7 +32,6 @@ pub struct HighlightEntry {
 
 pub struct HighlightRenderPass {
     framebuffer: GpuFrameBuffer,
-    quad: GpuGeometryBuffer,
     edge_detect_shader: RenderPassContainer,
     flat_shader: RenderPassContainer,
     pub scene_handle: Handle<Scene>,
@@ -54,7 +50,7 @@ impl HighlightRenderPass {
         let height = height.max(1);
 
         let depth_stencil = server
-            .create_2d_render_target(PixelKind::D24S8, width, height)
+            .create_2d_render_target("HighlightDepthStencil", PixelKind::D24S8, width, height)
             .unwrap();
 
         let frame_texture = server
@@ -74,12 +70,6 @@ impl HighlightRenderPass {
 
         Rc::new(RefCell::new(Self {
             framebuffer,
-            quad: GpuGeometryBuffer::from_surface_data(
-                &SurfaceData::make_unit_xy_quad(),
-                BufferUsage::StaticDraw,
-                server,
-            )
-            .unwrap(),
             edge_detect_shader: RenderPassContainer::from_str(
                 server,
                 include_str!("edge_detect.shader"),
@@ -195,7 +185,7 @@ impl SceneRenderPass for HighlightRenderPass {
                 1,
                 &ImmutableString::new("Primary"),
                 ctx.framebuffer,
-                &self.quad,
+                &ctx.renderer_resources.quad,
                 ctx.observer.viewport,
                 &material,
                 ctx.uniform_buffer_cache,

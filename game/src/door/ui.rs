@@ -1,4 +1,5 @@
 use crate::{control_scheme::ControlScheme, MessageDirection, UiNode};
+use fyrox::asset::manager::ResourceManager;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     graph::SceneGraph,
@@ -118,7 +119,7 @@ impl DoorUi {
         )
     }
 
-    pub fn render(&mut self, renderer: &mut Renderer) {
+    pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
         if self.need_render {
             Log::verify(renderer.render_ui_to_texture(
                 self.render_target.clone(),
@@ -126,6 +127,7 @@ impl DoorUi {
                 self.ui.draw(),
                 Color::TRANSPARENT,
                 PixelKind::SRGBA8,
+                resource_manager,
             ));
             self.need_render = false;
         }
