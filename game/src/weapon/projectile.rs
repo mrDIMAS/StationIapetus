@@ -128,19 +128,13 @@ pub struct Projectile {
 
     flesh_impact_effect: Option<ModelResource>,
 
-    #[reflect(
-        description = "A prefab that will be instantiated when the projectile is just appeared (spawned)."
-    )]
+    /// A prefab that will be instantiated when the projectile is just appeared (spawned).
     appear_effect: Option<ModelResource>,
 
-    #[reflect(
-        description = "Random prefab will be instantiated from the list when the projectile is just appeared (spawned)."
-    )]
+    /// Random prefab will be instantiated from the list when the projectile is just appeared (spawned).
     random_appear_effects: Vec<Option<ModelResource>>,
 
-    #[reflect(
-        description = "Limit lifetime of the projectile just one update frame. Useful for ray-based projectiles."
-    )]
+    /// Limit lifetime of the projectile just one update frame. Useful for ray-based projectiles.
     one_frame: bool,
 
     damage: Damage,

@@ -860,7 +860,7 @@ pub mod custom_resource {
 
                         Ok(LoaderPayload::new(my_resource))
                     }
-                    Err(err) => Err(LoadError::new("Failed to load resource")),
+                    Err(err) => Err(LoadError::new("Failed to load resource: {err}")),
                 }
             })
         }

@@ -70,9 +70,8 @@ pub struct Weapon {
     pub ammo_item: InheritableVariable<Option<ModelResource>>,
     pub shake_camera_on_shot: InheritableVariable<bool>,
 
-    #[reflect(
-        description = "A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort of muzzle flash."
-    )]
+    /// A list of VFX resources that will be randomly instantiated on shot. Usually it is some sort
+    /// of muzzle flash.
     shot_vfx: InheritableVariable<Vec<Option<ModelResource>>>,
 
     #[reflect(hidden)]

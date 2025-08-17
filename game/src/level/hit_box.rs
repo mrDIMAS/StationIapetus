@@ -87,24 +87,18 @@ pub struct HitBox {
     pub bone: InheritableVariable<Handle<Node>>,
     pub damage_factor: InheritableVariable<f32>,
     pub movement_speed_factor: InheritableVariable<f32>,
-    #[reflect(description = "An effect prefab that will be spawned by a non-melee hit.")]
+    /// An effect prefab that will be spawned by a non-melee hit.
     pub hit_prefab: InheritableVariable<Option<ModelResource>>,
-    #[reflect(description = "An effect prefab that will be spawned by a melee hit.")]
+    /// An effect prefab that will be spawned by a melee hit.
     pub melee_hit_prefab: InheritableVariable<Option<ModelResource>>,
-    #[reflect(
-        description = "A prefab that will be spawned behind the hit box at certain distance \
-        on hit (melee or not). Could be used for blood splatters."
-    )]
+    /// A prefab that will be spawned behind the hit box at certain distance on hit (melee or not).
+    /// Could be used for blood splatters.
     pub pierce_prefab: InheritableVariable<Option<ModelResource>>,
-    #[reflect(
-        description = "A prefab that will be spawned at the point of impact. Could be used for \
-        bullet holes or to add damage decals. It will also be attached to the hit box."
-    )]
+    /// A prefab that will be spawned at the point of impact. Could be used for bullet holes or to
+    /// add damage decals. It will also be attached to the hit box.
     pub damage_prefab: InheritableVariable<Option<ModelResource>>,
-    #[reflect(
-        description = "A prefab that will be spawned at the point of impact if the hit box is about \
-        to be destroyed. Could be used to spawn various visual effects."
-    )]
+    /// A prefab that will be spawned at the point of impact if the hit box is about to be destroyed.
+    /// Could be used to spawn various visual effects.
     pub destruction_prefab: InheritableVariable<Option<ModelResource>>,
     pub health: InheritableVariable<f32>,
     pub limb_type: InheritableVariable<LimbType>,

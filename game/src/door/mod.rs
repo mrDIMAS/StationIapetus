@@ -30,7 +30,7 @@ struct OpenRequest {
 #[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 #[visit(optional)]
 pub struct Door {
-    #[reflect(description = "An array of handles to meshes that represents interactive screens.")]
+    /// An array of handles to meshes that represents interactive screens.
     screens: InheritableVariable<Vec<Handle<Node>>>,
     open_sound: InheritableVariable<Handle<Node>>,
     close_sound: InheritableVariable<Handle<Node>>,
