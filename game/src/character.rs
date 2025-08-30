@@ -332,13 +332,9 @@ impl Character {
                     collider1
                 };
 
-                if scene
+                scene
                     .graph
-                    .try_get_script_of::<HitBox>(intersected_hit_box)
-                    .is_none()
-                {
-                    return None;
-                }
+                    .try_get_script_of::<HitBox>(intersected_hit_box)?;
 
                 if self.hit_boxes.contains(&intersected_hit_box) {
                     continue;

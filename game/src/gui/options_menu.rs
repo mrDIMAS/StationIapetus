@@ -34,7 +34,7 @@ use fyrox::{
         VerticalAlignment,
     },
     keyboard::PhysicalKey,
-    monitor::VideoMode,
+    monitor::VideoModeHandle,
     plugin::PluginContext,
     renderer::ShadowMapPrecision,
     window::Fullscreen,
@@ -103,7 +103,7 @@ fn make_tab_header(text: &str, font: FontResource, ctx: &mut BuildContext) -> Ha
 }
 
 fn make_video_mode_item(
-    video_mode: &VideoMode,
+    video_mode: &VideoModeHandle,
     font: FontResource,
     ctx: &mut BuildContext,
 ) -> Handle<UiNode> {
@@ -683,7 +683,7 @@ impl OptionsMenu {
         }
     }
 
-    fn video_mode_list(graphics_context: &InitializedGraphicsContext) -> Vec<VideoMode> {
+    fn video_mode_list(graphics_context: &InitializedGraphicsContext) -> Vec<VideoModeHandle> {
         if let Some(monitor) = graphics_context.window.current_monitor() {
             monitor
                 .video_modes()

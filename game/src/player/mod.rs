@@ -898,6 +898,7 @@ impl Player {
         if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
             let renderer = &mut graphics_context.renderer;
 
+            #[allow(clippy::single_element_loop)]
             for (rt, ui) in [(
                 self.inventory_gui.render_target.clone(),
                 &mut self.inventory_gui.ui,
