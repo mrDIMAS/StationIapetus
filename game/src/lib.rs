@@ -78,6 +78,7 @@ use fyrox::{
     dpi::LogicalSize,
     engine::GraphicsContext,
     event::{ElementState, Event, WindowEvent},
+    graphics::gpu_texture::PixelKind,
     gui::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
@@ -90,7 +91,6 @@ use fyrox::{
     },
     keyboard::KeyCode,
     plugin::{Plugin, PluginContext, PluginRegistrationContext},
-    renderer::framework::gpu_texture::PixelKind,
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
@@ -723,7 +723,12 @@ impl Plugin for Game {
         self.render_offscreen(&mut context);
     }
 
-    fn on_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
+    fn on_ui_message(
+        &mut self,
+        context: &mut PluginContext,
+        message: &UiMessage,
+        _ui_handle: Handle<UserInterface>,
+    ) {
         self.handle_ui_message(context, message);
     }
 

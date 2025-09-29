@@ -3,8 +3,9 @@ use fyrox::asset::manager::ResourceManager;
 use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
+    graphics::gpu_texture::PixelKind,
     gui::{text::TextMessage, UserInterface},
-    renderer::{framework::gpu_texture::PixelKind, Renderer},
+    renderer::Renderer,
     resource::texture::TextureResource,
 };
 

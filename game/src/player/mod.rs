@@ -37,8 +37,8 @@ use fyrox::{
     fxhash::FxHashMap,
     graph::SceneGraphNode,
     graph::{BaseSceneGraph, SceneGraph},
+    graphics::gpu_texture::PixelKind,
     keyboard::PhysicalKey,
-    renderer::framework::gpu_texture::PixelKind,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,

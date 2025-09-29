@@ -4,15 +4,15 @@ use fyrox::{
     core::{color::Color, pool::Handle, sstorage::ImmutableString},
     fxhash::FxHashMap,
     graph::SceneGraph,
+    graphics::{
+        error::FrameworkError,
+        framebuffer::{Attachment, GpuFrameBuffer},
+        gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind},
+        server::GraphicsServer,
+    },
     renderer::{
         bundle::{RenderContext, RenderDataBundleStorage},
         cache::shader::{binding, property, PropertyGroup, RenderMaterial, RenderPassContainer},
-        framework::{
-            error::FrameworkError,
-            framebuffer::{Attachment, GpuFrameBuffer},
-            gpu_texture::{GpuTextureDescriptor, GpuTextureKind, PixelKind},
-            server::GraphicsServer,
-        },
         make_viewport_matrix, RenderPassStatistics, SceneRenderPass, SceneRenderPassContext,
     },
     scene::{node::Node, Scene},
