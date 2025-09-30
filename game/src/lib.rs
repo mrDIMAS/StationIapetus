@@ -66,6 +66,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{
         color::Color,
@@ -78,7 +79,6 @@ use fyrox::{
     dpi::LogicalSize,
     engine::GraphicsContext,
     event::{ElementState, Event, WindowEvent},
-    graphics::gpu_texture::PixelKind,
     gui::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
@@ -217,14 +217,13 @@ impl Game {
                     &mut self.journal_display.ui,
                 ),
             ] {
-                Log::verify(renderer.render_ui_to_texture(
-                    rt,
-                    ui.screen_size(),
-                    ui.draw(),
-                    Color::TRANSPARENT,
-                    PixelKind::SRGBA8,
-                    context.resource_manager,
-                ));
+                ui.draw();
+                Log::verify(renderer.render_ui(UiRenderInfo {
+                    ui,
+                    render_target: Some(rt),
+                    clear_color: Color::TRANSPARENT,
+                    resource_manager: context.resource_manager,
+                }));
             }
         }
     }

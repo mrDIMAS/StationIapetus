@@ -5,7 +5,6 @@ use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     graph::SceneGraph,
-    graphics::gpu_texture::PixelKind,
     gui::{
         brush::Brush,
         message::UiMessage,
@@ -125,10 +124,10 @@ impl DoorUi {
 
     pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
         if self.need_render {
+            self.ui.draw();
             Log::verify(renderer.render_ui(UiRenderInfo {
+                ui: &self.ui,
                 render_target: Some(self.render_target.clone()),
-                screen_size: self.ui.screen_size(),
-                drawing_context: self.ui.draw(),
                 clear_color: Color::TRANSPARENT,
                 resource_manager,
             }));

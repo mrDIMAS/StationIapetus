@@ -18,6 +18,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -37,7 +38,6 @@ use fyrox::{
     fxhash::FxHashMap,
     graph::SceneGraphNode,
     graph::{BaseSceneGraph, SceneGraph},
-    graphics::gpu_texture::PixelKind,
     keyboard::PhysicalKey,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
@@ -903,14 +903,13 @@ impl Player {
                 self.inventory_gui.render_target.clone(),
                 &mut self.inventory_gui.ui,
             )] {
-                Log::verify(renderer.render_ui_to_texture(
-                    rt,
-                    ui.screen_size(),
-                    ui.draw(),
-                    Color::TRANSPARENT,
-                    PixelKind::SRGBA8,
-                    context.resource_manager,
-                ));
+                ui.draw();
+                Log::verify(renderer.render_ui(UiRenderInfo {
+                    ui,
+                    render_target: Some(rt),
+                    clear_color: Color::TRANSPARENT,
+                    resource_manager: context.resource_manager,
+                }));
             }
         }
     }
