@@ -1,5 +1,7 @@
 use crate::{control_scheme::ControlScheme, MessageDirection, UiNode};
 use fyrox::asset::manager::ResourceManager;
+use fyrox::gui::texture::TexturePixelKind;
+use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     graph::SceneGraph,
@@ -10,7 +12,7 @@ use fyrox::{
         widget::{Widget, WidgetMessage},
         UserInterface,
     },
-    renderer::{framework::gpu_texture::PixelKind, Renderer},
+    renderer::Renderer,
     resource::texture::{TextureResource, TextureResourceExtension},
 };
 
@@ -28,7 +30,8 @@ pub struct DoorUi {
 impl DoorUi {
     pub fn new(mut ui: UserInterface) -> Self {
         ui.set_screen_size(Vector2::new(160.0, 160.0));
-        let render_target = TextureResource::new_render_target(160, 160);
+        let render_target =
+            TextureResource::new_render_target_with_format(160, 160, TexturePixelKind::BGR8);
         Self {
             render_target,
             text: ui.find_handle_by_name_from_root("Text"),
@@ -121,14 +124,13 @@ impl DoorUi {
 
     pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
         if self.need_render {
-            Log::verify(renderer.render_ui_to_texture(
-                self.render_target.clone(),
-                self.ui.screen_size(),
-                self.ui.draw(),
-                Color::TRANSPARENT,
-                PixelKind::SRGBA8,
+            self.ui.draw();
+            Log::verify(renderer.render_ui(UiRenderInfo {
+                ui: &self.ui,
+                render_target: Some(self.render_target.clone()),
+                clear_color: Color::TRANSPARENT,
                 resource_manager,
-            ));
+            }));
             self.need_render = false;
         }
     }

@@ -1,10 +1,11 @@
 use crate::{gui, MessageDirection, UiNode};
 use fyrox::asset::manager::ResourceManager;
 use fyrox::graph::SceneGraph;
+use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{algebra::Vector2, color::Color, log::Log, pool::Handle},
     gui::{text::TextMessage, UserInterface},
-    renderer::{framework::gpu_texture::PixelKind, Renderer},
+    renderer::Renderer,
     resource::texture::TextureResource,
 };
 
@@ -63,13 +64,12 @@ impl CallButtonUi {
     }
 
     pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
-        Log::verify(renderer.render_ui_to_texture(
-            self.render_target.clone(),
-            self.ui.screen_size(),
-            self.ui.draw(),
-            Color::TRANSPARENT,
-            PixelKind::SRGBA8,
+        self.ui.draw();
+        Log::verify(renderer.render_ui(UiRenderInfo {
+            ui: &self.ui,
+            render_target: Some(self.render_target.clone()),
+            clear_color: Color::TRANSPARENT,
             resource_manager,
-        ));
+        }));
     }
 }

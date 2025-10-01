@@ -3,6 +3,7 @@
 //! is not much.
 
 use crate::{message::Message, MessageSender};
+use fyrox::gui::texture::TexturePixelKind;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     graph::BaseSceneGraph,
@@ -327,7 +328,11 @@ impl FinalScreen {
 }
 
 pub fn create_ui_render_target(width: f32, height: f32) -> TextureResource {
-    let render_target = TextureResource::new_render_target(width as u32, height as u32);
+    let render_target = TextureResource::new_render_target_with_format(
+        width as u32,
+        height as u32,
+        TexturePixelKind::SRGBA8,
+    );
     let mut texture = render_target.data_ref();
     texture.set_s_wrap_mode(TextureWrapMode::ClampToEdge);
     texture.set_t_wrap_mode(TextureWrapMode::ClampToEdge);

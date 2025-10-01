@@ -66,6 +66,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{
         color::Color,
@@ -90,7 +91,6 @@ use fyrox::{
     },
     keyboard::KeyCode,
     plugin::{Plugin, PluginContext, PluginRegistrationContext},
-    renderer::framework::gpu_texture::PixelKind,
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
@@ -217,14 +217,13 @@ impl Game {
                     &mut self.journal_display.ui,
                 ),
             ] {
-                Log::verify(renderer.render_ui_to_texture(
-                    rt,
-                    ui.screen_size(),
-                    ui.draw(),
-                    Color::TRANSPARENT,
-                    PixelKind::SRGBA8,
-                    context.resource_manager,
-                ));
+                ui.draw();
+                Log::verify(renderer.render_ui(UiRenderInfo {
+                    ui,
+                    render_target: Some(rt),
+                    clear_color: Color::TRANSPARENT,
+                    resource_manager: context.resource_manager,
+                }));
             }
         }
     }
@@ -723,7 +722,12 @@ impl Plugin for Game {
         self.render_offscreen(&mut context);
     }
 
-    fn on_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
+    fn on_ui_message(
+        &mut self,
+        context: &mut PluginContext,
+        message: &UiMessage,
+        _ui_handle: Handle<UserInterface>,
+    ) {
         self.handle_ui_message(context, message);
     }
 
