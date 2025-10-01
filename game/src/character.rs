@@ -147,7 +147,7 @@ impl Character {
     }
 
     pub fn has_ground_contact(&self, graph: &Graph) -> bool {
-        if let Some(collider) = graph.typed_ref(self.capsule_collider) {
+        if let Some(collider) = graph.try_get(self.capsule_collider) {
             for contact in collider.contacts(&graph.physics) {
                 for manifold in contact.manifolds.iter() {
                     if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
@@ -180,7 +180,7 @@ impl Character {
     }
 
     pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) {
-        if let Some(body) = graph.typed_mut(self.body) {
+        if let Some(body) = graph.try_get_mut(self.body) {
             body.local_transform_mut().set_position(position);
         }
     }

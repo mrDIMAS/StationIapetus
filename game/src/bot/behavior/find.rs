@@ -3,6 +3,7 @@ use crate::{
     character::{try_get_character_ref, Character},
     Game,
 };
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
@@ -10,7 +11,6 @@ use fyrox::{
         pool::Handle,
         visitor::prelude::*,
     },
-    graph::BaseSceneGraph,
     scene::{
         collider::{ColliderShape, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},

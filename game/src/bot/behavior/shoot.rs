@@ -4,9 +4,9 @@ use crate::{
     level::hit_box::LimbType,
     weapon::{weapon_ref, Weapon, WeaponMessage, WeaponMessageData},
 };
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{some_or_return, visitor::prelude::*},
-    graph::BaseSceneGraph,
     utils::behavior::{Behavior, Status},
 };
 

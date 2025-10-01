@@ -18,7 +18,7 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
-    graph::{BaseSceneGraph, SceneGraph, SceneGraphNode},
+    graph::{SceneGraph, SceneGraphNode},
     rand::seq::SliceRandom,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{

@@ -1,5 +1,5 @@
 use crate::Player;
-use fyrox::graph::BaseSceneGraph;
+use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},

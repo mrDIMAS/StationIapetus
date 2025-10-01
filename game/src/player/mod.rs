@@ -36,8 +36,8 @@ use fyrox::{
     engine::GraphicsContext,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashMap,
+    graph::SceneGraph,
     graph::SceneGraphNode,
-    graph::{BaseSceneGraph, SceneGraph},
     keyboard::PhysicalKey,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},

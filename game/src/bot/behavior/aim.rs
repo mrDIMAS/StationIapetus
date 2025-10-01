@@ -117,7 +117,7 @@ impl AimOnTarget {
         )
         .update(dt);
 
-        if let Some(body) = scene.graph.typed_mut(body) {
+        if let Some(body) = scene.graph.try_get_mut(body) {
             body.local_transform_mut()
                 .set_rotation(UnitQuaternion::from_axis_angle(
                     &Vector3::y_axis(),

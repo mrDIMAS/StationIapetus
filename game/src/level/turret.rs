@@ -2,7 +2,7 @@ use crate::{
     character::try_get_character_ref, sound::SoundManager, weapon::projectile::Projectile, Game,
     Player,
 };
-use fyrox::graph::SceneGraphNode;
+use fyrox::graph::{SceneGraph, SceneGraphNode};
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},

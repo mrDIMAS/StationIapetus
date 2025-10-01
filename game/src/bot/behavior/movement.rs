@@ -2,7 +2,7 @@ use crate::level::hit_box::HitBox;
 use crate::{bot::behavior::BehaviorContext, door::door_mut, utils::BodyImpactHandler, Game};
 use fyrox::core::pool::Handle;
 use fyrox::fxhash::FxHashSet;
-use fyrox::graph::BaseSceneGraph;
+use fyrox::graph::SceneGraph;
 use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
