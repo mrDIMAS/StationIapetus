@@ -1,4 +1,4 @@
-use crate::{control_scheme::ControlScheme, MessageDirection, UiNode};
+use crate::{control_scheme::ControlScheme, UiNode};
 use fyrox::asset::manager::ResourceManager;
 use fyrox::gui::texture::TexturePixelKind;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
@@ -91,7 +91,7 @@ impl DoorUi {
             widget,
             text,
             |w| w.text(),
-            |h, value| TextMessage::text(h, MessageDirection::ToWidget, value),
+            |h, value| UiMessage::for_widget(h, TextMessage::Text(value)),
         )
     }
 
@@ -100,7 +100,7 @@ impl DoorUi {
             widget,
             brush,
             |w| w.background(),
-            |h, value| WidgetMessage::background(h, MessageDirection::ToWidget, value.into()),
+            |h, value| UiMessage::for_widget(h, WidgetMessage::Background(value.into())),
         )
     }
 
@@ -109,7 +109,7 @@ impl DoorUi {
             widget,
             brush,
             |w| w.foreground(),
-            |h, value| WidgetMessage::foreground(h, MessageDirection::ToWidget, value.into()),
+            |h, value| UiMessage::for_widget(h, WidgetMessage::Foreground(value.into())),
         )
     }
 
@@ -118,7 +118,7 @@ impl DoorUi {
             widget,
             visibility,
             |w| w.visibility(),
-            |h, value| WidgetMessage::visibility(h, MessageDirection::ToWidget, value),
+            |h, value| UiMessage::for_widget(h, WidgetMessage::Visibility(value)),
         )
     }
 

@@ -1,4 +1,4 @@
-use crate::{gui, MessageDirection, UiNode};
+use crate::{gui, UiNode};
 use fyrox::asset::manager::ResourceManager;
 use fyrox::graph::SceneGraph;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
@@ -23,11 +23,7 @@ impl CallButtonUi {
 
     pub fn new(ui: UserInterface, floor: u32) -> Self {
         let floor_text = ui.find_handle_by_name_from_root("FloorText");
-        ui.send_message(TextMessage::text(
-            floor_text,
-            MessageDirection::ToWidget,
-            format!("Floor {floor}"),
-        ));
+        ui.send(floor_text, TextMessage::Text(format!("Floor {floor}")));
         Self {
             text: ui.find_handle_by_name_from_root("Text"),
             ui,
@@ -37,19 +33,11 @@ impl CallButtonUi {
     }
 
     pub fn set_text(&mut self, text: String) {
-        self.ui.send_message(TextMessage::text(
-            self.text,
-            MessageDirection::ToWidget,
-            text,
-        ));
+        self.ui.send(self.text, TextMessage::Text(text));
     }
 
     pub fn set_floor_text(&mut self, text: String) {
-        self.ui.send_message(TextMessage::text(
-            self.floor_text,
-            MessageDirection::ToWidget,
-            text,
-        ));
+        self.ui.send(self.floor_text, TextMessage::Text(text));
     }
 
     pub fn update(&mut self, delta: f32) {

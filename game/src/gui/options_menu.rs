@@ -630,19 +630,11 @@ impl OptionsMenu {
         let ui = &mut ctx.user_interfaces.first_mut();
 
         let sync_check_box = |handle: Handle<UiNode>, value: bool| {
-            ui.send_message(CheckBoxMessage::checked(
-                handle,
-                MessageDirection::ToWidget,
-                Some(value),
-            ));
+            ui.send(handle, CheckBoxMessage::Check(Some(value)));
         };
 
         let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
-            ui.send_message(ScrollBarMessage::value(
-                handle,
-                MessageDirection::ToWidget,
-                value,
-            ));
+            ui.send(handle, ScrollBarMessage::Value(value));
         };
 
         if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
@@ -674,11 +666,10 @@ impl OptionsMenu {
             .zip(config.controls.buttons().iter())
         {
             if let Some(button) = ui.node(*btn).cast::<Button>() {
-                ui.send_message(TextMessage::text(
+                ui.send(
                     *button.content,
-                    MessageDirection::ToWidget,
-                    def.button.name().to_owned(),
-                ));
+                    TextMessage::Text(def.button.name().to_owned()),
+                );
             }
         }
     }
@@ -711,11 +702,7 @@ impl OptionsMenu {
                 .map(|video_mode| make_video_mode_item(video_mode, self.font.clone(), ctx)),
         );
 
-        ui.send_message(DropdownListMessage::items(
-            self.video_mode,
-            MessageDirection::ToWidget,
-            modes,
-        ));
+        ui.send(self.video_mode, DropdownListMessage::Items(modes));
     }
 
     pub fn process_input_event(
@@ -768,11 +755,10 @@ impl OptionsMenu {
                         .node(self.control_scheme_buttons[active_control_button])
                         .cast::<Button>()
                     {
-                        ui.send_message(TextMessage::text(
+                        ui.send(
                             *button.content,
-                            MessageDirection::ToWidget,
-                            control_button.name().to_owned(),
-                        ));
+                            TextMessage::Text(control_button.name().to_owned()),
+                        );
                     }
 
                     config.controls.buttons_mut()[active_control_button].button = control_button;
@@ -814,7 +800,7 @@ impl OptionsMenu {
                     sender.send(Message::SetMusicVolume(*new_value));
                 }
             }
-        } else if let Some(DropdownListMessage::SelectionChanged(Some(index))) = message.data() {
+        } else if let Some(DropdownListMessage::Selection(Some(index))) = message.data() {
             if message.destination() == self.video_mode {
                 if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context
                 {
@@ -879,11 +865,10 @@ impl OptionsMenu {
                     let ui = context.user_interfaces.first();
 
                     if let Some(button) = ui.node(*button).cast::<Button>() {
-                        ui.send_message(TextMessage::text(
+                        ui.send(
                             *button.content,
-                            MessageDirection::ToWidget,
-                            "[WAITING INPUT]".to_owned(),
-                        ))
+                            TextMessage::Text("[WAITING INPUT]".to_owned()),
+                        )
                     }
 
                     self.active_control_button = Some(i);

@@ -6,6 +6,7 @@ use crate::{
     level::item::Item,
 };
 use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
+use fyrox::gui::message::MessageData;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
@@ -16,12 +17,11 @@ use fyrox::{
     gui::{
         border::BorderBuilder,
         brush::Brush,
-        define_constructor,
         draw::{CommandTexture, Draw, DrawingContext},
         formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        message::{ButtonState, MessageDirection, OsEvent, UiMessage},
+        message::{ButtonState, OsEvent, UiMessage},
         scroll_viewer::{ScrollViewerBuilder, ScrollViewerMessage},
         stack_panel::StackPanelBuilder,
         text::{TextBuilder, TextMessage},
@@ -97,11 +97,9 @@ impl Control for InventoryItem {
                             Brush::Solid(Color::opaque(255, 255, 255))
                         });
                     }
-                    InventoryItemMessage::StackCount(count) => ui.send_message(TextMessage::text(
-                        self.count,
-                        MessageDirection::ToWidget,
-                        format!("x{}", count),
-                    )),
+                    InventoryItemMessage::StackCount(count) => {
+                        ui.send(self.count, TextMessage::Text(format!("x{}", count)))
+                    }
                 }
             }
         }
@@ -113,11 +111,7 @@ pub enum InventoryItemMessage {
     Select(bool),
     StackCount(u32),
 }
-
-impl InventoryItemMessage {
-    define_constructor!(InventoryItemMessage:Select => fn select(bool), layout: false);
-    define_constructor!(InventoryItemMessage:StackCount => fn stack_count(u32), layout: false);
-}
+impl MessageData for InventoryItemMessage {}
 
 impl Deref for InventoryItem {
     type Target = Widget;
@@ -397,17 +391,11 @@ impl InventoryInterface {
             }
 
             if closest.is_some() {
-                self.ui.send_message(InventoryItemMessage::select(
-                    closest,
-                    MessageDirection::ToWidget,
-                    true,
-                ));
-
-                self.ui.send_message(ScrollViewerMessage::bring_into_view(
+                self.ui.send(closest, InventoryItemMessage::Select(true));
+                self.ui.send(
                     self.scroll_viewer,
-                    MessageDirection::ToWidget,
-                    closest,
-                ));
+                    ScrollViewerMessage::BringIntoView(closest),
+                );
             }
         }
     }
@@ -514,8 +502,7 @@ impl InventoryInterface {
             let item_view = item_views[i];
             let item_model = &self.item_model_of(item_view).unwrap();
             if !inventory.has_item(item_model) {
-                self.ui
-                    .send_message(WidgetMessage::remove(item_view, MessageDirection::ToWidget));
+                self.ui.send(item_view, WidgetMessage::Remove);
                 item_views.remove(i);
             }
         }
@@ -525,11 +512,8 @@ impl InventoryInterface {
                 .iter()
                 .find(|item_view| self.item_model_of(**item_view) == entry.resource)
             {
-                self.ui.send_message(InventoryItemMessage::stack_count(
-                    *item_view,
-                    MessageDirection::ToWidget,
-                    entry.amount,
-                ))
+                self.ui
+                    .send(*item_view, InventoryItemMessage::StackCount(entry.amount))
             } else if let Some(resource) = entry.resource.as_ref() {
                 let widget = InventoryItemBuilder::new(
                     WidgetBuilder::new()
@@ -540,11 +524,8 @@ impl InventoryInterface {
                 .with_count(entry.amount as usize)
                 .build(resource, &mut self.ui.build_ctx());
 
-                self.ui.send_message(WidgetMessage::link(
-                    widget,
-                    MessageDirection::ToWidget,
-                    self.items_panel,
-                ));
+                self.ui
+                    .send(widget, WidgetMessage::LinkWith(self.items_panel));
 
                 item_views.push(widget);
             }
@@ -558,21 +539,17 @@ impl InventoryInterface {
                         // Deselect every other item.
                         for &item_handle in item_views.iter() {
                             if item_handle != message.destination() {
-                                self.ui.send_message(InventoryItemMessage::select(
-                                    item_handle,
-                                    MessageDirection::ToWidget,
-                                    false,
-                                ));
+                                self.ui
+                                    .send(item_handle, InventoryItemMessage::Select(false));
                             }
                         }
 
                         Item::from_resource(&item.item, |item| {
                             if let Some(item) = item {
-                                self.ui.send_message(TextMessage::text(
+                                self.ui.send(
                                     self.item_description,
-                                    MessageDirection::ToWidget,
-                                    item.description.deref().clone(),
-                                ));
+                                    TextMessage::Text(item.description.deref().clone()),
+                                );
                             }
                         });
                     } else {

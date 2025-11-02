@@ -187,11 +187,7 @@ impl JournalDisplay {
                 .build(&mut self.ui.build_ctx())
             })
             .collect::<Vec<_>>();
-        self.ui.send_message(ListViewMessage::items(
-            self.messages,
-            MessageDirection::ToWidget,
-            items,
-        ));
+        self.ui.send(self.messages, ListViewMessage::Items(items));
     }
 
     pub fn process_os_event(&mut self, os_event: &OsEvent, control_scheme: &ControlScheme) {
@@ -205,11 +201,12 @@ impl JournalDisplay {
                             None => Some(0),
                             Some(n) => Some(n.saturating_sub(1)),
                         };
-                        self.ui.send_message(ListViewMessage::selection(
+                        self.ui.send(
                             self.messages,
-                            MessageDirection::ToWidget,
-                            self.current_message.map(|n| vec![n]).unwrap_or_default(),
-                        ));
+                            ListViewMessage::Selection(
+                                self.current_message.map(|n| vec![n]).unwrap_or_default(),
+                            ),
+                        );
                     }
                 }
                 if let ControlButton::Key(key) = control_scheme.cursor_down.button {
@@ -218,11 +215,12 @@ impl JournalDisplay {
                             None => Some(0),
                             Some(n) => Some(n + 1),
                         };
-                        self.ui.send_message(ListViewMessage::selection(
+                        self.ui.send(
                             self.messages,
-                            MessageDirection::ToWidget,
-                            self.current_message.map(|n| vec![n]).unwrap_or_default(),
-                        ));
+                            ListViewMessage::Selection(
+                                self.current_message.map(|n| vec![n]).unwrap_or_default(),
+                            ),
+                        );
                     }
                 }
             }
@@ -237,16 +235,15 @@ impl JournalDisplay {
         );
 
         while let Some(message) = self.ui.poll_message() {
-            if let Some(ListViewMessage::SelectionChanged(value)) = message.data() {
+            if let Some(ListViewMessage::Selection(value)) = message.data() {
                 if message.direction() == MessageDirection::FromWidget {
                     if let Some(entry) =
                         value.first().cloned().and_then(|n| journal.messages.get(n))
                     {
-                        self.ui.send_message(TextMessage::text(
+                        self.ui.send(
                             self.message_text,
-                            MessageDirection::ToWidget,
-                            entry.get_definition().text.clone(),
-                        ));
+                            TextMessage::Text(entry.get_definition().text.clone()),
+                        );
                     }
                 }
             }

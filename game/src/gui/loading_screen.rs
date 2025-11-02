@@ -2,7 +2,6 @@ use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     gui::{
         grid::{Column, GridBuilder, Row},
-        message::MessageDirection,
         progress_bar::{ProgressBarBuilder, ProgressBarMessage},
         text::TextBuilder,
         widget::WidgetBuilder,
@@ -56,23 +55,11 @@ impl LoadingScreen {
     }
 
     pub fn resize(&self, ui: &UserInterface, width: f32, height: f32) {
-        ui.send_message(WidgetMessage::width(
-            self.root,
-            MessageDirection::ToWidget,
-            width,
-        ));
-        ui.send_message(WidgetMessage::height(
-            self.root,
-            MessageDirection::ToWidget,
-            height,
-        ));
+        ui.send(self.root, WidgetMessage::Width(width));
+        ui.send(self.root, WidgetMessage::Height(height));
     }
 
     pub fn set_progress(&self, ui: &UserInterface, progress: f32) {
-        ui.send_message(ProgressBarMessage::progress(
-            self.progress_bar,
-            MessageDirection::ToWidget,
-            progress,
-        ));
+        ui.send(self.progress_bar, ProgressBarMessage::Progress(progress));
     }
 }

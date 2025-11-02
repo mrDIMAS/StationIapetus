@@ -171,14 +171,13 @@ impl SaveLoadDialog {
             .with_content(content)
             .build(ctx);
 
-        ctx.sender()
-            .send(WindowMessage::open_modal(
-                window,
-                MessageDirection::ToWidget,
-                true,
-                true,
-            ))
-            .unwrap();
+        ctx.inner().send(
+            window,
+            WindowMessage::OpenModal {
+                center: true,
+                focus_content: true,
+            },
+        );
 
         Self {
             window,
@@ -231,18 +230,12 @@ impl SaveLoadDialog {
                 }
                 close = true;
             } else if message.destination() == self.cancel {
-                ui.send_message(WindowMessage::close(
-                    self.window,
-                    MessageDirection::ToWidget,
-                ));
+                ui.send(self.window, WindowMessage::Close);
                 close = true;
             }
 
             if close {
-                ui.send_message(WindowMessage::close(
-                    self.window,
-                    MessageDirection::ToWidget,
-                ));
+                ui.send(self.window, WindowMessage::Close);
             }
         } else if let Some(TextMessage::Text(text)) = message.data() {
             if message.destination() == self.name
@@ -251,14 +244,13 @@ impl SaveLoadDialog {
                 self.file_stem.clone_from(text);
 
                 if matches!(self.mode, Mode::Save) {
-                    ui.send_message(WidgetMessage::enabled(
+                    ui.send(
                         self.confirm,
-                        MessageDirection::ToWidget,
-                        is_file_stem_valid(&self.file_stem),
-                    ));
+                        WidgetMessage::Enabled(is_file_stem_valid(&self.file_stem)),
+                    );
                 }
             }
-        } else if let Some(ListViewMessage::SelectionChanged(index)) = message.data() {
+        } else if let Some(ListViewMessage::Selection(index)) = message.data() {
             if message.destination() == self.saved_games
                 && message.direction() == MessageDirection::FromWidget
             {
@@ -271,18 +263,15 @@ impl SaveLoadDialog {
                 {
                     self.file_stem = file_stem.to_string_lossy().to_string();
 
-                    ui.send_message(TextMessage::text(
-                        self.name,
-                        MessageDirection::ToWidget,
-                        self.file_stem.clone(),
-                    ));
+                    ui.send(self.name, TextMessage::Text(self.file_stem.clone()));
                 }
 
-                ui.send_message(WidgetMessage::enabled(
+                ui.send(
                     self.confirm,
-                    MessageDirection::ToWidget,
-                    self.selected_entry.is_some() && is_file_stem_valid(&self.file_stem),
-                ));
+                    WidgetMessage::Enabled(
+                        self.selected_entry.is_some() && is_file_stem_valid(&self.file_stem),
+                    ),
+                );
             }
         }
 
@@ -290,9 +279,6 @@ impl SaveLoadDialog {
     }
 
     fn destroy(self, ui: &mut UserInterface) {
-        ui.send_message(WidgetMessage::remove(
-            self.window,
-            MessageDirection::ToWidget,
-        ));
+        ui.send(self.window, WidgetMessage::Remove);
     }
 }

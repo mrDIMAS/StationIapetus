@@ -15,7 +15,7 @@ use fyrox::{
         core::color::Color,
         font::FontResource,
         grid::{Column, GridBuilder, Row},
-        message::{MessageDirection, UiMessage},
+        message::UiMessage,
         scroll_bar::ScrollBarBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
@@ -185,16 +185,8 @@ impl DeathScreen {
     }
 
     pub fn resize(&self, ui: &UserInterface, width: f32, height: f32) {
-        ui.send_message(WidgetMessage::width(
-            self.root,
-            MessageDirection::ToWidget,
-            width,
-        ));
-        ui.send_message(WidgetMessage::height(
-            self.root,
-            MessageDirection::ToWidget,
-            height,
-        ));
+        ui.send(self.root, WidgetMessage::Width(width));
+        ui.send(self.root, WidgetMessage::Height(height));
     }
 
     pub fn handle_ui_message(&mut self, message: &UiMessage, sender: &MessageSender) {
@@ -211,11 +203,7 @@ impl DeathScreen {
     }
 
     pub fn set_visible(&self, ui: &UserInterface, state: bool) {
-        ui.send_message(WidgetMessage::visibility(
-            self.root,
-            MessageDirection::ToWidget,
-            state,
-        ));
+        ui.send(self.root, WidgetMessage::Visibility(state));
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {
@@ -315,11 +303,7 @@ impl FinalScreen {
     }
 
     pub fn set_visible(&self, ui: &UserInterface, state: bool) {
-        ui.send_message(WidgetMessage::visibility(
-            self.root,
-            MessageDirection::ToWidget,
-            state,
-        ));
+        ui.send(self.root, WidgetMessage::Visibility(state));
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {

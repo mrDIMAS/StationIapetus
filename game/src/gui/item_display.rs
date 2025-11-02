@@ -7,7 +7,6 @@ use fyrox::{
         font::FontResource,
         grid::{Column, GridBuilder, Row},
         image::{ImageBuilder, ImageMessage},
-        message::MessageDirection,
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
         HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
@@ -119,25 +118,24 @@ impl ItemDisplay {
 
             Item::from_resource(&item, |item| {
                 if let Some(item_script) = item {
-                    self.ui.send_message(TextMessage::text(
+                    self.ui.send(
                         self.item_name,
-                        MessageDirection::ToWidget,
-                        format!("{}-{}", *item_script.name, count),
-                    ));
-
-                    self.ui.send_message(ImageMessage::texture(
+                        TextMessage::Text(format!("{}-{}", *item_script.name, count)),
+                    );
+                    self.ui.send(
                         self.item_image,
-                        MessageDirection::ToWidget,
-                        item_script.preview.deref().clone(),
-                    ));
+                        ImageMessage::Texture(item_script.preview.deref().clone()),
+                    );
                 }
             });
 
-            self.ui.send_message(TextMessage::text(
+            self.ui.send(
                 self.action_text,
-                MessageDirection::ToWidget,
-                format!("[{}] - Pickup", control_scheme.action.button.name()),
-            ));
+                TextMessage::Text(format!(
+                    "[{}] - Pickup",
+                    control_scheme.action.button.name()
+                )),
+            );
         }
     }
 

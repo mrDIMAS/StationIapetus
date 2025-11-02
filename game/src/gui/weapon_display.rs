@@ -7,7 +7,6 @@ use fyrox::{
         font::FontResource,
         grid::{Column, GridBuilder, Row},
         image::ImageBuilder,
-        message::MessageDirection,
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
         UiNode, UserInterface, VerticalAlignment,
@@ -122,23 +121,19 @@ impl WeaponDisplay {
             0
         };
 
-        self.ui.send_message(TextMessage::text(
+        self.ui.send(
             self.ammo,
-            MessageDirection::ToWidget,
-            if ammo == u32::MAX {
+            TextMessage::Text(if ammo == u32::MAX {
                 "INF".to_string()
             } else {
                 format!("{ammo}")
-            },
-        ));
+            }),
+        );
 
         if let Some(grenade_item) = player.grenade_item.as_ref() {
             let grenades = player.inventory().item_count(grenade_item);
-            self.ui.send_message(TextMessage::text(
-                self.grenades,
-                MessageDirection::ToWidget,
-                format!("{grenades}"),
-            ));
+            self.ui
+                .send(self.grenades, TextMessage::Text(format!("{grenades}")));
         }
     }
 

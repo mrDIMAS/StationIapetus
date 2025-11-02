@@ -13,7 +13,7 @@ use fyrox::{
         border::BorderBuilder,
         button::{ButtonBuilder, ButtonMessage},
         font::FontResource,
-        message::{MessageDirection, UiMessage},
+        message::UiMessage,
         screen::ScreenBuilder,
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
@@ -200,16 +200,9 @@ impl Menu {
             .enabled
             .set_value_silent(visible);
 
-        ui.send_message(WidgetMessage::visibility(
-            self.root,
-            MessageDirection::ToWidget,
-            visible,
-        ));
+        ui.send(self.root, WidgetMessage::Visibility(visible));
         if !visible {
-            ui.send_message(WindowMessage::close(
-                self.options_menu.window,
-                MessageDirection::ToWidget,
-            ));
+            ui.send(self.options_menu.window, WindowMessage::Close);
         }
     }
 
@@ -237,12 +230,8 @@ impl Menu {
 
     pub fn sync_to_model(&mut self, ctx: &mut PluginContext, level_loaded: bool) {
         ctx.user_interfaces
-            .first_mut()
-            .send_message(WidgetMessage::enabled(
-                self.btn_save_game,
-                MessageDirection::ToWidget,
-                level_loaded,
-            ));
+            .first()
+            .send(self.btn_save_game, WidgetMessage::Enabled(level_loaded));
     }
 
     pub fn handle_ui_message(
@@ -275,17 +264,15 @@ impl Menu {
                 let is_visible = ui.node(self.options_menu.window).visibility();
 
                 if is_visible {
-                    ui.send_message(WindowMessage::close(
-                        self.options_menu.window,
-                        MessageDirection::ToWidget,
-                    ));
+                    ui.send(self.options_menu.window, WindowMessage::Close);
                 } else {
-                    ui.send_message(WindowMessage::open(
+                    ui.send(
                         self.options_menu.window,
-                        MessageDirection::ToWidget,
-                        true,
-                        true,
-                    ));
+                        WindowMessage::Open {
+                            focus_content: true,
+                            center: true,
+                        },
+                    );
                 }
             }
         }

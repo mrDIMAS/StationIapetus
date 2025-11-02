@@ -457,19 +457,17 @@ impl Game {
                     .unwrap();
                 }
 
-                ui.send_message(TextMessage::text(
+                ui.send(
                     self.debug_text,
-                    MessageDirection::ToWidget,
-                    self.debug_string.clone(),
-                ));
+                    TextMessage::Text(self.debug_string.clone()),
+                );
             }
         }
 
-        ui.send_message(WidgetMessage::visibility(
+        ui.send(
             self.debug_text,
-            MessageDirection::ToWidget,
-            self.config.show_debug_info,
-        ));
+            WidgetMessage::Visibility(self.config.show_debug_info),
+        );
     }
 
     fn process_dispatched_event(&mut self, event: &Event<()>) {
@@ -737,11 +735,7 @@ impl Plugin for Game {
         self.death_screen.set_visible(ui, false);
         self.final_screen.set_visible(ui, false);
 
-        ui.send_message(WidgetMessage::visibility(
-            self.loading_screen.root,
-            MessageDirection::ToWidget,
-            true,
-        ));
+        ui.send(self.loading_screen.root, WidgetMessage::Visibility(true));
 
         self.menu.set_visible(ctx, false);
     }
@@ -778,11 +772,7 @@ impl Plugin for Game {
         self.set_menu_visible(false, ctx);
         ctx.user_interfaces
             .first()
-            .send_message(WidgetMessage::visibility(
-                self.loading_screen.root,
-                MessageDirection::ToWidget,
-                false,
-            ));
+            .send(self.loading_screen.root, WidgetMessage::Visibility(false));
         self.menu.sync_to_model(ctx, true);
 
         Log::info("Level was loaded successfully!");
