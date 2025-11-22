@@ -903,7 +903,6 @@ impl Player {
                 self.inventory_gui.render_target.clone(),
                 &mut self.inventory_gui.ui,
             )] {
-                ui.draw();
                 Log::verify(renderer.render_ui(UiRenderInfo {
                     ui,
                     render_target: Some(rt),

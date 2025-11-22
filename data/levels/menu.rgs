@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -327,38 +327,6 @@ __ROOT__[]
 							{
 								NodeData[]
 								{
-									Material[Flags<u8:1>]
-									{
-										Value[Uuid<uuid:54a1d061-596a-4b66-8e13-d716a8422977>]
-										{
-											Embedded[Id<u64:1>]
-											{
-												ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-												{
-													Data[]
-													{
-														Shader[Uuid<uuid:a135826a-4c1b-46d5-ba1f-0c9a226aa52c>]{}
-														ResourceBindings[Count<u32:1>]
-														{
-															Item0[Key<str:"diffuseTexture">]
-															{
-																Value[Id<u32:0>]
-																{
-																	0[]
-																	{
-																		Value[IsSome<u8:1>]
-																		{
-																			Data[Uuid<uuid:26ee000a-6888-4c73-a123-7ced24637b2f>]{}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
-											}
-										}
-									}
 									Base[Name<str:"Sun">IsResourceInstance<bool:false>InstanceId<uuid:17435052-655f-43c2-aa75-e1bd0c8b88dd>]
 									{
 										Transform[]
@@ -401,6 +369,42 @@ __ROOT__[]
 										RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
 										Scripts[Length<u32:0>]{}
 									}
+									UvRect[Flags<u8:1>]
+									{
+										Value[X<f32:0>Y<f32:0>W<f32:1>H<f32:1>]{}
+									}
+									Material[Flags<u8:1>]
+									{
+										Value[Uuid<uuid:54a1d061-596a-4b66-8e13-d716a8422977>]
+										{
+											Embedded[Id<u64:1>]
+											{
+												ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+												{
+													Data[]
+													{
+														Shader[Uuid<uuid:a135826a-4c1b-46d5-ba1f-0c9a226aa52c>]{}
+														ResourceBindings[Count<u32:1>]
+														{
+															Item0[Key<str:"diffuseTexture">]
+															{
+																Value[Id<u32:0>]
+																{
+																	0[]
+																	{
+																		Value[IsSome<u8:1>]
+																		{
+																			Data[Uuid<uuid:26ee000a-6888-4c73-a123-7ced24637b2f>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+											}
+										}
+									}
 									Color[Flags<u8:1>]
 									{
 										Value[R<u8:255>G<u8:244>B<u8:165>A<u8:255>]{}
@@ -409,10 +413,6 @@ __ROOT__[]
 									Rotation[Value<f32:0>Flags<u8:1>]{}
 									FlipX[Value<bool:false>Flags<u8:1>]{}
 									FlipY[Value<bool:false>Flags<u8:1>]{}
-									UvRect[Flags<u8:1>]
-									{
-										Value[X<f32:0>Y<f32:0>W<f32:1>H<f32:1>]{}
-									}
 								}
 							}
 						}
@@ -779,7 +779,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:-1; 0; 0; 0; 1; 0; 0; 0; 1>Position<vec3f32:-8.021; 0; -50.548>]{}
+								Listener[Basis<mat3:0.069148324; -0.0000000018626451; 0.9976063; 0.35143104; 0.93589675; -0.024359176; 0.9336566; -0.35227424; -0.0647157>Position<vec3f32:-2.8607335; 1.8319588; -4.8368573>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}
@@ -842,6 +842,17 @@ __ROOT__[]
 			Lightmap[IsSome<u8:0>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
+		RenderingOptions[Flags<u8:1>]
+		{
+			Value[]
+			{
+				RenderTarget[IsSome<u8:0>]{}
+				ClearColor[IsSome<u8:0>]{}
+				PolygonRasterizationMode[Id<u32:2>]{}
+				AmbientLightingColor[R<u8:100>G<u8:100>B<u8:100>A<u8:255>]{}
+				EnvironmentLightingSource[Id<u32:0>]{}
+			}
+		}
 		SkyBox[Flags<u8:1>]
 		{
 			Value[IsSome<u8:1>]
@@ -850,27 +861,27 @@ __ROOT__[]
 				{
 					Front[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:f8d4519b-2947-4c83-9aa5-800a70ae918e>]{}
+						Data[Uuid<uuid:7f5c393b-125a-44bb-9f36-caa255415430>]{}
 					}
 					Back[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:28676705-58bd-440f-b0aa-ce42cf95be79>]{}
+						Data[Uuid<uuid:80100edc-d388-4c03-9b6d-e6e30a237d30>]{}
 					}
 					Left[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:1725b779-7633-477a-a7b0-995c079c3202>]{}
+						Data[Uuid<uuid:114f86cb-ec5d-45d6-b305-c40881a2131f>]{}
 					}
 					Right[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:5f74865a-3eae-4bff-8743-b9d1f7bb3c59>]{}
+						Data[Uuid<uuid:ba9c19f6-8cc8-432a-97ca-404ea9dcb40f>]{}
 					}
 					Top[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:03e38da7-53d1-48c0-87f8-2baf9869d61d>]{}
+						Data[Uuid<uuid:a3820a56-2267-4333-b99c-9fa81560c7b1>]{}
 					}
 					Bottom[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:01684dc1-34b2-48b3-b8c2-30a7718cb9e7>]{}
+						Data[Uuid<uuid:20cd0ae8-3105-4e84-84f1-c20ba6a3cd8b>]{}
 					}
 				}
 			}

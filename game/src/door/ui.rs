@@ -124,7 +124,6 @@ impl DoorUi {
 
     pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
         if self.need_render {
-            self.ui.draw();
             Log::verify(renderer.render_ui(UiRenderInfo {
                 ui: &self.ui,
                 render_target: Some(self.render_target.clone()),

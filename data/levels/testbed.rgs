@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -8,7 +8,7 @@ __ROOT__[]
 			Root[Index<u32:0>Generation<u32:1>]{}
 			Pool[]
 			{
-				Records[Length<u32:365>]
+				Records[Length<u32:367>]
 				{
 					Item0[Generation<u32:1>]
 					{
@@ -32,7 +32,7 @@ __ROOT__[]
 									}
 									Visibility[Value<bool:true>Flags<u8:1>]{}
 									Parent[Index<u32:0>Generation<u32:0>]{}
-									Children[Length<u32:70>]
+									Children[Length<u32:72>]
 									{
 										Item0[Index<u32:1>Generation<u32:1>]{}
 										Item1[Index<u32:2>Generation<u32:1>]{}
@@ -104,6 +104,8 @@ __ROOT__[]
 										Item67[Index<u32:356>Generation<u32:1>]{}
 										Item68[Index<u32:359>Generation<u32:1>]{}
 										Item69[Index<u32:362>Generation<u32:1>]{}
+										Item70[Index<u32:365>Generation<u32:1>]{}
+										Item71[Index<u32:366>Generation<u32:1>]{}
 									}
 									Resource[IsSome<u8:0>]{}
 									Lifetime[Flags<u8:1>]
@@ -551,149 +553,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:470fd018-abba-4988-a42e-dce8df3b8efd>]
-													{
-														Embedded[Id<u64:1>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:0>B<u8:0>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:e618c482-c149-498b-ad1f-d987ad959ed0>]
 													{
-														Embedded[Id<u64:2>]
+														Embedded[Id<u64:1>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -860,6 +724,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:470fd018-abba-4988-a42e-dce8df3b8efd>]
+													{
+														Embedded[Id<u64:2>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:0>B<u8:0>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -947,149 +949,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:840cda81-91bf-45db-b3b3-a0554f866b7a>]
-													{
-														Embedded[Id<u64:3>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:0>B<u8:0>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:221cca34-3b6c-48b7-9146-4a5170e71d02>]
 													{
-														Embedded[Id<u64:4>]
+														Embedded[Id<u64:3>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -1256,6 +1120,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:840cda81-91bf-45db-b3b3-a0554f866b7a>]
+													{
+														Embedded[Id<u64:4>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:0>B<u8:0>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -1343,149 +1345,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:357bbce8-9313-439f-a1d5-b5053b30d8a2>]
-													{
-														Embedded[Id<u64:5>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:e67266ba-63c8-4886-8e6c-85e667f8ff53>]
 													{
-														Embedded[Id<u64:6>]
+														Embedded[Id<u64:5>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -1652,6 +1516,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:357bbce8-9313-439f-a1d5-b5053b30d8a2>]
+													{
+														Embedded[Id<u64:6>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -1739,149 +1741,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:9e21a314-3f8d-4b1a-9c8f-2bd16c7aaa3b>]
-													{
-														Embedded[Id<u64:7>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:39b95a9a-3208-4552-bee5-e6338eac27c7>]
 													{
-														Embedded[Id<u64:8>]
+														Embedded[Id<u64:7>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -2048,6 +1912,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:9e21a314-3f8d-4b1a-9c8f-2bd16c7aaa3b>]
+													{
+														Embedded[Id<u64:8>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -2307,152 +2309,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:22c83ff9-0b30-42ee-b06d-0037d9b95dc2>]
-													{
-														Embedded[Id<u64:9>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:1>]
-																					{
-																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
-																					}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:0bdfdc2a-993a-434c-8c2e-819dfa3c3017>]
 													{
-														Embedded[Id<u64:10>]
+														Embedded[Id<u64:9>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -2619,6 +2480,147 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:22c83ff9-0b30-42ee-b06d-0037d9b95dc2>]
+													{
+														Embedded[Id<u64:10>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:1>]
+																					{
+																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
+																					}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -2878,152 +2880,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
-													{
-														Embedded[Id<u64:11>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:1>]
-																					{
-																						Data[Uuid<uuid:8f3beee8-3525-4ebe-a1b3-919602aabf3e>]{}
-																					}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
-														Embedded[Id<u64:12>]
+														Embedded[Id<u64:11>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -3190,6 +3051,147 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													{
+														Embedded[Id<u64:12>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:1>]
+																					{
+																						Data[Uuid<uuid:8f3beee8-3525-4ebe-a1b3-919602aabf3e>]{}
+																					}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -3449,152 +3451,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:7f1bb84f-c57c-4a80-b397-fa38e6bac20e>]
-													{
-														Embedded[Id<u64:13>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:1>]
-																					{
-																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
-																					}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:65f69003-2f32-440d-a0ee-915df69826be>]
 													{
-														Embedded[Id<u64:14>]
+														Embedded[Id<u64:13>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -3761,6 +3622,147 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:7f1bb84f-c57c-4a80-b397-fa38e6bac20e>]
+													{
+														Embedded[Id<u64:14>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:1>]
+																					{
+																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
+																					}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -4020,149 +4022,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:1ea7d1bc-07c5-481c-81d3-01a68f530c85>]
-													{
-														Embedded[Id<u64:15>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:4aed01a5-076f-4d4c-a858-28362a2d9a83>]
 													{
-														Embedded[Id<u64:16>]
+														Embedded[Id<u64:15>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -4329,6 +4193,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:1ea7d1bc-07c5-481c-81d3-01a68f530c85>]
+													{
+														Embedded[Id<u64:16>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -4885,149 +4887,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:b57d5bb4-0ecc-44f7-8d15-ca9457de7a8d>]
-													{
-														Embedded[Id<u64:17>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:f0f59aa5-e2ee-44d3-816f-a896e4886dca>]
 													{
-														Embedded[Id<u64:18>]
+														Embedded[Id<u64:17>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -5194,6 +5058,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:b57d5bb4-0ecc-44f7-8d15-ca9457de7a8d>]
+													{
+														Embedded[Id<u64:18>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -5453,149 +5455,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:21743058-6398-4577-a4b1-99a2d9c5b21c>]
-													{
-														Embedded[Id<u64:19>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:92ee18a6-0417-401c-a92c-862e9810e834>]
 													{
-														Embedded[Id<u64:20>]
+														Embedded[Id<u64:19>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -5762,6 +5626,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:21743058-6398-4577-a4b1-99a2d9c5b21c>]
+													{
+														Embedded[Id<u64:20>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -6021,152 +6023,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:3e424cb0-fe20-4130-b5b8-ad599ff44373>]
-													{
-														Embedded[Id<u64:21>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:1>]
-																					{
-																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
-																					}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																						Item5[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:94bb2fc1-f88c-403f-9294-1ec72dec2b07>]
 													{
-														Embedded[Id<u64:22>]
+														Embedded[Id<u64:21>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -6333,6 +6194,147 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:3e424cb0-fe20-4130-b5b8-ad599ff44373>]
+													{
+														Embedded[Id<u64:22>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:1>]
+																					{
+																						Data[Uuid<uuid:63b7cca8-7383-432a-8ada-02b5d1554fb3>]{}
+																					}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:2; 2>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																						Item5[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -12461,149 +12463,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:d68e3c8d-0217-4b3a-b693-cd27b876be2d>]
-													{
-														Embedded[Id<u64:23>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																						Item5[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:1e65dcdc-5efb-41ab-8a86-bf8a40adfefc>]
 													{
-														Embedded[Id<u64:24>]
+														Embedded[Id<u64:23>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -12770,6 +12634,144 @@ __ROOT__[]
 																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
 																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
 																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:d68e3c8d-0217-4b3a-b693-cd27b876be2d>]
+													{
+														Embedded[Id<u64:24>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																						Item5[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -13020,149 +13022,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:51be15d3-ceb1-441f-8ec5-1be041ec7bbe>]
-													{
-														Embedded[Id<u64:25>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:6>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																						Item4[Key<str:"parallaxCenter">]
-																						{
-																							Value[Id<u32:0>0<f32:0>]{}
-																						}
-																						Item5[Key<str:"parallaxScale">]
-																						{
-																							Value[Id<u32:0>0<f32:0.08>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
 													Value[Uuid<uuid:16300ec8-4446-41a7-8ad6-9b45428d0b1b>]
 													{
-														Embedded[Id<u64:26>]
+														Embedded[Id<u64:25>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -13445,6 +13309,144 @@ __ROOT__[]
 																			Item125[A<u32:127>B<u32:131>C<u32:5>]{}
 																			Item126[A<u32:128>B<u32:129>C<u32:132>]{}
 																			Item127[A<u32:132>B<u32:129>C<u32:133>]{}
+																		}
+																	}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:51be15d3-ceb1-441f-8ec5-1be041ec7bbe>]
+													{
+														Embedded[Id<u64:26>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
+																	{
+																		Item0[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:6>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																						Item4[Key<str:"parallaxCenter">]
+																						{
+																							Value[Id<u32:0>0<f32:0>]{}
+																						}
+																						Item5[Key<str:"parallaxScale">]
+																						{
+																							Value[Id<u32:0>0<f32:0.08>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -15754,7 +15756,7 @@ __ROOT__[]
 						{
 							Data[TypeUuid<uuid:8b210eff-97a4-494f-ba7a-a581d3f4a442>]
 							{
-								NodeData[SoftBoundarySharpnessFactor<f32:100>]
+								NodeData[]
 								{
 									Base[Name<str:"ParticleSystem">IsResourceInstance<bool:false>InstanceId<uuid:f315217f-ed74-4e44-89f7-3f60b8d4c4d5>]
 									{
@@ -16071,7 +16073,7 @@ __ROOT__[]
 						{
 							Data[TypeUuid<uuid:8b210eff-97a4-494f-ba7a-a581d3f4a442>]
 							{
-								NodeData[SoftBoundarySharpnessFactor<f32:100>]
+								NodeData[]
 								{
 									Base[Name<str:"ParticleSystem">IsResourceInstance<bool:false>InstanceId<uuid:f315217f-ed74-4e44-89f7-3f60b8d4c4d5>]
 									{
@@ -16388,7 +16390,7 @@ __ROOT__[]
 						{
 							Data[TypeUuid<uuid:8b210eff-97a4-494f-ba7a-a581d3f4a442>]
 							{
-								NodeData[SoftBoundarySharpnessFactor<f32:100>]
+								NodeData[]
 								{
 									Base[Name<str:"ParticleSystem">IsResourceInstance<bool:false>InstanceId<uuid:f315217f-ed74-4e44-89f7-3f60b8d4c4d5>]
 									{
@@ -16761,16 +16763,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -17027,16 +17029,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -17293,16 +17295,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -17559,16 +17561,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -17825,16 +17827,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -18091,16 +18093,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -18357,16 +18359,16 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
+												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
+													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
 													{
 														Embedded[Id<u64:11>]{}
 													}
 												}
-												Data[Flags<u8:1>]
+												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:61c3b6c5-aeae-4257-8393-c008d89d2d1b>]
+													Value[Uuid<uuid:709d8bd2-dfa3-46b4-9ccf-cbf2fd7488d9>]
 													{
 														Embedded[Id<u64:12>]{}
 													}
@@ -18395,6 +18397,173 @@ __ROOT__[]
 							}
 						}
 					}
+					Item365[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:7e0c138f-e371-4045-bd2c-ff5b165c7ee6>]
+							{
+								NodeData[]
+								{
+									Base[Name<str:"Reflection Probe">IsResourceInstance<bool:false>InstanceId<uuid:4e24ffea-acca-471d-851c-8a1055b7fa46>]
+									{
+										Transform[]
+										{
+											LocalScale[Value<vec3f32:44.032825; 44.032825; 44.032825>Flags<u8:1>]{}
+											LocalPosition[Value<vec3f32:-2.1446745; 4.5212464; 1.0679955>Flags<u8:1>]{}
+											LocalRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PreRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PostRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											RotationOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											RotationPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+										}
+										Visibility[Value<bool:true>Flags<u8:1>]{}
+										Parent[Index<u32:0>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:0>]{}
+										Lifetime[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										LodGroup[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										Mobility[Flags<u8:1>]
+										{
+											Value[Id<u32:0>]{}
+										}
+										Original[Index<u32:0>Generation<u32:0>]{}
+										Tag[Value<str:"">Flags<u8:1>]{}
+										Properties[Flags<u8:1>]
+										{
+											Value[Length<u32:0>]{}
+										}
+										FrustumCulling[Value<bool:true>Flags<u8:1>]{}
+										CastShadows[Value<bool:true>Flags<u8:1>]{}
+										Enabled[Value<bool:true>Flags<u8:1>]{}
+										RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+									RenderingPosition[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+									Resolution[Value<u64:512>Flags<u8:1>]{}
+									ZNear[Value<f32:0.1>Flags<u8:1>]{}
+									ZFar[Value<f32:32>Flags<u8:1>]{}
+									UpdateMode[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]{}
+									}
+									AmbientLightingColor[Flags<u8:1>]
+									{
+										Value[R<u8:120>G<u8:120>B<u8:120>A<u8:255>]{}
+									}
+									EnvironmentLightingSource[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]{}
+									}
+									RenderTarget[Uuid<uuid:00000000-0000-0000-0000-000000000000>]
+									{
+										Embedded[Id<u64:27>]
+										{
+											ArcData[TypeUuid<uuid:02c23a44-55fa-411a-bc39-eb7a5eadf15c>]
+											{
+												Data[KindId<u32:2>Anisotropy<f32:1>MipCount<u32:1>Data<podarray:0; 1; >BaseLevel<u64:0>MaxLevel<u64:1000>MinLod<f32:-1000>MaxLod<f32:1000>LodBias<f32:0>]
+												{
+													MinificationFilter[Id<u32:3>]{}
+													MagnificationFilter[Id<u32:1>]{}
+													SWrapMode[Id<u32:0>]{}
+													TWrapMode[Id<u32:0>]{}
+													RWrapMode[Id<u32:0>]{}
+													Kind[Id<i32:2>Width<u32:512>]{}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					Item366[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:8b8248e1-1cdf-42a3-9abe-0691de82c519>]
+							{
+								NodeData[]
+								{
+									BaseLight[]
+									{
+										Base[Name<str:"DirectionalLight">IsResourceInstance<bool:false>InstanceId<uuid:68ecfd07-b36d-4c88-bab6-f1bc6769707d>]
+										{
+											Transform[]
+											{
+												LocalScale[Value<vec3f32:1; 1; 1>Flags<u8:1>]{}
+												LocalPosition[Value<vec3f32:-1.7757169; 5.527564; 0.6847396>Flags<u8:1>]{}
+												LocalRotation[Value<quat:0; 0; 0.101760775; 0.9948089>Flags<u8:1>]{}
+												PreRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+												PostRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+												RotationOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+												RotationPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+												ScalingOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+												ScalingPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											}
+											Visibility[Value<bool:true>Flags<u8:1>]{}
+											Parent[Index<u32:0>Generation<u32:1>]{}
+											Children[Length<u32:0>]{}
+											Resource[IsSome<u8:0>]{}
+											Lifetime[Flags<u8:1>]
+											{
+												Value[IsSome<u8:0>]{}
+											}
+											LodGroup[Flags<u8:1>]
+											{
+												Value[IsSome<u8:0>]{}
+											}
+											Mobility[Flags<u8:1>]
+											{
+												Value[Id<u32:0>]{}
+											}
+											Original[Index<u32:0>Generation<u32:0>]{}
+											Tag[Value<str:"">Flags<u8:1>]{}
+											Properties[Flags<u8:1>]
+											{
+												Value[Length<u32:0>]{}
+											}
+											FrustumCulling[Value<bool:true>Flags<u8:1>]{}
+											CastShadows[Value<bool:true>Flags<u8:1>]{}
+											Enabled[Value<bool:true>Flags<u8:1>]{}
+											RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
+											Scripts[Length<u32:0>]{}
+										}
+										Color[Flags<u8:1>]
+										{
+											Value[R<u8:76>G<u8:76>B<u8:76>A<u8:255>]{}
+										}
+										ScatterFactor[Value<vec3f32:0.03; 0.03; 0.03>Flags<u8:1>]{}
+										ScatterEnabled[Value<bool:true>Flags<u8:1>]{}
+										Intensity[Value<f32:1>Flags<u8:1>]{}
+									}
+									CsmOptions[Flags<u8:1>]
+									{
+										Value[ShadowBias<f32:0.00025>]
+										{
+											SplitOptions[Id<u32:0>]
+											{
+												FarPlanes[Length<u32:3>]
+												{
+													Item0[ItemData<f32:5>]{}
+													Item1[ItemData<f32:25>]{}
+													Item2[ItemData<f32:64>]{}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
 				}
 				FreeStack[Length<u32:0>]{}
 			}
@@ -18404,11 +18573,11 @@ __ROOT__[]
 				{
 					State[IsSome<u8:1>]
 					{
-						Data[Id<u64:27>]
+						Data[Id<u64:28>]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:0.7024947; 0; 0.71168876; 0.6439017; 0.42593914; -0.63558334; 0.3031361; -0.9047518; -0.29922>Position<vec3f32:-1.3766363; 4.470091; 2.764707>]{}
+								Listener[Basis<mat3:0.7967246; 0; -0.6043426; -0.28484434; 0.88195735; -0.3755196; -0.5330044; -0.47132924; -0.70267713>Position<vec3f32:2.8292956; 1.8240678; 3.1638243>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}
@@ -18490,27 +18659,27 @@ __ROOT__[]
 				{
 					Front[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:f8d4519b-2947-4c83-9aa5-800a70ae918e>]{}
+						Data[Uuid<uuid:7f5c393b-125a-44bb-9f36-caa255415430>]{}
 					}
 					Back[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:28676705-58bd-440f-b0aa-ce42cf95be79>]{}
+						Data[Uuid<uuid:80100edc-d388-4c03-9b6d-e6e30a237d30>]{}
 					}
 					Left[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:1725b779-7633-477a-a7b0-995c079c3202>]{}
+						Data[Uuid<uuid:114f86cb-ec5d-45d6-b305-c40881a2131f>]{}
 					}
 					Right[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:5f74865a-3eae-4bff-8743-b9d1f7bb3c59>]{}
+						Data[Uuid<uuid:ba9c19f6-8cc8-432a-97ca-404ea9dcb40f>]{}
 					}
 					Top[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:03e38da7-53d1-48c0-87f8-2baf9869d61d>]{}
+						Data[Uuid<uuid:a3820a56-2267-4333-b99c-9fa81560c7b1>]{}
 					}
 					Bottom[IsSome<u8:1>]
 					{
-						Data[Uuid<uuid:01684dc1-34b2-48b3-b8c2-30a7718cb9e7>]{}
+						Data[Uuid<uuid:20cd0ae8-3105-4e84-84f1-c20ba6a3cd8b>]{}
 					}
 				}
 			}

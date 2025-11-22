@@ -52,7 +52,6 @@ impl CallButtonUi {
     }
 
     pub fn render(&mut self, renderer: &mut Renderer, resource_manager: &ResourceManager) {
-        self.ui.draw();
         Log::verify(renderer.render_ui(UiRenderInfo {
             ui: &self.ui,
             render_target: Some(self.render_target.clone()),

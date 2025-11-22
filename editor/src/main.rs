@@ -4,22 +4,26 @@ use fyroxed_base::{Editor, StartupData};
 
 #[cfg(not(feature = "dylib"))]
 mod editor_plugin {
+    use fyrox::engine::ApplicationLoopController;
     use fyroxed_base::{plugin::EditorPlugin, scene::GameScene, Editor};
     use station_iapetus::level::arrival::enemy_trap::EnemyTrap;
 
     pub struct EditorExtension {}
 
     impl EditorPlugin for EditorExtension {
-        fn on_post_update(&mut self, editor: &mut Editor) {
-            if let Some(entry) = editor.scenes.current_scene_entry_mut() {
-                if let Some(game_scene) = entry.controller.downcast_mut::<GameScene>() {
-                    let scene = &mut editor.engine.scenes[game_scene.scene];
+        fn on_post_update(
+            &mut self,
+            editor: &mut Editor,
+            _loop_controller: ApplicationLoopController,
+        ) {
+            let entry = editor.scenes.current_scene_entry_mut();
+            if let Some(game_scene) = entry.controller.downcast_mut::<GameScene>() {
+                let scene = &mut editor.engine.scenes[game_scene.scene];
 
-                    for node in scene.graph.linear_iter() {
-                        if let Some(script) = node.script(0) {
-                            if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
-                                enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
-                            }
+                for node in scene.graph.linear_iter() {
+                    if let Some(script) = node.script(0) {
+                        if let Some(enemy_trap) = script.cast::<EnemyTrap>() {
+                            enemy_trap.editor_debug_draw(node, &mut scene.drawing_context);
                         }
                     }
                 }
@@ -33,6 +37,7 @@ fn main() {
     let mut editor = Editor::new(Some(StartupData {
         working_directory: Default::default(),
         scenes: vec!["data/levels/testbed.rgs".into()],
+        named_objects: true,
     }));
 
     #[cfg(not(feature = "dylib"))]

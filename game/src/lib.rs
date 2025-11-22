@@ -217,7 +217,6 @@ impl Game {
                     &mut self.journal_display.ui,
                 ),
             ] {
-                ui.draw();
                 Log::verify(renderer.render_ui(UiRenderInfo {
                     ui,
                     render_target: Some(rt),
