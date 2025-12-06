@@ -1,5 +1,6 @@
 use crate::{message::Message, MessageSender};
 use chrono::{DateTime, Utc};
+use fyrox::gui::window::WindowAlignment;
 use fyrox::{
     core::{log::Log, pool::Handle, reflect::prelude::*, visitor::prelude::*},
     gui::{
@@ -173,9 +174,10 @@ impl SaveLoadDialog {
 
         ctx.inner().send(
             window,
-            WindowMessage::OpenModal {
-                center: true,
+            WindowMessage::Open {
+                alignment: WindowAlignment::Center,
                 focus_content: true,
+                modal: true,
             },
         );
 

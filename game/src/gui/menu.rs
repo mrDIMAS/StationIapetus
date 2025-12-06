@@ -3,6 +3,7 @@ use crate::{
     config::Config, config::SoundConfig, gui::options_menu::OptionsMenu, message::Message,
     MessageSender,
 };
+use fyrox::gui::window::WindowAlignment;
 use fyrox::{
     asset::io::FsResourceIo,
     core::{color::Color, pool::Handle, visitor::prelude::*},
@@ -270,7 +271,8 @@ impl Menu {
                         self.options_menu.window,
                         WindowMessage::Open {
                             focus_content: true,
-                            center: true,
+                            alignment: WindowAlignment::Center,
+                            modal: false,
                         },
                     );
                 }
