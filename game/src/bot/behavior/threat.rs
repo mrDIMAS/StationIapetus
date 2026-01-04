@@ -1,6 +1,7 @@
 //! Bots can threaten the player before attack, this mod has behavior nodes for this.
 
 use crate::{bot::behavior::BehaviorContext, utils};
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{rand::Rng, visitor::prelude::*},
     rand::{self},
@@ -15,7 +16,7 @@ pub struct ThreatenTarget {
 impl<'a> Behavior<'a> for ThreatenTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         if let Some(upper_body_layer) = ctx.state_machine.upper_body_layer(&ctx.scene.graph) {
             if upper_body_layer.active_state() == ctx.state_machine.threaten_state {
                 if !self.in_progress {
@@ -24,17 +25,17 @@ impl<'a> Behavior<'a> for ThreatenTarget {
 
                 self.in_progress = true;
                 ctx.character.stand_still(&mut ctx.scene.graph);
-                Status::Running
+                Ok(Status::Running)
             } else if self.in_progress {
                 self.in_progress = false;
                 *ctx.threaten_timeout = rand::thread_rng().gen_range(20.0..60.0);
-                Status::Success
+                Ok(Status::Success)
             } else {
                 ctx.is_screaming = true;
-                Status::Running
+                Ok(Status::Running)
             }
         } else {
-            Status::Failure
+            Ok(Status::Failure)
         }
     }
 }
@@ -45,11 +46,11 @@ pub struct NeedsThreatenTarget;
 impl<'a> Behavior<'a> for NeedsThreatenTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         if *context.threaten_timeout <= 0.0 {
-            Status::Success
+            Ok(Status::Success)
         } else {
-            Status::Failure
+            Ok(Status::Failure)
         }
     }
 }

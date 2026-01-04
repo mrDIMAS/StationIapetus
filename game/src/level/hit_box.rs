@@ -2,6 +2,7 @@ use crate::{
     character::{DamageDealer, DamagePosition},
     Game,
 };
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -132,17 +133,15 @@ impl HitBox {
         self.limb_type.can_be_sliced_off() && *self.health <= 0.0
     }
 
-    fn handle_environment_interaction(&mut self, ctx: &mut ScriptContext) {
+    fn handle_environment_interaction(&mut self, ctx: &mut ScriptContext) -> GameResult {
         if self.environment_damage_timeout > 0.0 {
             self.environment_damage_timeout -= ctx.dt;
-            return;
+            return Ok(());
         }
 
         let graph = &ctx.scene.graph;
 
-        let Some(collider) = graph.try_get_of_type::<Collider>(ctx.handle) else {
-            return;
-        };
+        let collider = graph.try_get_of_type::<Collider>(ctx.handle)?;
 
         'contact_loop: for contact in collider.contacts(&graph.physics) {
             if !contact.has_any_active_contact {
@@ -150,12 +149,8 @@ impl HitBox {
             }
 
             for manifold in contact.manifolds.iter() {
-                let Some(rb1) = graph.try_get_of_type::<RigidBody>(manifold.rigid_body1) else {
-                    continue;
-                };
-                let Some(rb2) = graph.try_get_of_type::<RigidBody>(manifold.rigid_body2) else {
-                    continue;
-                };
+                let rb1 = graph.try_get_of_type::<RigidBody>(manifold.rigid_body1)?;
+                let rb2 = graph.try_get_of_type::<RigidBody>(manifold.rigid_body2)?;
 
                 for point in manifold.points.iter() {
                     let hit_strength = (rb1.lin_vel() - rb2.lin_vel()).norm();
@@ -169,7 +164,8 @@ impl HitBox {
                                 damage: hit_strength,
                                 dealer: DamageDealer::default(),
                                 position: Some(DamagePosition {
-                                    point: graph[contact.collider1]
+                                    point: graph
+                                        .try_get(contact.collider1)?
                                         .global_transform()
                                         .transform_point(&Point3::from(point.local_p1))
                                         .coords,
@@ -186,6 +182,7 @@ impl HitBox {
                 }
             }
         }
+        Ok(())
     }
 
     fn handle_death_zones(&mut self, ctx: &mut ScriptContext) {
@@ -308,7 +305,7 @@ impl HitBox {
 }
 
 impl ScriptTrait for HitBox {
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.plugins
             .get_mut::<Game>()
             .level
@@ -319,9 +316,11 @@ impl ScriptTrait for HitBox {
 
         ctx.message_dispatcher
             .subscribe_to::<HitBoxMessage>(ctx.handle);
+
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         ctx.plugins
             .get_mut::<Game>()
             .level
@@ -329,30 +328,37 @@ impl ScriptTrait for HitBox {
             .unwrap()
             .hit_boxes
             .remove(&ctx.node_handle);
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.handle_death_zones(ctx);
-        self.handle_environment_interaction(ctx);
+        self.handle_environment_interaction(ctx)?;
         if self.is_sliced_off() {
-            if let Some(bone) = ctx.scene.graph.try_get_mut(*self.bone) {
-                bone.local_transform_mut().set_scale(Vector3::repeat(0.0));
-            }
+            ctx.scene
+                .graph
+                .try_get_mut(*self.bone)?
+                .local_transform_mut()
+                .set_scale(Vector3::repeat(0.0));
         }
+        Ok(())
     }
 
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
-    ) {
+    ) -> GameResult {
         let Some(hit_box_message) = message.downcast_ref::<HitBoxMessage>() else {
-            return;
+            return Ok(());
         };
 
         match hit_box_message {
             HitBoxMessage::Damage(damage) => self.on_damage(damage, ctx),
             HitBoxMessage::Heal(heal) => self.on_heal(heal),
         }
+
+        Ok(())
     }
 }

@@ -5,6 +5,7 @@ use crate::{
     CollisionGroups,
 };
 use fyrox::graph::SceneGraphNode;
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -121,18 +122,20 @@ impl LaserSight {
 }
 
 impl ScriptTrait for LaserSight {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.scene.graph[ctx.handle].set_visibility(false);
+        Ok(())
     }
 
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.message_dispatcher
             .subscribe_to::<CharacterMessage>(ctx.handle);
         ctx.message_dispatcher
             .subscribe_to::<HitBoxMessage>(ctx.handle);
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let ignore_collider = find_parent_character(ctx.handle, &ctx.scene.graph)
             .map(|(_, c)| c.capsule_collider)
             .unwrap_or_default();
@@ -210,13 +213,14 @@ impl ScriptTrait for LaserSight {
                 }
             }
         }
+        Ok(())
     }
 
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
-    ) {
+    ) -> GameResult {
         if let Some((parent_character_handle, _)) =
             find_parent_character(ctx.handle, &ctx.scene.graph)
         {
@@ -249,5 +253,6 @@ impl ScriptTrait for LaserSight {
                 }
             }
         }
+        Ok(())
     }
 }

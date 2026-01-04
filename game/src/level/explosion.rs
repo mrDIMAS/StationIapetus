@@ -1,7 +1,6 @@
-use crate::level::hit_box::HitBoxDamage;
 use crate::{
     character::{DamageDealer, DamagePosition},
-    level::hit_box::HitBoxMessage,
+    level::hit_box::{HitBoxDamage, HitBoxMessage},
     Game,
 };
 use fyrox::{
@@ -14,6 +13,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     graph::{SceneGraph, SceneGraphNode},
+    plugin::error::GameResult,
     scene::rigidbody::RigidBody,
     script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
@@ -38,7 +38,7 @@ impl Default for Explosion {
 }
 
 impl ScriptTrait for Explosion {
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let node = &ctx.scene.graph[ctx.handle];
         let aabb = AxisAlignedBoundingBox::unit()
             .transform(&(node.global_transform() * Matrix4::new_nonuniform_scaling(&*self.scale)));
@@ -83,5 +83,7 @@ impl ScriptTrait for Explosion {
                 }
             }
         }
+
+        Ok(())
     }
 }

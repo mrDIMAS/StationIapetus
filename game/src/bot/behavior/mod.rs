@@ -18,6 +18,7 @@ use crate::{
     utils::BodyImpactHandler,
     MessageSender,
 };
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     scene::{node::Node, Scene},
@@ -55,7 +56,7 @@ pub enum Action {
 impl<'a> Behavior<'a> for Action {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         match self {
             Action::Unknown => unreachable!(),
             Action::FindTarget(v) => v.tick(context),

@@ -1,4 +1,5 @@
 use crate::bot::behavior::BehaviorContext;
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::visitor::prelude::*,
     rand::Rng,
@@ -14,7 +15,7 @@ pub struct DoMeleeAttack {
 impl<'a> Behavior<'a> for DoMeleeAttack {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         if let Some(upper_body_layer) = ctx.state_machine.upper_body_layer(&ctx.scene.graph) {
             if upper_body_layer.active_state() == ctx.state_machine.attack_state {
                 self.attack_timeout = 0.3;
@@ -28,9 +29,9 @@ impl<'a> Behavior<'a> for DoMeleeAttack {
 
             self.attack_timeout -= ctx.dt;
 
-            Status::Success
+            Ok(Status::Success)
         } else {
-            Status::Failure
+            Ok(Status::Failure)
         }
     }
 }
@@ -41,14 +42,14 @@ pub struct CanMeleeAttack;
 impl<'a> Behavior<'a> for CanMeleeAttack {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         match context.target {
-            None => Status::Failure,
+            None => Ok(Status::Failure),
             Some(_) => {
                 if context.restoration_time <= 0.0 {
-                    Status::Success
+                    Ok(Status::Success)
                 } else {
-                    Status::Failure
+                    Ok(Status::Failure)
                 }
             }
         }

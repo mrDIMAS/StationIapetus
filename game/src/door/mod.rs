@@ -1,6 +1,7 @@
 use crate::{
     character::try_get_character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game,
 };
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
@@ -90,7 +91,7 @@ impl Default for Door {
 }
 
 impl ScriptTrait for Door {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
 
         ctx.plugins
@@ -101,9 +102,11 @@ impl ScriptTrait for Door {
             .doors_container
             .doors
             .push(ctx.handle);
+
+        Ok(())
     }
 
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.self_handle = ctx.handle;
 
         self.initial_position = ctx.scene.graph[ctx.handle].global_position();
@@ -117,9 +120,11 @@ impl ScriptTrait for Door {
             );
             self.ui = Some(ui);
         }
+
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         // Level can not exist in case if we're changing the level. In this case there is no need
         // to unregister doors anyway, because the registry is already removed.
         if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
@@ -132,15 +137,17 @@ impl ScriptTrait for Door {
                 level.doors_container.doors.remove(position);
             }
         }
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let game = ctx.plugins.get_mut::<Game>();
         let level = game.level.as_ref().unwrap();
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            if let Some(actor) = try_get_character_ref(*a, &ctx.scene.graph) {
+            if let Ok(actor) = try_get_character_ref(*a, &ctx.scene.graph) {
                 let actor_position = actor.position(&ctx.scene.graph);
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {
@@ -152,82 +159,75 @@ impl ScriptTrait for Door {
             }
         });
 
-        if let Some(state_machine) = ctx
+        let state_machine = ctx
             .scene
             .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.state_machine)
-        {
-            let open_request = self.open_request.take();
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.state_machine)?;
 
-            let machine = state_machine.machine_mut().get_value_mut_silent();
-            machine
-                .set_parameter("Locked", Parameter::Rule(*self.locked))
-                .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
-                .set_parameter(
-                    "Open",
-                    Parameter::Rule(open_request.as_ref().is_some_and(|r| r.open)),
-                );
+        let open_request = self.open_request.take();
 
-            let mut sound = Handle::NONE;
+        let machine = state_machine.machine_mut().get_value_mut_silent();
+        machine
+            .set_parameter("Locked", Parameter::Rule(*self.locked))
+            .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
+            .set_parameter(
+                "Open",
+                Parameter::Rule(open_request.as_ref().is_some_and(|r| r.open)),
+            );
 
-            if let Some(layer) = machine.layers_mut().first_mut() {
-                while let Some(event) = layer.pop_event() {
-                    if let Event::ActiveStateChanged { new, .. } = event {
-                        let new_state_name = layer.state(new).name.as_str();
+        let mut sound = Handle::NONE;
 
-                        if new_state_name == self.opening_state.as_str() {
-                            sound = *self.open_sound;
-                        } else if new_state_name == self.closing_state.as_str() {
-                            sound = *self.close_sound;
-                        }
-                    }
-                }
+        if let Some(layer) = machine.layers_mut().first_mut() {
+            while let Some(event) = layer.pop_event() {
+                if let Event::ActiveStateChanged { new, .. } = event {
+                    let new_state_name = layer.state(new).name.as_str();
 
-                if let Some(current_state) = layer.states().try_borrow(layer.active_state()) {
-                    let mut can_interact = false;
-                    let mut locked = false;
-                    let text;
-                    if current_state.name == self.opening_state.as_str() {
-                        text = "Opening...";
-                    } else if current_state.name == self.opened_state.as_str() {
-                        text = "Opened";
-                    } else if current_state.name == self.closing_state.as_str() {
-                        text = "Closing..";
-                    } else if current_state.name == self.closed_state.as_str() {
-                        if someone_nearby {
-                            can_interact = true;
-                            text = "Open?";
-                        } else {
-                            text = "Closed";
-                        }
-                    } else if current_state.name == self.locked_state.as_str() {
-                        text = "Locked";
-                        locked = true;
-
-                        if let Some(open_request) = open_request.as_ref() {
-                            sound = if open_request.open {
-                                *self.access_granted_sound
-                            } else {
-                                *self.access_denied_sound
-                            };
-                        }
-                    } else {
-                        text = "Unknown";
-                    };
-
-                    if let Some(ui) = self.ui.as_mut() {
-                        ui.update_text(
-                            text.to_owned(),
-                            &game.config.controls,
-                            can_interact,
-                            locked,
-                        );
+                    if new_state_name == self.opening_state.as_str() {
+                        sound = *self.open_sound;
+                    } else if new_state_name == self.closing_state.as_str() {
+                        sound = *self.close_sound;
                     }
                 }
             }
 
-            utils::try_play_sound(sound, &mut ctx.scene.graph);
+            let current_state = layer.states().try_borrow(layer.active_state())?;
+            let mut can_interact = false;
+            let mut locked = false;
+            let text;
+            if current_state.name == self.opening_state.as_str() {
+                text = "Opening...";
+            } else if current_state.name == self.opened_state.as_str() {
+                text = "Opened";
+            } else if current_state.name == self.closing_state.as_str() {
+                text = "Closing..";
+            } else if current_state.name == self.closed_state.as_str() {
+                if someone_nearby {
+                    can_interact = true;
+                    text = "Open?";
+                } else {
+                    text = "Closed";
+                }
+            } else if current_state.name == self.locked_state.as_str() {
+                text = "Locked";
+                locked = true;
+
+                if let Some(open_request) = open_request.as_ref() {
+                    sound = if open_request.open {
+                        *self.access_granted_sound
+                    } else {
+                        *self.access_denied_sound
+                    };
+                }
+            } else {
+                text = "Unknown";
+            };
+
+            if let Some(ui) = self.ui.as_mut() {
+                ui.update_text(text.to_owned(), &game.config.controls, can_interact, locked);
+            }
         }
+
+        let _ = utils::try_play_sound(sound, &mut ctx.scene.graph);
 
         if let Some(ui) = self.ui.as_mut() {
             ui.update(ctx.dt);
@@ -235,6 +235,8 @@ impl ScriptTrait for Door {
                 ui.render(&mut graphics_context.renderer, ctx.resource_manager);
             }
         }
+
+        Ok(())
     }
 }
 

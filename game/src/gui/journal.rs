@@ -24,16 +24,11 @@ use fyrox::{
 use serde::Deserialize;
 use std::{collections::HashMap, fs::File};
 
-#[derive(Deserialize, Copy, Clone, PartialOrd, PartialEq, Ord, Eq, Hash, Visit, Debug)]
+#[derive(Deserialize, Copy, Clone, PartialOrd, Default, PartialEq, Ord, Eq, Hash, Visit, Debug)]
 #[repr(u32)]
 pub enum JournalEntryKind {
+    #[default]
     CurrentSituation,
-}
-
-impl Default for JournalEntryKind {
-    fn default() -> Self {
-        Self::CurrentSituation
-    }
 }
 
 #[derive(Deserialize)]

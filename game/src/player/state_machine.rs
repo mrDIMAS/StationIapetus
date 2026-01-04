@@ -1,7 +1,8 @@
 use crate::{utils, weapon::CombatWeaponKind};
-use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{algebra::Vector2, pool::Handle},
+    graph::SceneGraph,
+    plugin::error::{GameError, GameResult},
     scene::{
         animation::{absm::prelude::*, prelude::*},
         graph::Graph,
@@ -52,9 +53,13 @@ impl StateMachine {
     const UPPER_BODY_LAYER_INDEX: usize = 1;
 
     pub fn new(machine_handle: Handle<Node>, graph: &Graph) -> Option<Self> {
-        let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)?;
+        let absm = graph
+            .try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)
+            .ok()?;
 
-        let animation_player = graph.try_get_of_type::<AnimationPlayer>(absm.animation_player())?;
+        let animation_player = graph
+            .try_get_of_type::<AnimationPlayer>(absm.animation_player())
+            .ok()?;
         let animations = animation_player.animations();
         let machine = absm.machine();
 
@@ -80,17 +85,24 @@ impl StateMachine {
         })
     }
 
-    pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
+    pub fn fetch_layer<'a>(
+        &self,
+        graph: &'a Graph,
+        idx: usize,
+    ) -> Result<&'a MachineLayer, GameError> {
         graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
-            .and_then(|absm| absm.machine().layers().get(idx))
+            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)?
+            .machine()
+            .layers()
+            .get(idx)
+            .ok_or_else(|| GameError::str(format!("There's no layer {idx}")))
     }
 
-    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
+    pub fn lower_body_layer<'a>(&self, graph: &'a Graph) -> Result<&'a MachineLayer, GameError> {
         self.fetch_layer(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Option<&'a MachineLayer> {
+    pub fn upper_body_layer<'a>(&self, graph: &'a Graph) -> Result<&'a MachineLayer, GameError> {
         self.fetch_layer(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 
@@ -98,27 +110,32 @@ impl StateMachine {
         &self,
         graph: &'a mut Graph,
         idx: usize,
-    ) -> Option<&'a mut MachineLayer> {
+    ) -> Result<&'a mut MachineLayer, GameError> {
         graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)
-            .and_then(|absm| {
-                absm.machine_mut()
-                    .get_value_mut_silent()
-                    .layers_mut()
-                    .get_mut(idx)
-            })
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)?
+            .machine_mut()
+            .get_value_mut_silent()
+            .layers_mut()
+            .get_mut(idx)
+            .ok_or_else(|| GameError::str(format!("There's no layer {idx}")))
     }
 
     #[allow(dead_code)]
-    pub fn lower_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
+    pub fn lower_body_layer_mut<'a>(
+        &self,
+        graph: &'a mut Graph,
+    ) -> Result<&'a mut MachineLayer, GameError> {
         self.fetch_layer_mut(graph, Self::LOWER_BODY_LAYER_INDEX)
     }
 
-    pub fn upper_body_layer_mut<'a>(&self, graph: &'a mut Graph) -> Option<&'a mut MachineLayer> {
+    pub fn upper_body_layer_mut<'a>(
+        &self,
+        graph: &'a mut Graph,
+    ) -> Result<&'a mut MachineLayer, GameError> {
         self.fetch_layer_mut(graph, Self::UPPER_BODY_LAYER_INDEX)
     }
 
-    pub fn apply(&mut self, input: StateMachineInput) {
+    pub fn apply(&mut self, input: StateMachineInput) -> GameResult {
         let StateMachineInput {
             is_walking,
             is_jumping,
@@ -139,8 +156,7 @@ impl StateMachine {
 
         let animation_player = scene
             .graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(machine)
-            .unwrap()
+            .try_get_of_type::<AnimationBlendingStateMachine>(machine)?
             .animation_player();
 
         let animations_container =
@@ -158,8 +174,7 @@ impl StateMachine {
 
         scene
             .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(machine)
-            .unwrap()
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(machine)?
             .machine_mut()
             .get_value_mut_silent()
             // Update parameters which will be used by transitions.
@@ -182,6 +197,8 @@ impl StateMachine {
             .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity))
             .set_parameter("HitSomething", Parameter::Rule(hit_something))
             .set_parameter("MeleeAttack", Parameter::Rule(melee_attack));
+
+        Ok(())
     }
 
     pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<Node>) -> bool {

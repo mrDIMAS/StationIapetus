@@ -1,14 +1,12 @@
 use crate::level::hit_box::HitBoxMessage;
-use fyrox::core::some_or_return;
-use fyrox::generic_animation::machine::Event;
 use fyrox::{
-    core::variable::InheritableVariable,
     core::{
-        pool::Handle, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*,
-        ImmutableString,
+        pool::Handle, reflect::prelude::*, some_or_return, type_traits::prelude::*,
+        variable::InheritableVariable, visitor::prelude::*, ImmutableString,
     },
-    generic_animation::machine::Parameter,
+    generic_animation::machine::{Event, Parameter},
     graph::SceneGraph,
+    plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{animation::absm::AnimationBlendingStateMachine, node::Node},
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
@@ -40,52 +38,54 @@ impl Default for ExplosiveBarrel {
 }
 
 impl ScriptTrait for ExplosiveBarrel {
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.message_dispatcher
             .subscribe_to::<HitBoxMessage>(ctx.handle);
+        Ok(())
     }
 
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,
         _ctx: &mut ScriptMessageContext,
-    ) {
+    ) -> GameResult {
         if let HitBoxMessage::Damage(hit_box_damage) =
-            some_or_return!(message.downcast_ref::<HitBoxMessage>())
+            some_or_return!(message.downcast_ref::<HitBoxMessage>(), Ok(()))
         {
             *self.health -= hit_box_damage.damage;
         }
+        Ok(())
     }
 
-    fn on_update(&mut self, context: &mut ScriptContext) {
+    fn on_update(&mut self, context: &mut ScriptContext) -> GameResult {
         let position = context.scene.graph[context.handle].global_position();
 
-        if let Some(absm) = context
+        let absm = context
             .scene
             .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(*self.state_machine)
-        {
-            let machine = absm.machine_mut();
-            machine.set_parameter("IsDamaged", Parameter::Rule(*self.health <= 0.0));
+            .try_get_mut_of_type::<AnimationBlendingStateMachine>(*self.state_machine)?;
 
-            if let Some(layer) = machine.layers_mut().first_mut() {
-                while let Some(event) = layer.pop_event() {
-                    if let Event::StateEnter(state) = event {
-                        if let Some(state_ref) = layer.states().try_borrow(state) {
-                            if state_ref.name.as_str() == self.exploded_state.as_str() {
-                                if let Some(explosion_prefab) = self.explosion_prefab.as_ref() {
-                                    explosion_prefab.instantiate_at(
-                                        context.scene,
-                                        position,
-                                        Default::default(),
-                                    );
-                                    break;
-                                }
-                            }
+        let machine = absm.machine_mut();
+        machine.set_parameter("IsDamaged", Parameter::Rule(*self.health <= 0.0));
+
+        if let Some(layer) = machine.layers_mut().first_mut() {
+            while let Some(event) = layer.pop_event() {
+                if let Event::StateEnter(state) = event {
+                    let state_ref = layer.states().try_borrow(state)?;
+                    if state_ref.name.as_str() == self.exploded_state.as_str() {
+                        if let Some(explosion_prefab) = self.explosion_prefab.as_ref() {
+                            explosion_prefab.instantiate_at(
+                                context.scene,
+                                position,
+                                Default::default(),
+                            );
+                            break;
                         }
                     }
                 }
             }
         }
+
+        Ok(())
     }
 }

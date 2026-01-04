@@ -2,6 +2,7 @@ use crate::{
     bot::{behavior::Action, behavior::BehaviorContext},
     character::{CharacterMessage, CharacterMessageData},
 };
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
@@ -19,11 +20,11 @@ impl IsDead {
 impl<'a> Behavior<'a> for IsDead {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         if context.character.is_dead(&context.scene.graph) {
-            Status::Success
+            Ok(Status::Success)
         } else {
-            Status::Failure
+            Ok(Status::Failure)
         }
     }
 }
@@ -40,7 +41,7 @@ impl StayDead {
 impl<'a> Behavior<'a> for StayDead {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         // Drop everything in inventory.
         for item in ctx.character.inventory.items() {
             if let Some(resource) = item.resource.clone() {
@@ -59,6 +60,6 @@ impl<'a> Behavior<'a> for StayDead {
 
         ctx.character.stand_still(&mut ctx.scene.graph);
 
-        Status::Success
+        Ok(Status::Success)
     }
 }

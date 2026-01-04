@@ -1,6 +1,7 @@
 use crate::character::{CharacterMessage, CharacterMessageData};
 use fyrox::{
     core::{log::Log, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
+    plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
     script::{ScriptContext, ScriptTrait},
 };
@@ -29,7 +30,7 @@ impl Default for CharacterSpawnPoint {
 }
 
 impl ScriptTrait for CharacterSpawnPoint {
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.timer -= ctx.dt;
         if self.timer <= 0.0 && self.amount > 0 {
             self.timer = self.interval;
@@ -68,5 +69,6 @@ impl ScriptTrait for CharacterSpawnPoint {
                 Log::warn("Prefab is not set, nothing to spawn!")
             }
         }
+        Ok(())
     }
 }

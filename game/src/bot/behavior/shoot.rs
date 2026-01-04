@@ -4,7 +4,9 @@ use crate::{
     level::hit_box::LimbType,
     weapon::{weapon_ref, Weapon, WeaponMessage, WeaponMessageData},
 };
+use fyrox::core::ok_or_return;
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{some_or_return, visitor::prelude::*},
     utils::behavior::{Behavior, Status},
@@ -16,7 +18,7 @@ pub struct ShootTarget;
 impl<'a> Behavior<'a> for ShootTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         if let Some(weapon) = context
             .character
             .weapons
@@ -52,15 +54,15 @@ impl<'a> Behavior<'a> for ShootTarget {
                             },
                         );
 
-                        return Status::Success;
+                        return Ok(Status::Success);
                     } else {
                         // Fallback to melee.
-                        return Status::Failure;
+                        return Ok(Status::Failure);
                     }
                 }
             }
         }
-        Status::Running
+        Ok(Status::Running)
     }
 }
 
@@ -70,11 +72,11 @@ pub struct CanShootTarget;
 impl<'a> Behavior<'a> for CanShootTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, context: &mut Self::Context) -> Status {
+    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
         let current_weapon_index = context.character.current_weapon;
         let current_weapon = *some_or_return!(
             context.character.weapons.get(current_weapon_index),
-            Status::Failure
+            Ok(Status::Failure)
         );
 
         let no_arm = context
@@ -85,8 +87,10 @@ impl<'a> Behavior<'a> for CanShootTarget {
             .is_limb_sliced_off(&context.scene.graph, LimbType::Leg);
         let no_arm_or_leg = no_leg || no_arm;
 
-        let weapon_node =
-            some_or_return!(context.scene.graph.try_get(current_weapon), Status::Failure);
+        let weapon_node = ok_or_return!(
+            context.scene.graph.try_get(current_weapon),
+            Ok(Status::Failure)
+        );
 
         if no_arm_or_leg {
             if let Some(weapon_resource) = weapon_node.root_resource() {
@@ -102,22 +106,22 @@ impl<'a> Behavior<'a> for CanShootTarget {
                 );
             }
 
-            return Status::Failure;
+            return Ok(Status::Failure);
         }
 
         let weapon_script =
-            some_or_return!(weapon_node.try_get_script::<Weapon>(), Status::Failure);
+            some_or_return!(weapon_node.try_get_script::<Weapon>(), Ok(Status::Failure));
         let ammo_per_shot = *weapon_script.ammo_consumption_per_shot;
         if let Some(ammo_item) = weapon_script.ammo_item.as_ref() {
             if context.restoration_time <= 0.0
                 && context.character.inventory.item_count(ammo_item) >= ammo_per_shot
             {
-                Status::Success
+                Ok(Status::Success)
             } else {
-                Status::Failure
+                Ok(Status::Failure)
             }
         } else {
-            Status::Failure
+            Ok(Status::Failure)
         }
     }
 }

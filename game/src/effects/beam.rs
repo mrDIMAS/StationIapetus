@@ -1,11 +1,12 @@
 //! Small helper script that does a ray cast and scales the parent node with the distance
 //! from the position of the node to the intersection point.
 
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
-        reflect::{prelude::*},
+        reflect::prelude::*,
         type_traits::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -28,7 +29,7 @@ impl Default for Beam {
 }
 
 impl ScriptTrait for Beam {
-    fn on_init(&mut self, context: &mut ScriptContext) {
+    fn on_init(&mut self, context: &mut ScriptContext) -> GameResult {
         let node = &context.scene.graph[context.handle];
         let origin = node.global_position();
         let dir = node.look_vector();
@@ -56,5 +57,7 @@ impl ScriptTrait for Beam {
         context.scene.graph[context.handle]
             .local_transform_mut()
             .set_scale(Vector3::new(1.0, 1.0, len));
+
+        Ok(())
     }
 }

@@ -9,8 +9,6 @@ use crate::{
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
     Item, Weapon,
 };
-use fyrox::scene::rigidbody::RigidBody;
-use fyrox::script::ScriptMessagePayload;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -18,20 +16,22 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
-        some_or_continue,
+        some_or_return,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
     fxhash::FxHashSet,
     graph::{BaseSceneGraph, SceneGraph},
+    plugin::error::{GameError, GameResult},
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
         graph::{physics::RayCastOptions, Graph},
         node::Node,
+        rigidbody::RigidBody,
         Scene,
     },
-    script::{RoutingStrategy, ScriptContext, ScriptMessageSender},
+    script::{RoutingStrategy, ScriptContext, ScriptMessagePayload, ScriptMessageSender},
 };
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
@@ -41,12 +41,12 @@ pub struct DamageDealer {
 
 impl DamageDealer {
     pub fn as_character<'a>(&self, graph: &'a Graph) -> Option<(Handle<Node>, &'a Character)> {
-        if let Some(dealer_script) = graph.try_get(self.entity).and_then(|n| n.script(0)) {
+        if let Some(dealer_script) = graph.try_get(self.entity).ok().and_then(|n| n.script(0)) {
             if let Some(character) = dealer_script.query_component_ref::<Character>() {
                 return Some((self.entity, character));
             } else if let Some(weapon) = dealer_script.query_component_ref::<Weapon>() {
                 if let Some(weapon_owner_script) =
-                    graph.try_get(weapon.owner()).and_then(|n| n.script(0))
+                    graph.try_get(weapon.owner()).ok().and_then(|n| n.script(0))
                 {
                     if let Some(character_owner) =
                         weapon_owner_script.query_component_ref::<Character>()
@@ -131,7 +131,7 @@ impl Default for Character {
 }
 
 fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Handle<Node>> {
-    while let Some(node) = graph.try_get(node_handle) {
+    while let Ok(node) = graph.try_get(node_handle) {
         if node.try_get_script_component::<Character>().is_some() {
             return Some(node_handle);
         }
@@ -146,17 +146,16 @@ impl Character {
         body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
     }
 
-    pub fn has_ground_contact(&self, graph: &Graph) -> bool {
-        if let Some(collider) = graph.try_get(self.capsule_collider) {
-            for contact in collider.contacts(&graph.physics) {
-                for manifold in contact.manifolds.iter() {
-                    if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
-                        return true;
-                    }
+    pub fn has_ground_contact(&self, graph: &Graph) -> Result<bool, GameError> {
+        let collider = graph.try_get(self.capsule_collider)?;
+        for contact in collider.contacts(&graph.physics) {
+            for manifold in contact.manifolds.iter() {
+                if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
+                    return Ok(true);
                 }
             }
         }
-        false
+        Ok(false)
     }
 
     pub fn on_start(&mut self, ctx: &mut ScriptContext) {
@@ -175,14 +174,17 @@ impl Character {
         self.hit_boxes.iter().filter_map(|h| {
             graph
                 .try_get_script_component_of::<HitBox>(*h)
+                .ok()
                 .map(|hitbox| (*h, hitbox))
         })
     }
 
-    pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) {
-        if let Some(body) = graph.try_get_mut(self.body) {
-            body.local_transform_mut().set_position(position);
-        }
+    pub fn set_position(&mut self, graph: &mut Graph, position: Vector3<f32>) -> GameResult {
+        graph
+            .try_get_mut(self.body)?
+            .local_transform_mut()
+            .set_position(position);
+        Ok(())
     }
 
     pub fn position(&self, graph: &Graph) -> Vector3<f32> {
@@ -307,15 +309,15 @@ impl Character {
         scene: &mut Scene,
         message_sender: &ScriptMessageSender,
         self_handle: Handle<Node>,
-    ) -> Option<()> {
-        let attack_context = self.melee_attack_context.as_mut()?;
+    ) -> GameResult {
+        let attack_context = some_or_return!(self.melee_attack_context.as_mut(), Ok(()));
 
         let mut need_play_punch_sound = false;
 
         for melee_hit_box_handle in self.melee_hit_boxes.iter() {
-            let melee_hit_box_collider = some_or_continue!(scene
+            let melee_hit_box_collider = scene
                 .graph
-                .try_get_of_type::<Collider>(*melee_hit_box_handle));
+                .try_get_of_type::<Collider>(*melee_hit_box_handle)?;
 
             for (collider1, collider2) in melee_hit_box_collider
                 .intersects(&scene.graph.physics)
@@ -332,9 +334,13 @@ impl Character {
                     collider1
                 };
 
-                scene
+                if scene
                     .graph
-                    .try_get_script_of::<HitBox>(intersected_hit_box)?;
+                    .try_get_script_of::<HitBox>(intersected_hit_box)
+                    .is_err()
+                {
+                    continue;
+                }
 
                 if self.hit_boxes.contains(&intersected_hit_box) {
                     continue;
@@ -385,7 +391,7 @@ impl Character {
             utils::try_play_random_sound(&self.punch_sounds, &mut scene.graph);
         }
 
-        None
+        Ok(())
     }
 
     pub fn has_hit_box(&self, handle: Handle<Node>) -> bool {
@@ -635,10 +641,13 @@ impl Character {
     }
 }
 
-pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Option<&Character> {
-    graph.try_get_script_component_of::<Character>(handle)
+pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Result<&Character, GameError> {
+    Ok(graph.try_get_script_component_of::<Character>(handle)?)
 }
 
-pub fn try_get_character_mut(handle: Handle<Node>, graph: &mut Graph) -> Option<&mut Character> {
-    graph.try_get_script_component_of_mut(handle)
+pub fn try_get_character_mut(
+    handle: Handle<Node>,
+    graph: &mut Graph,
+) -> Result<&mut Character, GameError> {
+    Ok(graph.try_get_script_component_of_mut(handle)?)
 }

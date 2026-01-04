@@ -108,7 +108,7 @@ impl WeaponDisplay {
     }
 
     pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
-        let ammo = if let Some(weapon) =
+        let ammo = if let Ok(weapon) =
             graph.try_get_script_component_of::<Weapon>(player.current_weapon())
         {
             if let Some(ammo_item) = weapon.ammo_item.as_ref() {

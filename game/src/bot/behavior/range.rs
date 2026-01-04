@@ -1,4 +1,5 @@
 use crate::bot::behavior::{Action, BehaviorContext};
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     utils::behavior::{leaf::LeafNode, Behavior, BehaviorNode, BehaviorTree, Status},
@@ -21,8 +22,8 @@ impl IsTargetCloseBy {
 impl<'a> Behavior<'a> for IsTargetCloseBy {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
-        ctx.target.as_ref().map_or(Status::Failure, |t| {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
+        Ok(ctx.target.as_ref().map_or(Status::Failure, |t| {
             if t.position
                 .metric_distance(&ctx.scene.graph[ctx.character.body].global_position())
                 <= self.min_distance
@@ -31,6 +32,6 @@ impl<'a> Behavior<'a> for IsTargetCloseBy {
             } else {
                 Status::Failure
             }
-        })
+        }))
     }
 }

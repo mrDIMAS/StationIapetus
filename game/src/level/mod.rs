@@ -2,12 +2,12 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
-use fyrox::fxhash::FxHashSet;
-use fyrox::graph::SceneGraph;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
-    plugin::PluginContext,
+    fxhash::FxHashSet,
+    graph::SceneGraph,
+    plugin::{error::GameResult, PluginContext},
     scene::{
         navmesh::NavigationalMesh,
         node::{Node, NodeTrait},
@@ -111,7 +111,7 @@ impl Level {
         self.sender = Some(sender);
     }
 
-    pub fn debug_draw(&self, context: &mut PluginContext) {
+    pub fn debug_draw(&self, context: &mut PluginContext) -> GameResult {
         let scene = &mut context.scenes[self.scene];
 
         let drawing_context = &mut scene.drawing_context;
@@ -120,17 +120,17 @@ impl Level {
 
         scene.graph.physics.draw(drawing_context);
 
-        if let Some(navmesh) = scene
+        scene
             .graph
-            .try_get_of_type::<NavigationalMesh>(self.navmesh)
-        {
-            navmesh.debug_draw(drawing_context);
-        }
+            .try_get_of_type::<NavigationalMesh>(self.navmesh)?
+            .debug_draw(drawing_context);
 
         for actor in self.actors.iter() {
-            if let Some(bot) = scene.graph[*actor].try_get_script::<Bot>() {
+            if let Some(bot) = scene.graph.try_get(*actor)?.try_get_script::<Bot>() {
                 bot.debug_draw(drawing_context);
             }
         }
+
+        Ok(())
     }
 }

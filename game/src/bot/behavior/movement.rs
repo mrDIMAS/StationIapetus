@@ -3,6 +3,7 @@ use crate::{bot::behavior::BehaviorContext, door::door_mut, utils::BodyImpactHan
 use fyrox::core::pool::Handle;
 use fyrox::fxhash::FxHashSet;
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameError;
 use fyrox::scene::node::Node;
 use fyrox::{
     core::{algebra::Vector3, visitor::prelude::*},
@@ -39,35 +40,34 @@ fn calculate_movement_speed_factor(
     hit_boxes: &FxHashSet<Handle<Node>>,
     impact_handler: &BodyImpactHandler,
     scene: &Scene,
-) -> f32 {
+) -> Result<f32, GameError> {
     let mut k = 1.0;
 
     // Slowdown bot according to damaged body parts.
     for hit_box_handle in hit_boxes.iter() {
-        if let Some(hit_box_node) = scene.graph.try_get(*hit_box_handle) {
-            if let Some(hit_box_ref) = hit_box_node.try_get_script::<HitBox>() {
-                let body = hit_box_node.parent();
-                if impact_handler.is_affected(body) {
-                    k = hit_box_ref.movement_speed_factor.min(k);
-                }
+        let hit_box_node = scene.graph.try_get(*hit_box_handle)?;
+        if let Some(hit_box_ref) = hit_box_node.try_get_script::<HitBox>() {
+            let body = hit_box_node.parent();
+            if impact_handler.is_affected(body) {
+                k = hit_box_ref.movement_speed_factor.min(k);
             }
         }
     }
 
-    k
+    Ok(k)
 }
 
 impl<'a> Behavior<'a> for MoveToTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         ctx.movement_speed_factor = calculate_movement_speed_factor(
             &ctx.character.hit_boxes,
             ctx.impact_handler,
             ctx.scene,
-        );
+        )?;
 
-        let transform = &ctx.scene.graph[ctx.model].global_transform();
+        let transform = &ctx.scene.graph.try_get(ctx.model)?.global_transform();
 
         let delta_position = ctx
             .state_machine
@@ -76,22 +76,19 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let mut body_ref = multiborrow_context
-            .try_get_mut(ctx.character.body.transmute())
-            .unwrap();
+        let mut body_ref = multiborrow_context.try_get_mut(ctx.character.body.transmute())?;
         let body = body_ref.as_rigid_body_mut();
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        if let Ok(navmesh) =
-            multiborrow_context.try_get_component_of_type::<NavigationalMesh>(ctx.navmesh)
-        {
-            ctx.agent.set_position(position);
+        let navmesh =
+            multiborrow_context.try_get_component_of_type::<NavigationalMesh>(ctx.navmesh)?;
 
-            if let Some(target) = ctx.target.as_ref() {
-                ctx.agent.set_target(target.position);
-                let _ = ctx.agent.update(ctx.dt, &navmesh.navmesh_ref());
-            }
+        ctx.agent.set_position(position);
+
+        if let Some(target) = ctx.target.as_ref() {
+            ctx.agent.set_target(target.position);
+            let _ = ctx.agent.update(ctx.dt, &navmesh.navmesh_ref());
         }
 
         let has_reached_destination =
@@ -108,6 +105,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
             body.set_lin_vel(velocity);
         }
 
+        drop(navmesh);
         drop(body_ref);
         drop(multiborrow_context);
 
@@ -115,10 +113,10 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         if has_reached_destination {
             ctx.is_moving = false;
-            Status::Success
+            Ok(Status::Success)
         } else {
             ctx.is_moving = true;
-            Status::Running
+            Ok(Status::Running)
         }
     }
 }

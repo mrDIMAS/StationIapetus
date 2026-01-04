@@ -7,6 +7,7 @@ use crate::{
     },
     CollisionGroups, Game, Weapon,
 };
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -224,7 +225,7 @@ fn ray_hit(
 
     // List of hits sorted by distance from ray origin.
     if let Some(hit) = query_buffer.iter().find(|i| i.collider != ignored_collider) {
-        if graph.try_get_script_of::<HitBox>(hit.collider).is_some() {
+        if graph.try_get_script_of::<HitBox>(hit.collider).is_ok() {
             return Some(Hit {
                 shooter_actor: shooter,
                 position: hit.position.coords,
@@ -251,7 +252,7 @@ fn ray_hit(
 }
 
 impl ScriptTrait for Projectile {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let node = &mut ctx.scene.graph[ctx.handle];
 
         let current_position = node.global_position();
@@ -273,18 +274,22 @@ impl ScriptTrait for Projectile {
         {
             vfx.instantiate_at(ctx.scene, current_position, vector_to_quat(self.dir));
         }
+
+        Ok(())
     }
 
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.collider = ctx
             .scene
             .graph
             .find(ctx.handle, &mut |n| n.component_ref::<Collider>().is_some())
             .map(|(h, _)| h)
             .unwrap_or_default();
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let game = ctx.plugins.get::<Game>();
 
         // Movement of kinematic projectiles is controlled explicitly.
@@ -325,7 +330,7 @@ impl ScriptTrait for Projectile {
 
         if hit.is_none() {
             // Collect hits from self collider.
-            if let Some(collider) = ctx.scene.graph.try_get_of_type::<Collider>(self.collider) {
+            if let Ok(collider) = ctx.scene.graph.try_get_of_type::<Collider>(self.collider) {
                 let owner_character =
                     ctx.scene
                         .graph
@@ -359,7 +364,7 @@ impl ScriptTrait for Projectile {
                                 .scene
                                 .graph
                                 .try_get_script_of::<HitBox>(other_collider)
-                                .is_some()
+                                .is_ok()
                             {
                                 hit = Some(Hit {
                                     shooter_actor: owner_character,
@@ -458,17 +463,13 @@ impl ScriptTrait for Projectile {
                 );
             }
 
-            if let Some(collider) = ctx.scene.graph.try_get(hit.collider) {
-                if let Some(rigid_body) = ctx
-                    .scene
-                    .graph
-                    .try_get_mut_of_type::<RigidBody>(collider.parent())
-                {
-                    rigid_body
-                        .apply_force_at_point(direction.normalize().scale(50.0), hit.position);
-                    rigid_body.wake_up();
-                }
-            }
+            let collider = ctx.scene.graph.try_get(hit.collider)?;
+            let rigid_body = ctx
+                .scene
+                .graph
+                .try_get_mut_of_type::<RigidBody>(collider.parent())?;
+            rigid_body.apply_force_at_point(direction.normalize().scale(50.0), hit.position);
+            rigid_body.wake_up();
 
             // Defer destruction.
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
@@ -477,5 +478,7 @@ impl ScriptTrait for Projectile {
         if self.one_frame {
             ctx.scene.graph[ctx.handle].set_lifetime(Some(0.0));
         }
+
+        Ok(())
     }
 }

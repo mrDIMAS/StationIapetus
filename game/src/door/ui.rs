@@ -79,6 +79,7 @@ impl DoorUi {
         if self
             .ui
             .try_get_of_type::<Widget>(widget)
+            .ok()
             .is_some_and(|widget_ref| get(widget_ref) != value)
         {
             self.ui.send_message(make_msg(widget, value));

@@ -1,3 +1,4 @@
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         rand::Rng,
@@ -16,7 +17,7 @@ pub struct AnimatedLight {
 }
 
 impl ScriptTrait for AnimatedLight {
-    fn on_update(&mut self, context: &mut ScriptContext) {
+    fn on_update(&mut self, context: &mut ScriptContext) -> GameResult {
         self.timer -= context.dt;
 
         if self.timer < 0.0 {
@@ -26,5 +27,6 @@ impl ScriptTrait for AnimatedLight {
 
             self.timer = thread_rng().gen_range(0.1..0.5);
         }
+        Ok(())
     }
 }

@@ -1,11 +1,12 @@
 //! Particles generator for rail gun's rail effect.
 
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
-        reflect::{prelude::*},
+        reflect::prelude::*,
         type_traits::prelude::*,
         uuid::{uuid, Uuid},
         visitor::prelude::*,
@@ -38,7 +39,7 @@ impl Default for Rail {
 }
 
 impl ScriptTrait for Rail {
-    fn on_init(&mut self, context: &mut ScriptContext) {
+    fn on_init(&mut self, context: &mut ScriptContext) -> GameResult {
         let node = &context.scene.graph[context.handle];
         let origin = node.global_position();
         let dir = node.look_vector();
@@ -66,27 +67,28 @@ impl ScriptTrait for Rail {
 
         let total_particles = ((len * self.particles_per_meter) as usize).min(20000);
 
-        if let Some(particle_system) = context
+        let particle_system = context
             .scene
             .graph
-            .try_get_mut_of_type::<ParticleSystem>(context.handle)
-        {
-            particle_system.set_particles(
-                (0..total_particles)
-                    .map(|i| {
-                        let t = i as f32 / total_particles as f32;
+            .try_get_mut_of_type::<ParticleSystem>(context.handle)?;
 
-                        let x = (t * len * 20.0).cos() * self.radius;
-                        let y = (t * len * 20.0).sin() * self.radius;
-                        let z = t * len;
+        particle_system.set_particles(
+            (0..total_particles)
+                .map(|i| {
+                    let t = i as f32 / total_particles as f32;
 
-                        Particle::default()
-                            .with_position(Vector3::new(x, y, z))
-                            .with_size(0.01)
-                            .with_initial_lifetime(3.0)
-                    })
-                    .collect::<Vec<_>>(),
-            );
-        }
+                    let x = (t * len * 20.0).cos() * self.radius;
+                    let y = (t * len * 20.0).sin() * self.radius;
+                    let z = t * len;
+
+                    Particle::default()
+                        .with_position(Vector3::new(x, y, z))
+                        .with_size(0.01)
+                        .with_initial_lifetime(3.0)
+                })
+                .collect::<Vec<_>>(),
+        );
+
+        Ok(())
     }
 }

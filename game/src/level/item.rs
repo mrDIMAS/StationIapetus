@@ -1,6 +1,4 @@
 use crate::{block_on, Game};
-use fyrox::graph::BaseSceneGraph;
-use fyrox::material::MaterialResourceExtension;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -14,7 +12,9 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::prelude::*,
     },
-    material::{Material, MaterialResource},
+    graph::BaseSceneGraph,
+    material::{Material, MaterialResource, MaterialResourceExtension},
+    plugin::error::GameResult,
     resource::{
         model::{ModelResource, ModelResourceExtension},
         texture::{Texture, TextureResource},
@@ -73,7 +73,7 @@ impl Default for Item {
 }
 
 impl ScriptTrait for Item {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let mut material = Material::standard_sprite();
         material.bind(
             "diffuseTexture",
@@ -98,9 +98,11 @@ impl ScriptTrait for Item {
             .items
             .container
             .push(ctx.handle);
+
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(index) = level
                 .items
@@ -111,9 +113,11 @@ impl ScriptTrait for Item {
                 level.items.container.remove(index);
             }
         }
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let spark = ctx.scene.graph[self.spark].as_sprite_mut();
         spark.set_enabled(self.enabled);
         if self.enabled {
@@ -127,6 +131,7 @@ impl ScriptTrait for Item {
                 self.spark_size_change_dir = 1.0;
             }
         }
+        Ok(())
     }
 }
 
@@ -137,7 +142,7 @@ impl Item {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(graph.try_get_script_component_of(graph.get_root()))
+        func(graph.try_get_script_component_of(graph.get_root()).ok())
     }
 
     pub fn add_to_scene(

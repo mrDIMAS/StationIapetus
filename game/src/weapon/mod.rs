@@ -2,6 +2,7 @@
 
 use crate::{character::Character, level::item::Item, weapon::projectile::Projectile};
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Matrix3, Vector2, Vector3},
@@ -116,7 +117,11 @@ impl Weapon {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(graph.try_get_script_component_of::<Weapon>(graph.get_root()))
+        func(
+            graph
+                .try_get_script_component_of::<Weapon>(graph.get_root())
+                .ok(),
+        )
     }
 
     pub fn is_weapon_resource(model_resource: &ModelResource) -> bool {
@@ -199,49 +204,54 @@ impl Weapon {
 }
 
 impl ScriptTrait for Weapon {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
-        self.item.on_init(ctx);
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
+        self.item.on_init(ctx)
     }
 
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
-        self.item.on_start(ctx);
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
+        self.item.on_start(ctx)?;
 
         self.self_handle = ctx.handle;
 
         ctx.message_dispatcher
             .subscribe_to::<WeaponMessage>(ctx.handle);
+
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
-        self.item.on_deinit(ctx);
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
+        self.item.on_deinit(ctx)?;
 
         ctx.message_sender.send_global(WeaponMessage {
             weapon: ctx.node_handle,
             data: WeaponMessageData::Removed,
         });
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.item.enabled = self.owner.is_none();
-        self.item.on_update(ctx);
+        self.item.on_update(ctx)
     }
 
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
-    ) {
-        self.item.on_message(message, ctx);
+    ) -> GameResult {
+        self.item.on_message(message, ctx)?;
 
         if let Some(msg) = message.downcast_ref::<WeaponMessage>() {
             if msg.weapon != ctx.handle {
-                return;
+                return Ok(());
             }
 
             if let WeaponMessageData::Shoot { direction } = msg.data {
                 self.shoot(ctx.handle, ctx.scene, ctx.elapsed_time, direction);
             }
         }
+        Ok(())
     }
 }
 

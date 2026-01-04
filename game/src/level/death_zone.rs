@@ -1,8 +1,8 @@
 use crate::Game;
-use fyrox::script::ScriptDeinitContext;
 use fyrox::{
     core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
-    script::{ScriptContext, ScriptTrait},
+    plugin::error::GameResult,
+    script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
@@ -11,7 +11,7 @@ use fyrox::{
 pub struct DeathZone;
 
 impl ScriptTrait for DeathZone {
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.plugins
             .get_mut::<Game>()
             .level
@@ -19,9 +19,10 @@ impl ScriptTrait for DeathZone {
             .unwrap()
             .death_zones
             .insert(ctx.handle);
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         ctx.plugins
             .get_mut::<Game>()
             .level
@@ -29,5 +30,6 @@ impl ScriptTrait for DeathZone {
             .unwrap()
             .death_zones
             .remove(&ctx.node_handle);
+        Ok(())
     }
 }

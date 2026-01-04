@@ -18,7 +18,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -36,9 +35,10 @@ use fyrox::{
     engine::GraphicsContext,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashMap,
-    graph::SceneGraph,
-    graph::SceneGraphNode,
+    graph::{SceneGraph, SceneGraphNode},
     keyboard::PhysicalKey,
+    plugin::error::{GameError, GameResult},
+    renderer::ui_renderer::UiRenderInfo,
     resource::{
         model::{Model, ModelResource, ModelResourceExtension},
         texture::TextureResource,
@@ -46,6 +46,7 @@ use fyrox::{
     scene::{
         animation::{absm, absm::prelude::*, prelude::*},
         graph::Graph,
+        mesh::Mesh,
         node::Node,
         sprite::Sprite,
         Scene,
@@ -91,8 +92,9 @@ impl DerefMut for Player {
     }
 }
 
-#[derive(Clone, PartialEq, Eq, Visit, Debug)]
+#[derive(Clone, Default, PartialEq, Eq, Visit, Debug)]
 pub enum RequiredWeapon {
+    #[default]
     None,
     Next,
     Previous,
@@ -102,12 +104,6 @@ pub enum RequiredWeapon {
 impl RequiredWeapon {
     fn is_none(&self) -> bool {
         matches!(self, RequiredWeapon::None)
-    }
-}
-
-impl Default for RequiredWeapon {
-    fn default() -> Self {
-        Self::None
     }
 }
 
@@ -339,56 +335,55 @@ impl Player {
         scene: &mut Scene,
         self_handle: Handle<Node>,
         script_message_sender: &ScriptMessageSender,
-    ) {
+    ) -> GameResult {
         let items = &game.level.as_ref().unwrap().items;
         for &item_handle in items.iter() {
-            if let Some(item_node) = scene.graph.try_get(item_handle) {
-                if !item_node.is_globally_enabled() {
-                    continue;
+            let item_node = scene.graph.try_get(item_handle)?;
+            if !item_node.is_globally_enabled() {
+                continue;
+            }
+
+            let item = item_node.try_get_script_component::<Item>().unwrap();
+
+            if !item.enabled {
+                continue;
+            }
+
+            let self_position = scene.graph[self.body].global_position();
+            let item_position = item_node.global_position();
+
+            let distance = (item_position - self_position).norm();
+            if distance < 0.75 {
+                if let Some(resource) = item_node.root_resource() {
+                    game.item_display.sync_to_model(
+                        resource,
+                        *item.stack_size,
+                        &game.config.controls,
+                    );
                 }
 
-                let item = item_node.try_get_script_component::<Item>().unwrap();
+                if self.controller.action {
+                    script_message_sender.send_to_target(
+                        self_handle,
+                        CharacterMessage {
+                            character: self_handle,
+                            data: CharacterMessageData::PickupItem(item_handle),
+                        },
+                    );
 
-                if !item.enabled {
-                    continue;
+                    self.controller.action = false;
                 }
 
-                let self_position = scene.graph[self.body].global_position();
-                let item_position = item_node.global_position();
+                let display = scene.graph.try_get_mut(self.item_display)?;
+                display
+                    .local_transform_mut()
+                    .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
+                display.set_visibility(true);
 
-                let distance = (item_position - self_position).norm();
-                if distance < 0.75 {
-                    if let Some(resource) = item_node.root_resource() {
-                        game.item_display.sync_to_model(
-                            resource,
-                            *item.stack_size,
-                            &game.config.controls,
-                        );
-                    }
-
-                    if self.controller.action {
-                        script_message_sender.send_to_target(
-                            self_handle,
-                            CharacterMessage {
-                                character: self_handle,
-                                data: CharacterMessageData::PickupItem(item_handle),
-                            },
-                        );
-
-                        self.controller.action = false;
-                    }
-
-                    if let Some(display) = scene.graph.try_get_mut(self.item_display) {
-                        display
-                            .local_transform_mut()
-                            .set_position(item_position + Vector3::new(0.0, 0.2, 0.0));
-                        display.set_visibility(true);
-                    }
-
-                    break;
-                }
+                break;
             }
         }
+        Ok(())
     }
 
     fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
@@ -405,14 +400,14 @@ impl Player {
         }
     }
 
-    fn check_elevators(&self, scene: &mut Scene, elevators: &[Handle<Node>]) {
+    fn check_elevators(&self, scene: &mut Scene, elevators: &[Handle<Node>]) -> GameResult {
         let graph = &mut scene.graph;
-        let self_position = graph[self.body].global_position();
+        let self_position = graph.try_get(self.body)?.global_position();
 
         for &elevator_handle in elevators.iter() {
             let mbc = graph.begin_multi_borrow();
 
-            let mut elevator_node = mbc.try_get_mut(elevator_handle).unwrap();
+            let mut elevator_node = mbc.try_get_mut(elevator_handle)?;
             let elevator_position = elevator_node.global_position();
 
             let elevator_script = elevator_node.try_get_script_mut::<Elevator>().unwrap();
@@ -430,36 +425,33 @@ impl Player {
 
             // Handle call buttons
             for &call_button_handle in elevator_script.call_buttons.iter() {
-                if let Ok(mut call_button_node) = mbc.try_get_mut(call_button_handle) {
-                    let button_position = call_button_node.global_position();
+                let mut call_button_node = mbc.try_get_mut(call_button_handle)?;
+                let button_position = call_button_node.global_position();
 
-                    let call_button_script =
-                        call_button_node.try_get_script_mut::<CallButton>().unwrap();
+                let call_button_script =
+                    call_button_node.try_get_script_mut::<CallButton>().unwrap();
 
-                    let distance = (button_position - self_position).norm();
-                    if distance < 0.75 {
-                        if let CallButtonKind::FloorSelector = call_button_script.kind {
-                            let new_floor = if self.controller.cursor_down {
-                                Some(call_button_script.floor.saturating_sub(1))
-                            } else if self.controller.cursor_up {
-                                Some(call_button_script.floor.saturating_add(1).min(
-                                    (elevator_script.point_handles.len() as u32).saturating_sub(1),
-                                ))
-                            } else {
-                                None
-                            };
+                let distance = (button_position - self_position).norm();
+                if distance < 0.75 {
+                    if let CallButtonKind::FloorSelector = call_button_script.kind {
+                        let new_floor = if self.controller.cursor_down {
+                            Some(call_button_script.floor.saturating_sub(1))
+                        } else if self.controller.cursor_up {
+                            Some(call_button_script.floor.saturating_add(1).min(
+                                (elevator_script.point_handles.len() as u32).saturating_sub(1),
+                            ))
+                        } else {
+                            None
+                        };
 
-                            if let Some(new_floor) = new_floor {
-                                call_button_script.floor = new_floor;
-                            }
-                        }
-
-                        if self.controller.action {
-                            requested_floor = Some(call_button_script.floor);
+                        if let Some(new_floor) = new_floor {
+                            call_button_script.floor = new_floor;
                         }
                     }
-                } else {
-                    Log::warn(format!("Unable to get call button {call_button_handle:?}!"));
+
+                    if self.controller.action {
+                        requested_floor = Some(call_button_script.floor);
+                    }
                 }
             }
 
@@ -467,6 +459,7 @@ impl Player {
                 elevator_script.call_to(requested_floor);
             }
         }
+        Ok(())
     }
 
     fn handle_animation_signals(
@@ -480,138 +473,136 @@ impl Player {
         is_walking: bool,
         has_ground_contact: bool,
         sound_manager: &SoundManager,
-    ) {
-        if let Some(absm) = scene
+    ) -> GameResult {
+        let absm = scene
             .graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine)
-        {
-            let animation_player_handle = absm.animation_player();
+            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine)?;
 
-            if let Some(animation_player) = scene
-                .graph
-                .try_get_of_type::<AnimationPlayer>(animation_player_handle)
-            {
-                let upper_layer_events = self
-                    .state_machine
-                    .upper_body_layer(&scene.graph)
-                    .map(|l| {
-                        l.collect_active_animations_events(
-                            absm.machine().parameters(),
-                            animation_player.animations(),
-                            AnimationEventCollectionStrategy::All,
-                        )
-                    })
-                    .unwrap_or_default();
+        let animation_player_handle = absm.animation_player();
 
-                let lower_layer_max_weight_events = self
-                    .state_machine
-                    .lower_body_layer(&scene.graph)
-                    .map(|l| {
-                        l.collect_active_animations_events(
-                            absm.machine().parameters(),
-                            animation_player.animations(),
-                            AnimationEventCollectionStrategy::MaxWeight,
-                        )
-                    })
-                    .unwrap_or_default();
+        let animation_player = scene
+            .graph
+            .try_get_of_type::<AnimationPlayer>(animation_player_handle)?;
 
-                let lower_layer_all_events = self
-                    .state_machine
-                    .lower_body_layer(&scene.graph)
-                    .map(|l| {
-                        l.collect_active_animations_events(
-                            absm.machine().parameters(),
-                            animation_player.animations(),
-                            AnimationEventCollectionStrategy::All,
-                        )
-                    })
-                    .unwrap_or_default();
+        let upper_layer_events = self
+            .state_machine
+            .upper_body_layer(&scene.graph)
+            .map(|l| {
+                l.collect_active_animations_events(
+                    absm.machine().parameters(),
+                    animation_player.animations(),
+                    AnimationEventCollectionStrategy::All,
+                )
+            })
+            .unwrap_or_default();
 
-                for (_, event) in upper_layer_events.events {
-                    if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
-                        match &self.weapon_change_direction {
-                            RequiredWeapon::None => (),
-                            RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
-                            RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
-                            RequiredWeapon::Specific(weapon_resource) => {
-                                script_message_sender.send_to_target(
-                                    self_handle,
-                                    CharacterMessage {
-                                        character: self_handle,
-                                        data: CharacterMessageData::SelectWeapon(
-                                            weapon_resource.clone(),
-                                        ),
-                                    },
-                                );
-                            }
-                        }
+        let lower_layer_max_weight_events = self
+            .state_machine
+            .lower_body_layer(&scene.graph)
+            .map(|l| {
+                l.collect_active_animations_events(
+                    absm.machine().parameters(),
+                    animation_player.animations(),
+                    AnimationEventCollectionStrategy::MaxWeight,
+                )
+            })
+            .unwrap_or_default();
 
-                        self.weapon_change_direction = RequiredWeapon::None;
-                    } else if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
-                        let position = scene.graph[self.weapon_pivot].global_position();
+        let lower_layer_all_events = self
+            .state_machine
+            .lower_body_layer(&scene.graph)
+            .map(|l| {
+                l.collect_active_animations_events(
+                    absm.machine().parameters(),
+                    animation_player.animations(),
+                    AnimationEventCollectionStrategy::All,
+                )
+            })
+            .unwrap_or_default();
 
-                        let direction = scene
-                            .graph
-                            .try_get(self.camera_controller)
-                            .and_then(|c| c.try_get_script::<CameraController>())
-                            .map(|c| scene.graph[c.camera()].look_vector())
-                            .unwrap_or_default();
-
-                        if let Some(grenade_item) = self.grenade_item.deref().clone() {
-                            if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
-                                if let Ok(grenade) = block_on(
-                                    resource_manager
-                                        .request::<Model>("data/models/grenade/grenade_proj.rgs"),
-                                ) {
-                                    Projectile::spawn(
-                                        &grenade,
-                                        scene,
-                                        direction,
-                                        position,
-                                        self_handle,
-                                        direction.scale(10.0),
-                                    );
-                                }
-                            }
-                        }
-                    } else if event.name == StateMachine::HIT_STARTED_SIGNAL {
-                        self.melee_attack_context = Some(Default::default());
-                    } else if event.name == StateMachine::HIT_ENDED_SIGNAL {
-                        self.melee_attack_context = None;
+        for (_, event) in upper_layer_events.events {
+            if event.name == StateMachine::GRAB_WEAPON_SIGNAL {
+                match &self.weapon_change_direction {
+                    RequiredWeapon::None => (),
+                    RequiredWeapon::Next => self.next_weapon(&mut scene.graph),
+                    RequiredWeapon::Previous => self.prev_weapon(&mut scene.graph),
+                    RequiredWeapon::Specific(weapon_resource) => {
+                        script_message_sender.send_to_target(
+                            self_handle,
+                            CharacterMessage {
+                                character: self_handle,
+                                data: CharacterMessageData::SelectWeapon(weapon_resource.clone()),
+                            },
+                        );
                     }
                 }
 
-                for (_, event) in lower_layer_max_weight_events.events {
-                    if event.name == StateMachine::FOOTSTEP_SIGNAL {
-                        let begin = position + Vector3::new(0.0, 0.5, 0.0);
+                self.weapon_change_direction = RequiredWeapon::None;
+            } else if event.name == StateMachine::TOSS_GRENADE_SIGNAL {
+                let position = scene.graph[self.weapon_pivot].global_position();
 
-                        if is_walking && has_ground_contact {
-                            self.character
-                                .footstep_ray_check(begin, scene, sound_manager);
-                        }
-                    }
-                }
-
-                for (_, event) in lower_layer_all_events.events {
-                    if event.name == "Died" {
-                        game_message_sender.send(Message::EndMatch);
-                    }
-                }
-
-                // Clear all the events.
-                scene
+                let camera_controller = scene
                     .graph
-                    .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)
-                    .unwrap()
-                    .animations_mut()
-                    .get_value_mut_silent()
-                    .clear_animation_events();
+                    .try_get_script_component_of::<CameraController>(self.camera_controller)?;
+                let direction = scene
+                    .graph
+                    .try_get(camera_controller.camera())?
+                    .look_vector();
+
+                if let Some(grenade_item) = self.grenade_item.deref().clone() {
+                    if self.inventory.try_extract_exact_items(&grenade_item, 1) == 1 {
+                        if let Ok(grenade) = block_on(
+                            resource_manager
+                                .request::<Model>("data/models/grenade/grenade_proj.rgs"),
+                        ) {
+                            Projectile::spawn(
+                                &grenade,
+                                scene,
+                                direction,
+                                position,
+                                self_handle,
+                                direction.scale(10.0),
+                            );
+                        }
+                    }
+                }
+            } else if event.name == StateMachine::HIT_STARTED_SIGNAL {
+                self.melee_attack_context = Some(Default::default());
+            } else if event.name == StateMachine::HIT_ENDED_SIGNAL {
+                self.melee_attack_context = None;
             }
         }
+
+        for (_, event) in lower_layer_max_weight_events.events {
+            if event.name == StateMachine::FOOTSTEP_SIGNAL {
+                let begin = position + Vector3::new(0.0, 0.5, 0.0);
+
+                if is_walking && has_ground_contact {
+                    self.character
+                        .footstep_ray_check(begin, scene, sound_manager);
+                }
+            }
+        }
+
+        for (_, event) in lower_layer_all_events.events {
+            if event.name == "Died" {
+                game_message_sender.send(Message::EndMatch);
+            }
+        }
+
+        // Clear all the events.
+        scene
+            .graph
+            .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)?
+            .animations_mut()
+            .get_value_mut_silent()
+            .clear_animation_events();
+
+        Ok(())
     }
 
-    fn update_velocity(&mut self, scene: &mut Scene, dt: f32) {
-        let transform = &scene.graph[self.model].global_transform();
+    fn update_velocity(&mut self, scene: &mut Scene, dt: f32) -> GameResult {
+        let transform = &scene.graph.try_get(self.model)?.global_transform();
 
         if let Some(root_motion) = self
             .state_machine
@@ -637,10 +628,12 @@ impl Player {
             },
             self.velocity.z,
         ));
+
+        Ok(())
     }
 
     fn current_weapon_kind(&self, graph: &Graph) -> CombatWeaponKind {
-        if let Some(current_weapon) = graph.try_get_script_of::<Weapon>(self.current_weapon()) {
+        if let Ok(current_weapon) = graph.try_get_script_of::<Weapon>(self.current_weapon()) {
             current_weapon.weapon_type
         } else {
             CombatWeaponKind::Pistol
@@ -654,7 +647,12 @@ impl Player {
             || self.controller.walk_left
     }
 
-    fn update_animation_machines(&mut self, scene: &mut Scene, is_walking: bool, is_jumping: bool) {
+    fn update_animation_machines(
+        &mut self,
+        scene: &mut Scene,
+        is_walking: bool,
+        is_jumping: bool,
+    ) -> GameResult {
         let weapon_kind = self.current_weapon_kind(&scene.graph);
 
         self.state_machine.apply(StateMachineInput {
@@ -678,7 +676,7 @@ impl Player {
                 .as_ref()
                 .map(|ctx| !ctx.damaged_hitboxes.is_empty())
                 .unwrap_or_default(),
-        });
+        })
     }
 
     fn calculate_model_angle(&self) -> f32 {
@@ -727,7 +725,7 @@ impl Player {
         dt: f32,
         elapsed_time: f32,
         script_message_sender: &ScriptMessageSender,
-    ) {
+    ) -> GameResult {
         self.v_recoil.update(dt);
         self.h_recoil.update(dt);
 
@@ -777,37 +775,38 @@ impl Player {
                             self.h_recoil
                                 .set_target(current_weapon.gen_h_recoil_angle());
 
-                            if let Some(camera_controller) = scene
+                            scene
                                 .graph
-                                .try_get_mut(self.camera_controller)
-                                .and_then(|c| c.try_get_script_mut::<CameraController>())
-                            {
-                                camera_controller.request_shake_camera();
-                            }
+                                .try_get_script_component_of_mut::<CameraController>(
+                                    self.camera_controller,
+                                )?
+                                .request_shake_camera();
                         }
                     }
                 }
             } else {
-                scene.graph[self.weapon_display].set_visibility(false);
+                scene
+                    .graph
+                    .try_get_mut(self.weapon_display)?
+                    .set_visibility(false);
             }
         }
+        Ok(())
     }
 
-    fn can_move(&self, graph: &Graph) -> bool {
-        if let Some(layer) = graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine)
-            .and_then(|absm| absm.machine().layers().first())
-        {
-            layer.active_state() != self.state_machine.fall_state
-                && layer.active_state() != self.state_machine.land_state
+    fn can_move(&self, graph: &Graph) -> Result<bool, GameError> {
+        let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(self.machine)?;
+        if let Some(layer) = absm.machine().layers().first() {
+            Ok(layer.active_state() != self.state_machine.fall_state
+                && layer.active_state() != self.state_machine.land_state)
         } else {
-            true
+            Ok(true)
         }
     }
 
     fn apply_weapon_angular_correction(&mut self, scene: &mut Scene, can_move: bool, dt: f32) {
         if self.controller.aim {
-            let (pitch_correction, yaw_correction) = if let Some(weapon) = scene
+            let (pitch_correction, yaw_correction) = if let Ok(weapon) = scene
                 .graph
                 .try_get_script_of::<Weapon>(self.current_weapon())
             {
@@ -858,40 +857,36 @@ impl Player {
         inventory_texture: TextureResource,
         item_texture: TextureResource,
         journal_texture: TextureResource,
-    ) {
-        scene.graph[self.weapon_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .data_ref()
-            .bind("diffuseTexture", display_texture);
-
-        scene.graph[self.inventory_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .data_ref()
-            .bind("diffuseTexture", inventory_texture);
-
-        scene.graph[self.journal_display]
-            .as_mesh_mut()
-            .surfaces_mut()
-            .first_mut()
-            .unwrap()
-            .material()
-            .data_ref()
-            .bind("diffuseTexture", journal_texture);
-
-        if let Some(item_display) = scene.graph.try_get_of_type::<Sprite>(self.item_display) {
-            item_display
+    ) -> GameResult {
+        fn apply_texture(
+            scene: &mut Scene,
+            handle: Handle<Node>,
+            texture: TextureResource,
+        ) -> GameResult {
+            scene
+                .graph
+                .try_get_mut_of_type::<Mesh>(handle)?
+                .surfaces_mut()
+                .first_mut()
+                .unwrap()
                 .material()
                 .data_ref()
-                .bind("diffuseTexture", item_texture);
+                .bind("diffuseTexture", texture);
+            Ok(())
         }
+
+        apply_texture(scene, self.weapon_display, display_texture)?;
+        apply_texture(scene, self.inventory_display, inventory_texture)?;
+        apply_texture(scene, self.journal_display, journal_texture)?;
+
+        scene
+            .graph
+            .try_get_of_type::<Sprite>(self.item_display)?
+            .material()
+            .data_ref()
+            .bind("diffuseTexture", item_texture);
+
+        Ok(())
     }
 
     fn render_offscreen_ui(&mut self, context: &mut ScriptContext) {
@@ -915,7 +910,7 @@ impl Player {
 }
 
 impl ScriptTrait for Player {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         if let Some(item_display_prefab) = self.item_display_prefab.as_ref() {
             self.item_display = item_display_prefab.instantiate(ctx.scene);
         }
@@ -929,9 +924,11 @@ impl ScriptTrait for Player {
         level.actors.push(ctx.handle);
         // Also register player in special variable to speed up access.
         level.player = ctx.handle;
+
+        Ok(())
     }
 
-    fn on_start(&mut self, ctx: &mut ScriptContext) {
+    fn on_start(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.character.on_start(ctx);
 
         let game = ctx.plugins.get::<Game>();
@@ -953,10 +950,12 @@ impl ScriptTrait for Player {
             self.inventory_gui.render_target.clone(),
             game.item_display.render_target.clone(),
             game.journal_display.render_target.clone(),
-        );
+        )?;
+
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             level.player = Handle::NONE;
 
@@ -964,9 +963,11 @@ impl ScriptTrait for Player {
                 level.actors.remove(position);
             }
         }
+
+        Ok(())
     }
 
-    fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) {
+    fn on_os_event(&mut self, event: &Event<()>, ctx: &mut ScriptContext) -> GameResult {
         let game = ctx.plugins.get::<Game>();
         let control_scheme = &game.config.controls;
         let sender = &game.message_sender;
@@ -1044,6 +1045,7 @@ impl ScriptTrait for Player {
             .scene
             .graph
             .try_get(self.current_weapon())
+            .ok()
             .and_then(|node| node.root_resource());
 
         let mut weapon_change_direction = None;
@@ -1180,16 +1182,18 @@ impl ScriptTrait for Player {
         if let Some(weapon_change_direction) = weapon_change_direction {
             self.weapon_change_direction = weapon_change_direction;
         }
+
+        Ok(())
     }
 
     fn on_message(
         &mut self,
         message: &mut dyn ScriptMessagePayload,
         ctx: &mut ScriptMessageContext,
-    ) {
+    ) -> GameResult {
         if let Some(char_message) = message.downcast_ref::<CharacterMessage>() {
             if char_message.character != ctx.handle {
-                return;
+                return Ok(());
             }
 
             let level = ctx.plugins.get::<Game>().level.as_ref().unwrap();
@@ -1205,9 +1209,11 @@ impl ScriptTrait for Player {
             self.character
                 .on_weapon_message(weapon_message, &mut ctx.scene.graph);
         }
+
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.inventory_gui.update(ctx.dt, &self.character.inventory);
         self.render_offscreen_ui(ctx);
 
@@ -1248,35 +1254,34 @@ impl ScriptTrait for Player {
 
         self.local_velocity.follow(&self.target_local_velocity, 0.1);
 
-        if let Some(upper_body_layer) = self
+        let upper_body_layer = self
             .state_machine
-            .upper_body_layer_mut(&mut ctx.scene.graph)
-        {
-            while let Some(event) = upper_body_layer.pop_event() {
-                if let absm::Event::ActiveStateChanged { prev, new } = event {
-                    if prev == self.state_machine.aim_state && new != self.state_machine.aim_state {
-                        ctx.message_sender.send_global(CharacterMessage {
-                            character: ctx.handle,
-                            data: CharacterMessageData::EndedAiming,
-                        })
-                    } else if prev != self.state_machine.aim_state
-                        && new == self.state_machine.aim_state
-                    {
-                        ctx.message_sender.send_global(CharacterMessage {
-                            character: ctx.handle,
-                            data: CharacterMessageData::BeganAiming,
-                        })
-                    }
+            .upper_body_layer_mut(&mut ctx.scene.graph)?;
+
+        while let Some(event) = upper_body_layer.pop_event() {
+            if let absm::Event::ActiveStateChanged { prev, new } = event {
+                if prev == self.state_machine.aim_state && new != self.state_machine.aim_state {
+                    ctx.message_sender.send_global(CharacterMessage {
+                        character: ctx.handle,
+                        data: CharacterMessageData::EndedAiming,
+                    })
+                } else if prev != self.state_machine.aim_state
+                    && new == self.state_machine.aim_state
+                {
+                    ctx.message_sender.send_global(CharacterMessage {
+                        character: ctx.handle,
+                        data: CharacterMessageData::BeganAiming,
+                    })
                 }
             }
         }
 
-        let has_ground_contact = self.has_ground_contact(&ctx.scene.graph);
+        let has_ground_contact = self.has_ground_contact(&ctx.scene.graph)?;
         let is_walking = self.is_walking();
         let is_jumping = has_ground_contact && self.controller.jump;
 
-        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle);
-        self.update_animation_machines(ctx.scene, is_walking, is_jumping);
+        self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle)?;
+        self.update_animation_machines(ctx.scene, is_walking, is_jumping)?;
 
         if self
             .melee_attack_context
@@ -1299,7 +1304,7 @@ impl ScriptTrait for Player {
             is_walking,
             has_ground_contact,
             &level.sound_manager,
-        );
+        )?;
 
         if !self.is_dead(&ctx.scene.graph) {
             if is_running {
@@ -1309,12 +1314,13 @@ impl ScriptTrait for Player {
             }
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
-            let can_move = self.can_move(&ctx.scene.graph);
-            self.update_velocity(ctx.scene, ctx.dt);
+            let can_move = self.can_move(&ctx.scene.graph)?;
+            self.update_velocity(ctx.scene, ctx.dt)?;
 
-            if let Some(flash_light) = ctx.scene.graph.try_get_mut(*self.flash_light) {
-                flash_light.set_visibility(*self.flash_light_enabled);
-            }
+            ctx.scene
+                .graph
+                .try_get_mut(*self.flash_light)?
+                .set_visibility(*self.flash_light_enabled);
 
             let attacking_in_direction = self.controller.aim || self.melee_attack_context.is_some();
 
@@ -1331,7 +1337,9 @@ impl ScriptTrait for Player {
 
                 // Since we have free camera while not moving, we have to sync rotation of pivot
                 // with rotation of camera so character will start moving in look direction.
-                ctx.scene.graph[self.model_pivot]
+                ctx.scene
+                    .graph
+                    .try_get_mut(self.model_pivot)?
                     .local_transform_mut()
                     .set_rotation(UnitQuaternion::from_axis_angle(
                         &Vector3::y_axis(),
@@ -1395,19 +1403,20 @@ impl ScriptTrait for Player {
                 self.in_air_time += ctx.dt;
             }
 
-            if let Some(item_display) = ctx.scene.graph.try_get_mut(self.item_display) {
-                item_display.set_visibility(false);
-            }
+            ctx.scene
+                .graph
+                .try_get_mut(self.item_display)?
+                .set_visibility(false);
 
             self.check_doors(ctx.scene, &level.doors_container);
-            self.check_elevators(ctx.scene, &level.elevators);
-            self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time, ctx.message_sender);
+            self.check_elevators(ctx.scene, &level.elevators)?;
+            self.update_shooting(ctx.scene, ctx.dt, ctx.elapsed_time, ctx.message_sender)?;
             self.check_items(
                 ctx.plugins.get_mut::<Game>(),
                 ctx.scene,
                 ctx.handle,
                 ctx.message_sender,
-            );
+            )?;
 
             let spine_transform = ctx.scene.graph[self.spine].local_transform_mut();
             let rotation = **spine_transform.rotation();
@@ -1422,5 +1431,7 @@ impl ScriptTrait for Player {
             body.set_ang_vel(Default::default());
             body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
         }
+
+        Ok(())
     }
 }

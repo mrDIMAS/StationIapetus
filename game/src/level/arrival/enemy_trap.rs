@@ -1,5 +1,6 @@
 use crate::{bot::Bot, door::Door, Game};
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::{GameError, GameResult};
 use fyrox::{
     core::{
         color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
@@ -36,30 +37,28 @@ impl EnemyTrap {
         scene: &Scene,
         actors: &[Handle<Node>],
         this_bounds: &AxisAlignedBoundingBox,
-    ) {
+    ) -> GameResult {
         for actor in actors {
-            if let Some(actor_node) = scene.graph.try_get(*actor) {
-                if this_bounds.is_contains_point(actor_node.global_position())
-                    && actor_node.try_get_script_component::<Bot>().is_some()
-                {
-                    self.enemies.push(*actor);
-                }
+            let actor_node = scene.graph.try_get(*actor)?;
+            if this_bounds.is_contains_point(actor_node.global_position())
+                && actor_node.try_get_script_component::<Bot>().is_some()
+            {
+                self.enemies.push(*actor);
             }
         }
+        Ok(())
     }
 
-    fn is_all_enemies_dead(&self, scene: &Scene) -> bool {
+    fn is_all_enemies_dead(&self, scene: &Scene) -> Result<bool, GameError> {
         for enemy in self.enemies.iter() {
-            if let Some(actor_node) = scene.graph.try_get(*enemy) {
-                if let Some(bot) = actor_node.try_get_script_component::<Bot>() {
-                    if !bot.is_dead(&scene.graph) {
-                        return false;
-                    }
+            let actor_node = scene.graph.try_get(*enemy)?;
+            if let Some(bot) = actor_node.try_get_script_component::<Bot>() {
+                if !bot.is_dead(&scene.graph) {
+                    return Ok(false);
                 }
             }
         }
-
-        true
+        Ok(true)
     }
 
     fn lock_doors(&mut self, scene: &mut Scene, lock: bool) {
@@ -77,17 +76,16 @@ impl EnemyTrap {
         );
     }
 
-    fn enable_nodes(&self, graph: &mut Graph, animations: &[Handle<Node>]) {
+    fn enable_nodes(&self, graph: &mut Graph, animations: &[Handle<Node>]) -> GameResult {
         for node_handle in animations.iter() {
-            if let Some(node) = graph.try_get_mut(*node_handle) {
-                node.set_enabled(true);
-            }
+            graph.try_get_mut(*node_handle)?.set_enabled(true);
         }
+        Ok(())
     }
 }
 
 impl ScriptTrait for EnemyTrap {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         for animation in self
             .nodes_to_enable_on_activation
             .iter()
@@ -95,9 +93,10 @@ impl ScriptTrait for EnemyTrap {
         {
             ctx.scene.graph[*animation].set_enabled(false);
         }
+        Ok(())
     }
 
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         match self.state {
             State::Inactive => {
                 if let Some(level) = ctx.plugins.get::<Game>().level.as_ref() {
@@ -105,29 +104,24 @@ impl ScriptTrait for EnemyTrap {
                     let this_bounds =
                         AxisAlignedBoundingBox::unit().transform(&this.global_transform());
 
-                    if let Some(player_position) = ctx
-                        .scene
-                        .graph
-                        .try_get(level.player)
-                        .map(|player| player.global_position())
-                    {
-                        if this_bounds.is_contains_point(player_position) {
-                            self.state = State::Active;
+                    let player_position = ctx.scene.graph.try_get(level.player)?.global_position();
 
-                            self.find_enemies(ctx.scene, &level.actors, &this_bounds);
-                            self.lock_doors(ctx.scene, true);
-                            self.enable_nodes(
-                                &mut ctx.scene.graph,
-                                &self.nodes_to_enable_on_activation,
-                            );
-                        }
+                    if this_bounds.is_contains_point(player_position) {
+                        self.state = State::Active;
+
+                        self.find_enemies(ctx.scene, &level.actors, &this_bounds)?;
+                        self.lock_doors(ctx.scene, true);
+                        self.enable_nodes(
+                            &mut ctx.scene.graph,
+                            &self.nodes_to_enable_on_activation,
+                        )?;
                     }
                 }
             }
             State::Active => {
-                if self.is_all_enemies_dead(ctx.scene) {
+                if self.is_all_enemies_dead(ctx.scene)? {
                     self.lock_doors(ctx.scene, false);
-                    self.enable_nodes(&mut ctx.scene.graph, &self.nodes_to_enable_on_deactivation);
+                    self.enable_nodes(&mut ctx.scene.graph, &self.nodes_to_enable_on_deactivation)?;
                     self.state = State::Finished;
                 }
             }
@@ -135,5 +129,6 @@ impl ScriptTrait for EnemyTrap {
                 // Do nothing.
             }
         }
+        Ok(())
     }
 }

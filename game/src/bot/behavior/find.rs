@@ -4,6 +4,7 @@ use crate::{
     Game,
 };
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
@@ -40,7 +41,7 @@ impl FindTarget {
 impl<'a> Behavior<'a> for FindTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         let graph = &ctx.scene.graph;
 
         let position = ctx.character.position(graph);
@@ -51,11 +52,10 @@ impl<'a> Behavior<'a> for FindTarget {
         if let Some(target) = ctx.target {
             for &actor_handle in ctx.actors {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
-                    if let Some(character) = try_get_character_ref(actor_handle, graph) {
-                        if !character.is_dead(graph) {
-                            target.position = character.position(graph);
-                            return Status::Success;
-                        }
+                    let character = try_get_character_ref(actor_handle, graph)?;
+                    if !character.is_dead(graph) {
+                        target.position = character.position(graph);
+                        return Ok(Status::Success);
                     }
                 }
             }
@@ -72,9 +72,7 @@ impl<'a> Behavior<'a> for FindTarget {
         {
             let graph = &ctx.scene.graph;
 
-            let Some(character_node) = graph.try_get(actor_handle) else {
-                continue;
-            };
+            let character_node = graph.try_get(actor_handle)?;
 
             let character_position = character_node.global_position();
 
@@ -165,12 +163,12 @@ impl<'a> Behavior<'a> for FindTarget {
         }
 
         if ctx.target.is_some() {
-            Status::Success
+            Ok(Status::Success)
         } else {
             ctx.character.stand_still(&mut ctx.scene.graph);
 
             // Keep looking.
-            Status::Running
+            Ok(Status::Running)
         }
     }
 }

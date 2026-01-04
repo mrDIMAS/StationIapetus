@@ -7,6 +7,7 @@ use crate::{
 };
 use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
 use fyrox::gui::message::MessageData;
+use fyrox::plugin::error::GameError;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
@@ -488,10 +489,12 @@ impl InventoryInterface {
         }
     }
 
-    fn item_model_of(&self, item_view: Handle<UiNode>) -> Option<ModelResource> {
-        self.ui
-            .try_get_of_type::<InventoryItem>(item_view)
-            .map(|item| item.item.clone())
+    fn item_model_of(&self, item_view: Handle<UiNode>) -> Result<ModelResource, GameError> {
+        Ok(self
+            .ui
+            .try_get_of_type::<InventoryItem>(item_view)?
+            .item
+            .clone())
     }
 
     pub fn update(&mut self, delta: f32, inventory: &Inventory) {
@@ -510,7 +513,7 @@ impl InventoryInterface {
         for entry in inventory.items() {
             if let Some(item_view) = item_views
                 .iter()
-                .find(|item_view| self.item_model_of(**item_view) == entry.resource)
+                .find(|item_view| self.item_model_of(**item_view).ok() == entry.resource)
             {
                 self.ui
                     .send(*item_view, InventoryItemMessage::StackCount(entry.amount))

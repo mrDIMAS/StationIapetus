@@ -36,7 +36,9 @@ impl StateMachine {
     const UPPER_BODY_LAYER_INDEX: usize = 1;
 
     pub fn new(machine_handle: Handle<Node>, graph: &Graph) -> Option<Self> {
-        let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)?;
+        let absm = graph
+            .try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)
+            .ok()?;
         let machine = absm.machine();
 
         let (upper_body_layer_index, upper_body) = machine.find_layer_by_name_ref("UpperBody")?;
@@ -79,6 +81,7 @@ impl StateMachine {
     pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
         graph
             .try_get_of_type::<AnimationBlendingStateMachine>(self.absm)
+            .ok()
             .and_then(|absm| absm.machine().layers().get(idx))
     }
 

@@ -1,5 +1,4 @@
 use crate::Player;
-use fyrox::graph::SceneGraph;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -10,6 +9,8 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
+    graph::SceneGraph,
+    plugin::error::GameResult,
     rand,
     scene::{
         graph::physics::{Intersection, RayCastOptions},
@@ -46,9 +47,9 @@ impl CameraController {
         self.shake_timer = 0.24;
     }
 
-    fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) {
-        let ray_origin = scene.graph[self.camera_hinge].global_position();
-        let ray_end = scene.graph[self.camera].global_position();
+    fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) -> GameResult {
+        let ray_origin = scene.graph.try_get(self.camera_hinge)?.global_position();
+        let ray_end = scene.graph.try_get(self.camera)?.global_position();
         let dir = (ray_end - ray_origin)
             .try_normalize(f32::EPSILON)
             .unwrap_or_default()
@@ -77,6 +78,8 @@ impl CameraController {
                 break;
             }
         }
+
+        Ok(())
     }
 
     fn update_shake(&mut self, dt: f32) {
@@ -99,31 +102,37 @@ impl CameraController {
 }
 
 impl ScriptTrait for CameraController {
-    fn on_update(&mut self, context: &mut ScriptContext) {
-        let (is_aiming, yaw, pitch) = context
+    fn on_update(&mut self, context: &mut ScriptContext) -> GameResult {
+        let player = context
             .scene
             .graph
-            .try_get(self.player)
-            .and_then(|p| p.try_get_script::<Player>())
-            .map(|p| (p.is_aiming(), p.target_yaw, p.target_pitch))
-            .unwrap_or_default();
+            .try_get_script_of::<Player>(self.player)?;
+        let is_aiming = player.is_aiming();
+        let pitch = player.target_pitch;
+        let yaw = player.target_yaw;
 
         self.target_camera_offset.x = 0.0;
         self.target_camera_offset.y = 0.0;
         self.target_camera_offset.z = if is_aiming { 0.2 } else { 0.8 };
 
         self.update_shake(context.dt);
-        self.check_occlusion(self.ignorable_collider, context.scene);
+        self.check_occlusion(self.ignorable_collider, context.scene)?;
 
         self.target_camera_offset += self.shake_offset;
 
         self.camera_offset.follow(&self.target_camera_offset, 0.2);
 
-        context.scene.graph[context.handle]
+        context
+            .scene
+            .graph
+            .try_get_mut(context.handle)?
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::y_axis(), yaw));
 
-        context.scene.graph[self.camera]
+        context
+            .scene
+            .graph
+            .try_get_mut(self.camera)?
             .local_transform_mut()
             .set_position(Vector3::new(
                 self.camera_offset.x,
@@ -133,8 +142,13 @@ impl ScriptTrait for CameraController {
 
         // Rotate camera hinge - this will make camera move up and down while look at character
         // (well not exactly on character - on characters head)
-        context.scene.graph[self.camera_hinge]
+        context
+            .scene
+            .graph
+            .try_get_mut(self.camera_hinge)?
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(&Vector3::x_axis(), pitch));
+
+        Ok(())
     }
 }

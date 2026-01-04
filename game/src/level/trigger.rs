@@ -3,6 +3,7 @@ use crate::{
     message::Message,
     Game,
 };
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*, stub_uuid_provider,
@@ -45,16 +46,16 @@ pub struct Trigger {
 }
 
 impl ScriptTrait for Trigger {
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let game = ctx.plugins.get::<Game>();
 
         if let Some(level) = game.level.as_ref() {
             let this_bounds = AxisAlignedBoundingBox::unit()
                 .transform(&ctx.scene.graph[ctx.handle].global_transform());
 
-            let contains_player = try_get_character_ref(level.player, &ctx.scene.graph)
-                .map(|c| c.position(&ctx.scene.graph))
-                .is_some_and(|pos| this_bounds.is_contains_point(pos));
+            let contains_player = this_bounds.is_contains_point(
+                try_get_character_ref(level.player, &ctx.scene.graph)?.position(&ctx.scene.graph),
+            );
 
             match self.kind {
                 TriggerAction::LoadLevel { ref path } => {
@@ -77,23 +78,22 @@ impl ScriptTrait for Trigger {
                             continue;
                         }
 
-                        if let Some(actor_ref) = ctx
+                        let actor_ref = ctx
                             .scene
                             .graph
-                            .try_get_script_component_of::<Character>(*actor)
+                            .try_get_script_component_of::<Character>(*actor)?;
+
+                        let actor_position = ctx.scene.graph[actor_ref.body].global_position();
+
+                        if this_bounds.is_contains_point(actor_position)
+                            && !bot_counter.actors.contains(actor)
                         {
-                            let actor_position = ctx.scene.graph[actor_ref.body].global_position();
+                            bot_counter.counter += 1;
 
-                            if this_bounds.is_contains_point(actor_position)
-                                && !bot_counter.actors.contains(actor)
-                            {
-                                bot_counter.counter += 1;
+                            bot_counter.actors.insert(*actor);
 
-                                bot_counter.actors.insert(*actor);
-
-                                if bot_counter.despawn {
-                                    despawn_list.push(*actor);
-                                }
+                            if bot_counter.despawn {
+                                despawn_list.push(*actor);
                             }
                         }
                     }
@@ -104,5 +104,6 @@ impl ScriptTrait for Trigger {
                 }
             }
         }
+        Ok(())
     }
 }

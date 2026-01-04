@@ -3,6 +3,7 @@ use crate::{
     level::hit_box::LimbType,
 };
 use fyrox::graph::SceneGraph;
+use fyrox::plugin::error::GameError;
 use fyrox::scene::rigidbody::RigidBody;
 use fyrox::{
     core::{
@@ -59,7 +60,7 @@ impl AimOnTarget {
         dt: f32,
         angle_hack: f32,
         no_head: bool,
-    ) -> bool {
+    ) -> Result<bool, GameError> {
         if no_head {
             if self.pitch_random_smooth_angle.at_target() {
                 self.pitch_random_smooth_angle
@@ -77,7 +78,8 @@ impl AimOnTarget {
             .update(dt);
 
         if self.spine.is_some() {
-            graph[self.spine]
+            graph
+                .try_get_mut(self.spine)?
                 .local_transform_mut()
                 .set_rotation(UnitQuaternion::from_axis_angle(
                     &Vector3::x_axis(),
@@ -85,7 +87,7 @@ impl AimOnTarget {
                 ));
         }
 
-        pitch.at_target()
+        Ok(pitch.at_target())
     }
 
     fn aim_horizontally(
@@ -98,7 +100,7 @@ impl AimOnTarget {
         body: Handle<RigidBody>,
         angle_hack: f32,
         no_head: bool,
-    ) -> bool {
+    ) -> Result<bool, GameError> {
         if no_head {
             if self.yaw_random_smooth_angle.at_target() {
                 self.yaw_random_smooth_angle
@@ -108,7 +110,7 @@ impl AimOnTarget {
         }
 
         if yaw.angle.is_nan() {
-            let local_look = scene.graph[model].look_vector();
+            let local_look = scene.graph.try_get(model)?.look_vector();
             yaw.angle = local_look.x.atan2(local_look.z);
         }
 
@@ -117,22 +119,23 @@ impl AimOnTarget {
         )
         .update(dt);
 
-        if let Some(body) = scene.graph.try_get_mut(body) {
-            body.local_transform_mut()
-                .set_rotation(UnitQuaternion::from_axis_angle(
-                    &Vector3::y_axis(),
-                    yaw.angle(),
-                ));
-        }
+        scene
+            .graph
+            .try_get_mut(body)?
+            .local_transform_mut()
+            .set_rotation(UnitQuaternion::from_axis_angle(
+                &Vector3::y_axis(),
+                yaw.angle(),
+            ));
 
-        yaw.at_target()
+        Ok(yaw.at_target())
     }
 }
 
 impl<'a> Behavior<'a> for AimOnTarget {
     type Context = BehaviorContext<'a>;
 
-    fn tick(&mut self, ctx: &mut Self::Context) -> Status {
+    fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         let target_pos = match self.target {
             AimTarget::SteeringTarget => ctx.agent.steering_target(),
             AimTarget::ActualTarget => ctx.target.as_ref().map(|t| t.position),
@@ -153,7 +156,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
             ctx.character.body,
             ctx.h_aim_angle_hack.to_radians(),
             no_head,
-        );
+        )?;
         let aimed_vertically = self.aim_vertically(
             ctx.pitch,
             look_dir,
@@ -161,14 +164,14 @@ impl<'a> Behavior<'a> for AimOnTarget {
             ctx.dt,
             ctx.v_aim_angle_hack.to_radians(),
             no_head,
-        );
+        )?;
 
         if no_head || aimed_horizontally && aimed_vertically {
-            Status::Success
+            Ok(Status::Success)
         } else {
             ctx.character.stand_still(&mut ctx.scene.graph);
 
-            Status::Running
+            Ok(Status::Running)
         }
     }
 }

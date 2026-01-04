@@ -66,6 +66,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::plugin::error::GameResult;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{
@@ -99,6 +100,7 @@ use fyrox::{
     utils::translate_event,
     window::CursorGrabMode,
 };
+use std::sync::Arc;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
@@ -227,10 +229,11 @@ impl Game {
         }
     }
 
-    fn debug_render(&mut self, context: &mut PluginContext) {
+    fn debug_render(&mut self, context: &mut PluginContext) -> GameResult {
         if let Some(level) = self.level.as_mut() {
-            level.debug_draw(context);
+            level.debug_draw(context)?;
         }
+        Ok(())
     }
 
     pub fn create_debug_ui(&mut self, context: &mut PluginContext) {
@@ -282,7 +285,7 @@ impl Game {
             || self.final_screen.is_visible(ui)
     }
 
-    pub fn update(&mut self, ctx: &mut PluginContext) {
+    pub fn update(&mut self, ctx: &mut PluginContext) -> GameResult {
         let debug = true;
 
         self.config.save_if_needed();
@@ -332,8 +335,10 @@ impl Game {
 
         // <<<<<<<<< ENABLE THIS FOR DEBUGGING
         if false {
-            self.debug_render(ctx);
+            self.debug_render(ctx)?;
         }
+
+        Ok(())
     }
 
     fn handle_messages(&mut self, context: &mut PluginContext) {
@@ -539,7 +544,7 @@ impl Game {
 }
 
 impl Plugin for Game {
-    fn register(&self, context: PluginRegistrationContext) {
+    fn register(&self, context: PluginRegistrationContext) -> GameResult {
         context
             .serialization_context
             .script_constructors
@@ -569,10 +574,11 @@ impl Plugin for Game {
             .add::<HitBox>("HitBox");
 
         context.widget_constructors.add::<InventoryItem>();
+
+        Ok(())
     }
 
-    fn register_property_editors(&self) -> PropertyEditorDefinitionContainer {
-        let container = PropertyEditorDefinitionContainer::empty();
+    fn register_property_editors(&self, container: Arc<PropertyEditorDefinitionContainer>) {
         container.register_inheritable_enum::<Hostility, _>();
         container.register_inheritable_enum::<ShootMode, _>();
         container.register_inheritable_enum::<CombatWeaponKind, _>();
@@ -592,10 +598,9 @@ impl Plugin for Game {
         container.register_inheritable_inspectable::<BotCounter>();
         container.register_inheritable_vec_collection::<Barrel>();
         container.register_inheritable_vec_collection::<ItemEntry>();
-        container
     }
 
-    fn init(&mut self, scene_path: Option<&str>, mut context: PluginContext) {
+    fn init(&mut self, scene_path: Option<&str>, mut context: PluginContext) -> GameResult {
         if let Some(scene_path) = scene_path {
             context.async_scene_loader.request(scene_path);
         }
@@ -638,17 +643,21 @@ impl Plugin for Game {
 
         self.create_debug_ui(&mut context);
         self.menu.set_visible(&mut context, true);
+
+        Ok(())
     }
 
-    fn update(&mut self, ctx: &mut PluginContext) {
-        self.update(ctx);
+    fn update(&mut self, ctx: &mut PluginContext) -> GameResult {
+        self.update(ctx)?;
 
         if !self.running {
             ctx.loop_controller.exit();
         }
+
+        Ok(())
     }
 
-    fn on_os_event(&mut self, event: &Event<()>, mut ctx: PluginContext) {
+    fn on_os_event(&mut self, event: &Event<()>, mut ctx: PluginContext) -> GameResult {
         self.process_input_event(event, &mut ctx);
 
         if let Event::WindowEvent { event, .. } = event {
@@ -666,9 +675,11 @@ impl Plugin for Game {
                 _ => (),
             }
         }
+
+        Ok(())
     }
 
-    fn on_loaded(&mut self, context: PluginContext) {
+    fn on_loaded(&mut self, context: PluginContext) -> GameResult {
         if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
             let inner_size = graphics_context.window.inner_size();
 
@@ -683,9 +694,11 @@ impl Plugin for Game {
             let scene = &mut context.scenes[level.scene];
             level.sound_manager = SoundManager::new(scene, context.resource_manager.clone());
         }
+
+        Ok(())
     }
 
-    fn on_graphics_context_initialized(&mut self, mut context: PluginContext) {
+    fn on_graphics_context_initialized(&mut self, mut context: PluginContext) -> GameResult {
         let graphics_context = context.graphics_context.as_initialized_mut();
 
         let inner_size = if let Some(primary_monitor) = graphics_context.window.primary_monitor() {
@@ -713,10 +726,13 @@ impl Plugin for Game {
         );
 
         self.menu.sync_to_model(&mut context, self.level.is_some());
+
+        Ok(())
     }
 
-    fn before_rendering(&mut self, mut context: PluginContext) {
+    fn before_rendering(&mut self, mut context: PluginContext) -> GameResult {
         self.render_offscreen(&mut context);
+        Ok(())
     }
 
     fn on_ui_message(
@@ -724,11 +740,12 @@ impl Plugin for Game {
         context: &mut PluginContext,
         message: &UiMessage,
         _ui_handle: Handle<UserInterface>,
-    ) {
+    ) -> GameResult {
         self.handle_ui_message(context, message);
+        Ok(())
     }
 
-    fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) {
+    fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) -> GameResult {
         self.destroy_level(ctx);
         let ui = ctx.user_interfaces.first();
         self.death_screen.set_visible(ui, false);
@@ -737,6 +754,7 @@ impl Plugin for Game {
         ui.send(self.loading_screen.root, WidgetMessage::Visibility(true));
 
         self.menu.set_visible(ctx, false);
+        Ok(())
     }
 
     fn on_scene_loaded(
@@ -745,7 +763,7 @@ impl Plugin for Game {
         scene: Handle<Scene>,
         data: &[u8],
         ctx: &mut PluginContext,
-    ) {
+    ) -> GameResult {
         if let Some(highlighter) = self.highlighter.as_mut() {
             highlighter.borrow_mut().scene_handle = scene;
         }
@@ -775,5 +793,7 @@ impl Plugin for Game {
         self.menu.sync_to_model(ctx, true);
 
         Log::info("Level was loaded successfully!");
+
+        Ok(())
     }
 }

@@ -1,4 +1,5 @@
 use crate::Game;
+use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{pool::Handle, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
     scene::{node::Node, rigidbody::RigidBody},
@@ -28,7 +29,7 @@ impl Elevator {
 }
 
 impl ScriptTrait for Elevator {
-    fn on_init(&mut self, ctx: &mut ScriptContext) {
+    fn on_init(&mut self, ctx: &mut ScriptContext) -> GameResult {
         ctx.plugins
             .get_mut::<Game>()
             .level
@@ -36,19 +37,21 @@ impl ScriptTrait for Elevator {
             .unwrap()
             .elevators
             .push(ctx.handle);
+        Ok(())
     }
 
-    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, ctx: &mut ScriptDeinitContext) -> GameResult {
         if let Some(level) = ctx.plugins.get_mut::<Game>().level.as_mut() {
             if let Some(elevator) = level.elevators.iter().position(|h| *h == ctx.node_handle) {
                 level.elevators.remove(elevator);
             }
         }
+        Ok(())
     }
 
-    fn on_update(&mut self, context: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         if self.current_floor != self.dest_floor {
-            self.k += 0.5 * context.dt;
+            self.k += 0.5 * ctx.dt;
 
             if self.k >= 1.0 {
                 self.current_floor = self.dest_floor;
@@ -60,14 +63,13 @@ impl ScriptTrait for Elevator {
             self.point_handles.get(self.current_floor as usize),
             self.point_handles.get(self.dest_floor as usize),
         ) {
-            let current_pos = context.scene.graph[*current].global_position();
-            let dest_pos = context.scene.graph[*dest].global_position();
-            if let Some(rigid_body_ref) =
-                context.scene.graph[context.handle].cast_mut::<RigidBody>()
-            {
+            let current_pos = ctx.scene.graph[*current].global_position();
+            let dest_pos = ctx.scene.graph[*dest].global_position();
+            if let Some(rigid_body_ref) = ctx.scene.graph[ctx.handle].cast_mut::<RigidBody>() {
                 let position = current_pos.lerp(&dest_pos, self.k);
                 rigid_body_ref.local_transform_mut().set_position(position);
             }
         }
+        Ok(())
     }
 }

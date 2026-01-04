@@ -1,4 +1,3 @@
-use fyrox::graph::BaseSceneGraph;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -10,6 +9,8 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
+    graph::BaseSceneGraph,
+    plugin::error::GameResult,
     resource::texture::{Texture, TextureResource},
     scene::{
         base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
@@ -36,7 +37,7 @@ impl Default for Decal {
 }
 
 impl ScriptTrait for Decal {
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         self.lifetime -= ctx.dt;
 
         let abs_lifetime = self.lifetime.abs();
@@ -54,6 +55,8 @@ impl ScriptTrait for Decal {
         if self.lifetime < 0.0 && abs_lifetime > self.fade_interval {
             ctx.scene.graph.remove_node(ctx.handle);
         }
+
+        Ok(())
     }
 }
 

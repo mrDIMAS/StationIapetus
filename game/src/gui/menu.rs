@@ -57,6 +57,7 @@ impl MenuScene {
             "data/levels/menu.rgs",
             &FsResourceIo,
             context.serialization_context.clone(),
+            context.dyn_type_constructors.clone(),
             context.resource_manager.clone(),
         )
         .await

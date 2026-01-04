@@ -2,7 +2,6 @@ use crate::{
     character::try_get_character_ref, sound::SoundManager, weapon::projectile::Projectile, Game,
     Player,
 };
-use fyrox::graph::{SceneGraph, SceneGraphNode};
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -17,6 +16,8 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
+    graph::SceneGraph,
+    plugin::error::GameResult,
     resource::model::ModelResource,
     scene::{
         collider::{Collider, ColliderShape, InteractionGroups},
@@ -43,23 +44,19 @@ use strum_macros::{AsRefStr, EnumString, VariantNames};
     AsRefStr,
     EnumString,
     VariantNames,
+    Default,
     Debug,
 )]
 #[repr(u32)]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
+    #[default]
     Consecutive = 0,
     /// Turret will shoot from each point each shot at once.
     Simultaneously = 1,
 }
 
 stub_uuid_provider!(ShootMode);
-
-impl Default for ShootMode {
-    fn default() -> Self {
-        Self::Consecutive
-    }
-}
 
 #[derive(
     Copy,
@@ -75,21 +72,17 @@ impl Default for ShootMode {
     EnumString,
     VariantNames,
     Debug,
+    Default,
 )]
 #[repr(u32)]
 pub enum Hostility {
+    #[default]
     Player,
     Monsters,
     All,
 }
 
 stub_uuid_provider!(Hostility);
-
-impl Default for Hostility {
-    fn default() -> Self {
-        Self::Player
-    }
-}
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
 #[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
@@ -157,7 +150,7 @@ impl Default for Turret {
 }
 
 impl ScriptTrait for Turret {
-    fn on_update(&mut self, ctx: &mut ScriptContext) {
+    fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
         let level_ref = ctx
             .plugins
             .get::<Game>()
@@ -171,11 +164,11 @@ impl ScriptTrait for Turret {
         self.target_check_timer -= ctx.dt;
 
         if self.target_check_timer <= 0.0 {
-            self.select_target(ctx.scene, &level_ref.actors);
+            self.select_target(ctx.scene, &level_ref.actors)?;
             self.target_check_timer = 0.15;
         }
 
-        if let Some(target) = try_get_character_ref(self.target, &ctx.scene.graph) {
+        if let Ok(target) = try_get_character_ref(self.target, &ctx.scene.graph) {
             let target_position = target.most_vulnerable_point(&ctx.scene.graph);
 
             let position = ctx.scene.graph[self.model].global_position();
@@ -241,11 +234,10 @@ impl ScriptTrait for Turret {
                 .set_target(self.yaw.angle() + 50.0f32.to_radians() * ctx.dt);
         }
 
-        if let Some(projector) = ctx
+        if let Ok(projector) = ctx
             .scene
             .graph
-            .try_get_mut(self.projector)
-            .and_then(|p| p.component_mut::<BaseLight>())
+            .try_get_mut_of_type::<BaseLight>(self.projector)
         {
             projector.set_color(if self.target.is_some() {
                 Color::opaque(255, 0, 0)
@@ -257,18 +249,24 @@ impl ScriptTrait for Turret {
         self.pitch.update(ctx.dt);
         self.yaw.update(ctx.dt);
 
-        ctx.scene.graph[self.body]
+        ctx.scene
+            .graph
+            .try_get_mut(self.body)?
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::y_axis(),
                 90.0f32.to_radians() + self.yaw.angle(),
             ));
-        ctx.scene.graph[self.barrel_stand]
+        ctx.scene
+            .graph
+            .try_get_mut(self.barrel_stand)?
             .local_transform_mut()
             .set_rotation(UnitQuaternion::from_axis_angle(
                 &Vector3::z_axis(),
                 self.pitch.angle() - std::f32::consts::FRAC_PI_2,
             ));
+
+        Ok(())
     }
 }
 
@@ -354,17 +352,18 @@ impl Turret {
             Frustum::from_view_projection_matrix(projection_matrix * view_matrix).unwrap();
     }
 
-    fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) {
+    fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) -> GameResult {
         let graph = &scene.graph;
         let self_position = graph[self.model].global_position();
 
-        if try_get_character_ref(self.target, graph).is_none_or(|c| !c.is_dead(graph)) {
+        if try_get_character_ref(self.target, graph)
+            .ok()
+            .is_none_or(|c| !c.is_dead(graph))
+        {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
-                let Some(actor) = try_get_character_ref(handle, &scene.graph) else {
-                    continue 'target_loop;
-                };
+                let actor = try_get_character_ref(handle, &scene.graph)?;
 
                 if actor.is_dead(graph) {
                     continue 'target_loop;
@@ -402,12 +401,11 @@ impl Turret {
                         continue 'hit_loop;
                     }
 
-                    if let Some(collider) = &scene.graph[hit.collider].cast::<Collider>() {
-                        if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
-                            self.target = Default::default();
-                            // Target is behind something.
-                            continue 'target_loop;
-                        }
+                    let collider = &scene.graph.try_get_of_type::<Collider>(hit.collider)?;
+                    if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
+                        self.target = Default::default();
+                        // Target is behind something.
+                        continue 'target_loop;
                     }
                 }
 
@@ -421,5 +419,7 @@ impl Turret {
         } else {
             self.target = Default::default();
         }
+
+        Ok(())
     }
 }

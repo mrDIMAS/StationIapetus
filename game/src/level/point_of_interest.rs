@@ -1,6 +1,7 @@
 use crate::Game;
 use fyrox::{
     core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
+    plugin::error::GameResult,
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
@@ -10,7 +11,7 @@ use fyrox::{
 pub struct PointOfInterest;
 
 impl ScriptTrait for PointOfInterest {
-    fn on_init(&mut self, context: &mut ScriptContext) {
+    fn on_init(&mut self, context: &mut ScriptContext) -> GameResult {
         context
             .plugins
             .get_mut::<Game>()
@@ -19,9 +20,10 @@ impl ScriptTrait for PointOfInterest {
             .expect("Level must exist!")
             .pois
             .insert(context.handle);
+        Ok(())
     }
 
-    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) {
+    fn on_deinit(&mut self, context: &mut ScriptDeinitContext) -> GameResult {
         context
             .plugins
             .get_mut::<Game>()
@@ -30,5 +32,6 @@ impl ScriptTrait for PointOfInterest {
             .expect("Level must exist!")
             .pois
             .remove(&context.node_handle);
+        Ok(())
     }
 }
