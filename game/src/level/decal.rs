@@ -13,10 +13,7 @@ use fyrox::{
     graph::SceneGraph,
     plugin::error::GameResult,
     resource::texture::{Texture, TextureResource},
-    scene::{
-        base::BaseBuilder, decal::DecalBuilder, graph::Graph, node::Node,
-        transform::TransformBuilder,
-    },
+    scene::{base::BaseBuilder, decal::DecalBuilder, graph::Graph, transform::TransformBuilder},
     script::{ScriptContext, ScriptTrait},
 };
 
@@ -70,7 +67,7 @@ impl Decal {
         color: Color,
         scale: Vector3<f32>,
         texture: TextureResource,
-    ) -> Handle<Node> {
+    ) -> Handle<fyrox::scene::decal::Decal> {
         let (position, face_towards, scale) = if parent.is_some() {
             let parent_scale = graph.global_scale(parent);
 
@@ -127,7 +124,7 @@ impl Decal {
         face_towards: Vector3<f32>,
         parent: Handle<Collider>,
         color: Color,
-    ) -> Handle<Node> {
+    ) -> Handle<fyrox::scene::decal::Decal> {
         let default_scale = Vector3::new(0.05, 0.05, 0.05);
 
         Self::spawn(

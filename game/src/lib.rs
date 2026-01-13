@@ -375,7 +375,6 @@ impl Game {
                     self.config.sound.music_volume = *volume;
                     // TODO: Apply to sound manager of level when it will handle music!
                     context.scenes[self.menu.scene.scene].graph[self.menu.scene.music]
-                        .as_sound_mut()
                         .set_gain(*volume);
                 }
                 Message::SetUseHrtf(state) => {

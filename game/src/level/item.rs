@@ -1,4 +1,5 @@
 use crate::{block_on, Game};
+use fyrox::scene::sprite::Sprite;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -51,7 +52,7 @@ pub struct Item {
     #[reflect(hidden)]
     pub enabled: bool,
     #[reflect(hidden)]
-    spark: Handle<Node>,
+    spark: Handle<Sprite>,
     #[reflect(hidden)]
     spark_size_change_dir: f32,
 }
@@ -118,7 +119,7 @@ impl ScriptTrait for Item {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
-        let spark = ctx.scene.graph[self.spark].as_sprite_mut();
+        let spark = &mut ctx.scene.graph[self.spark];
         spark.set_enabled(self.enabled);
         if self.enabled {
             let new_size = spark.size() + 0.02 * self.spark_size_change_dir * ctx.dt;

@@ -4,6 +4,7 @@ use crate::{
     MessageSender,
 };
 use fyrox::gui::window::WindowAlignment;
+use fyrox::scene::sound::Sound;
 use fyrox::{
     asset::io::FsResourceIo,
     core::{color::Color, pool::Handle, visitor::prelude::*},
@@ -25,7 +26,6 @@ use fyrox::{
     plugin::PluginContext,
     scene::{
         base::BaseBuilder,
-        node::Node,
         sound::{SoundBuffer, SoundBuilder, Status},
         Scene, SceneLoader,
     },
@@ -48,7 +48,7 @@ pub struct Menu {
 #[derive(Visit, Default, Debug)]
 pub struct MenuScene {
     pub scene: Handle<Scene>,
-    pub music: Handle<Node>,
+    pub music: Handle<Sound>,
 }
 
 impl MenuScene {
