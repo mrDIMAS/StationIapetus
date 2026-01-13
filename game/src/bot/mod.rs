@@ -39,7 +39,7 @@ use fyrox::{
     scene::sound::Sound,
     scene::{
         self,
-        animation::{absm::prelude::*, prelude::*},
+        animation::absm::prelude::*,
         debug::SceneDrawingContext,
         graph::physics::{Intersection, RayCastOptions},
         node::Node,
@@ -284,9 +284,7 @@ impl Bot {
 
         let animation_player_handle = absm.animation_player();
 
-        let animation_player = scene
-            .graph
-            .try_get_of_type::<AnimationPlayer>(animation_player_handle)?;
+        let animation_player = scene.graph.try_get(animation_player_handle)?;
 
         let lower_layer_events = self
             .state_machine
@@ -332,7 +330,7 @@ impl Bot {
 
         scene
             .graph
-            .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)?
+            .try_get_mut(animation_player_handle)?
             .animations_mut()
             .get_value_mut_silent()
             .clear_animation_events();

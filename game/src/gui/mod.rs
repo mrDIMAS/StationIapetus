@@ -6,7 +6,7 @@ use crate::{message::Message, MessageSender};
 use fyrox::gui::texture::TexturePixelKind;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     gui::{
         border::BorderBuilder,
         brush::Brush,

@@ -1,13 +1,13 @@
-use crate::level::hit_box::HitBox;
-use crate::{bot::behavior::BehaviorContext, door::door_mut, utils::BodyImpactHandler, Game};
-use fyrox::core::pool::Handle;
-use fyrox::fxhash::FxHashSet;
-use fyrox::graph::SceneGraph;
-use fyrox::plugin::error::GameError;
-use fyrox::scene::node::Node;
+use crate::{
+    bot::behavior::BehaviorContext, door::door_mut, level::hit_box::HitBox,
+    utils::BodyImpactHandler, Game,
+};
 use fyrox::{
-    core::{algebra::Vector3, visitor::prelude::*},
-    scene::{navmesh::NavigationalMesh, Scene},
+    core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
+    fxhash::FxHashSet,
+    graph::SceneGraph,
+    plugin::error::GameError,
+    scene::{collider::Collider, navmesh::NavigationalMesh, Scene},
     utils::behavior::{Behavior, Status},
 };
 
@@ -37,7 +37,7 @@ impl MoveToTarget {
 }
 
 fn calculate_movement_speed_factor(
-    hit_boxes: &FxHashSet<Handle<Node>>,
+    hit_boxes: &FxHashSet<Handle<Collider>>,
     impact_handler: &BodyImpactHandler,
     scene: &Scene,
 ) -> Result<f32, GameError> {
@@ -76,8 +76,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let mut body_ref = multiborrow_context.try_get_mut(ctx.character.body.transmute())?;
-        let body = body_ref.as_rigid_body_mut();
+        let mut body = multiborrow_context.try_get_mut(ctx.character.body)?;
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
@@ -94,19 +93,20 @@ impl<'a> Behavior<'a> for MoveToTarget {
         let has_reached_destination =
             ctx.agent.target().metric_distance(&position) <= self.min_distance;
 
+        let y_vel = body.lin_vel().y;
         if has_reached_destination {
-            body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
+            body.set_lin_vel(Vector3::new(0.0, y_vel, 0.0));
         } else if let Some(delta_position) = delta_position {
             let velocity = transform
                 .transform_vector(&delta_position)
                 .scale(1.0 / ctx.dt);
 
-            let velocity = Vector3::new(velocity.x, body.lin_vel().y, velocity.z);
+            let velocity = Vector3::new(velocity.x, y_vel, velocity.z);
             body.set_lin_vel(velocity);
         }
 
         drop(navmesh);
-        drop(body_ref);
+        drop(body);
         drop(multiborrow_context);
 
         self.check_obstacles(position, ctx);

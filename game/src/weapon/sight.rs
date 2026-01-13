@@ -167,7 +167,7 @@ impl ScriptTrait for LaserSight {
         let ray_node = &mut ctx.scene.graph[self.ray];
         if let Some(result) = intersections
             .into_iter()
-            .find(|i| i.collider.transmute() != ignore_collider)
+            .find(|i| i.collider != ignore_collider)
         {
             ray_node
                 .local_transform_mut()

@@ -1,6 +1,5 @@
-use crate::{
-    character::try_get_character_ref, door::ui::DoorUi, inventory::Inventory, utils, Game,
-};
+use crate::character::Character;
+use crate::{door::ui::DoorUi, inventory::Inventory, utils, Game};
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
@@ -147,7 +146,7 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            if let Ok(actor) = try_get_character_ref(*a, &ctx.scene.graph) {
+            if let Ok(actor) = ctx.scene.graph.try_get_script_component_of::<Character>(*a) {
                 let actor_position = actor.position(&ctx.scene.graph);
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {

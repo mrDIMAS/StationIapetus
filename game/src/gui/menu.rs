@@ -9,7 +9,7 @@ use fyrox::{
     core::{color::Color, pool::Handle, visitor::prelude::*},
     engine::InitializedGraphicsContext,
     event::Event,
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     gui::{
         border::BorderBuilder,
         button::{ButtonBuilder, ButtonMessage},

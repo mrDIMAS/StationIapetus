@@ -14,7 +14,7 @@ use fyrox::{
         algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
         type_traits::prelude::*, uuid_provider, visitor::prelude::*,
     },
-    graph::{BaseSceneGraph, SceneGraph},
+    graph::SceneGraph,
     gui::{
         border::BorderBuilder,
         brush::Brush,

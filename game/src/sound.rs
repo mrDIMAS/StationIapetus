@@ -1,5 +1,6 @@
 use fyrox::graph::SceneGraph;
 use fyrox::material::MaterialResourceBinding;
+use fyrox::scene::collider::Collider;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -13,7 +14,6 @@ use fyrox::{
         base::BaseBuilder,
         graph::{physics::FeatureId, Graph},
         mesh::Mesh,
-        node::Node,
         sound::{reverb::Reverb, Effect, SoundBuffer, SoundBufferResource, SoundBuilder, Status},
         transform::TransformBuilder,
         Scene,
@@ -82,7 +82,7 @@ impl SoundBase {
 
 #[derive(Default)]
 pub struct SoundMap {
-    sound_map: HashMap<Handle<Node>, Vec<TriangleRange>>,
+    sound_map: HashMap<Handle<Collider>, Vec<TriangleRange>>,
 }
 
 impl SoundMap {
@@ -92,8 +92,8 @@ impl SoundMap {
         let mut stack = Vec::new();
 
         for (node, body) in scene.graph.pair_iter().filter(|(_, n)| n.is_rigid_body()) {
-            for &collider in body.children() {
-                if scene.graph[collider].is_collider() {
+            for &child_handle in body.children() {
+                if scene.graph[child_handle].is_collider() {
                     let mut ranges = Vec::new();
 
                     stack.clear();
@@ -163,14 +163,14 @@ impl SoundMap {
                         stack.extend_from_slice(descendant.children());
                     }
 
-                    sound_map.insert(collider, ranges);
+                    sound_map.insert(child_handle.transmute(), ranges);
                 }
             }
         }
         Self { sound_map }
     }
 
-    pub fn ranges_of(&self, collider: Handle<Node>) -> Option<&[TriangleRange]> {
+    pub fn ranges_of(&self, collider: Handle<Collider>) -> Option<&[TriangleRange]> {
         self.sound_map.get(&collider).map(|r| r.as_slice())
     }
 }
@@ -279,7 +279,7 @@ impl SoundManager {
     pub fn play_environment_sound(
         &self,
         graph: &mut Graph,
-        collider: Handle<Node>,
+        collider: Handle<Collider>,
         feature: FeatureId,
         position: Vector3<f32>,
         sound_kind: SoundKind,

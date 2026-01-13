@@ -19,7 +19,6 @@ use fyrox::{
         collider::{Collider, ColliderShape},
         graph::physics::RayCastOptions,
         node::Node,
-        rigidbody::RigidBody,
     },
     script::{
         RoutingStrategy, ScriptContext, ScriptDeinitContext, ScriptMessageContext,
@@ -30,7 +29,7 @@ use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 #[derive(Debug, Clone)]
 pub struct HitBoxDamage {
-    pub hit_box: Handle<Node>,
+    pub hit_box: Handle<Collider>,
     pub damage: f32,
     pub dealer: DamageDealer,
     pub position: Option<DamagePosition>,
@@ -39,7 +38,7 @@ pub struct HitBoxDamage {
 
 #[derive(Debug, Clone)]
 pub struct HitBoxHeal {
-    pub hit_box: Handle<Node>,
+    pub hit_box: Handle<Collider>,
     pub amount: f32,
 }
 
@@ -149,8 +148,8 @@ impl HitBox {
             }
 
             for manifold in contact.manifolds.iter() {
-                let rb1 = graph.try_get_of_type::<RigidBody>(manifold.rigid_body1)?;
-                let rb2 = graph.try_get_of_type::<RigidBody>(manifold.rigid_body2)?;
+                let rb1 = graph.try_get(manifold.rigid_body1)?;
+                let rb2 = graph.try_get(manifold.rigid_body2)?;
 
                 for point in manifold.points.iter() {
                     let hit_strength = (rb1.lin_vel() - rb2.lin_vel()).norm();
@@ -160,7 +159,7 @@ impl HitBox {
                             ctx.handle,
                             RoutingStrategy::Up,
                             HitBoxMessage::Damage(HitBoxDamage {
-                                hit_box: ctx.handle,
+                                hit_box: ctx.handle.transmute(),
                                 damage: hit_strength,
                                 dealer: DamageDealer::default(),
                                 position: Some(DamagePosition {
@@ -197,7 +196,7 @@ impl HitBox {
                     ctx.handle,
                     RoutingStrategy::Up,
                     HitBoxMessage::Damage(HitBoxDamage {
-                        hit_box: ctx.handle,
+                        hit_box: ctx.handle.transmute(),
                         damage: 10000.0,
                         dealer: DamageDealer::default(),
                         position: None,
@@ -262,7 +261,7 @@ impl HitBox {
 
                 for intersection in query_buffer.iter() {
                     if matches!(
-                        ctx.scene.graph[intersection.collider].as_collider().shape(),
+                        ctx.scene.graph[intersection.collider].shape(),
                         ColliderShape::Trimesh(_)
                     ) && intersection
                         .position
@@ -289,7 +288,7 @@ impl HitBox {
             ctx.message_sender.send_to_target(
                 *child,
                 HitBoxMessage::Damage(HitBoxDamage {
-                    hit_box: *child,
+                    hit_box: child.to_variant(),
                     damage: damage.damage,
                     dealer: damage.dealer,
                     position: damage.position,
@@ -312,7 +311,7 @@ impl ScriptTrait for HitBox {
             .as_mut()
             .unwrap()
             .hit_boxes
-            .insert(ctx.handle);
+            .insert(ctx.handle.to_variant());
 
         ctx.message_dispatcher
             .subscribe_to::<HitBoxMessage>(ctx.handle);
@@ -327,7 +326,7 @@ impl ScriptTrait for HitBox {
             .as_mut()
             .unwrap()
             .hit_boxes
-            .remove(&ctx.node_handle);
+            .remove(&ctx.node_handle.to_variant());
 
         Ok(())
     }

@@ -1,6 +1,6 @@
 use crate::{
     bot::{behavior::BehaviorContext, Bot, BotHostility, Target},
-    character::{try_get_character_ref, Character},
+    character::Character,
     Game,
 };
 use fyrox::graph::SceneGraph;
@@ -52,7 +52,7 @@ impl<'a> Behavior<'a> for FindTarget {
         if let Some(target) = ctx.target {
             for &actor_handle in ctx.actors {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
-                    let character = try_get_character_ref(actor_handle, graph)?;
+                    let character = graph.try_get_script_component_of::<Character>(actor_handle)?;
                     if !character.is_dead(graph) {
                         target.position = character.position(graph);
                         return Ok(Status::Success);
@@ -120,11 +120,11 @@ impl<'a> Behavior<'a> for FindTarget {
                 );
 
                 'hit_loop: for hit in query_buffer.iter() {
-                    let collider = ctx.scene.graph[hit.collider].as_collider();
+                    let collider = &ctx.scene.graph[hit.collider];
 
                     if let ColliderShape::Capsule(_) = collider.shape() {
                         // Prevent setting self as target.
-                        if ctx.character.capsule_collider == hit.collider.transmute() {
+                        if ctx.character.capsule_collider == hit.collider {
                             continue 'hit_loop;
                         }
                     } else {

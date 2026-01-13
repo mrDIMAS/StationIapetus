@@ -12,7 +12,7 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::prelude::*,
     },
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     material::{Material, MaterialResource, MaterialResourceExtension},
     plugin::error::GameResult,
     resource::{
@@ -168,10 +168,7 @@ impl Item {
 
             if let Some(intersection) = intersections.iter().find(|i| {
                 // HACK: Check everything but capsules (helps correctly drop items from actors)
-                !matches!(
-                    scene.graph[i.collider].as_collider().shape(),
-                    ColliderShape::Capsule(_)
-                )
+                !matches!(scene.graph[i.collider].shape(), ColliderShape::Capsule(_))
             }) {
                 intersection.position.coords
             } else {

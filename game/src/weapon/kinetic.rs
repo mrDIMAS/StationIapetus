@@ -5,9 +5,6 @@ use crate::{
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
     CollisionGroups, Game, Item,
 };
-use fyrox::graph::SceneGraph;
-use fyrox::plugin::error::GameResult;
-use fyrox::scene::graph::Graph;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
@@ -21,10 +18,12 @@ use fyrox::{
         visitor::prelude::*,
     },
     event::{Event, WindowEvent},
+    graph::SceneGraph,
     keyboard::{KeyCode, PhysicalKey},
+    plugin::error::GameResult,
     scene::{
         collider::{BitMask, Collider, InteractionGroups},
-        graph::physics::RayCastOptions,
+        graph::{physics::RayCastOptions, Graph},
         node::Node,
         rigidbody::{RigidBody, RigidBodyType},
     },
@@ -37,7 +36,7 @@ use fyrox::{
 struct Target {
     grab_point: Vector3<f32>,
     node: Handle<Node>,
-    collider: Handle<Node>,
+    collider: Handle<Collider>,
 }
 
 #[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
@@ -215,10 +214,7 @@ impl ScriptTrait for KineticGun {
             let begin = self.weapon.shot_position(&ctx.scene.graph);
 
             if let Some(target) = self.target.as_ref() {
-                let collider = ctx
-                    .scene
-                    .graph
-                    .try_get_of_type::<Collider>(target.collider)?;
+                let collider = ctx.scene.graph.try_get(target.collider)?;
 
                 if collider.is_globally_enabled() {
                     let grab_point = collider

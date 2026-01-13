@@ -1,4 +1,5 @@
 use crate::Player;
+use fyrox::scene::collider::Collider;
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, Vector3},
@@ -25,7 +26,7 @@ use fyrox::{
 #[visit(optional)]
 pub struct CameraController {
     player: Handle<Node>,
-    ignorable_collider: Handle<Node>,
+    ignorable_collider: Handle<Collider>,
     camera_hinge: Handle<Node>,
     pub camera: Handle<Node>,
     camera_offset: Vector3<f32>,
@@ -47,7 +48,11 @@ impl CameraController {
         self.shake_timer = 0.24;
     }
 
-    fn check_occlusion(&mut self, owner_collider: Handle<Node>, scene: &mut Scene) -> GameResult {
+    fn check_occlusion(
+        &mut self,
+        owner_collider: Handle<Collider>,
+        scene: &mut Scene,
+    ) -> GameResult {
         let ray_origin = scene.graph.try_get(self.camera_hinge)?.global_position();
         let ray_end = scene.graph.try_get(self.camera)?.global_position();
         let dir = (ray_end - ray_origin)

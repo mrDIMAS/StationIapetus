@@ -1,3 +1,4 @@
+use fyrox::scene::collider::Collider;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -9,7 +10,7 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     plugin::error::GameResult,
     resource::texture::{Texture, TextureResource},
     scene::{
@@ -65,7 +66,7 @@ impl Decal {
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
-        parent: Handle<Node>,
+        parent: Handle<Collider>,
         color: Color,
         scale: Vector3<f32>,
         texture: TextureResource,
@@ -124,7 +125,7 @@ impl Decal {
         graph: &mut Graph,
         position: Vector3<f32>,
         face_towards: Vector3<f32>,
-        parent: Handle<Node>,
+        parent: Handle<Collider>,
         color: Color,
     ) -> Handle<Node> {
         let default_scale = Vector3::new(0.05, 0.05, 0.05);

@@ -35,7 +35,7 @@ use fyrox::{
     engine::GraphicsContext,
     event::{DeviceEvent, ElementState, Event, MouseScrollDelta, WindowEvent},
     fxhash::FxHashMap,
-    graph::{SceneGraph, SceneGraphNode},
+    graph::SceneGraph,
     keyboard::PhysicalKey,
     plugin::error::{GameError, GameResult},
     renderer::ui_renderer::UiRenderInfo,
@@ -141,7 +141,7 @@ pub struct Player {
     journal_display: Handle<Node>,
     v_recoil: SmoothAngle,
     h_recoil: SmoothAngle,
-    machine: Handle<Node>,
+    machine: Handle<AnimationBlendingStateMachine>,
     local_velocity: Vector2<f32>,
     target_local_velocity: Vector2<f32>,
     flash_light: InheritableVariable<Handle<Node>>,
@@ -150,7 +150,7 @@ pub struct Player {
     m4_weapon: Option<ModelResource>,
     glock_weapon: Option<ModelResource>,
     plasma_gun_weapon: Option<ModelResource>,
-    animation_player: Handle<Node>,
+    animation_player: Handle<AnimationPlayer>,
     target_yaw: f32,
     target_pitch: f32,
 
@@ -474,15 +474,11 @@ impl Player {
         has_ground_contact: bool,
         sound_manager: &SoundManager,
     ) -> GameResult {
-        let absm = scene
-            .graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine)?;
+        let absm = scene.graph.try_get(self.machine)?;
 
         let animation_player_handle = absm.animation_player();
 
-        let animation_player = scene
-            .graph
-            .try_get_of_type::<AnimationPlayer>(animation_player_handle)?;
+        let animation_player = scene.graph.try_get(animation_player_handle)?;
 
         let upper_layer_events = self
             .state_machine
@@ -593,7 +589,7 @@ impl Player {
         // Clear all the events.
         scene
             .graph
-            .try_get_mut_of_type::<AnimationPlayer>(animation_player_handle)?
+            .try_get_mut(animation_player_handle)?
             .animations_mut()
             .get_value_mut_silent()
             .clear_animation_events();
@@ -795,7 +791,7 @@ impl Player {
     }
 
     fn can_move(&self, graph: &Graph) -> Result<bool, GameError> {
-        let absm = graph.try_get_of_type::<AnimationBlendingStateMachine>(self.machine)?;
+        let absm = graph.try_get(self.machine)?;
         if let Some(layer) = absm.machine().layers().first() {
             Ok(layer.active_state() != self.state_machine.fall_state
                 && layer.active_state() != self.state_machine.land_state)

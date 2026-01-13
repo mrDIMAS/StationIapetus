@@ -1,8 +1,4 @@
-use crate::{
-    character::{try_get_character_ref, Character},
-    message::Message,
-    Game,
-};
+use crate::{character::Character, message::Message, Game};
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
@@ -10,7 +6,7 @@ use fyrox::{
         type_traits::prelude::*, visitor::prelude::*,
     },
     fxhash::FxHashSet,
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     scene::node::Node,
     script::{ScriptContext, ScriptTrait},
 };
@@ -54,7 +50,10 @@ impl ScriptTrait for Trigger {
                 .transform(&ctx.scene.graph[ctx.handle].global_transform());
 
             let contains_player = this_bounds.is_contains_point(
-                try_get_character_ref(level.player, &ctx.scene.graph)?.position(&ctx.scene.graph),
+                ctx.scene
+                    .graph
+                    .try_get_script_component_of::<Character>(level.player)?
+                    .position(&ctx.scene.graph),
             );
 
             match self.kind {

@@ -6,7 +6,6 @@ use fyrox::{
     scene::{
         animation::{absm::prelude::*, prelude::*},
         graph::Graph,
-        node::Node,
         Scene,
     },
 };
@@ -23,7 +22,7 @@ pub struct StateMachineInput<'a> {
     pub is_dead: bool,
     pub should_be_stunned: bool,
     pub melee_attack: bool,
-    pub machine: Handle<Node>,
+    pub machine: Handle<AnimationBlendingStateMachine>,
     pub scene: &'a mut Scene,
     pub local_velocity: Vector2<f32>,
     pub hit_something: bool,
@@ -31,7 +30,7 @@ pub struct StateMachineInput<'a> {
 
 #[derive(Default, Debug, Clone)]
 pub struct StateMachine {
-    pub machine_handle: Handle<Node>,
+    pub machine_handle: Handle<AnimationBlendingStateMachine>,
     pub jump_animation: Handle<Animation>,
     pub land_animation: Handle<Animation>,
     pub hit_reaction_pistol_animation: Handle<Animation>,
@@ -52,14 +51,13 @@ impl StateMachine {
     const LOWER_BODY_LAYER_INDEX: usize = 0;
     const UPPER_BODY_LAYER_INDEX: usize = 1;
 
-    pub fn new(machine_handle: Handle<Node>, graph: &Graph) -> Option<Self> {
-        let absm = graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(machine_handle)
-            .ok()?;
+    pub fn new(
+        machine_handle: Handle<AnimationBlendingStateMachine>,
+        graph: &Graph,
+    ) -> Option<Self> {
+        let absm = graph.try_get(machine_handle).ok()?;
 
-        let animation_player = graph
-            .try_get_of_type::<AnimationPlayer>(absm.animation_player())
-            .ok()?;
+        let animation_player = graph.try_get(absm.animation_player()).ok()?;
         let animations = animation_player.animations();
         let machine = absm.machine();
 
@@ -91,7 +89,7 @@ impl StateMachine {
         idx: usize,
     ) -> Result<&'a MachineLayer, GameError> {
         graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(self.machine_handle)?
+            .try_get(self.machine_handle)?
             .machine()
             .layers()
             .get(idx)
@@ -112,7 +110,7 @@ impl StateMachine {
         idx: usize,
     ) -> Result<&'a mut MachineLayer, GameError> {
         graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.machine_handle)?
+            .try_get_mut(self.machine_handle)?
             .machine_mut()
             .get_value_mut_silent()
             .layers_mut()
@@ -154,10 +152,7 @@ impl StateMachine {
             hit_something,
         } = input;
 
-        let animation_player = scene
-            .graph
-            .try_get_of_type::<AnimationBlendingStateMachine>(machine)?
-            .animation_player();
+        let animation_player = scene.graph.try_get(machine)?.animation_player();
 
         let animations_container =
             utils::fetch_animation_container_ref(&scene.graph, animation_player);
@@ -174,7 +169,7 @@ impl StateMachine {
 
         scene
             .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(machine)?
+            .try_get_mut(machine)?
             .machine_mut()
             .get_value_mut_silent()
             // Update parameters which will be used by transitions.
@@ -201,7 +196,7 @@ impl StateMachine {
         Ok(())
     }
 
-    pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<Node>) -> bool {
+    pub fn is_stunned(&self, scene: &Scene, animation_player: Handle<AnimationPlayer>) -> bool {
         let animations_container =
             utils::fetch_animation_container_ref(&scene.graph, animation_player);
 

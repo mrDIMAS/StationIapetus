@@ -14,7 +14,7 @@ use fyrox::{
     },
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
-    graph::BaseSceneGraph,
+    graph::SceneGraph,
     gui::font::{Font, FontResource},
     gui::{
         border::BorderBuilder,

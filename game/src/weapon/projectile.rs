@@ -77,9 +77,9 @@ pub struct Hit {
     pub shooter_actor: Handle<Node>,
     pub position: Vector3<f32>,
     pub normal: Vector3<f32>,
-    pub collider: Handle<Node>,
+    pub collider: Handle<Collider>,
     pub feature: FeatureId,
-    pub hit_box: Option<Handle<Node>>,
+    pub hit_box: Option<Handle<Collider>>,
     pub query_buffer: Vec<Intersection>,
 }
 
@@ -147,7 +147,7 @@ pub struct Projectile {
     // every frame.
     #[visit(skip)]
     #[reflect(hidden)]
-    collider: Handle<Node>,
+    collider: Handle<Collider>,
 }
 
 impl Default for Projectile {
@@ -197,7 +197,7 @@ fn ray_hit(
     end: Vector3<f32>,
     shooter: Handle<Node>,
     graph: &mut Graph,
-    ignored_collider: Handle<Node>,
+    ignored_collider: Handle<Collider>,
 ) -> Option<Hit> {
     if begin == end {
         return None;
@@ -283,7 +283,7 @@ impl ScriptTrait for Projectile {
             .scene
             .graph
             .find(ctx.handle, &mut |n| n.component_ref::<Collider>().is_some())
-            .map(|(h, _)| h)
+            .map(|(h, _)| h.transmute())
             .unwrap_or_default();
 
         Ok(())
@@ -330,7 +330,7 @@ impl ScriptTrait for Projectile {
 
         if hit.is_none() {
             // Collect hits from self collider.
-            if let Ok(collider) = ctx.scene.graph.try_get_of_type::<Collider>(self.collider) {
+            if let Ok(collider) = ctx.scene.graph.try_get(self.collider) {
                 let owner_character =
                     ctx.scene
                         .graph

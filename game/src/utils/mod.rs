@@ -99,19 +99,19 @@ pub fn is_probability_event_occurred(probability: f32) -> bool {
     rand::thread_rng().gen_range(0.0..1.0) < probability.clamp(0.0, 1.0)
 }
 
-pub fn fetch_animation_container_ref(graph: &Graph, handle: Handle<Node>) -> &AnimationContainer {
-    graph
-        .try_get_of_type::<AnimationPlayer>(handle)
-        .unwrap()
-        .animations()
+pub fn fetch_animation_container_ref(
+    graph: &Graph,
+    handle: Handle<AnimationPlayer>,
+) -> &AnimationContainer {
+    graph.try_get(handle).unwrap().animations()
 }
 
 pub fn fetch_animation_container_mut(
     graph: &mut Graph,
-    handle: Handle<Node>,
+    handle: Handle<AnimationPlayer>,
 ) -> &mut AnimationContainer {
     graph
-        .try_get_mut_of_type::<AnimationPlayer>(handle)
+        .try_get_mut(handle)
         .unwrap()
         .animations_mut()
         .get_value_mut_silent()

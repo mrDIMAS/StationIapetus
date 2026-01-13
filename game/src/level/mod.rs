@@ -2,6 +2,7 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
+use fyrox::scene::collider::Collider;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{futures::executor::block_on, pool::Handle, visitor::prelude::*},
@@ -33,7 +34,7 @@ pub struct Level {
     pub player: Handle<Node>,
     pub actors: Vec<Handle<Node>>,
     pub death_zones: FxHashSet<Handle<Node>>,
-    pub hit_boxes: FxHashSet<Handle<Node>>,
+    pub hit_boxes: FxHashSet<Handle<Collider>>,
     pub items: ItemContainer,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,

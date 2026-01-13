@@ -21,7 +21,7 @@ use fyrox::{
         visitor::prelude::*,
     },
     fxhash::FxHashSet,
-    graph::{BaseSceneGraph, SceneGraph},
+    graph::SceneGraph,
     plugin::error::{GameError, GameResult},
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
@@ -92,14 +92,14 @@ pub struct Character {
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
     pub inventory: Inventory,
-    pub melee_hit_boxes: InheritableVariable<Vec<Handle<Node>>>,
+    pub melee_hit_boxes: InheritableVariable<Vec<Handle<Collider>>>,
     pub attack_sounds: InheritableVariable<Vec<Handle<Node>>>,
     pub punch_sounds: InheritableVariable<Vec<Handle<Node>>>,
     #[reflect(min_value = 0.0, max_value = 20.0)]
     melee_attack_damage: InheritableVariable<f32>,
     #[visit(skip)]
     #[reflect(hidden)]
-    pub hit_boxes: FxHashSet<Handle<Node>>,
+    pub hit_boxes: FxHashSet<Handle<Collider>>,
     #[reflect(hidden)]
     #[visit(skip)]
     pub melee_attack_context: Option<MeleeAttackContext>,
@@ -107,7 +107,7 @@ pub struct Character {
 
 #[derive(Default, Clone, Debug)]
 pub struct MeleeAttackContext {
-    pub damaged_hitboxes: FxHashSet<Handle<Node>>,
+    pub damaged_hitboxes: FxHashSet<Handle<Collider>>,
     pub damaged_characters: FxHashSet<Handle<Node>>,
 }
 
@@ -163,14 +163,16 @@ impl Character {
             .scene
             .graph
             .traverse_iter(ctx.handle)
-            .filter_map(|(handle, node)| node.try_get_script::<HitBox>().map(|_| handle))
+            .filter_map(|(handle, node)| {
+                node.try_get_script::<HitBox>().map(|_| handle.transmute())
+            })
             .collect::<FxHashSet<_>>()
     }
 
     pub fn hit_box_iter<'a>(
         &self,
         graph: &'a Graph,
-    ) -> impl Iterator<Item = (Handle<Node>, &'a HitBox)> + use<'a, '_> {
+    ) -> impl Iterator<Item = (Handle<Collider>, &'a HitBox)> + use<'a, '_> {
         self.hit_boxes.iter().filter_map(|h| {
             graph
                 .try_get_script_component_of::<HitBox>(*h)
@@ -212,7 +214,7 @@ impl Character {
             .fold(0.0, |acc, (_, hitbox)| acc + *hitbox.health)
     }
 
-    pub fn most_wounded_hit_box(&self, graph: &Graph) -> Option<Handle<Node>> {
+    pub fn most_wounded_hit_box(&self, graph: &Graph) -> Option<Handle<Collider>> {
         let mut min_health = f32::MAX;
         let mut result = None;
         for (handle, hitbox) in self.hit_box_iter(graph) {
@@ -315,9 +317,7 @@ impl Character {
         let mut need_play_punch_sound = false;
 
         for melee_hit_box_handle in self.melee_hit_boxes.iter() {
-            let melee_hit_box_collider = scene
-                .graph
-                .try_get_of_type::<Collider>(*melee_hit_box_handle)?;
+            let melee_hit_box_collider = scene.graph.try_get(*melee_hit_box_handle)?;
 
             for (collider1, collider2) in melee_hit_box_collider
                 .intersects(&scene.graph.physics)
@@ -355,7 +355,8 @@ impl Character {
                 attack_context.damaged_hitboxes.insert(intersected_hit_box);
 
                 // Do not over-damage characters.
-                if let Some(parent_character) = parent_character(intersected_hit_box, &scene.graph)
+                if let Some(parent_character) =
+                    parent_character(intersected_hit_box.transmute(), &scene.graph)
                 {
                     if attack_context
                         .damaged_characters
@@ -394,7 +395,7 @@ impl Character {
         Ok(())
     }
 
-    pub fn has_hit_box(&self, handle: Handle<Node>) -> bool {
+    pub fn has_hit_box(&self, handle: Handle<Collider>) -> bool {
         self.hit_boxes.contains(&handle)
     }
 
@@ -625,7 +626,7 @@ impl Character {
 
         for intersection in query_buffer
             .into_iter()
-            .filter(|i| i.collider.transmute() != self.capsule_collider)
+            .filter(|i| i.collider != self.capsule_collider)
         {
             manager.play_environment_sound(
                 &mut scene.graph,
@@ -639,15 +640,4 @@ impl Character {
             );
         }
     }
-}
-
-pub fn try_get_character_ref(handle: Handle<Node>, graph: &Graph) -> Result<&Character, GameError> {
-    Ok(graph.try_get_script_component_of::<Character>(handle)?)
-}
-
-pub fn try_get_character_mut(
-    handle: Handle<Node>,
-    graph: &mut Graph,
-) -> Result<&mut Character, GameError> {
-    Ok(graph.try_get_script_component_of_mut(handle)?)
 }

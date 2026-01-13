@@ -1,7 +1,5 @@
-use crate::{
-    character::try_get_character_ref, sound::SoundManager, weapon::projectile::Projectile, Game,
-    Player,
-};
+use crate::character::Character;
+use crate::{sound::SoundManager, weapon::projectile::Projectile, Game, Player};
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
@@ -97,7 +95,7 @@ pub struct Turret {
     yaw: SmoothAngle,
     pitch: SmoothAngle,
     projector: Handle<Node>,
-    collider: InheritableVariable<Handle<Node>>,
+    collider: InheritableVariable<Handle<Collider>>,
     shoot_interval: f32,
 
     #[reflect(hidden)]
@@ -168,15 +166,22 @@ impl ScriptTrait for Turret {
             self.target_check_timer = 0.15;
         }
 
-        if let Ok(target) = try_get_character_ref(self.target, &ctx.scene.graph) {
+        if let Ok(target) = ctx
+            .scene
+            .graph
+            .try_get_script_component_of::<Character>(self.target)
+        {
             let target_position = target.most_vulnerable_point(&ctx.scene.graph);
 
-            let position = ctx.scene.graph[self.model].global_position();
+            let position = ctx.scene.graph.try_get(self.model)?.global_position();
 
             let d = target_position - position;
 
             // Aim horizontally.
-            let d_model_rel = ctx.scene.graph[self.model]
+            let d_model_rel = ctx
+                .scene
+                .graph
+                .try_get(self.model)?
                 .global_transform()
                 .try_inverse()
                 .unwrap_or_default()
@@ -184,7 +189,10 @@ impl ScriptTrait for Turret {
             self.yaw.set_target(d_model_rel.x.atan2(d_model_rel.z));
 
             // Aim vertically.
-            if let Some(d_body_rel) = ctx.scene.graph[self.body]
+            if let Some(d_body_rel) = ctx
+                .scene
+                .graph
+                .try_get(self.body)?
                 .global_transform()
                 .try_inverse()
                 .unwrap_or_default()
@@ -234,17 +242,14 @@ impl ScriptTrait for Turret {
                 .set_target(self.yaw.angle() + 50.0f32.to_radians() * ctx.dt);
         }
 
-        if let Ok(projector) = ctx
-            .scene
+        ctx.scene
             .graph
-            .try_get_mut_of_type::<BaseLight>(self.projector)
-        {
-            projector.set_color(if self.target.is_some() {
+            .try_get_mut_of_type::<BaseLight>(self.projector)?
+            .set_color(if self.target.is_some() {
                 Color::opaque(255, 0, 0)
             } else {
                 Color::opaque(255, 127, 40)
             });
-        }
 
         self.pitch.update(ctx.dt);
         self.yaw.update(ctx.dt);
@@ -356,14 +361,15 @@ impl Turret {
         let graph = &scene.graph;
         let self_position = graph[self.model].global_position();
 
-        if try_get_character_ref(self.target, graph)
+        if graph
+            .try_get_script_component_of::<Character>(self.target)
             .ok()
             .is_none_or(|c| !c.is_dead(graph))
         {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
-                let actor = try_get_character_ref(handle, &scene.graph)?;
+                let actor = graph.try_get_script_component_of::<Character>(handle)?;
 
                 if actor.is_dead(graph) {
                     continue 'target_loop;
@@ -401,7 +407,7 @@ impl Turret {
                         continue 'hit_loop;
                     }
 
-                    let collider = &scene.graph.try_get_of_type::<Collider>(hit.collider)?;
+                    let collider = &scene.graph.try_get(hit.collider)?;
                     if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
                         self.target = Default::default();
                         // Target is behind something.
