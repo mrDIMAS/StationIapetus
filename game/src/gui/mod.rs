@@ -3,10 +3,13 @@
 //! is not much.
 
 use crate::{message::Message, MessageSender};
+use fyrox::gui::border::Border;
+use fyrox::gui::button::Button;
+use fyrox::gui::check_box::CheckBox;
+use fyrox::gui::scroll_bar::ScrollBar;
 use fyrox::gui::texture::TexturePixelKind;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
-    graph::SceneGraph,
     gui::{
         border::BorderBuilder,
         brush::Brush,
@@ -20,7 +23,7 @@ use fyrox::{
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         widget::{WidgetBuilder, WidgetMessage},
-        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UserInterface,
         VerticalAlignment,
     },
     resource::texture::{TextureResource, TextureResourceExtension, TextureWrapMode},
@@ -48,7 +51,7 @@ pub struct ScrollBarData {
     pub font: FontResource,
 }
 
-pub fn create_scroll_bar(ctx: &mut BuildContext, data: ScrollBarData) -> Handle<UiNode> {
+pub fn create_scroll_bar(ctx: &mut BuildContext, data: ScrollBarData) -> Handle<ScrollBar> {
     let mut wb = WidgetBuilder::new();
     match data.orientation {
         Orientation::Vertical => wb = wb.with_width(30.0),
@@ -76,7 +79,7 @@ pub fn create_check_box(
     row: usize,
     column: usize,
     checked: bool,
-) -> Handle<UiNode> {
+) -> Handle<CheckBox> {
     CheckBoxBuilder::new(
         WidgetBuilder::new()
             .with_margin(Thickness::uniform(2.0))
@@ -93,10 +96,10 @@ pub fn create_check_box(
 
 #[derive(Visit, Default, Debug)]
 pub struct DeathScreen {
-    pub root: Handle<UiNode>,
-    load_game: Handle<UiNode>,
-    exit_to_menu: Handle<UiNode>,
-    exit_game: Handle<UiNode>,
+    pub root: Handle<Border>,
+    load_game: Handle<Button>,
+    exit_to_menu: Handle<Button>,
+    exit_game: Handle<Button>,
 }
 
 impl DeathScreen {
@@ -207,15 +210,15 @@ impl DeathScreen {
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {
-        ui.node(self.root).visibility()
+        ui[self.root].visibility()
     }
 }
 
 #[derive(Visit, Default, Debug)]
 pub struct FinalScreen {
-    root: Handle<UiNode>,
-    exit_to_menu: Handle<UiNode>,
-    exit_game: Handle<UiNode>,
+    root: Handle<Border>,
+    exit_to_menu: Handle<Button>,
+    exit_game: Handle<Button>,
 }
 
 impl FinalScreen {
@@ -307,7 +310,7 @@ impl FinalScreen {
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {
-        ui.node(self.root).visibility()
+        ui[self.root].visibility()
     }
 }
 

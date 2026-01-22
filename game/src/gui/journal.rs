@@ -4,6 +4,9 @@ use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui,
 };
+use fyrox::core::pool::HandlesVecExtension;
+use fyrox::gui::list_view::ListView;
+use fyrox::gui::text::Text;
 use fyrox::{
     core::{algebra::Vector2, pool::Handle, visitor::prelude::*},
     gui::{
@@ -16,7 +19,7 @@ use fyrox::{
         scroll_viewer::ScrollViewerBuilder,
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
-        UiNode, UserInterface,
+        UserInterface,
     },
     lazy_static::lazy_static,
     resource::texture::TextureResource,
@@ -77,9 +80,9 @@ impl Journal {
 pub struct JournalDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,
-    objective: Handle<UiNode>,
-    messages: Handle<UiNode>,
-    message_text: Handle<UiNode>,
+    objective: Handle<Text>,
+    messages: Handle<ListView>,
+    message_text: Handle<Text>,
     current_message: Option<usize>,
 }
 
@@ -182,7 +185,8 @@ impl JournalDisplay {
                 .build(&mut self.ui.build_ctx())
             })
             .collect::<Vec<_>>();
-        self.ui.send(self.messages, ListViewMessage::Items(items));
+        self.ui
+            .send(self.messages, ListViewMessage::Items(items.to_base()));
     }
 
     pub fn process_os_event(&mut self, os_event: &OsEvent, control_scheme: &ControlScheme) {

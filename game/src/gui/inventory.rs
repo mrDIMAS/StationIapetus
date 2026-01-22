@@ -7,6 +7,9 @@ use crate::{
 };
 use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
 use fyrox::gui::message::MessageData;
+use fyrox::gui::scroll_viewer::ScrollViewer;
+use fyrox::gui::text::Text;
+use fyrox::gui::wrap_panel::WrapPanel;
 use fyrox::plugin::error::GameError;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
@@ -40,10 +43,10 @@ use std::ops::{Deref, DerefMut};
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,
-    items_panel: Handle<UiNode>,
+    items_panel: Handle<WrapPanel>,
     is_enabled: bool,
-    item_description: Handle<UiNode>,
-    scroll_viewer: Handle<UiNode>,
+    item_description: Handle<Text>,
+    scroll_viewer: Handle<ScrollViewer>,
 }
 
 #[derive(Default, Debug, Clone, Reflect, Visit, ComponentProvider)]
@@ -53,7 +56,7 @@ pub struct InventoryItem {
     is_selected: bool,
     item: ModelResource,
     #[allow(dead_code)]
-    count: Handle<UiNode>,
+    count: Handle<Text>,
 }
 
 impl ConstructorProvider<UiNode, UserInterface> for InventoryItem {
@@ -341,8 +344,8 @@ impl InventoryInterface {
     }
 
     pub fn selection(&self) -> Handle<UiNode> {
-        for &item_handle in self.ui.node(self.items_panel).children() {
-            if let Some(inventory_item) = self.ui.node(item_handle).cast::<InventoryItem>() {
+        for &item_handle in self.ui[self.items_panel].children() {
+            if let Ok(inventory_item) = self.ui.try_get_of_type::<InventoryItem>(item_handle) {
                 if inventory_item.is_selected {
                     return item_handle;
                 }
@@ -352,7 +355,7 @@ impl InventoryInterface {
     }
 
     fn try_move_selection(&mut self, dir: MoveDirection) {
-        let items = self.ui.node(self.items_panel).children();
+        let items = self.ui[self.items_panel].children();
 
         let mut direction = match dir {
             MoveDirection::Up => -Vector2::y(),
@@ -498,7 +501,7 @@ impl InventoryInterface {
     }
 
     pub fn update(&mut self, delta: f32, inventory: &Inventory) {
-        let mut item_views = self.ui.node(self.items_panel).children().to_vec();
+        let mut item_views = self.ui[self.items_panel].children().to_vec();
         let mut i = item_views.len();
         while i > 0 {
             i -= 1;
@@ -528,7 +531,7 @@ impl InventoryInterface {
                 .build(resource, &mut self.ui.build_ctx());
 
                 self.ui
-                    .send(widget, WidgetMessage::LinkWith(self.items_panel));
+                    .send(widget, WidgetMessage::link_with(self.items_panel));
 
                 item_views.push(widget);
             }

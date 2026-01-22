@@ -1,4 +1,6 @@
 use crate::{control_scheme::ControlScheme, gui, level::item::Item};
+use fyrox::gui::image::Image;
+use fyrox::gui::text::Text;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle, visitor::prelude::*},
     gui::{
@@ -9,7 +11,7 @@ use fyrox::{
         image::{ImageBuilder, ImageMessage},
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
-        HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
+        HorizontalAlignment, UserInterface, VerticalAlignment,
     },
     resource::{model::ModelResource, texture::TextureResource},
 };
@@ -19,9 +21,9 @@ use std::ops::Deref;
 pub struct ItemDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,
-    item_image: Handle<UiNode>,
-    item_name: Handle<UiNode>,
-    action_text: Handle<UiNode>,
+    item_image: Handle<Image>,
+    item_name: Handle<Text>,
+    action_text: Handle<Text>,
     pub current_item: Option<ModelResource>,
 }
 

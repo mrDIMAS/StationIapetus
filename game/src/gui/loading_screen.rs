@@ -1,3 +1,5 @@
+use fyrox::gui::grid::Grid;
+use fyrox::gui::progress_bar::ProgressBar;
 use fyrox::{
     core::{pool::Handle, visitor::prelude::*},
     gui::{
@@ -6,14 +8,14 @@ use fyrox::{
         text::TextBuilder,
         widget::WidgetBuilder,
         widget::WidgetMessage,
-        BuildContext, HorizontalAlignment, UiNode, UserInterface, VerticalAlignment,
+        BuildContext, HorizontalAlignment, UserInterface, VerticalAlignment,
     },
 };
 
 #[derive(Visit, Default, Debug)]
 pub struct LoadingScreen {
-    pub root: Handle<UiNode>,
-    progress_bar: Handle<UiNode>,
+    pub root: Handle<Grid>,
+    progress_bar: Handle<ProgressBar>,
 }
 
 impl LoadingScreen {

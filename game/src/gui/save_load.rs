@@ -1,6 +1,11 @@
 use crate::{message::Message, MessageSender};
 use chrono::{DateTime, Utc};
-use fyrox::gui::window::WindowAlignment;
+use fyrox::core::pool::HandlesVecExtension;
+use fyrox::gui::button::Button;
+use fyrox::gui::decorator::Decorator;
+use fyrox::gui::list_view::ListView;
+use fyrox::gui::text_box::TextBox;
+use fyrox::gui::window::{Window, WindowAlignment};
 use fyrox::{
     core::{log::Log, pool::Handle, reflect::prelude::*, visitor::prelude::*},
     gui::{
@@ -16,7 +21,7 @@ use fyrox::{
         text_box::{TextBoxBuilder, TextCommitMode},
         widget::{WidgetBuilder, WidgetMessage},
         window::{WindowBuilder, WindowMessage, WindowTitle},
-        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UserInterface,
         VerticalAlignment,
     },
 };
@@ -35,11 +40,11 @@ pub enum Mode {
 
 #[derive(Default, Debug, Visit, Clone, Reflect)]
 pub struct SaveLoadDialog {
-    pub window: Handle<UiNode>,
-    confirm: Handle<UiNode>,
-    cancel: Handle<UiNode>,
-    name: Handle<UiNode>,
-    saved_games: Handle<UiNode>,
+    pub window: Handle<Window>,
+    confirm: Handle<Button>,
+    cancel: Handle<Button>,
+    name: Handle<TextBox>,
+    saved_games: Handle<ListView>,
     saved_games_list: Vec<PathBuf>,
     mode: Mode,
     file_stem: String,
@@ -50,7 +55,7 @@ fn create_saved_game_entry(
     path: &Path,
     font: FontResource,
     ctx: &mut BuildContext,
-) -> Handle<UiNode> {
+) -> Handle<Decorator> {
     let text = format!(
         "{} - {}",
         path.file_stem().unwrap_or_default().to_string_lossy(),
@@ -117,7 +122,7 @@ impl SaveLoadDialog {
                 .with_margin(Thickness::uniform(1.0))
                 .on_row(1),
         )
-        .with_items(items)
+        .with_items(items.to_base())
         .build(ctx);
 
         let (title_text, confirm_text) = match mode {

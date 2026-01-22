@@ -1,4 +1,5 @@
 use crate::{gui, player::Player, weapon::Weapon};
+use fyrox::gui::text::Text;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{algebra::Vector2, color::Color, pool::Handle, visitor::prelude::*},
@@ -9,7 +10,7 @@ use fyrox::{
         image::ImageBuilder,
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
-        UiNode, UserInterface, VerticalAlignment,
+        UserInterface, VerticalAlignment,
     },
     resource::texture::{Texture, TextureResource},
     scene::graph::Graph,
@@ -20,8 +21,8 @@ use std::path::Path;
 pub struct WeaponDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,
-    ammo: Handle<UiNode>,
-    grenades: Handle<UiNode>,
+    ammo: Handle<Text>,
+    grenades: Handle<Text>,
 }
 
 impl WeaponDisplay {

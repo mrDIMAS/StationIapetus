@@ -66,6 +66,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::gui::text::Text;
 use fyrox::plugin::error::GameResult;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
@@ -113,7 +114,7 @@ use std::{
 pub struct Game {
     menu: Menu,
     level: Option<Level>,
-    debug_text: Handle<UiNode>,
+    debug_text: Handle<Text>,
     debug_string: String,
     running: bool,
     #[visit(skip)]

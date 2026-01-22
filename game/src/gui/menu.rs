@@ -3,6 +3,8 @@ use crate::{
     config::Config, config::SoundConfig, gui::options_menu::OptionsMenu, message::Message,
     MessageSender,
 };
+use fyrox::gui::button::Button;
+use fyrox::gui::screen::Screen;
 use fyrox::gui::window::WindowAlignment;
 use fyrox::scene::sound::Sound;
 use fyrox::{
@@ -21,7 +23,7 @@ use fyrox::{
         text::TextBuilder,
         widget::{WidgetBuilder, WidgetMessage},
         window::WindowMessage,
-        BuildContext, HorizontalAlignment, Thickness, UiNode, UserInterface, VerticalAlignment,
+        BuildContext, HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     plugin::PluginContext,
     scene::{
@@ -34,12 +36,12 @@ use fyrox::{
 #[derive(Visit, Default, Debug)]
 pub struct Menu {
     pub scene: MenuScene,
-    root: Handle<UiNode>,
-    btn_new_game: Handle<UiNode>,
-    btn_save_game: Handle<UiNode>,
-    btn_settings: Handle<UiNode>,
-    btn_load_game: Handle<UiNode>,
-    btn_quit_game: Handle<UiNode>,
+    root: Handle<Screen>,
+    btn_new_game: Handle<Button>,
+    btn_save_game: Handle<Button>,
+    btn_settings: Handle<Button>,
+    btn_load_game: Handle<Button>,
+    btn_quit_game: Handle<Button>,
     options_menu: OptionsMenu,
     save_load_dialog: Option<SaveLoadDialog>,
     font: FontResource,
@@ -90,7 +92,7 @@ impl MenuScene {
     }
 }
 
-fn make_button(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<UiNode> {
+fn make_button(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<Button> {
     ButtonBuilder::new(
         WidgetBuilder::new()
             .with_height(75.0)
@@ -218,7 +220,7 @@ impl Menu {
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {
-        ui.node(self.root).visibility()
+        ui[self.root].visibility()
     }
 
     pub fn process_input_event(

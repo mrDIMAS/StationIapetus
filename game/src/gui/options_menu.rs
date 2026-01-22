@@ -5,6 +5,12 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::core::pool::HandlesVecExtension;
+use fyrox::gui::check_box::CheckBox;
+use fyrox::gui::decorator::Decorator;
+use fyrox::gui::dropdown_list::DropdownList;
+use fyrox::gui::scroll_bar::ScrollBar;
+use fyrox::gui::text::Text;
 use fyrox::{
     core::{
         algebra::Vector2,
@@ -14,7 +20,6 @@ use fyrox::{
     },
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
-    graph::SceneGraph,
     gui::font::{Font, FontResource},
     gui::{
         border::BorderBuilder,
@@ -43,28 +48,28 @@ use fyrox::{
 #[derive(Visit, Default, Debug)]
 pub struct OptionsMenu {
     pub window: Handle<UiNode>,
-    sound_volume: Handle<UiNode>,
-    pub music_volume: Handle<UiNode>,
-    video_mode: Handle<UiNode>,
-    spot_shadows: Handle<UiNode>,
-    soft_spot_shadows: Handle<UiNode>,
-    point_shadows: Handle<UiNode>,
-    soft_point_shadows: Handle<UiNode>,
-    point_shadow_distance: Handle<UiNode>,
-    spot_shadow_distance: Handle<UiNode>,
-    use_light_scatter: Handle<UiNode>,
-    fxaa: Handle<UiNode>,
-    ssao: Handle<UiNode>,
-    control_scheme_buttons: Vec<Handle<UiNode>>,
+    sound_volume: Handle<ScrollBar>,
+    pub music_volume: Handle<ScrollBar>,
+    video_mode: Handle<DropdownList>,
+    spot_shadows: Handle<CheckBox>,
+    soft_spot_shadows: Handle<CheckBox>,
+    point_shadows: Handle<CheckBox>,
+    soft_point_shadows: Handle<CheckBox>,
+    point_shadow_distance: Handle<ScrollBar>,
+    spot_shadow_distance: Handle<ScrollBar>,
+    use_light_scatter: Handle<CheckBox>,
+    fxaa: Handle<CheckBox>,
+    ssao: Handle<CheckBox>,
+    control_scheme_buttons: Vec<Handle<Button>>,
     active_control_button: Option<usize>,
-    mouse_sens: Handle<UiNode>,
-    mouse_y_inverse: Handle<UiNode>,
-    reset_control_scheme: Handle<UiNode>,
-    use_hrtf: Handle<UiNode>,
-    reset_audio_settings: Handle<UiNode>,
-    point_shadows_quality: Handle<UiNode>,
-    spot_shadows_quality: Handle<UiNode>,
-    show_debug_info: Handle<UiNode>,
+    mouse_sens: Handle<ScrollBar>,
+    mouse_y_inverse: Handle<CheckBox>,
+    reset_control_scheme: Handle<Button>,
+    use_hrtf: Handle<CheckBox>,
+    reset_audio_settings: Handle<Button>,
+    point_shadows_quality: Handle<DropdownList>,
+    spot_shadows_quality: Handle<DropdownList>,
+    show_debug_info: Handle<CheckBox>,
     font: FontResource,
 }
 
@@ -73,7 +78,7 @@ fn make_text_mark(
     font: FontResource,
     row: usize,
     ctx: &mut BuildContext,
-) -> Handle<UiNode> {
+) -> Handle<Text> {
     TextBuilder::new(
         WidgetBuilder::new()
             .on_row(row)
@@ -87,7 +92,7 @@ fn make_text_mark(
     .build(ctx)
 }
 
-fn make_tab_header(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<UiNode> {
+fn make_tab_header(text: &str, font: FontResource, ctx: &mut BuildContext) -> Handle<Text> {
     TextBuilder::new(
         WidgetBuilder::new()
             .with_width(160.0)
@@ -106,7 +111,7 @@ fn make_video_mode_item(
     video_mode: &VideoModeHandle,
     font: FontResource,
     ctx: &mut BuildContext,
-) -> Handle<UiNode> {
+) -> Handle<Decorator> {
     let size = video_mode.size();
     let rate = video_mode.refresh_rate_millihertz() / 1000;
     make_video_mode_item_raw(
@@ -120,7 +125,7 @@ fn make_video_mode_item_raw(
     text: &str,
     font: FontResource,
     ctx: &mut BuildContext,
-) -> Handle<UiNode> {
+) -> Handle<Decorator> {
     DecoratorBuilder::new(
         BorderBuilder::new(
             WidgetBuilder::new().with_child(
@@ -151,7 +156,7 @@ fn make_shadows_quality_drop_down(
     font: FontResource,
     row: usize,
     current: usize,
-) -> Handle<UiNode> {
+) -> Handle<DropdownList> {
     DropdownListBuilder::new(
         WidgetBuilder::new()
             .on_row(row)
@@ -176,6 +181,7 @@ fn make_shadows_quality_drop_down(
                 .build(ctx)
             })
             .collect::<Vec<_>>()
+            .to_base()
     })
     .with_selected(current)
     .build(ctx)
@@ -400,13 +406,14 @@ impl OptionsMenu {
         .build(ctx);
 
         let graphics_tab = TabDefinition {
-            header: make_tab_header("Graphics", font.clone(), ctx),
+            header: make_tab_header("Graphics", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content(graphics_content)
                     .build(ctx)
+                    .to_base()
             },
         };
 
@@ -473,29 +480,27 @@ impl OptionsMenu {
         .build(ctx);
 
         let sound_tab = TabDefinition {
-            header: make_tab_header("Sound", font.clone(), ctx),
+            header: make_tab_header("Sound", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content(sound_content)
                     .build(ctx)
+                    .to_base()
             },
         };
 
         let controls_content = {
-            let mut children = Vec::new();
+            let mut children = Vec::<Handle<UiNode>>::new();
 
             for (row, button) in config.controls.buttons().iter().enumerate() {
                 // Offset by total amount of rows that goes before
                 let row = row + 2;
 
-                children.push(make_text_mark(
-                    button.description.as_str(),
-                    font.clone(),
-                    row,
-                    ctx,
-                ));
+                children.push(
+                    make_text_mark(button.description.as_str(), font.clone(), row, ctx).to_base(),
+                );
 
                 let button = ButtonBuilder::new(
                     WidgetBuilder::new()
@@ -513,7 +518,7 @@ impl OptionsMenu {
                         .build(ctx),
                 )
                 .build(ctx);
-                children.push(button);
+                children.push(button.to_base());
                 control_scheme_buttons.push(button);
             }
 
@@ -570,13 +575,14 @@ impl OptionsMenu {
         };
 
         let controls_tab = TabDefinition {
-            header: make_tab_header("Controls", font.clone(), ctx),
+            header: make_tab_header("Controls", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
             content: {
                 ScrollViewerBuilder::new(WidgetBuilder::new())
                     .with_content(controls_content)
                     .build(ctx)
+                    .to_base()
             },
         };
 
@@ -596,7 +602,8 @@ impl OptionsMenu {
         .with_title(WindowTitle::text("Options"))
         .open(false)
         .with_content(tab_control)
-        .build(ctx);
+        .build(ctx)
+        .to_base();
 
         Self {
             window: options_window,
@@ -629,11 +636,11 @@ impl OptionsMenu {
     pub fn sync_to_model(&mut self, ctx: &mut PluginContext, config: &Config) {
         let ui = &mut ctx.user_interfaces.first_mut();
 
-        let sync_check_box = |handle: Handle<UiNode>, value: bool| {
+        let sync_check_box = |handle: Handle<CheckBox>, value: bool| {
             ui.send(handle, CheckBoxMessage::Check(Some(value)));
         };
 
-        let sync_scroll_bar = |handle: Handle<UiNode>, value: f32| {
+        let sync_scroll_bar = |handle: Handle<ScrollBar>, value: f32| {
             ui.send(handle, ScrollBarMessage::Value(value));
         };
 
@@ -665,12 +672,10 @@ impl OptionsMenu {
             .iter()
             .zip(config.controls.buttons().iter())
         {
-            if let Some(button) = ui.node(*btn).cast::<Button>() {
-                ui.send(
-                    *button.content,
-                    TextMessage::Text(def.button.name().to_owned()),
-                );
-            }
+            ui.send(
+                *ui[*btn].content,
+                TextMessage::Text(def.button.name().to_owned()),
+            );
         }
     }
 
@@ -702,7 +707,7 @@ impl OptionsMenu {
                 .map(|video_mode| make_video_mode_item(video_mode, self.font.clone(), ctx)),
         );
 
-        ui.send(self.video_mode, DropdownListMessage::Items(modes));
+        ui.send(self.video_mode, DropdownListMessage::Items(modes.to_base()));
     }
 
     pub fn process_input_event(
@@ -751,15 +756,10 @@ impl OptionsMenu {
                 if let Some(active_control_button) = self.active_control_button {
                     let ui = engine.user_interfaces.first();
 
-                    if let Some(button) = ui
-                        .node(self.control_scheme_buttons[active_control_button])
-                        .cast::<Button>()
-                    {
-                        ui.send(
-                            *button.content,
-                            TextMessage::Text(control_button.name().to_owned()),
-                        );
-                    }
+                    ui.send(
+                        *ui[self.control_scheme_buttons[active_control_button]].content,
+                        TextMessage::Text(control_button.name().to_owned()),
+                    );
 
                     config.controls.buttons_mut()[active_control_button].button = control_button;
 
@@ -863,14 +863,10 @@ impl OptionsMenu {
             for (i, button) in self.control_scheme_buttons.iter().enumerate() {
                 if message.destination() == *button {
                     let ui = context.user_interfaces.first();
-
-                    if let Some(button) = ui.node(*button).cast::<Button>() {
-                        ui.send(
-                            *button.content,
-                            TextMessage::Text("[WAITING INPUT]".to_owned()),
-                        )
-                    }
-
+                    ui.send(
+                        *ui[*button].content,
+                        TextMessage::Text("[WAITING INPUT]".to_owned()),
+                    );
                     self.active_control_button = Some(i);
                 }
             }
