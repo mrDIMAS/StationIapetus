@@ -31,6 +31,8 @@ use std::{
     time::SystemTime,
 };
 
+const SAVED_GAME_EXT: &'static str = "rgs";
+
 #[derive(Visit, Reflect, Clone, Default, Debug)]
 pub enum Mode {
     #[default]
@@ -97,7 +99,7 @@ impl SaveLoadDialog {
             for entry in dir_iterator.flatten() {
                 let path = entry.path();
                 if let Some(extension) = path.extension() {
-                    if extension == OsStr::new("save") {
+                    if extension == OsStr::new(SAVED_GAME_EXT) {
                         items.push(create_saved_game_entry(&path, font.clone(), ctx));
                         saved_games_list.push(path);
                     }
@@ -216,7 +218,7 @@ impl SaveLoadDialog {
                 match self.mode {
                     Mode::Save => {
                         let folder = Path::new(Self::SAVED_GAMES_FOLDER);
-                        let path = folder.join(self.file_stem.clone() + ".save");
+                        let path = folder.join(self.file_stem.clone() + "." + SAVED_GAME_EXT);
 
                         if !folder.exists() {
                             Log::verify(std::fs::create_dir_all(folder));

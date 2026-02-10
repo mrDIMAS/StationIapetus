@@ -21,10 +21,10 @@ use fyrox::{
         widget::WidgetBuilder,
         UserInterface,
     },
-    lazy_static::lazy_static,
     resource::texture::TextureResource,
 };
 use serde::Deserialize;
+use std::sync::LazyLock;
 use std::{collections::HashMap, fs::File};
 
 #[derive(Deserialize, Copy, Clone, PartialOrd, Default, PartialEq, Ord, Eq, Hash, Visit, Debug)]
@@ -52,10 +52,8 @@ impl JournalEntryDefinitionContainer {
     }
 }
 
-lazy_static! {
-    static ref DEFINITIONS: JournalEntryDefinitionContainer =
-        JournalEntryDefinitionContainer::new();
-}
+static DEFINITIONS: LazyLock<JournalEntryDefinitionContainer> =
+    LazyLock::new(|| JournalEntryDefinitionContainer::new());
 
 impl JournalEntryKind {
     pub fn get_definition(self) -> &'static JournalEntryDefinition {

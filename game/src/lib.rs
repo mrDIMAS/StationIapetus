@@ -66,6 +66,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::core::visitor::error::VisitError;
 use fyrox::gui::text::Text;
 use fyrox::plugin::error::GameResult;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
@@ -259,10 +260,6 @@ impl Game {
         }
     }
 
-    pub fn load_game(&mut self, context: &mut PluginContext, path: &Path) {
-        context.async_scene_loader.request_raw(path);
-    }
-
     fn destroy_level(&mut self, context: &mut PluginContext) {
         if let Some(ref mut level) = self.level.take() {
             level.destroy(context);
@@ -270,9 +267,69 @@ impl Game {
         }
     }
 
-    pub fn load_level(&mut self, path: PathBuf, context: &mut PluginContext) {
-        self.destroy_level(context);
-        context.async_scene_loader.request(path);
+    pub fn before_load_level(&mut self, ctx: &mut PluginContext) {
+        self.destroy_level(ctx);
+        let ui = ctx.user_interfaces.first();
+        self.death_screen.set_visible(ui, false);
+        self.final_screen.set_visible(ui, false);
+        ui.send(self.loading_screen.root, WidgetMessage::Visibility(true));
+        self.menu.set_visible(ctx, false);
+    }
+
+    pub fn on_level_loaded(
+        &mut self,
+        result: Result<(Scene, Vec<u8>), VisitError>,
+        ctx: &mut PluginContext,
+    ) -> GameResult {
+        let (scene, data) = result?;
+
+        let scene = ctx.scenes.add(scene);
+
+        if let Some(highlighter) = self.highlighter.as_mut() {
+            highlighter.borrow_mut().scene_handle = scene;
+        }
+
+        if let Ok(mut visitor) = Visitor::load_from_memory(&data) {
+            let mut level = Level::default();
+            if level.visit("Level", &mut visitor).is_ok() {
+                // Means that we're loading a saved game.
+                level.scene = scene;
+                level.resolve(ctx, self.message_sender.clone());
+                self.level = Some(level);
+            } else {
+                self.level = Some(Level::from_existing_scene(
+                    &mut ctx.scenes[scene],
+                    scene,
+                    self.message_sender.clone(),
+                    self.config.sound.clone(),
+                    ctx.resource_manager.clone(),
+                ));
+            }
+        }
+
+        self.set_menu_visible(false, ctx);
+        ctx.user_interfaces
+            .first()
+            .send(self.loading_screen.root, WidgetMessage::Visibility(false));
+        self.menu.sync_to_model(ctx, true);
+
+        Log::info("Level was loaded successfully!");
+
+        Ok(())
+    }
+
+    pub fn load_level(&mut self, path: PathBuf, ctx: &mut PluginContext) {
+        self.before_load_level(ctx);
+        ctx.load_scene(path, true, |result, game: &mut Game, ctx| {
+            game.on_level_loaded(result, ctx)
+        });
+    }
+
+    pub fn load_game(&mut self, path: PathBuf, ctx: &mut PluginContext) {
+        self.before_load_level(ctx);
+        ctx.load_scene(path, false, |result, game: &mut Game, ctx| {
+            game.on_level_loaded(result, ctx)
+        });
     }
 
     pub fn set_menu_visible(&mut self, visible: bool, context: &mut PluginContext) {
@@ -353,7 +410,7 @@ impl Game {
                     Err(e) => Log::err(format!("Failed to make a save at {path:?}, reason: {e}")),
                 },
                 Message::LoadGame(path) => {
-                    self.load_game(context, path);
+                    self.load_game(path.clone(), context);
                 }
                 Message::LoadLevel { path } => self.load_level(path.clone(), context),
                 Message::QuitGame => {
@@ -600,36 +657,34 @@ impl Plugin for Game {
         container.register_inheritable_vec_collection::<ItemEntry>();
     }
 
-    fn init(&mut self, scene_path: Option<&str>, mut context: PluginContext) -> GameResult {
+    fn init(&mut self, scene_path: Option<&str>, mut ctx: PluginContext) -> GameResult {
         if let Some(scene_path) = scene_path {
-            context.async_scene_loader.request(scene_path);
+            self.load_level(PathBuf::from(scene_path), &mut ctx);
         }
 
-        let font = context
+        let font = ctx
             .resource_manager
             .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));
 
         let (tx, rx) = mpsc::channel();
 
         let message_sender = MessageSender { sender: tx };
-        let weapon_display = WeaponDisplay::new(font.clone(), context.resource_manager.clone());
+        let weapon_display = WeaponDisplay::new(font.clone(), ctx.resource_manager.clone());
 
         let item_display = ItemDisplay::new(font.clone());
         let journal_display = JournalDisplay::new();
 
         *self = Game {
             config: self.config.clone(),
-            loading_screen: LoadingScreen::new(
-                &mut context.user_interfaces.first_mut().build_ctx(),
-            ),
+            loading_screen: LoadingScreen::new(&mut ctx.user_interfaces.first_mut().build_ctx()),
             running: true,
             menu: fyrox::core::futures::executor::block_on(Menu::new(
-                &mut context,
+                &mut ctx,
                 font.clone(),
                 &self.config,
             )),
-            death_screen: DeathScreen::new(context.user_interfaces.first_mut(), font.clone()),
-            final_screen: FinalScreen::new(context.user_interfaces.first_mut(), font),
+            death_screen: DeathScreen::new(ctx.user_interfaces.first_mut(), font.clone()),
+            final_screen: FinalScreen::new(ctx.user_interfaces.first_mut(), font),
             debug_text: Handle::NONE,
             weapon_display,
             item_display,
@@ -641,8 +696,8 @@ impl Plugin for Game {
             highlighter: None,
         };
 
-        self.create_debug_ui(&mut context);
-        self.menu.set_visible(&mut context, true);
+        self.create_debug_ui(&mut ctx);
+        self.menu.set_visible(&mut ctx, true);
 
         Ok(())
     }
@@ -742,58 +797,6 @@ impl Plugin for Game {
         _ui_handle: Handle<UserInterface>,
     ) -> GameResult {
         self.handle_ui_message(context, message);
-        Ok(())
-    }
-
-    fn on_scene_begin_loading(&mut self, _path: &Path, ctx: &mut PluginContext) -> GameResult {
-        self.destroy_level(ctx);
-        let ui = ctx.user_interfaces.first();
-        self.death_screen.set_visible(ui, false);
-        self.final_screen.set_visible(ui, false);
-
-        ui.send(self.loading_screen.root, WidgetMessage::Visibility(true));
-
-        self.menu.set_visible(ctx, false);
-        Ok(())
-    }
-
-    fn on_scene_loaded(
-        &mut self,
-        _path: &Path,
-        scene: Handle<Scene>,
-        data: &[u8],
-        ctx: &mut PluginContext,
-    ) -> GameResult {
-        if let Some(highlighter) = self.highlighter.as_mut() {
-            highlighter.borrow_mut().scene_handle = scene;
-        }
-
-        if let Ok(mut visitor) = Visitor::load_from_memory(data) {
-            let mut level = Level::default();
-            if level.visit("Level", &mut visitor).is_ok() {
-                // Means that we're loading a saved game.
-                level.scene = scene;
-                level.resolve(ctx, self.message_sender.clone());
-                self.level = Some(level);
-            } else {
-                self.level = Some(Level::from_existing_scene(
-                    &mut ctx.scenes[scene],
-                    scene,
-                    self.message_sender.clone(),
-                    self.config.sound.clone(),
-                    ctx.resource_manager.clone(),
-                ));
-            }
-        }
-
-        self.set_menu_visible(false, ctx);
-        ctx.user_interfaces
-            .first()
-            .send(self.loading_screen.root, WidgetMessage::Visibility(false));
-        self.menu.sync_to_model(ctx, true);
-
-        Log::info("Level was loaded successfully!");
-
         Ok(())
     }
 }

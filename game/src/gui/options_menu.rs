@@ -6,6 +6,7 @@ use crate::{
     MessageSender,
 };
 use fyrox::core::pool::HandlesVecExtension;
+use fyrox::core::uuid;
 use fyrox::gui::check_box::CheckBox;
 use fyrox::gui::decorator::Decorator;
 use fyrox::gui::dropdown_list::DropdownList;
@@ -406,6 +407,7 @@ impl OptionsMenu {
         .build(ctx);
 
         let graphics_tab = TabDefinition {
+            uuid: uuid!("16099fbe-a17a-44fc-91e8-90982d34e4af"),
             header: make_tab_header("Graphics", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
@@ -480,6 +482,7 @@ impl OptionsMenu {
         .build(ctx);
 
         let sound_tab = TabDefinition {
+            uuid: uuid!("3e086252-057c-42cb-b3ef-e25e7093ce4b"),
             header: make_tab_header("Sound", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
@@ -575,6 +578,7 @@ impl OptionsMenu {
         };
 
         let controls_tab = TabDefinition {
+            uuid: uuid!("7c751103-cf66-4c78-8b05-3042c7a20c51"),
             header: make_tab_header("Controls", font.clone(), ctx).to_base(),
             can_be_closed: false,
             user_data: None,
