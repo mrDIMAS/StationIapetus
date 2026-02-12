@@ -66,9 +66,11 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::core::algebra::Vector2;
 use fyrox::core::visitor::error::VisitError;
 use fyrox::gui::text::Text;
 use fyrox::plugin::error::GameResult;
+use fyrox::plugin::{SceneLoaderOutput, SceneLoaderResult};
 use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{
@@ -278,10 +280,14 @@ impl Game {
 
     pub fn on_level_loaded(
         &mut self,
-        result: Result<(Scene, Vec<u8>), VisitError>,
+        result: SceneLoaderResult,
         ctx: &mut PluginContext,
     ) -> GameResult {
-        let (scene, data) = result?;
+        let SceneLoaderOutput {
+            payload: scene,
+            data,
+            ..
+        } = result?;
 
         let scene = ctx.scenes.add(scene);
 
@@ -658,6 +664,9 @@ impl Plugin for Game {
     }
 
     fn init(&mut self, scene_path: Option<&str>, mut ctx: PluginContext) -> GameResult {
+        ctx.user_interfaces
+            .add(UserInterface::new(Vector2::repeat(100.0)));
+
         if let Some(scene_path) = scene_path {
             self.load_level(PathBuf::from(scene_path), &mut ctx);
         }
