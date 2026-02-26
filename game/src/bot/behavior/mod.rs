@@ -21,6 +21,7 @@ use crate::{
 use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
+    dispatch_behavior_variants,
     scene::{node::Node, Scene},
     script::{PluginsRefMut, ScriptMessageSender},
     utils::{behavior::*, navmesh::NavmeshAgent},
@@ -35,10 +36,8 @@ pub mod range;
 pub mod shoot;
 pub mod threat;
 
-#[derive(Debug, PartialEq, Visit, Clone, Default)]
+#[derive(Debug, PartialEq, Visit, Clone)]
 pub enum Action {
-    #[default]
-    Unknown,
     IsDead(IsDead),
     StayDead(StayDead),
     FindTarget(FindTarget),
@@ -53,27 +52,28 @@ pub enum Action {
     ThreatenTarget(ThreatenTarget),
 }
 
-impl<'a> Behavior<'a> for Action {
-    type Context = BehaviorContext<'a>;
-
-    fn tick(&mut self, context: &mut Self::Context) -> Result<Status, GameError> {
-        match self {
-            Action::Unknown => unreachable!(),
-            Action::FindTarget(v) => v.tick(context),
-            Action::ReachedTarget(v) => v.tick(context),
-            Action::MoveToTarget(v) => v.tick(context),
-            Action::DoMeleeAttack(v) => v.tick(context),
-            Action::ShootTarget(v) => v.tick(context),
-            Action::CanMeleeAttack(v) => v.tick(context),
-            Action::IsDead(v) => v.tick(context),
-            Action::StayDead(v) => v.tick(context),
-            Action::AimOnTarget(v) => v.tick(context),
-            Action::CanShootTarget(v) => v.tick(context),
-            Action::NeedsThreatenTarget(v) => v.tick(context),
-            Action::ThreatenTarget(v) => v.tick(context),
-        }
+impl Default for Action {
+    fn default() -> Self {
+        Self::IsDead(Default::default())
     }
 }
+
+dispatch_behavior_variants!(
+    Action,
+    BehaviorContext<'a>,
+    IsDead,
+    StayDead,
+    FindTarget,
+    ReachedTarget,
+    MoveToTarget,
+    CanMeleeAttack,
+    AimOnTarget,
+    DoMeleeAttack,
+    CanShootTarget,
+    ShootTarget,
+    NeedsThreatenTarget,
+    ThreatenTarget
+);
 
 pub struct BehaviorContext<'a> {
     pub scene: &'a mut Scene,
