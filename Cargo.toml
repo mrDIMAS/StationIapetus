@@ -3,10 +3,10 @@ members = ["editor", "executor", "game", "game-dylib"]
 resolver = "2"
 
 [workspace.dependencies.fyrox]
-path = "../Fyrox/fyrox"
+version = "1.0.1"
 default-features = false
 [workspace.dependencies.fyroxed_base]
-path = "../Fyrox/editor"
+version = "1.0.1"
 default-features = false
 
 [profile.release]
