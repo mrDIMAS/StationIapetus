@@ -14,11 +14,8 @@ use crate::{
         BotHostility, Target,
     },
     character::Character,
-    sound::SoundManager,
     utils::BodyImpactHandler,
-    MessageSender,
 };
-use fyrox::plugin::error::GameError;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     dispatch_behavior_variants,
@@ -79,7 +76,6 @@ pub struct BehaviorContext<'a> {
     pub scene: &'a mut Scene,
     pub actors: &'a [Handle<Node>],
     pub bot_handle: Handle<Node>,
-    pub sender: &'a MessageSender,
     pub dt: f32,
     pub elapsed_time: f32,
     pub state_machine: &'a StateMachine,
@@ -93,7 +89,6 @@ pub struct BehaviorContext<'a> {
     pub h_recoil: &'a mut SmoothAngle,
     pub move_speed: f32,
     pub threaten_timeout: &'a mut f32,
-    pub sound_manager: &'a SoundManager,
     pub script_message_sender: &'a ScriptMessageSender,
     pub navmesh: Handle<Node>,
     pub hostility: BotHostility,

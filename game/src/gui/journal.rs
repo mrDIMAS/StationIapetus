@@ -53,7 +53,7 @@ impl JournalEntryDefinitionContainer {
 }
 
 static DEFINITIONS: LazyLock<JournalEntryDefinitionContainer> =
-    LazyLock::new(|| JournalEntryDefinitionContainer::new());
+    LazyLock::new(JournalEntryDefinitionContainer::new);
 
 impl JournalEntryKind {
     pub fn get_definition(self) -> &'static JournalEntryDefinition {

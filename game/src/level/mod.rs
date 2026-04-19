@@ -52,6 +52,7 @@ impl Level {
     pub const ARRIVAL_PATH: &'static str = "data/levels/testbed.rgs";
 
     pub fn from_existing_scene(
+        sample_rate: u32,
         scene: &mut Scene,
         scene_handle: Handle<Scene>,
         sender: MessageSender,
@@ -59,7 +60,11 @@ impl Level {
         resource_manager: ResourceManager,
     ) -> Self {
         if sound_config.use_hrtf {
-            block_on(use_hrtf(&mut scene.graph.sound_context, &resource_manager))
+            block_on(use_hrtf(
+                sample_rate,
+                &mut scene.graph.sound_context,
+                &resource_manager,
+            ))
         } else {
             scene
                 .graph

@@ -200,9 +200,9 @@ impl Menu {
     pub fn set_visible(&mut self, context: &mut PluginContext, visible: bool) {
         let ui = context.user_interfaces.first_mut();
 
-        context.scenes[self.scene.scene]
-            .enabled
-            .set_value_silent(visible);
+        if let Ok(scene) = context.scenes.try_get_mut(self.scene.scene) {
+            scene.enabled.set_value_silent(visible);
+        }
 
         ui.send(self.root, WidgetMessage::Visibility(visible));
         if !visible {

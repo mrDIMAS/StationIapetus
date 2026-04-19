@@ -9,7 +9,6 @@ pub struct StateMachineInput {
     pub walk: bool,
     pub scream: bool,
     pub dead: bool,
-    pub movement_speed_factor: f32,
     pub attack: bool,
     pub attack_animation_index: u32,
     pub aim: bool,
@@ -23,7 +22,6 @@ pub struct StateMachine {
     pub aim_state: Handle<State>,
     pub attack_state: Handle<State>,
     pub threaten_state: Handle<State>,
-    pub dead_state: Handle<State>,
     pub attack_animations: Vec<Handle<Animation>>,
 }
 
@@ -51,7 +49,6 @@ impl StateMachine {
             absm: machine_handle,
             aim_state: upper_body.find_state_by_name_ref("Aim")?.0,
             threaten_state: upper_body.find_state_by_name_ref("Threaten")?.0,
-            dead_state: upper_body.find_state_by_name_ref("Dead")?.0,
             attack_animations: upper_body
                 .animations_of_state(attack_state)
                 .collect::<Vec<_>>(),

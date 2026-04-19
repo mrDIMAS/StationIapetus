@@ -31,7 +31,7 @@ use std::{
     time::SystemTime,
 };
 
-const SAVED_GAME_EXT: &'static str = "rgs";
+const SAVED_GAME_EXT: &str = "rgs";
 
 #[derive(Visit, Reflect, Clone, Default, Debug)]
 pub enum Mode {

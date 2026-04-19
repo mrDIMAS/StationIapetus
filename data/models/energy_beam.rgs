@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -45,10 +45,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
@@ -107,10 +103,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -237,10 +229,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -259,9 +247,13 @@ __ROOT__[]
 										{
 											Item0[]
 											{
+												Data[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:16300ec8-4446-41a7-8ad6-9b45428d0b1b>]{}
+												}
 												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:7df0c496-9f9e-46d9-92b1-c9916eae628c>]
+													Value[Uuid<uuid:4c9b0f67-594d-406d-98d1-c33b344feb60>]
 													{
 														Embedded[Id<u64:2>]
 														{
@@ -272,7 +264,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"roughnessTexture">]
+																		Item0[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -371,7 +363,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item7[Key<str:"heightTexture">]
+																		Item7[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -381,7 +373,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"aoTexture">]
+																		Item8[Key<str:"heightTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -390,300 +382,6 @@ __ROOT__[]
 																					Value[IsSome<u8:0>]{}
 																				}
 																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
-												Data[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:16300ec8-4446-41a7-8ad6-9b45428d0b1b>]
-													{
-														Embedded[Id<u64:3>]
-														{
-															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
-															{
-																Data[]
-																{
-																	VertexBuffer[VertexSize<u8:48>VertexCount<u32:134>Data<podarray:0; 1; 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>LayoutHash<u64:10554297794282518580>ModificationsCounter<u64:2>]
-																	{
-																		DenseLayout[Length<u32:4>]
-																		{
-																			Item0[Size<u8:3>Divisor<u8:0>Offset<u8:0>ShaderLocation<u8:0>Normalized<bool:false>]
-																			{
-																				Usage[Id<u32:0>]{}
-																				DataType[Id<u32:0>]{}
-																			}
-																			Item1[Size<u8:2>Divisor<u8:0>Offset<u8:12>ShaderLocation<u8:1>Normalized<bool:false>]
-																			{
-																				Usage[Id<u32:3>]{}
-																				DataType[Id<u32:0>]{}
-																			}
-																			Item2[Size<u8:3>Divisor<u8:0>Offset<u8:20>ShaderLocation<u8:2>Normalized<bool:false>]
-																			{
-																				Usage[Id<u32:1>]{}
-																				DataType[Id<u32:0>]{}
-																			}
-																			Item3[Size<u8:4>Divisor<u8:0>Offset<u8:32>ShaderLocation<u8:3>Normalized<bool:false>]
-																			{
-																				Usage[Id<u32:2>]{}
-																				DataType[Id<u32:0>]{}
-																			}
-																		}
-																		SparseLayout[Length<u32:22>]
-																		{
-																			Item0[]
-																			{
-																				ItemData[IsSome<u8:1>]
-																				{
-																					Data[Size<u8:3>Divisor<u8:0>Offset<u8:0>ShaderLocation<u8:0>Normalized<bool:false>]
-																					{
-																						Usage[Id<u32:0>]{}
-																						DataType[Id<u32:0>]{}
-																					}
-																				}
-																			}
-																			Item1[]
-																			{
-																				ItemData[IsSome<u8:1>]
-																				{
-																					Data[Size<u8:3>Divisor<u8:0>Offset<u8:20>ShaderLocation<u8:2>Normalized<bool:false>]
-																					{
-																						Usage[Id<u32:1>]{}
-																						DataType[Id<u32:0>]{}
-																					}
-																				}
-																			}
-																			Item2[]
-																			{
-																				ItemData[IsSome<u8:1>]
-																				{
-																					Data[Size<u8:4>Divisor<u8:0>Offset<u8:32>ShaderLocation<u8:3>Normalized<bool:false>]
-																					{
-																						Usage[Id<u32:2>]{}
-																						DataType[Id<u32:0>]{}
-																					}
-																				}
-																			}
-																			Item3[]
-																			{
-																				ItemData[IsSome<u8:1>]
-																				{
-																					Data[Size<u8:2>Divisor<u8:0>Offset<u8:12>ShaderLocation<u8:1>Normalized<bool:false>]
-																					{
-																						Usage[Id<u32:3>]{}
-																						DataType[Id<u32:0>]{}
-																					}
-																				}
-																			}
-																			Item4[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item5[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item6[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item7[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item8[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item9[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item10[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item11[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item12[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item13[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item14[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item15[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item16[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item17[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item18[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item19[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item20[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																			Item21[]
-																			{
-																				ItemData[IsSome<u8:0>]{}
-																			}
-																		}
-																	}
-																	GeometryBuffer[ModificationsCounter<u64:0>]
-																	{
-																		Triangles[Length<u32:128>]
-																		{
-																			Item0[A<u32:0>B<u32:1>C<u32:2>]{}
-																			Item1[A<u32:3>B<u32:4>C<u32:5>]{}
-																			Item2[A<u32:6>B<u32:7>C<u32:8>]{}
-																			Item3[A<u32:8>B<u32:7>C<u32:9>]{}
-																			Item4[A<u32:10>B<u32:0>C<u32:2>]{}
-																			Item5[A<u32:4>B<u32:11>C<u32:5>]{}
-																			Item6[A<u32:8>B<u32:9>C<u32:12>]{}
-																			Item7[A<u32:12>B<u32:9>C<u32:13>]{}
-																			Item8[A<u32:14>B<u32:10>C<u32:2>]{}
-																			Item9[A<u32:11>B<u32:15>C<u32:5>]{}
-																			Item10[A<u32:12>B<u32:13>C<u32:16>]{}
-																			Item11[A<u32:16>B<u32:13>C<u32:17>]{}
-																			Item12[A<u32:18>B<u32:14>C<u32:2>]{}
-																			Item13[A<u32:15>B<u32:19>C<u32:5>]{}
-																			Item14[A<u32:16>B<u32:17>C<u32:20>]{}
-																			Item15[A<u32:20>B<u32:17>C<u32:21>]{}
-																			Item16[A<u32:22>B<u32:18>C<u32:2>]{}
-																			Item17[A<u32:19>B<u32:23>C<u32:5>]{}
-																			Item18[A<u32:20>B<u32:21>C<u32:24>]{}
-																			Item19[A<u32:24>B<u32:21>C<u32:25>]{}
-																			Item20[A<u32:26>B<u32:22>C<u32:2>]{}
-																			Item21[A<u32:23>B<u32:27>C<u32:5>]{}
-																			Item22[A<u32:24>B<u32:25>C<u32:28>]{}
-																			Item23[A<u32:28>B<u32:25>C<u32:29>]{}
-																			Item24[A<u32:30>B<u32:26>C<u32:2>]{}
-																			Item25[A<u32:27>B<u32:31>C<u32:5>]{}
-																			Item26[A<u32:28>B<u32:29>C<u32:32>]{}
-																			Item27[A<u32:32>B<u32:29>C<u32:33>]{}
-																			Item28[A<u32:34>B<u32:30>C<u32:2>]{}
-																			Item29[A<u32:31>B<u32:35>C<u32:5>]{}
-																			Item30[A<u32:32>B<u32:33>C<u32:36>]{}
-																			Item31[A<u32:36>B<u32:33>C<u32:37>]{}
-																			Item32[A<u32:38>B<u32:34>C<u32:2>]{}
-																			Item33[A<u32:35>B<u32:39>C<u32:5>]{}
-																			Item34[A<u32:36>B<u32:37>C<u32:40>]{}
-																			Item35[A<u32:40>B<u32:37>C<u32:41>]{}
-																			Item36[A<u32:42>B<u32:38>C<u32:2>]{}
-																			Item37[A<u32:39>B<u32:43>C<u32:5>]{}
-																			Item38[A<u32:40>B<u32:41>C<u32:44>]{}
-																			Item39[A<u32:44>B<u32:41>C<u32:45>]{}
-																			Item40[A<u32:46>B<u32:42>C<u32:2>]{}
-																			Item41[A<u32:43>B<u32:47>C<u32:5>]{}
-																			Item42[A<u32:44>B<u32:45>C<u32:48>]{}
-																			Item43[A<u32:48>B<u32:45>C<u32:49>]{}
-																			Item44[A<u32:50>B<u32:46>C<u32:2>]{}
-																			Item45[A<u32:47>B<u32:51>C<u32:5>]{}
-																			Item46[A<u32:48>B<u32:49>C<u32:52>]{}
-																			Item47[A<u32:52>B<u32:49>C<u32:53>]{}
-																			Item48[A<u32:54>B<u32:50>C<u32:2>]{}
-																			Item49[A<u32:51>B<u32:55>C<u32:5>]{}
-																			Item50[A<u32:52>B<u32:53>C<u32:56>]{}
-																			Item51[A<u32:56>B<u32:53>C<u32:57>]{}
-																			Item52[A<u32:58>B<u32:54>C<u32:2>]{}
-																			Item53[A<u32:55>B<u32:59>C<u32:5>]{}
-																			Item54[A<u32:56>B<u32:57>C<u32:60>]{}
-																			Item55[A<u32:60>B<u32:57>C<u32:61>]{}
-																			Item56[A<u32:62>B<u32:58>C<u32:2>]{}
-																			Item57[A<u32:59>B<u32:63>C<u32:5>]{}
-																			Item58[A<u32:60>B<u32:61>C<u32:64>]{}
-																			Item59[A<u32:64>B<u32:61>C<u32:65>]{}
-																			Item60[A<u32:66>B<u32:62>C<u32:2>]{}
-																			Item61[A<u32:63>B<u32:67>C<u32:5>]{}
-																			Item62[A<u32:64>B<u32:65>C<u32:68>]{}
-																			Item63[A<u32:68>B<u32:65>C<u32:69>]{}
-																			Item64[A<u32:70>B<u32:66>C<u32:2>]{}
-																			Item65[A<u32:67>B<u32:71>C<u32:5>]{}
-																			Item66[A<u32:68>B<u32:69>C<u32:72>]{}
-																			Item67[A<u32:72>B<u32:69>C<u32:73>]{}
-																			Item68[A<u32:74>B<u32:70>C<u32:2>]{}
-																			Item69[A<u32:71>B<u32:75>C<u32:5>]{}
-																			Item70[A<u32:72>B<u32:73>C<u32:76>]{}
-																			Item71[A<u32:76>B<u32:73>C<u32:77>]{}
-																			Item72[A<u32:78>B<u32:74>C<u32:2>]{}
-																			Item73[A<u32:75>B<u32:79>C<u32:5>]{}
-																			Item74[A<u32:76>B<u32:77>C<u32:80>]{}
-																			Item75[A<u32:80>B<u32:77>C<u32:81>]{}
-																			Item76[A<u32:82>B<u32:78>C<u32:2>]{}
-																			Item77[A<u32:79>B<u32:83>C<u32:5>]{}
-																			Item78[A<u32:80>B<u32:81>C<u32:84>]{}
-																			Item79[A<u32:84>B<u32:81>C<u32:85>]{}
-																			Item80[A<u32:86>B<u32:82>C<u32:2>]{}
-																			Item81[A<u32:83>B<u32:87>C<u32:5>]{}
-																			Item82[A<u32:84>B<u32:85>C<u32:88>]{}
-																			Item83[A<u32:88>B<u32:85>C<u32:89>]{}
-																			Item84[A<u32:90>B<u32:86>C<u32:2>]{}
-																			Item85[A<u32:87>B<u32:91>C<u32:5>]{}
-																			Item86[A<u32:88>B<u32:89>C<u32:92>]{}
-																			Item87[A<u32:92>B<u32:89>C<u32:93>]{}
-																			Item88[A<u32:94>B<u32:90>C<u32:2>]{}
-																			Item89[A<u32:91>B<u32:95>C<u32:5>]{}
-																			Item90[A<u32:92>B<u32:93>C<u32:96>]{}
-																			Item91[A<u32:96>B<u32:93>C<u32:97>]{}
-																			Item92[A<u32:98>B<u32:94>C<u32:2>]{}
-																			Item93[A<u32:95>B<u32:99>C<u32:5>]{}
-																			Item94[A<u32:96>B<u32:97>C<u32:100>]{}
-																			Item95[A<u32:100>B<u32:97>C<u32:101>]{}
-																			Item96[A<u32:102>B<u32:98>C<u32:2>]{}
-																			Item97[A<u32:99>B<u32:103>C<u32:5>]{}
-																			Item98[A<u32:100>B<u32:101>C<u32:104>]{}
-																			Item99[A<u32:104>B<u32:101>C<u32:105>]{}
-																			Item100[A<u32:106>B<u32:102>C<u32:2>]{}
-																			Item101[A<u32:103>B<u32:107>C<u32:5>]{}
-																			Item102[A<u32:104>B<u32:105>C<u32:108>]{}
-																			Item103[A<u32:108>B<u32:105>C<u32:109>]{}
-																			Item104[A<u32:110>B<u32:106>C<u32:2>]{}
-																			Item105[A<u32:107>B<u32:111>C<u32:5>]{}
-																			Item106[A<u32:108>B<u32:109>C<u32:112>]{}
-																			Item107[A<u32:112>B<u32:109>C<u32:113>]{}
-																			Item108[A<u32:114>B<u32:110>C<u32:2>]{}
-																			Item109[A<u32:111>B<u32:115>C<u32:5>]{}
-																			Item110[A<u32:112>B<u32:113>C<u32:116>]{}
-																			Item111[A<u32:116>B<u32:113>C<u32:117>]{}
-																			Item112[A<u32:118>B<u32:114>C<u32:2>]{}
-																			Item113[A<u32:115>B<u32:119>C<u32:5>]{}
-																			Item114[A<u32:116>B<u32:117>C<u32:120>]{}
-																			Item115[A<u32:120>B<u32:117>C<u32:121>]{}
-																			Item116[A<u32:122>B<u32:118>C<u32:2>]{}
-																			Item117[A<u32:119>B<u32:123>C<u32:5>]{}
-																			Item118[A<u32:120>B<u32:121>C<u32:124>]{}
-																			Item119[A<u32:124>B<u32:121>C<u32:125>]{}
-																			Item120[A<u32:126>B<u32:122>C<u32:2>]{}
-																			Item121[A<u32:123>B<u32:127>C<u32:5>]{}
-																			Item122[A<u32:124>B<u32:125>C<u32:128>]{}
-																			Item123[A<u32:128>B<u32:125>C<u32:129>]{}
-																			Item124[A<u32:130>B<u32:126>C<u32:2>]{}
-																			Item125[A<u32:127>B<u32:131>C<u32:5>]{}
-																			Item126[A<u32:128>B<u32:129>C<u32:132>]{}
-																			Item127[A<u32:132>B<u32:129>C<u32:133>]{}
 																		}
 																	}
 																}
@@ -724,7 +422,7 @@ __ROOT__[]
 				{
 					State[IsSome<u8:1>]
 					{
-						Data[Id<u64:4>]
+						Data[Id<u64:3>]
 						{
 							ArcData[Paused<bool:false>]
 							{
@@ -769,7 +467,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -781,7 +479,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -789,11 +487,12 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		RenderingOptions[Flags<u8:1>]
 		{
-			Value[]
+			Value[EnvironmentLightingBrightness<f32:1>]
 			{
 				RenderTarget[IsSome<u8:0>]{}
 				ClearColor[IsSome<u8:0>]{}

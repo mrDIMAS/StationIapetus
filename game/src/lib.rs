@@ -67,7 +67,6 @@ use crate::{
     },
 };
 use fyrox::core::algebra::Vector2;
-use fyrox::core::visitor::error::VisitError;
 use fyrox::gui::text::Text;
 use fyrox::plugin::error::GameResult;
 use fyrox::plugin::{SceneLoaderOutput, SceneLoaderResult};
@@ -99,7 +98,6 @@ use fyrox::{
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
-        Scene,
     },
     utils::translate_event,
     window::CursorGrabMode,
@@ -304,6 +302,7 @@ impl Game {
                 self.level = Some(level);
             } else {
                 self.level = Some(Level::from_existing_scene(
+                    44100,
                     &mut ctx.scenes[scene],
                     scene,
                     self.message_sender.clone(),
@@ -448,6 +447,7 @@ impl Game {
                         let scene = &mut context.scenes[level.scene];
                         if self.config.sound.use_hrtf {
                             block_on(use_hrtf(
+                                44100,
                                 &mut scene.graph.sound_context,
                                 context.resource_manager,
                             ))

@@ -82,7 +82,11 @@ impl BodyImpactHandler {
     }
 }
 
-pub async fn use_hrtf(context: &mut SoundContext, resource_manager: &ResourceManager) {
+pub async fn use_hrtf(
+    sample_rate: u32,
+    context: &mut SoundContext,
+    resource_manager: &ResourceManager,
+) {
     let hrtf_sphere = resource_manager
         .request::<HrirSphereResourceData>("data/sounds/hrtf.hrir")
         .await
@@ -91,7 +95,7 @@ pub async fn use_hrtf(context: &mut SoundContext, resource_manager: &ResourceMan
     context
         .state()
         .set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
-            fyrox::scene::sound::HrtfRenderer::new(hrtf_sphere),
+            fyrox::scene::sound::HrtfRenderer::new(sample_rate, hrtf_sphere),
         ));
 }
 

@@ -16,7 +16,7 @@ use crate::{
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::core::ok_or_continue;
+use fyrox::graph::SceneGraphNode;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::some_or_continue,
@@ -490,7 +490,6 @@ impl ScriptTrait for Bot {
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
 
-        let movement_speed_factor;
         let need_to_melee_attack;
 
         let is_moving;
@@ -502,7 +501,6 @@ impl ScriptTrait for Bot {
                 scene: ctx.scene,
                 actors: &level.actors,
                 bot_handle: ctx.handle,
-                sender: &game.message_sender,
                 dt: ctx.dt,
                 elapsed_time: ctx.elapsed_time,
                 state_machine: &self.state_machine,
@@ -516,7 +514,6 @@ impl ScriptTrait for Bot {
                 h_recoil: &mut self.h_recoil,
                 move_speed: self.walk_speed,
                 threaten_timeout: &mut self.threaten_timeout,
-                sound_manager: &level.sound_manager,
                 script_message_sender: ctx.message_sender,
                 navmesh: level.navmesh,
                 yaw: &mut self.yaw,
@@ -539,7 +536,6 @@ impl ScriptTrait for Bot {
 
             self.behavior.tree.tick(&mut behavior_ctx)?;
 
-            movement_speed_factor = behavior_ctx.movement_speed_factor;
             need_to_melee_attack = behavior_ctx.need_to_melee_attack;
             is_moving = behavior_ctx.is_moving;
             is_aiming = behavior_ctx.is_aiming_weapon;
@@ -569,7 +565,6 @@ impl ScriptTrait for Bot {
                 walk: is_moving,
                 scream: is_screaming,
                 dead: is_dead,
-                movement_speed_factor,
                 attack: need_to_melee_attack,
                 attack_animation_index: attack_animation_index as u32,
                 aim: is_aiming,
@@ -618,13 +613,8 @@ impl ScriptTrait for Bot {
         self.last_position = node.global_position();
 
         if died {
-            for node in ctx
-                .scene
-                .graph
-                .traverse_handle_iter(ctx.handle)
-                .collect::<Vec<_>>()
-            {
-                let sound = ok_or_continue!(ctx.scene.graph.try_get_mut_of_type::<Sound>(node));
+            for (_, node) in ctx.scene.graph.traverse_iter_mut(ctx.handle) {
+                let sound = some_or_continue!(node.component_mut::<Sound>());
                 sound.set_gain(0.0);
             }
         }
