@@ -140,7 +140,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:6be296d5-6321-4b28-9c7b-f688d031d4ef>]
 																				{
-																					Binding[Id<u32:3>Name<str:"surfaces[0].material.untyped.0.state.Ok@0.resource_bindings[properties].PropertyGroup@0.properties[diffuseColor].Color@0.a">]
+																					Binding[Id<u32:3>Name<str:"surfaces[0].material.untyped.0.state.Ok@data.resource_bindings[properties].PropertyGroup@0.properties[diffuseColor].Color@0.a">]
 																					{
 																						ValueType[Id<u32:9>]{}
 																					}
@@ -253,7 +253,7 @@ __ROOT__[]
 												}
 												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:4c9b0f67-594d-406d-98d1-c33b344feb60>]
+													Value[Uuid<uuid:726144c2-34ab-471e-b116-1d78079956b6>]
 													{
 														Embedded[Id<u64:2>]
 														{
@@ -264,7 +264,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"aoTexture">]
+																		Item0[Key<str:"heightTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -304,7 +304,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -314,7 +314,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"properties">]
+																		Item5[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -353,7 +363,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"metallicTexture">]
+																		Item7[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -363,17 +373,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item7[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"heightTexture">]
+																		Item8[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{

@@ -4,11 +4,11 @@ use fyrox::{
         pool::Handle, reflect::prelude::*, some_or_return, type_traits::prelude::*,
         variable::InheritableVariable, visitor::prelude::*, ImmutableString,
     },
-    generic_animation::machine::{Event, Parameter},
+    generic_animation::machine::Event,
     graph::SceneGraph,
     plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
-    scene::{animation::absm::AnimationBlendingStateMachine, node::Node},
+    scene::animation::absm::AnimationBlendingStateMachine,
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
@@ -20,7 +20,7 @@ pub struct ExplosiveBarrel {
     normal_state: InheritableVariable<ImmutableString>,
     burning_state: InheritableVariable<ImmutableString>,
     exploded_state: InheritableVariable<ImmutableString>,
-    state_machine: InheritableVariable<Handle<Node>>,
+    state_machine: InheritableVariable<Handle<AnimationBlendingStateMachine>>,
     explosion_prefab: InheritableVariable<Option<ModelResource>>,
 }
 
@@ -60,13 +60,10 @@ impl ScriptTrait for ExplosiveBarrel {
     fn on_update(&mut self, context: &mut ScriptContext) -> GameResult {
         let position = context.scene.graph[context.handle].global_position();
 
-        let absm = context
-            .scene
-            .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(*self.state_machine)?;
+        let absm = context.scene.graph.try_get_mut(*self.state_machine)?;
 
         let machine = absm.machine_mut();
-        machine.set_parameter("IsDamaged", Parameter::Rule(*self.health <= 0.0));
+        machine.set_rule("IsDamaged", *self.health <= 0.0);
 
         if let Some(layer) = machine.layers_mut().first_mut() {
             while let Some(event) = layer.pop_event() {

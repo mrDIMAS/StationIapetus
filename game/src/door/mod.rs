@@ -53,7 +53,7 @@ pub struct Door {
     #[visit(skip)]
     initial_position: Vector3<f32>,
 
-    state_machine: Handle<Node>,
+    state_machine: Handle<AnimationBlendingStateMachine>,
 
     #[reflect(hidden)]
     #[visit(skip)]
@@ -158,21 +158,15 @@ impl ScriptTrait for Door {
             }
         });
 
-        let state_machine = ctx
-            .scene
-            .graph
-            .try_get_mut_of_type::<AnimationBlendingStateMachine>(self.state_machine)?;
+        let state_machine = ctx.scene.graph.try_get_mut(self.state_machine)?;
 
         let open_request = self.open_request.take();
 
         let machine = state_machine.machine_mut().get_value_mut_silent();
         machine
-            .set_parameter("Locked", Parameter::Rule(*self.locked))
-            .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
-            .set_parameter(
-                "Open",
-                Parameter::Rule(open_request.as_ref().is_some_and(|r| r.open)),
-            );
+            .set_rule("Locked", *self.locked)
+            .set_rule("SomeoneNearby", someone_nearby)
+            .set_rule("Open", open_request.as_ref().is_some_and(|r| r.open));
 
         let mut sound = Handle::NONE;
 

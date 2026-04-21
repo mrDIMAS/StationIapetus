@@ -173,25 +173,22 @@ impl StateMachine {
             .machine_mut()
             .get_value_mut_silent()
             // Update parameters which will be used by transitions.
-            .set_parameter("Walk", Parameter::Rule(is_walking))
-            .set_parameter("Jump", Parameter::Rule(is_jumping))
-            .set_parameter(
-                "Landed",
-                Parameter::Rule(has_ground_contact && land_animation_ended),
-            )
-            .set_parameter("WeaponKind", Parameter::Index(weapon_kind as u32))
-            .set_parameter("HasGroundContact", Parameter::Rule(has_ground_contact))
-            .set_parameter("Dead", Parameter::Rule(is_dead))
-            .set_parameter("Aim", Parameter::Rule(is_aiming))
-            .set_parameter("WalkFactor", Parameter::Weight(1.0 - run_factor))
-            .set_parameter("RunFactor", Parameter::Weight(run_factor))
-            .set_parameter("TossGrenade", Parameter::Rule(toss_grenade))
-            .set_parameter("ReactToHit", Parameter::Rule(should_be_stunned))
-            .set_parameter("RemoveWeapon", Parameter::Rule(change_weapon))
-            .set_parameter("Recovered", Parameter::Rule(recovered))
-            .set_parameter("Velocity", Parameter::SamplingPoint(local_velocity))
-            .set_parameter("HitSomething", Parameter::Rule(hit_something))
-            .set_parameter("MeleeAttack", Parameter::Rule(melee_attack));
+            .set_rule("Walk", is_walking)
+            .set_rule("Jump", is_jumping)
+            .set_rule("Landed", has_ground_contact && land_animation_ended)
+            .set_index("WeaponKind", weapon_kind as u32)
+            .set_rule("HasGroundContact", has_ground_contact)
+            .set_rule("Dead", is_dead)
+            .set_rule("Aim", is_aiming)
+            .set_weight("WalkFactor", 1.0 - run_factor)
+            .set_weight("RunFactor", run_factor)
+            .set_rule("TossGrenade", toss_grenade)
+            .set_rule("ReactToHit", should_be_stunned)
+            .set_rule("RemoveWeapon", change_weapon)
+            .set_rule("Recovered", recovered)
+            .set_sampling_point("Velocity", local_velocity)
+            .set_rule("HitSomething", hit_something)
+            .set_rule("MeleeAttack", melee_attack);
 
         Ok(())
     }

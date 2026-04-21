@@ -739,7 +739,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -749,7 +749,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -759,7 +759,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -795,16 +805,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -1114,7 +1114,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1124,7 +1124,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1134,7 +1134,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1170,16 +1180,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -1489,7 +1489,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1499,7 +1499,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1509,7 +1509,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1545,16 +1555,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -1864,7 +1864,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1874,7 +1874,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1884,7 +1884,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1920,16 +1930,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -2403,7 +2403,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2416,7 +2426,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item6[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2426,7 +2436,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -2462,16 +2472,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -2945,7 +2945,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2958,7 +2968,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item6[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2968,7 +2978,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -3004,16 +3014,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -3487,7 +3487,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -3500,7 +3510,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item6[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -3510,7 +3520,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -3546,16 +3556,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -4029,7 +4029,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4039,7 +4039,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4049,7 +4049,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -4085,16 +4095,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -4849,7 +4849,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4859,7 +4859,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4869,7 +4869,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -4905,16 +4915,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -5388,7 +5388,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5398,7 +5398,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5408,7 +5408,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -5444,16 +5454,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -5927,7 +5927,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5940,7 +5950,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
+																		Item6[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5950,7 +5960,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -5986,16 +5996,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -12161,7 +12161,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12171,7 +12171,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"metallicTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12181,7 +12181,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -12217,16 +12227,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0.08>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -12534,7 +12534,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item4[Key<str:"diffuseTexture">]
+																		Item4[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12544,7 +12544,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"metallicTexture">]
+																		Item5[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12554,7 +12554,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item6[Key<str:"properties">]
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -12590,16 +12600,6 @@ __ROOT__[]
 																							Value[Id<u32:0>0<f32:0.08>]{}
 																						}
 																					}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -18720,7 +18720,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:0.8649567; 0; 0.5018463; 0.32712033; 0.758362; -0.56380785; 0.38058123; -0.6518336; -0.6559503>Position<vec3f32:-5.1327276; 3.8192215; 5.2568417>]{}
+								Listener[Basis<mat3:-0.02492154; 0; 0.9996895; 0.62921685; 0.77707154; 0.015685923; 0.7768302; -0.62941235; 0.019365817>Position<vec3f32:2.4956746; 2.6798835; 0.5800557>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}

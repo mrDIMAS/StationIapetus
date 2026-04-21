@@ -62,17 +62,14 @@ impl StateMachine {
             .unwrap()
             .machine_mut()
             .get_value_mut_silent()
-            .set_parameter("Attack", Parameter::Rule(input.attack))
-            .set_parameter(
-                "AttackAnimation",
-                Parameter::Index(input.attack_animation_index),
-            )
-            .set_parameter("Walk", Parameter::Rule(input.walk))
-            .set_parameter("Threaten", Parameter::Rule(input.scream))
-            .set_parameter("Aim", Parameter::Rule(input.aim))
-            .set_parameter("Dead", Parameter::Rule(input.dead))
-            .set_parameter("WasHit", Parameter::Rule(input.badly_damaged))
-            .set_parameter("MovementType", Parameter::Index(input.movement_type as u32));
+            .set_rule("Attack", input.attack)
+            .set_index("AttackAnimation", input.attack_animation_index)
+            .set_rule("Walk", input.walk)
+            .set_rule("Threaten", input.scream)
+            .set_rule("Aim", input.aim)
+            .set_rule("Dead", input.dead)
+            .set_rule("WasHit", input.badly_damaged)
+            .set_index("MovementType", input.movement_type as u32);
     }
 
     pub fn fetch_layer<'a>(&self, graph: &'a Graph, idx: usize) -> Option<&'a MachineLayer> {
