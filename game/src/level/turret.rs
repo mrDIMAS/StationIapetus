@@ -2,7 +2,7 @@ use crate::character::Character;
 use crate::{sound::SoundManager, weapon::projectile::Projectile, Game, Player};
 use fyrox::{
     core::{
-        algebra::{Matrix4, Point3, UnitQuaternion, Vector3},
+        algebra::{Matrix4, Point3, Vector3},
         arrayvec::ArrayVec,
         color::Color,
         math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
@@ -257,19 +257,11 @@ impl ScriptTrait for Turret {
         ctx.scene
             .graph
             .try_get_mut(self.body)?
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::y_axis(),
-                90.0f32.to_radians() + self.yaw.angle(),
-            ));
+            .set_rotation_y(90.0f32.to_radians() + self.yaw.angle());
         ctx.scene
             .graph
             .try_get_mut(self.barrel_stand)?
-            .local_transform_mut()
-            .set_rotation(UnitQuaternion::from_axis_angle(
-                &Vector3::z_axis(),
-                self.pitch.angle() - std::f32::consts::FRAC_PI_2,
-            ));
+            .set_rotation_z(self.pitch.angle() - std::f32::consts::FRAC_PI_2);
 
         Ok(())
     }

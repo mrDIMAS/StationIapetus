@@ -1,24 +1,24 @@
-use crate::gui::save_load::{Mode, SaveLoadDialog};
 use crate::{
-    config::Config, config::SoundConfig, gui::options_menu::OptionsMenu, message::Message,
+    config::{Config, SoundConfig},
+    gui::{
+        options_menu::OptionsMenu,
+        save_load::{Mode, SaveLoadDialog},
+    },
+    message::Message,
     MessageSender,
 };
-use fyrox::gui::button::Button;
-use fyrox::gui::screen::Screen;
-use fyrox::gui::window::WindowAlignment;
-use fyrox::scene::sound::Sound;
+use fyrox::gui::border::Border;
 use fyrox::{
     asset::io::FsResourceIo,
-    core::{color::Color, pool::Handle, visitor::prelude::*},
-    engine::InitializedGraphicsContext,
+    core::{pool::Handle, visitor::prelude::*},
     event::Event,
     graph::SceneGraph,
     gui::{
         border::BorderBuilder,
-        button::{ButtonBuilder, ButtonMessage},
+        button::{Button, ButtonBuilder, ButtonMessage},
         font::FontResource,
         message::UiMessage,
-        screen::ScreenBuilder,
+        screen::{Screen, ScreenBuilder},
         stack_panel::StackPanelBuilder,
         text::TextBuilder,
         widget::{WidgetBuilder, WidgetMessage},
@@ -26,23 +26,20 @@ use fyrox::{
         BuildContext, HorizontalAlignment, Thickness, UserInterface, VerticalAlignment,
     },
     plugin::PluginContext,
-    scene::{
-        base::BaseBuilder,
-        sound::{SoundBuffer, SoundBuilder, Status},
-        Scene, SceneLoader,
-    },
+    scene::{sound::Sound, Scene, SceneLoader},
 };
 
 #[derive(Visit, Default, Debug)]
 pub struct Menu {
     pub scene: MenuScene,
     root: Handle<Screen>,
+    main_menu: Handle<Border>,
     btn_new_game: Handle<Button>,
     btn_save_game: Handle<Button>,
     btn_settings: Handle<Button>,
     btn_load_game: Handle<Button>,
     btn_quit_game: Handle<Button>,
-    options_menu: OptionsMenu,
+    options_menu: Option<OptionsMenu>,
     save_load_dialog: Option<SaveLoadDialog>,
     font: FontResource,
 }
@@ -68,22 +65,14 @@ impl MenuScene {
         .finish()
         .await;
 
-        scene.rendering_options.ambient_lighting_color = Color::opaque(20, 20, 20);
+        let music = scene
+            .graph
+            .find_handle_by_name_from_root("Music")
+            .to_variant::<Sound>();
 
-        let buffer = context
-            .resource_manager
-            .request::<SoundBuffer>(
-                "data/music/Pura Sombar - Tongues falling from an opened sky.ogg",
-            )
-            .await
-            .unwrap();
-
-        let music = SoundBuilder::new(BaseBuilder::new())
-            .with_buffer(buffer.into())
-            .with_looping(true)
-            .with_status(Status::Playing)
-            .with_gain(sound_config.music_volume)
-            .build(&mut scene.graph);
+        if let Ok(music) = scene.graph.try_get_mut(music) {
+            music.set_gain(sound_config.music_volume);
+        }
 
         Self {
             music,
@@ -151,47 +140,46 @@ impl Menu {
         )
         .build(ctx);
 
-        let root = ScreenBuilder::new(
+        let main_menu = BorderBuilder::new(
             WidgetBuilder::new()
-                .with_child(
-                    BorderBuilder::new(
-                        WidgetBuilder::new()
-                            .on_row(1)
-                            .on_column(0)
-                            .with_width(400.0)
-                            .with_height(500.0)
-                            .with_horizontal_alignment(HorizontalAlignment::Left)
-                            .with_vertical_alignment(VerticalAlignment::Center)
-                            .with_margin(Thickness::uniform(4.0))
-                            .with_child(content),
-                    )
-                    .with_corner_radius(4.0.into())
-                    .with_pad_by_corner_radius(false)
-                    .build(ctx),
+                .on_row(1)
+                .on_column(0)
+                .with_width(400.0)
+                .with_height(500.0)
+                .with_horizontal_alignment(HorizontalAlignment::Left)
+                .with_vertical_alignment(VerticalAlignment::Center)
+                .with_margin(Thickness::uniform(4.0))
+                .with_child(content),
+        )
+        .with_corner_radius(4.0.into())
+        .with_pad_by_corner_radius(false)
+        .build(ctx);
+
+        let root = ScreenBuilder::new(
+            WidgetBuilder::new().with_child(main_menu).with_child(
+                TextBuilder::new(
+                    WidgetBuilder::new()
+                        .with_horizontal_alignment(HorizontalAlignment::Center)
+                        .with_vertical_alignment(VerticalAlignment::Top),
                 )
-                .with_child(
-                    TextBuilder::new(
-                        WidgetBuilder::new()
-                            .with_horizontal_alignment(HorizontalAlignment::Center)
-                            .with_vertical_alignment(VerticalAlignment::Top),
-                    )
-                    .with_font_size(60.0.into())
-                    .with_font(font.clone())
-                    .with_text("Station Iapetus")
-                    .build(ctx),
-                ),
+                .with_font_size(60.0.into())
+                .with_font(font.clone())
+                .with_text("Station Iapetus")
+                .build(ctx),
+            ),
         )
         .build(ctx);
 
         Self {
             scene,
             root,
+            main_menu,
             btn_new_game,
             btn_settings,
             btn_save_game,
             btn_load_game,
             btn_quit_game,
-            options_menu: OptionsMenu::new(context, config),
+            options_menu: None,
             save_load_dialog: None,
             font,
         }
@@ -206,17 +194,10 @@ impl Menu {
 
         ui.send(self.root, WidgetMessage::Visibility(visible));
         if !visible {
-            ui.send(self.options_menu.window, WindowMessage::Close);
+            if let Some(options_menu) = self.options_menu.as_ref() {
+                ui.send(options_menu.window, WindowMessage::Close);
+            }
         }
-    }
-
-    pub fn on_graphics_context_initialized(
-        &mut self,
-        ui: &mut UserInterface,
-        graphics_context: &InitializedGraphicsContext,
-    ) {
-        self.options_menu
-            .update_video_mode_list(ui, graphics_context);
     }
 
     pub fn is_visible(&self, ui: &UserInterface) -> bool {
@@ -229,13 +210,41 @@ impl Menu {
         event: &Event<()>,
         config: &mut Config,
     ) {
-        self.options_menu.process_input_event(ctx, event, config);
+        if let Some(options_menu) = self.options_menu.as_mut() {
+            options_menu.process_input_event(ctx, event, config);
+        }
     }
 
     pub fn sync_to_model(&mut self, ctx: &mut PluginContext, level_loaded: bool) {
         ctx.user_interfaces
             .first()
             .send(self.btn_save_game, WidgetMessage::Enabled(level_loaded));
+    }
+
+    fn on_save_game_clicked(&mut self, ui: &mut UserInterface) {
+        self.save_load_dialog = Some(SaveLoadDialog::new(
+            Mode::Save,
+            self.font.clone(),
+            &mut ui.build_ctx(),
+        ));
+    }
+
+    fn on_load_game_clicked(&mut self, ui: &mut UserInterface) {
+        self.save_load_dialog = Some(SaveLoadDialog::new(
+            Mode::Load,
+            self.font.clone(),
+            &mut ui.build_ctx(),
+        ));
+    }
+
+    fn on_settings_clicked(&mut self, ctx: &mut PluginContext, config: &mut Config) {
+        if let Some(options_menu) = self.options_menu.as_ref() {
+            ctx.user_interfaces
+                .first()
+                .send(options_menu.window, WindowMessage::Close);
+        } else {
+            self.options_menu = Some(OptionsMenu::new(ctx, config));
+        }
     }
 
     pub fn handle_ui_message(
@@ -245,48 +254,29 @@ impl Menu {
         config: &mut Config,
         sender: &MessageSender,
     ) {
+        if let Some(options_menu) = self.options_menu.take() {
+            self.options_menu = options_menu.handle_ui_event(ctx, message, config, sender);
+        }
+
         let ui = ctx.user_interfaces.first_mut();
 
-        if let Some(ButtonMessage::Click) = message.data() {
-            if message.destination() == self.btn_new_game {
-                sender.send(Message::StartNewGame);
-            } else if message.destination() == self.btn_save_game {
-                self.save_load_dialog = Some(SaveLoadDialog::new(
-                    Mode::Save,
-                    self.font.clone(),
-                    &mut ui.build_ctx(),
-                ));
-            } else if message.destination() == self.btn_load_game {
-                self.save_load_dialog = Some(SaveLoadDialog::new(
-                    Mode::Load,
-                    self.font.clone(),
-                    &mut ui.build_ctx(),
-                ));
-            } else if message.destination() == self.btn_quit_game {
-                sender.send(Message::QuitGame);
-            } else if message.destination() == self.btn_settings {
-                let is_visible = ui.node(self.options_menu.window).visibility();
-
-                if is_visible {
-                    ui.send(self.options_menu.window, WindowMessage::Close);
-                } else {
-                    ui.send(
-                        self.options_menu.window,
-                        WindowMessage::Open {
-                            focus_content: true,
-                            alignment: WindowAlignment::Center,
-                            modal: false,
-                        },
-                    );
-                }
-            }
-        }
+        let no_opened_screens = self.options_menu.is_none() && self.save_load_dialog.is_none();
+        ui.send_sync(self.main_menu, WidgetMessage::Visibility(no_opened_screens));
 
         if let Some(save_load_dialog) = self.save_load_dialog.take() {
             self.save_load_dialog = save_load_dialog.handle_ui_message(message, ui, sender);
         }
 
-        self.options_menu
-            .handle_ui_event(ctx, message, config, sender);
+        if let Some(ButtonMessage::Click) = message.data_from(self.btn_new_game) {
+            sender.send(Message::StartNewGame);
+        } else if let Some(ButtonMessage::Click) = message.data_from(self.btn_save_game) {
+            self.on_save_game_clicked(ui);
+        } else if let Some(ButtonMessage::Click) = message.data_from(self.btn_load_game) {
+            self.on_load_game_clicked(ui);
+        } else if let Some(ButtonMessage::Click) = message.data_from(self.btn_quit_game) {
+            sender.send(Message::QuitGame);
+        } else if let Some(ButtonMessage::Click) = message.data_from(self.btn_settings) {
+            self.on_settings_clicked(ctx, config)
+        }
     }
 }

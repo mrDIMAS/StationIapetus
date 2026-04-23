@@ -8,7 +8,7 @@ __ROOT__[]
 			Root[Index<u32:0>Generation<u32:1>]{}
 			Pool[]
 			{
-				Records[Length<u32:11>]
+				Records[Length<u32:53>]
 				{
 					Item0[Generation<u32:1>]
 					{
@@ -32,7 +32,7 @@ __ROOT__[]
 									}
 									Visibility[Value<bool:true>Flags<u8:1>]{}
 									Parent[Index<u32:0>Generation<u32:0>]{}
-									Children[Length<u32:6>]
+									Children[Length<u32:7>]
 									{
 										Item0[Index<u32:1>Generation<u32:1>]{}
 										Item1[Index<u32:4>Generation<u32:1>]{}
@@ -40,6 +40,7 @@ __ROOT__[]
 										Item3[Index<u32:7>Generation<u32:1>]{}
 										Item4[Index<u32:8>Generation<u32:1>]{}
 										Item5[Index<u32:10>Generation<u32:1>]{}
+										Item6[Index<u32:52>Generation<u32:1>]{}
 									}
 									Resource[IsSome<u8:0>]{}
 									Lifetime[Flags<u8:1>]
@@ -49,10 +50,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
@@ -102,10 +99,6 @@ __ROOT__[]
 									{
 										Value[IsSome<u8:0>]{}
 									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
-									}
 									Original[Index<u32:0>Generation<u32:1>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
 									Properties[Flags<u8:1>]
@@ -151,10 +144,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:1>Generation<u32:1>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -203,10 +192,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:2>Generation<u32:1>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -249,10 +234,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:1>]{}
 									Tag[Value<str:"Iapetus">Flags<u8:1>]{}
@@ -302,10 +283,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:1>Generation<u32:1>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -352,10 +329,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -453,10 +426,6 @@ __ROOT__[]
 											{
 												Value[IsSome<u8:0>]{}
 											}
-											Mobility[Flags<u8:1>]
-											{
-												Value[Id<u32:0>]{}
-											}
 											Original[Index<u32:0>Generation<u32:0>]{}
 											Tag[Value<str:"">Flags<u8:1>]{}
 											Properties[Flags<u8:1>]
@@ -533,10 +502,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -574,6 +539,7 @@ __ROOT__[]
 										Value[IsSome<u8:0>]{}
 									}
 									ColorGradingEnabled[Value<bool:false>Flags<u8:1>]{}
+									HdrAdaptationSpeed[Value<f32:0.5>Flags<u8:1>]{}
 								}
 							}
 						}
@@ -611,10 +577,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -665,10 +627,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -766,8 +724,244 @@ __ROOT__[]
 							}
 						}
 					}
+					Item11[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item12[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item13[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item14[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item15[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item16[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item17[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item18[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item19[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item20[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item21[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item22[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item23[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item24[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item25[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item26[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item27[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item28[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item29[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item30[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item31[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item32[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item33[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item34[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item35[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item36[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item37[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item38[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item39[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item40[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item41[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item42[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item43[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item44[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item45[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item46[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item47[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item48[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item49[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item50[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item51[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item52[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:28621735-8cd1-4fad-8faf-ecd24bf8aa99>]
+							{
+								NodeData[]
+								{
+									Base[Name<str:"Music">IsResourceInstance<bool:false>InstanceId<uuid:38ec08e8-9fe2-49f3-9e12-f04537624339>]
+									{
+										Transform[]
+										{
+											LocalScale[Value<vec3f32:1; 1; 1>Flags<u8:1>]{}
+											LocalPosition[Value<vec3f32:-4.9436893; 2.7985804; -51.329506>Flags<u8:1>]{}
+											LocalRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PreRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PostRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											RotationOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											RotationPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+										}
+										Visibility[Value<bool:true>Flags<u8:1>]{}
+										Parent[Index<u32:0>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:0>]{}
+										Lifetime[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										LodGroup[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										Original[Index<u32:0>Generation<u32:0>]{}
+										Tag[Value<str:"">Flags<u8:1>]{}
+										Properties[Flags<u8:1>]
+										{
+											Value[Length<u32:0>]{}
+										}
+										FrustumCulling[Value<bool:true>Flags<u8:1>]{}
+										CastShadows[Value<bool:true>Flags<u8:1>]{}
+										Enabled[Value<bool:true>Flags<u8:1>]{}
+										RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+									Buffer[Flags<u8:1>]
+									{
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:d8045172-47a1-41fd-b88b-ea9046a34d97>]{}
+										}
+									}
+									PlayOnce[Value<bool:false>Flags<u8:1>]{}
+									Gain[Value<f32:1>Flags<u8:1>]{}
+									Panning[Value<f32:0>Flags<u8:1>]{}
+									Status[Flags<u8:1>]
+									{
+										Value[Id<u32:1>]{}
+									}
+									Looping[Value<bool:true>Flags<u8:1>]{}
+									Pitch[Value<f64:1>Flags<u8:1>]{}
+									Radius[Value<f32:10>Flags<u8:1>]{}
+									MaxDistance[Value<f32:340282350000000000000000000000000000000>Flags<u8:1>]{}
+									RolloffFactor[Value<f32:1>Flags<u8:1>]{}
+									PlaybackTime[Value<f32:0>Flags<u8:1>]{}
+									SpatialBlend[Value<f32:0>Flags<u8:1>]{}
+									AudioBus[Value<str:"Primary">Flags<u8:1>]{}
+								}
+							}
+						}
+					}
 				}
-				FreeStack[Length<u32:0>]{}
+				FreeStack[Length<u32:41>Item0<u32:11>Item1<u32:12>Item2<u32:13>Item3<u32:14>Item4<u32:15>Item5<u32:16>Item6<u32:17>Item7<u32:18>Item8<u32:19>Item9<u32:20>Item10<u32:21>Item11<u32:22>Item12<u32:23>Item13<u32:24>Item14<u32:25>Item15<u32:26>Item16<u32:27>Item17<u32:28>Item18<u32:29>Item19<u32:30>Item20<u32:31>Item21<u32:32>Item22<u32:33>Item23<u32:34>Item24<u32:35>Item25<u32:36>Item26<u32:37>Item27<u32:38>Item28<u32:39>Item29<u32:40>Item30<u32:41>Item31<u32:42>Item32<u32:43>Item33<u32:44>Item34<u32:45>Item35<u32:46>Item36<u32:47>Item37<u32:48>Item38<u32:49>Item39<u32:50>Item40<u32:51>]{}
 			}
 			SoundContext[]
 			{
@@ -779,7 +973,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:0.069148324; -0.0000000018626451; 0.9976063; 0.35143104; 0.93589675; -0.024359176; 0.9336566; -0.35227424; -0.0647157>Position<vec3f32:-2.8607335; 1.8319588; -4.8368573>]{}
+								Listener[Basis<mat3:-0.99858606; 0; -0.05315593; -0.022641214; 0.9047516; 0.4253373; -0.048092917; -0.42593953; 0.9034724>Position<vec3f32:-4.7032247; 4.9282784; -55.84687>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}
@@ -820,7 +1014,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -832,7 +1026,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -840,17 +1034,18 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		RenderingOptions[Flags<u8:1>]
 		{
-			Value[]
+			Value[EnvironmentLightingBrightness<f32:1>]
 			{
 				RenderTarget[IsSome<u8:0>]{}
 				ClearColor[IsSome<u8:0>]{}
 				PolygonRasterizationMode[Id<u32:2>]{}
-				AmbientLightingColor[R<u8:100>G<u8:100>B<u8:100>A<u8:255>]{}
-				EnvironmentLightingSource[Id<u32:0>]{}
+				AmbientLightingColor[R<u8:51>G<u8:51>B<u8:51>A<u8:255>]{}
+				EnvironmentLightingSource[Id<u32:1>]{}
 			}
 		}
 		SkyBox[Flags<u8:1>]

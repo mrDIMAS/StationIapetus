@@ -779,9 +779,6 @@ impl Plugin for Game {
         window.set_resizable(true);
         let _ = window.request_inner_size(inner_size);
 
-        self.menu
-            .on_graphics_context_initialized(context.user_interfaces.first_mut(), graphics_context);
-
         self.on_window_resized(
             context.user_interfaces.first(),
             context.graphics_context,

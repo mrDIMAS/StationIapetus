@@ -5,39 +5,31 @@ use crate::{
     message::Message,
     MessageSender,
 };
-use fyrox::core::pool::HandlesVecExtension;
-use fyrox::core::uuid;
-use fyrox::gui::check_box::CheckBox;
-use fyrox::gui::decorator::Decorator;
-use fyrox::gui::dropdown_list::DropdownList;
-use fyrox::gui::scroll_bar::ScrollBar;
-use fyrox::gui::text::Text;
 use fyrox::{
     core::{
-        algebra::Vector2,
         log::{Log, MessageKind},
-        pool::Handle,
+        pool::{Handle, HandlesVecExtension},
+        uuid,
         visitor::prelude::*,
     },
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
-    gui::font::{Font, FontResource},
     gui::{
         border::BorderBuilder,
         button::{Button, ButtonBuilder, ButtonMessage},
-        check_box::CheckBoxMessage,
-        decorator::DecoratorBuilder,
-        dropdown_list::{DropdownListBuilder, DropdownListMessage},
+        check_box::{CheckBox, CheckBoxMessage},
+        decorator::{Decorator, DecoratorBuilder},
+        dropdown_list::{DropdownList, DropdownListBuilder, DropdownListMessage},
+        font::{Font, FontResource},
         grid::{Column, GridBuilder, Row},
         message::{MessageDirection, UiMessage},
-        scroll_bar::ScrollBarMessage,
+        scroll_bar::{ScrollBar, ScrollBarMessage},
         scroll_viewer::ScrollViewerBuilder,
         tab_control::{TabControlBuilder, TabDefinition},
-        text::{TextBuilder, TextMessage},
+        text::{Text, TextBuilder, TextMessage},
         widget::WidgetBuilder,
-        window::{WindowBuilder, WindowTitle},
-        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
-        VerticalAlignment,
+        window::{Window, WindowAlignment, WindowBuilder, WindowMessage, WindowTitle},
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
     },
     keyboard::PhysicalKey,
     monitor::VideoModeHandle,
@@ -48,7 +40,7 @@ use fyrox::{
 
 #[derive(Visit, Default, Debug)]
 pub struct OptionsMenu {
-    pub window: Handle<UiNode>,
+    pub window: Handle<Window>,
     sound_volume: Handle<ScrollBar>,
     pub music_volume: Handle<ScrollBar>,
     video_mode: Handle<DropdownList>,
@@ -243,6 +235,20 @@ impl OptionsMenu {
             .resource_manager
             .request::<Font>("data/ui/SquaresBold.ttf");
 
+        let video_modes =
+            if let GraphicsContext::Initialized(graphics_context) = engine.graphics_context {
+                Self::video_mode_list(graphics_context)
+            } else {
+                vec![]
+            };
+
+        let mut modes = vec![make_video_mode_item_raw("Windowed", font.clone(), ctx)];
+        modes.extend(
+            video_modes
+                .iter()
+                .map(|video_mode| make_video_mode_item(video_mode, font.clone(), ctx)),
+        );
+
         let graphics_content = GridBuilder::new(
             WidgetBuilder::new()
                 .with_margin(Thickness::uniform(5.0))
@@ -254,6 +260,7 @@ impl OptionsMenu {
                             .on_row(0)
                             .with_margin(margin),
                     )
+                    .with_items(modes.to_base())
                     .with_close_on_selection(true)
                     .with_selected(0)
                     .build(ctx);
@@ -596,21 +603,25 @@ impl OptionsMenu {
             .with_tab(controls_tab)
             .build(ctx);
 
-        let options_window: Handle<UiNode> = WindowBuilder::new(
-            WidgetBuilder::new()
-                .with_max_size(Vector2::new(f32::INFINITY, 600.0))
-                .with_width(500.0),
-        )
-        .can_maximize(false)
-        .can_minimize(false)
-        .with_title(WindowTitle::text("Options"))
-        .open(false)
-        .with_content(tab_control)
-        .build(ctx)
-        .to_base();
+        let window = WindowBuilder::new(WidgetBuilder::new().with_height(650.0).with_width(500.0))
+            .can_maximize(false)
+            .can_minimize(false)
+            .with_title(WindowTitle::text("Options"))
+            .open(false)
+            .with_content(tab_control)
+            .build(ctx);
+
+        ctx.inner().send(
+            window,
+            WindowMessage::Open {
+                focus_content: true,
+                alignment: WindowAlignment::Center,
+                modal: true,
+            },
+        );
 
         Self {
-            window: options_window,
+            window,
             sound_volume,
             music_volume,
             video_mode,
@@ -696,24 +707,6 @@ impl OptionsMenu {
         }
     }
 
-    pub fn update_video_mode_list(
-        &mut self,
-        ui: &mut UserInterface,
-        graphics_context: &InitializedGraphicsContext,
-    ) {
-        let video_modes = Self::video_mode_list(graphics_context);
-
-        let ctx = &mut ui.build_ctx();
-        let mut modes = vec![make_video_mode_item_raw("Windowed", self.font.clone(), ctx)];
-        modes.extend(
-            video_modes
-                .iter()
-                .map(|video_mode| make_video_mode_item(video_mode, self.font.clone(), ctx)),
-        );
-
-        ui.send(self.video_mode, DropdownListMessage::Items(modes.to_base()));
-    }
-
     pub fn process_input_event(
         &mut self,
         engine: &mut PluginContext,
@@ -727,14 +720,12 @@ impl OptionsMenu {
                 WindowEvent::MouseWheel {
                     delta: MouseScrollDelta::LineDelta(_, y),
                     ..
-                } => {
-                    if *y != 0.0 {
-                        control_button = if *y >= 0.0 {
-                            Some(ControlButton::WheelUp)
-                        } else {
-                            Some(ControlButton::WheelDown)
-                        };
-                    }
+                } if *y != 0.0 => {
+                    control_button = if *y >= 0.0 {
+                        Some(ControlButton::WheelUp)
+                    } else {
+                        Some(ControlButton::WheelDown)
+                    };
                 }
                 WindowEvent::KeyboardInput { event: input, .. } => {
                     if let PhysicalKey::Code(key) = input.physical_key {
@@ -775,12 +766,12 @@ impl OptionsMenu {
 
     #[allow(clippy::cognitive_complexity)]
     pub fn handle_ui_event(
-        &mut self,
+        mut self,
         context: &mut PluginContext,
         message: &UiMessage,
         config: &mut Config,
         sender: &MessageSender,
-    ) {
+    ) -> Option<Self> {
         let old_graphics_settings =
             if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
                 graphics_context.renderer.get_quality_settings()
@@ -874,6 +865,8 @@ impl OptionsMenu {
                     self.active_control_button = Some(i);
                 }
             }
+        } else if let Some(WindowMessage::Close) = message.data_for(self.window) {
+            return None;
         }
 
         if graphics_settings != old_graphics_settings {
@@ -890,5 +883,7 @@ impl OptionsMenu {
                 }
             }
         }
+
+        Some(self)
     }
 }

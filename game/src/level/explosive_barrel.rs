@@ -1,8 +1,8 @@
 use crate::level::hit_box::HitBoxMessage;
 use fyrox::{
     core::{
-        pool::Handle, reflect::prelude::*, some_or_return, type_traits::prelude::*,
-        variable::InheritableVariable, visitor::prelude::*, ImmutableString,
+        pool::Handle, reflect::prelude::*, type_traits::prelude::*, variable::InheritableVariable,
+        visitor::prelude::*, ImmutableString,
     },
     generic_animation::machine::Event,
     graph::SceneGraph,
@@ -44,23 +44,10 @@ impl ScriptTrait for ExplosiveBarrel {
         Ok(())
     }
 
-    fn on_message(
-        &mut self,
-        message: &mut dyn ScriptMessagePayload,
-        _ctx: &mut ScriptMessageContext,
-    ) -> GameResult {
-        if let HitBoxMessage::Damage(hit_box_damage) =
-            some_or_return!(message.downcast_ref::<HitBoxMessage>(), Ok(()))
-        {
-            *self.health -= hit_box_damage.damage;
-        }
-        Ok(())
-    }
-
     fn on_update(&mut self, context: &mut ScriptContext) -> GameResult {
-        let position = context.scene.graph[context.handle].global_position();
-
-        let absm = context.scene.graph.try_get_mut(*self.state_machine)?;
+        let graph = &mut context.scene.graph;
+        let position = graph[context.handle].global_position();
+        let absm = graph.try_get_mut(*self.state_machine)?;
 
         let machine = absm.machine_mut();
         machine.set_rule("IsDamaged", *self.health <= 0.0);
@@ -83,6 +70,17 @@ impl ScriptTrait for ExplosiveBarrel {
             }
         }
 
+        Ok(())
+    }
+
+    fn on_message(
+        &mut self,
+        message: &mut dyn ScriptMessagePayload,
+        _ctx: &mut ScriptMessageContext,
+    ) -> GameResult {
+        if let Some(HitBoxMessage::Damage(hit_box_damage)) = message.downcast_ref() {
+            *self.health -= hit_box_damage.damage;
+        }
         Ok(())
     }
 }
