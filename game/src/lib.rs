@@ -20,7 +20,7 @@ pub mod weapon;
 
 pub use fyrox;
 
-use crate::level::hit_box::LimbType;
+use crate::gui::final_screen::FinalScreenData;
 use crate::{
     bot::{Bot, BotHostility},
     character::Character,
@@ -31,10 +31,11 @@ use crate::{
         call_button::{CallButton, CallButtonKind},
         Elevator,
     },
+    gui::death_screen::DeathScreenData,
+    gui::final_screen::FinalScreen,
     gui::{
         inventory::InventoryItem, item_display::ItemDisplay, journal::JournalDisplay,
-        loading_screen::LoadingScreen, menu::Menu, weapon_display::WeaponDisplay, DeathScreen,
-        FinalScreen,
+        loading_screen::LoadingScreen, menu::Menu, menu::MenuData, weapon_display::WeaponDisplay,
     },
     highlight::HighlightRenderPass,
     inventory::{Inventory, ItemEntry},
@@ -44,13 +45,11 @@ use crate::{
         decal::Decal,
         explosion::Explosion,
         explosive_barrel::ExplosiveBarrel,
-        hit_box::HitBox,
-        item::Item,
-        item::ItemAction,
+        hit_box::{HitBox, LimbType},
+        item::{Item, ItemAction},
         point_of_interest::PointOfInterest,
         spawn::CharacterSpawnPoint,
-        trigger::BotCounter,
-        trigger::{Trigger, TriggerAction},
+        trigger::{BotCounter, Trigger, TriggerAction},
         turret::{Barrel, Hostility, ShootMode, Turret},
         Level,
     },
@@ -66,13 +65,9 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
-use fyrox::core::algebra::Vector2;
-use fyrox::gui::text::Text;
-use fyrox::plugin::error::GameResult;
-use fyrox::plugin::{SceneLoaderOutput, SceneLoaderResult};
-use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
     core::{
+        algebra::Vector2,
         color::Color,
         futures::executor::block_on,
         log::Log,
@@ -86,15 +81,19 @@ use fyrox::{
     gui::{
         button::ButtonMessage,
         check_box::CheckBoxMessage,
-        font::Font,
+        font::{Font, FontResource},
         inspector::editors::PropertyEditorDefinitionContainer,
         message::{MessageDirection, UiMessage},
-        text::{TextBuilder, TextMessage},
+        text::{Text, TextBuilder, TextMessage},
         widget::{WidgetBuilder, WidgetMessage},
         UiNode, UserInterface,
     },
     keyboard::KeyCode,
-    plugin::{Plugin, PluginContext, PluginRegistrationContext},
+    plugin::{
+        error::GameResult, Plugin, PluginContext, PluginRegistrationContext, SceneLoaderOutput,
+        SceneLoaderResult,
+    },
+    renderer::ui_renderer::UiRenderInfo,
     scene::{
         base::BaseBuilder,
         sound::{SoundBuffer, SoundBuilder, Status},
@@ -102,18 +101,21 @@ use fyrox::{
     utils::translate_event,
     window::CursorGrabMode,
 };
-use std::sync::Arc;
+use gui::death_screen::DeathScreen;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
     rc::Rc,
-    sync::mpsc::{self, Receiver, Sender},
+    sync::{
+        mpsc::{self, Receiver, Sender},
+        Arc,
+    },
 };
 
 #[derive(Visit, Reflect, Debug)]
 #[reflect(hide_all, non_cloneable)]
 pub struct Game {
-    menu: Menu,
+    menu: Option<Menu>,
     level: Option<Level>,
     debug_text: Handle<Text>,
     debug_string: String,
@@ -126,13 +128,14 @@ pub struct Game {
     #[visit(skip)]
     message_sender: MessageSender,
     loading_screen: LoadingScreen,
-    death_screen: DeathScreen,
-    final_screen: FinalScreen,
+    death_screen: Option<DeathScreen>,
+    final_screen: Option<FinalScreen>,
     weapon_display: WeaponDisplay,
     item_display: ItemDisplay,
     journal_display: JournalDisplay,
     #[visit(skip)]
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
+    font: FontResource,
 }
 
 impl Default for Game {
@@ -154,6 +157,7 @@ impl Default for Game {
             item_display: Default::default(),
             journal_display: Default::default(),
             highlighter: Default::default(),
+            font: Default::default(),
         }
     }
 }
@@ -176,14 +180,31 @@ impl MessageSender {
 }
 
 impl Game {
-    fn handle_ui_message(&mut self, context: &mut PluginContext, message: &UiMessage) {
-        self.menu
-            .handle_ui_message(context, message, &mut self.config, &self.message_sender);
+    fn handle_ui_message(
+        &mut self,
+        ctx: &mut PluginContext,
+        message: &UiMessage,
+        ui_handle: Handle<UserInterface>,
+    ) -> GameResult {
+        if let Some(menu) = self.menu.as_mut() {
+            menu.handle_ui_message(
+                ctx,
+                ui_handle,
+                message,
+                &mut self.config,
+                &self.message_sender,
+            )?;
+        };
 
-        self.death_screen
-            .handle_ui_message(message, &self.message_sender);
-        self.final_screen
-            .handle_ui_message(message, &self.message_sender);
+        if let Some(death_screen) = self.death_screen.take() {
+            self.death_screen =
+                death_screen.handle_ui_message(ctx, ui_handle, message, &self.message_sender);
+        }
+
+        if let Some(final_screen) = self.final_screen.take() {
+            self.final_screen =
+                final_screen.handle_ui_message(ctx, ui_handle, message, &self.message_sender);
+        }
 
         let play_sound = if message.direction() == MessageDirection::FromWidget {
             if let Some(ButtonMessage::Click) = message.data() {
@@ -201,6 +222,8 @@ impl Game {
                 gain: 0.8,
             });
         }
+
+        Ok(())
     }
 
     fn render_offscreen(&mut self, context: &mut PluginContext) {
@@ -267,13 +290,28 @@ impl Game {
         }
     }
 
-    pub fn before_load_level(&mut self, ctx: &mut PluginContext) {
+    fn try_destroy_death_screen(&mut self, ctx: &mut PluginContext) {
+        if let Some(death_screen) = self.death_screen.take() {
+            death_screen.destroy(ctx);
+        }
+    }
+
+    fn try_destroy_final_screen(&mut self, ctx: &mut PluginContext) {
+        if let Some(final_screen) = self.final_screen.take() {
+            final_screen.destroy(ctx);
+        }
+    }
+
+    pub fn before_load_level(&mut self, ctx: &mut PluginContext) -> GameResult {
         self.destroy_level(ctx);
+        self.try_destroy_death_screen(ctx);
+        self.try_destroy_final_screen(ctx);
         let ui = ctx.user_interfaces.first();
-        self.death_screen.set_visible(ui, false);
-        self.final_screen.set_visible(ui, false);
         ui.send(self.loading_screen.root, WidgetMessage::Visibility(true));
-        self.menu.set_visible(ctx, false);
+        if let Some(menu) = self.menu.as_mut() {
+            menu.set_visible(ctx, false)?;
+        }
+        Ok(())
     }
 
     pub fn on_level_loaded(
@@ -312,40 +350,49 @@ impl Game {
             }
         }
 
-        self.set_menu_visible(false, ctx);
+        self.set_menu_visible(false, ctx)?;
         ctx.user_interfaces
             .first()
             .send(self.loading_screen.root, WidgetMessage::Visibility(false));
-        self.menu.sync_to_model(ctx, true);
+
+        if let Some(menu) = self.menu.as_mut() {
+            menu.sync_to_model(ctx, true)?;
+        }
 
         Log::info("Level was loaded successfully!");
 
         Ok(())
     }
 
-    pub fn load_level(&mut self, path: PathBuf, ctx: &mut PluginContext) {
-        self.before_load_level(ctx);
+    pub fn load_level(&mut self, path: PathBuf, ctx: &mut PluginContext) -> GameResult {
+        self.before_load_level(ctx)?;
         ctx.load_scene(path, true, |result, game: &mut Game, ctx| {
             game.on_level_loaded(result, ctx)
         });
+        Ok(())
     }
 
-    pub fn load_game(&mut self, path: PathBuf, ctx: &mut PluginContext) {
-        self.before_load_level(ctx);
+    pub fn load_game(&mut self, path: PathBuf, ctx: &mut PluginContext) -> GameResult {
+        self.before_load_level(ctx)?;
         ctx.load_scene(path, false, |result, game: &mut Game, ctx| {
             game.on_level_loaded(result, ctx)
         });
+        Ok(())
     }
 
-    pub fn set_menu_visible(&mut self, visible: bool, context: &mut PluginContext) {
-        self.menu.set_visible(context, visible);
+    pub fn set_menu_visible(&mut self, visible: bool, context: &mut PluginContext) -> GameResult {
+        if let Some(menu) = self.menu.as_mut() {
+            menu.set_visible(context, visible)?;
+        }
+        Ok(())
     }
 
     pub fn is_any_menu_visible(&self, context: &PluginContext) -> bool {
-        let ui = context.user_interfaces.first();
-        self.menu.is_visible(ui)
-            || self.death_screen.is_visible(ui)
-            || self.final_screen.is_visible(ui)
+        self.menu
+            .as_ref()
+            .is_some_and(|menu| menu.is_visible(context))
+            || self.death_screen.is_some()
+            || self.final_screen.is_some()
     }
 
     pub fn update(&mut self, ctx: &mut PluginContext) -> GameResult {
@@ -374,9 +421,14 @@ impl Game {
         );
 
         if let Some(ref mut level) = self.level {
-            ctx.scenes[level.scene]
-                .enabled
-                .set_value_silent(!self.menu.is_visible(ui));
+            if let Some(menu) = self.menu.as_ref() {
+                let enabled = !menu.is_visible(ctx);
+                ctx.scenes[level.scene].enabled.set_value_silent(enabled);
+            }
+        }
+
+        if let Some(menu) = self.menu.as_ref() {
+            menu.update(ctx)?;
         }
 
         self.weapon_display.update(ctx.dt);
@@ -392,7 +444,7 @@ impl Game {
                 .set_gain(self.config.sound.master_volume);
         }
 
-        self.handle_messages(ctx);
+        self.handle_messages(ctx)?;
 
         self.update_statistics(0.0, ctx);
 
@@ -404,41 +456,54 @@ impl Game {
         Ok(())
     }
 
-    fn handle_messages(&mut self, context: &mut PluginContext) {
+    fn handle_messages(&mut self, context: &mut PluginContext) -> GameResult {
         while let Ok(message) = self.message_receiver.try_recv() {
             match &message {
                 Message::StartNewGame => {
-                    self.load_level(Level::ARRIVAL_PATH.into(), context);
+                    self.load_level(Level::ARRIVAL_PATH.into(), context)?;
                 }
                 Message::SaveGame(path) => match self.save_game(path, context) {
                     Ok(_) => Log::info("Successfully saved"),
                     Err(e) => Log::err(format!("Failed to make a save at {path:?}, reason: {e}")),
                 },
                 Message::LoadGame(path) => {
-                    self.load_game(path.clone(), context);
+                    self.load_game(path.clone(), context)?;
                 }
-                Message::LoadLevel { path } => self.load_level(path.clone(), context),
+                Message::LoadLevel { path } => {
+                    self.load_level(path.clone(), context)?;
+                }
                 Message::QuitGame => {
                     self.destroy_level(context);
                     self.running = false;
                 }
                 Message::EndMatch => {
                     self.destroy_level(context);
-                    self.death_screen
-                        .set_visible(context.user_interfaces.first(), true);
-                    self.menu.sync_to_model(context, false);
+                    context.load_ui("data/ui/death_screen.ui", |result, game: &mut Game, ctx| {
+                        game.death_screen = Some(DeathScreen::new(result?.payload, ctx));
+                        Ok(())
+                    });
+                    if let Some(menu) = self.menu.as_mut() {
+                        menu.sync_to_model(context, false)?;
+                    }
                 }
                 Message::EndGame => {
                     self.destroy_level(context);
-                    self.final_screen
-                        .set_visible(context.user_interfaces.first(), true);
-                    self.menu.sync_to_model(context, false);
+                    context.load_ui("data/ui/final_screen.ui", |result, game: &mut Game, ctx| {
+                        game.final_screen = Some(FinalScreen::new(result?.payload, ctx));
+                        Ok(())
+                    });
+                    if let Some(menu) = self.menu.as_mut() {
+                        menu.sync_to_model(context, false)?;
+                    }
                 }
                 Message::SetMusicVolume(volume) => {
                     self.config.sound.music_volume = *volume;
-                    // TODO: Apply to sound manager of level when it will handle music!
-                    context.scenes[self.menu.scene.scene].graph[self.menu.scene.music]
-                        .set_gain(*volume);
+                    if let Some(menu) = self.menu.as_mut() {
+                        if let Some(scene) = menu.scene.as_ref() {
+                            // TODO: Apply to sound manager of level when it will handle music!
+                            context.scenes[scene.scene].graph[scene.music].set_gain(*volume);
+                        }
+                    }
                 }
                 Message::SetUseHrtf(state) => {
                     self.config.sound.use_hrtf = *state;
@@ -464,10 +529,11 @@ impl Game {
                     self.config.sound.master_volume = *volume;
                 }
                 Message::ToggleMainMenu => {
-                    self.menu.set_visible(context, true);
-                    let ui = context.user_interfaces.first();
-                    self.death_screen.set_visible(ui, false);
-                    self.final_screen.set_visible(ui, false);
+                    if let Some(menu) = self.menu.as_mut() {
+                        menu.set_visible(context, true)?;
+                    }
+                    self.try_destroy_death_screen(context);
+                    self.try_destroy_final_screen(context);
                 }
                 Message::SyncJournal => {
                     if let Some(ref mut level) = self.level {
@@ -481,17 +547,22 @@ impl Game {
                     if let Ok(buffer) = fyrox::core::futures::executor::block_on(
                         context.resource_manager.request::<SoundBuffer>(path),
                     ) {
-                        let menu_scene = &mut context.scenes[self.menu.scene.scene];
-                        SoundBuilder::new(BaseBuilder::new())
-                            .with_buffer(buffer.into())
-                            .with_status(Status::Playing)
-                            .with_play_once(true)
-                            .with_gain(*gain)
-                            .build(&mut menu_scene.graph);
+                        if let Some(menu) = self.menu.as_mut() {
+                            if let Some(scene) = menu.scene.as_ref() {
+                                let menu_scene = &mut context.scenes[scene.scene];
+                                SoundBuilder::new(BaseBuilder::new())
+                                    .with_buffer(buffer.into())
+                                    .with_status(Status::Playing)
+                                    .with_play_once(true)
+                                    .with_gain(*gain)
+                                    .build(&mut menu_scene.graph);
+                            }
+                        }
                     }
                 }
             }
         }
+        Ok(())
     }
 
     pub fn update_statistics(&mut self, elapsed: f64, ctx: &mut PluginContext) {
@@ -554,7 +625,6 @@ impl Game {
         height: f32,
     ) {
         self.loading_screen.resize(ui, width, height);
-        self.death_screen.resize(ui, width, height);
         self.create_highlighter(graphics_context, width as usize, height as usize);
     }
 
@@ -586,7 +656,11 @@ impl Game {
         }
     }
 
-    pub fn process_input_event(&mut self, event: &Event<()>, context: &mut PluginContext) {
+    pub fn process_input_event(
+        &mut self,
+        event: &Event<()>,
+        context: &mut PluginContext,
+    ) -> GameResult {
         self.process_dispatched_event(event);
 
         if let Event::WindowEvent {
@@ -596,13 +670,16 @@ impl Game {
         {
             if let ElementState::Pressed = input.state {
                 if input.physical_key == KeyCode::Escape && self.level.is_some() {
-                    self.set_menu_visible(!self.is_any_menu_visible(context), context);
+                    self.set_menu_visible(!self.is_any_menu_visible(context), context)?;
                 }
             }
         }
 
-        self.menu
-            .process_input_event(context, event, &mut self.config);
+        if let Some(menu) = self.menu.as_mut() {
+            menu.process_input_event(context, event, &mut self.config)?;
+        }
+
+        Ok(())
     }
 }
 
@@ -636,6 +713,12 @@ impl Plugin for Game {
             .add::<ExplosiveBarrel>("ExplosiveBarrel")
             .add::<HitBox>("HitBox");
 
+        context
+            .dyn_type_constructors
+            .add::<MenuData, Self>("Menu Data")
+            .add::<DeathScreenData, Self>("Death Screen Data")
+            .add::<FinalScreenData, Self>("Final Screen Data");
+
         context.widget_constructors.add::<InventoryItem>();
 
         Ok(())
@@ -668,7 +751,7 @@ impl Plugin for Game {
             .add(UserInterface::new(Vector2::repeat(100.0)));
 
         if let Some(scene_path) = scene_path {
-            self.load_level(PathBuf::from(scene_path), &mut ctx);
+            self.load_level(PathBuf::from(scene_path), &mut ctx)?;
         }
 
         let font = ctx
@@ -683,17 +766,18 @@ impl Plugin for Game {
         let item_display = ItemDisplay::new(font.clone());
         let journal_display = JournalDisplay::new();
 
+        ctx.load_ui("data/ui/main_menu.ui", |result, game: &mut Game, ctx| {
+            game.menu = Some(Menu::new(result?.payload, ctx, game.font.clone()));
+            Ok(())
+        });
+
         *self = Game {
             config: self.config.clone(),
             loading_screen: LoadingScreen::new(&mut ctx.user_interfaces.first_mut().build_ctx()),
             running: true,
-            menu: fyrox::core::futures::executor::block_on(Menu::new(
-                &mut ctx,
-                font.clone(),
-                &self.config,
-            )),
-            death_screen: DeathScreen::new(ctx.user_interfaces.first_mut(), font.clone()),
-            final_screen: FinalScreen::new(ctx.user_interfaces.first_mut(), font),
+            menu: None,
+            death_screen: None,
+            final_screen: None,
             debug_text: Handle::NONE,
             weapon_display,
             item_display,
@@ -703,10 +787,10 @@ impl Plugin for Game {
             message_receiver: rx,
             message_sender,
             highlighter: None,
+            font,
         };
 
         self.create_debug_ui(&mut ctx);
-        self.menu.set_visible(&mut ctx, true);
 
         Ok(())
     }
@@ -722,7 +806,7 @@ impl Plugin for Game {
     }
 
     fn on_os_event(&mut self, event: &Event<()>, mut ctx: PluginContext) -> GameResult {
-        self.process_input_event(event, &mut ctx);
+        self.process_input_event(event, &mut ctx)?;
 
         if let Event::WindowEvent { event, .. } = event {
             match event {
@@ -785,8 +869,9 @@ impl Plugin for Game {
             inner_size.width,
             inner_size.height,
         );
-
-        self.menu.sync_to_model(&mut context, self.level.is_some());
+        if let Some(menu) = self.menu.as_mut() {
+            menu.sync_to_model(&mut context, self.level.is_some())?;
+        }
 
         Ok(())
     }
@@ -800,9 +885,9 @@ impl Plugin for Game {
         &mut self,
         context: &mut PluginContext,
         message: &UiMessage,
-        _ui_handle: Handle<UserInterface>,
+        ui_handle: Handle<UserInterface>,
     ) -> GameResult {
-        self.handle_ui_message(context, message);
+        self.handle_ui_message(context, message, ui_handle)?;
         Ok(())
     }
 }

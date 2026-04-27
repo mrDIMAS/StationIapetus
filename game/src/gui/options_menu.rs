@@ -5,6 +5,8 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::gui::UserInterface;
+use fyrox::plugin::error::{GameError, GameResult};
 use fyrox::{
     core::{
         log::{Log, MessageKind},
@@ -40,6 +42,7 @@ use fyrox::{
 
 #[derive(Visit, Default, Debug)]
 pub struct OptionsMenu {
+    ui: Handle<UserInterface>,
     pub window: Handle<Window>,
     sound_volume: Handle<ScrollBar>,
     pub music_volume: Handle<ScrollBar>,
@@ -202,8 +205,8 @@ fn index_to_shadow_map_size(index: usize) -> usize {
 }
 
 impl OptionsMenu {
-    pub fn new(engine: &mut PluginContext, config: &Config) -> Self {
-        let ctx = &mut engine.user_interfaces.first_mut().build_ctx();
+    pub fn new(ui: Handle<UserInterface>, engine: &mut PluginContext, config: &Config) -> Self {
+        let ctx = &mut engine.user_interfaces[ui].build_ctx();
 
         let common_row = Row::strict(36.0);
 
@@ -606,6 +609,7 @@ impl OptionsMenu {
         let window = WindowBuilder::new(WidgetBuilder::new().with_height(650.0).with_width(500.0))
             .can_maximize(false)
             .can_minimize(false)
+            .with_remove_on_close(true)
             .with_title(WindowTitle::text("Options"))
             .open(false)
             .with_content(tab_control)
@@ -621,6 +625,7 @@ impl OptionsMenu {
         );
 
         Self {
+            ui,
             window,
             sound_volume,
             music_volume,
@@ -648,8 +653,8 @@ impl OptionsMenu {
         }
     }
 
-    pub fn sync_to_model(&mut self, ctx: &mut PluginContext, config: &Config) {
-        let ui = &mut ctx.user_interfaces.first_mut();
+    pub fn sync_to_model(&mut self, ctx: &mut PluginContext, config: &Config) -> GameResult {
+        let ui = ctx.user_interfaces.try_get_mut(self.ui)?;
 
         let sync_check_box = |handle: Handle<CheckBox>, value: bool| {
             ui.send(handle, CheckBoxMessage::Check(Some(value)));
@@ -692,6 +697,8 @@ impl OptionsMenu {
                 TextMessage::Text(def.button.name().to_owned()),
             );
         }
+
+        Ok(())
     }
 
     fn video_mode_list(graphics_context: &InitializedGraphicsContext) -> Vec<VideoModeHandle> {
@@ -709,10 +716,10 @@ impl OptionsMenu {
 
     pub fn process_input_event(
         &mut self,
-        engine: &mut PluginContext,
+        ctx: &mut PluginContext,
         event: &Event<()>,
         config: &mut Config,
-    ) {
+    ) -> GameResult {
         if let Event::WindowEvent { event, .. } = event {
             let mut control_button = None;
 
@@ -749,7 +756,7 @@ impl OptionsMenu {
 
             if let Some(control_button) = control_button {
                 if let Some(active_control_button) = self.active_control_button {
-                    let ui = engine.user_interfaces.first();
+                    let ui = ctx.user_interfaces.try_get(self.ui)?;
 
                     ui.send(
                         *ui[self.control_scheme_buttons[active_control_button]].content,
@@ -762,18 +769,20 @@ impl OptionsMenu {
                 }
             }
         }
+
+        Ok(())
     }
 
     #[allow(clippy::cognitive_complexity)]
     pub fn handle_ui_event(
         mut self,
-        context: &mut PluginContext,
+        ctx: &mut PluginContext,
         message: &UiMessage,
         config: &mut Config,
         sender: &MessageSender,
-    ) -> Option<Self> {
+    ) -> Result<Option<Self>, GameError> {
         let old_graphics_settings =
-            if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+            if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
                 graphics_context.renderer.get_quality_settings()
             } else {
                 Default::default()
@@ -797,8 +806,7 @@ impl OptionsMenu {
             }
         } else if let Some(DropdownListMessage::Selection(Some(index))) = message.data() {
             if message.destination() == self.video_mode {
-                if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context
-                {
+                if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
                     let window = &graphics_context.window;
                     // -1 here because we have Windowed item in the list.
                     if let Some(video_mode) =
@@ -850,14 +858,14 @@ impl OptionsMenu {
         } else if let Some(ButtonMessage::Click) = message.data() {
             if message.destination() == self.reset_control_scheme {
                 config.controls.reset();
-                self.sync_to_model(context, config);
+                self.sync_to_model(ctx, config)?;
             } else if message.destination() == self.reset_audio_settings {
-                self.sync_to_model(context, config);
+                self.sync_to_model(ctx, config)?;
             }
 
             for (i, button) in self.control_scheme_buttons.iter().enumerate() {
                 if message.destination() == *button {
-                    let ui = context.user_interfaces.first();
+                    let ui = ctx.user_interfaces.try_get(self.ui)?;
                     ui.send(
                         *ui[*button].content,
                         TextMessage::Text("[WAITING INPUT]".to_owned()),
@@ -866,12 +874,11 @@ impl OptionsMenu {
                 }
             }
         } else if let Some(WindowMessage::Close) = message.data_for(self.window) {
-            return None;
+            return Ok(None);
         }
 
         if graphics_settings != old_graphics_settings {
-            if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context
-            {
+            if let GraphicsContext::Initialized(ref mut graphics_context) = ctx.graphics_context {
                 if let Err(err) = graphics_context
                     .renderer
                     .set_quality_settings(&graphics_settings)
@@ -884,6 +891,6 @@ impl OptionsMenu {
             }
         }
 
-        Some(self)
+        Ok(Some(self))
     }
 }
