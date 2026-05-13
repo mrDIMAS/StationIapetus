@@ -185,16 +185,26 @@ __ROOT__[]
 										MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 										Background[Flags<u8:1>]
 										{
-											Value[Id<u32:0>]
+											Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
 											{
-												0[R<u8:2>G<u8:102>B<u8:159>A<u8:255>]{}
+												Stops[Length<u32:2>]
+												{
+													Item0[Stop<f32:0>]
+													{
+														Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+													}
+													Item1[Stop<f32:1>]
+													{
+														Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
+													}
+												}
 											}
 										}
 										Foreground[Flags<u8:1>]
 										{
 											Value[Id<u32:0>]
 											{
-												0[R<u8:0>G<u8:194>B<u8:234>A<u8:255>]{}
+												0[R<u8:0>G<u8:5>B<u8:107>A<u8:255>]{}
 											}
 										}
 										Row[Value<u64:0>Flags<u8:1>]{}
@@ -267,28 +277,58 @@ __ROOT__[]
 									{
 										Value[Left<f32:4>Top<f32:4>Right<f32:4>Bottom<f32:4>]{}
 									}
-									CornerRadius[Value<f32:16>Flags<u8:1>]{}
+									CornerRadius[Value<f32:4>Flags<u8:1>]{}
 									PadByCornerRadius[Value<bool:false>Flags<u8:1>]{}
 								}
 								NormalBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:0>]
+									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
 									{
-										0[R<u8:70>G<u8:70>B<u8:70>A<u8:255>]{}
+										Stops[Length<u32:2>]
+										{
+											Item0[Stop<f32:0>]
+											{
+												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+											}
+											Item1[Stop<f32:1>]
+											{
+												Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
+											}
+										}
 									}
 								}
 								HoverBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:0>]
+									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
 									{
-										0[R<u8:85>G<u8:85>B<u8:85>A<u8:255>]{}
+										Stops[Length<u32:2>]
+										{
+											Item0[Stop<f32:0>]
+											{
+												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+											}
+											Item1[Stop<f32:1>]
+											{
+												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+											}
+										}
 									}
 								}
 								PressedBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:0>]
+									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
 									{
-										0[R<u8:100>G<u8:100>B<u8:100>A<u8:255>]{}
+										Stops[Length<u32:2>]
+										{
+											Item0[Stop<f32:0>]
+											{
+												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+											}
+											Item1[Stop<f32:1>]
+											{
+												Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
+											}
+										}
 									}
 								}
 								SelectedBrush[Flags<u8:1>]

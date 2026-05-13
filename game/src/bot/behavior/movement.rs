@@ -80,8 +80,7 @@ impl<'a> Behavior<'a> for MoveToTarget {
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        let navmesh =
-            multiborrow_context.try_get_component_of_type::<NavigationalMesh>(ctx.navmesh)?;
+        let navmesh = multiborrow_context.try_get_or_field_ref::<NavigationalMesh>(ctx.navmesh)?;
 
         ctx.agent.set_position(position);
 

@@ -18,7 +18,7 @@ enum State {
     Finished,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "845a5364-395a-4228-9394-ee3c43352f01")]
 #[visit(optional)]
 pub struct EnemyTrap {

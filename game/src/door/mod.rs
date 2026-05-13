@@ -26,7 +26,7 @@ struct OpenRequest {
     open: bool,
 }
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 #[visit(optional)]
 pub struct Door {

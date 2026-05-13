@@ -27,7 +27,7 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
 #[visit(optional)]
 pub struct LaserSight {
@@ -104,7 +104,7 @@ impl LaserSight {
             .set_property("diffuseColor", color);
 
         graph[self.light]
-            .component_mut::<BaseLight>()
+            .self_or_field_mut::<BaseLight>()
             .unwrap()
             .set_color(color);
         graph[self.tip].as_sprite_mut().set_color(color);

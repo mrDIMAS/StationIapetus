@@ -5,7 +5,7 @@ __ROOT__[]
 	{
 		Nodes[]
 		{
-			Records[Length<u32:23>]
+			Records[Length<u32:24>]
 			{
 				Item0[Generation<u32:1>]
 				{
@@ -74,10 +74,10 @@ __ROOT__[]
 									Visibility[Value<bool:true>Flags<u8:1>]{}
 									Children[Length<u32:2>]
 									{
-										Item0[Index<u32:6>Generation<u32:1>]{}
-										Item1[Index<u32:10>Generation<u32:1>]{}
+										Item0[Index<u32:10>Generation<u32:1>]{}
+										Item1[Index<u32:6>Generation<u32:1>]{}
 									}
-									Parent[Index<u32:0>Generation<u32:0>]{}
+									Parent[Index<u32:23>Generation<u32:1>]{}
 									HitTestVisibility[Value<bool:true>Flags<u8:1>]{}
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
@@ -1030,10 +1030,110 @@ __ROOT__[]
 						}
 					}
 				}
+				Item23[Generation<u32:1>]
+				{
+					Payload[IsSome<u8:1>]
+					{
+						Data[TypeUuid<uuid:6b843a36-53da-467b-b85e-2380fe891ca1>]
+						{
+							WidgetData[]
+							{
+								Widget[Name<str:"Canvas">GlobalVisibility<bool:true>IsMouseDirectlyOver<bool:false>TooltipTime<f32:0.1>LayoutTransform<mat3:1; 0; 0; 0; 1; 0; 0; 0; 1>RenderTransform<mat3:1; 0; 0; 0; 1; 0; 0; 0; 1>VisualTransform<mat3:1; 0; 0; 0; 1; 0; 0; 0; 1>PreviewMessages<bool:false>HandleOsEvents<bool:false>NeedUpdate<bool:false>IgnoreLayoutRounding<bool:false>AcceptsInput<bool:false>Id<uuid:60dca45e-87e8-4f8d-b738-5ab2f70f57de>IsResourceInstanceRoot<bool:false>]
+								{
+									Handle[Index<u32:23>Generation<u32:1>]{}
+									DesiredLocalPosition[Value<vec2f32:0; 0>Flags<u8:1>]{}
+									Width[Value<f32:NaN>Flags<u8:1>]{}
+									Height[Value<f32:NaN>Flags<u8:1>]{}
+									MinSize[Value<vec2f32:0; 0>Flags<u8:1>]{}
+									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
+									Background[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]
+										{
+											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+										}
+									}
+									Foreground[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]
+										{
+											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+										}
+									}
+									Row[Value<u64:0>Flags<u8:1>]{}
+									Column[Value<u64:0>Flags<u8:1>]{}
+									VerticalAlignment[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]{}
+									}
+									HorizontalAlignment[Flags<u8:1>]
+									{
+										Value[Id<u32:0>]{}
+									}
+									Margin[Flags<u8:1>]
+									{
+										Value[Left<f32:0>Top<f32:0>Right<f32:0>Bottom<f32:0>]{}
+									}
+									Visibility[Value<bool:true>Flags<u8:1>]{}
+									Children[Length<u32:1>]
+									{
+										Item0[Index<u32:5>Generation<u32:1>]{}
+									}
+									Parent[Index<u32:0>Generation<u32:0>]{}
+									HitTestVisibility[Value<bool:true>Flags<u8:1>]{}
+									ZIndex[Value<u64:0>Flags<u8:1>]{}
+									AllowDrag[Value<bool:false>Flags<u8:1>]{}
+									AllowDrop[Value<bool:false>Flags<u8:1>]{}
+									Style[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+									}
+									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
+									Enabled[Value<bool:true>Flags<u8:1>]{}
+									Cursor[Flags<u8:1>]
+									{
+										Value[IsSome<u8:0>]{}
+									}
+									Opacity[Flags<u8:1>]
+									{
+										Value[IsSome<u8:0>]{}
+									}
+									Tooltip[IsSome<u8:0>]{}
+									ContextMenu[IsSome<u8:0>]{}
+									ClipToBounds[Value<bool:true>Flags<u8:1>]{}
+									TabIndex[Flags<u8:1>]
+									{
+										Value[IsSome<u8:0>]{}
+									}
+									TabStop[Value<bool:false>Flags<u8:1>]{}
+									Resource[IsSome<u8:0>]{}
+									Material[Flags<u8:1>]
+									{
+										Value[Uuid<uuid:85a2f8ef-f6af-43b7-9012-53178176bfbc>]
+										{
+											Embedded[Id<u64:4>]
+											{
+												ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+												{
+													Data[]
+													{
+														Shader[Uuid<uuid:f5908aa4-e187-42a8-95d2-dc6577f6def4>]{}
+														ResourceBindings[Count<u32:0>]{}
+													}
+												}
+											}
+										}
+									}
+									OriginalHandleInResource[Index<u32:0>Generation<u32:0>]{}
+								}
+							}
+						}
+					}
+				}
 			}
 			FreeStack[Length<u32:0>]{}
 		}
-		RootCanvas[Index<u32:5>Generation<u32:1>]{}
+		RootCanvas[Index<u32:23>Generation<u32:1>]{}
 		PickedNode[Index<u32:0>Generation<u32:0>]{}
 		PrevPickedNode[Index<u32:0>Generation<u32:0>]{}
 		CapturedNode[Index<u32:0>Generation<u32:0>]{}
@@ -1054,7 +1154,7 @@ __ROOT__[]
 		CursorIcon[Id<u32:0>]{}
 		StandardMaterial[Uuid<uuid:4127ce36-d883-479a-9b0e-e175ad5e8a6f>]
 		{
-			Embedded[Id<u64:4>]
+			Embedded[Id<u64:5>]
 			{
 				ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
 				{

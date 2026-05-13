@@ -18,7 +18,7 @@ use fyrox::{
     script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
 #[visit(optional)]
 pub struct Explosion {
@@ -47,7 +47,7 @@ impl ScriptTrait for Explosion {
             .scene
             .graph
             .linear_iter_mut()
-            .filter_map(|n| n.component_mut::<RigidBody>())
+            .filter_map(|n| n.self_or_field_mut::<RigidBody>())
         {
             if aabb.is_contains_point(rigid_body.global_position()) {
                 let d = rigid_body.global_position() - center;

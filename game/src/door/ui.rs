@@ -1,5 +1,6 @@
 use crate::{control_scheme::ControlScheme, UiNode};
 use fyrox::asset::manager::ResourceManager;
+use fyrox::core::reflect::Reflect;
 use fyrox::gui::texture::TexturePixelKind;
 use fyrox::renderer::ui_renderer::UiRenderInfo;
 use fyrox::{
@@ -69,7 +70,7 @@ impl DoorUi {
         self.try_update_background(self.logo, brush.clone());
     }
 
-    fn try_update_widget_value<Widget: 'static, Param: PartialEq>(
+    fn try_update_widget_value<Widget: Reflect, Param: PartialEq>(
         &mut self,
         widget: Handle<UiNode>,
         value: Param,

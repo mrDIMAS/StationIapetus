@@ -3,13 +3,12 @@ use crate::{
     highlight::HighlightEntry,
     player::{camera::CameraController, Player},
     weapon::{find_parent_character, Weapon, WeaponMessage, WeaponMessageData},
-    CollisionGroups, Game, Item,
+    CollisionGroups, Game,
 };
 use fyrox::{
     core::{
         algebra::{Point3, UnitQuaternion, UnitVector3, Vector3},
         color::Color,
-        impl_component_provider,
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
@@ -67,8 +66,6 @@ impl Default for KineticGun {
         }
     }
 }
-
-impl_component_provider!(KineticGun, weapon: Weapon, weapon.item: Item);
 
 impl KineticGun {
     fn reset_target(&mut self, game: &mut Game) {

@@ -34,7 +34,7 @@ pub enum TriggerAction {
 
 stub_uuid_provider!(TriggerAction);
 
-#[derive(Visit, Reflect, Debug, Default, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Default, Clone, TypeUuidProvider)]
 #[type_uuid(id = "a7e0d266-3f3f-4100-85c5-59811f9bbab3")]
 #[visit(optional)]
 pub struct Trigger {

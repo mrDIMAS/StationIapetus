@@ -25,7 +25,7 @@ pub enum CallButtonKind {
 
 stub_uuid_provider!(CallButtonKind);
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
 #[visit(optional)]
 pub struct CallButton {

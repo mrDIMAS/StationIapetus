@@ -52,11 +52,10 @@ pub enum CombatWeaponKind {
 
 stub_uuid_provider!(CombatWeaponKind);
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "bca0083b-b062-4d95-b241-db05bca65da7")]
 #[visit(optional)]
 pub struct Weapon {
-    #[component(include)]
     item: Item,
     shot_point: Handle<Node>,
     shoot_interval: InheritableVariable<f32>,

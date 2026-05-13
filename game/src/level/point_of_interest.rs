@@ -5,7 +5,7 @@ use fyrox::{
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "ca1f0da2-a3e3-4fd3-b1c0-68060d212227")]
 #[visit(optional)]
 pub struct PointOfInterest;

@@ -28,7 +28,6 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         stub_uuid_provider,
-        type_traits::prelude::*,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
@@ -112,15 +111,14 @@ pub struct Target {
     handle: Handle<Node>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
 #[visit(optional)]
 pub struct Bot {
+    character: Character,
     #[reflect(hidden)]
     target: Option<Target>,
     model: Handle<Node>,
-    #[component(include)]
-    character: Character,
     ragdoll: InheritableVariable<Handle<Node>>,
     #[reflect(hidden)]
     #[visit(skip)]
@@ -400,7 +398,7 @@ impl ScriptTrait for Bot {
         if !ctx
             .scene
             .graph
-            .has_component::<Weapon>(self.character.current_weapon())
+            .is_or_has_field::<Weapon>(self.character.current_weapon())
         {
             for item in self.inventory.items() {
                 let resource = some_or_continue!(item.resource.as_ref());
@@ -614,7 +612,7 @@ impl ScriptTrait for Bot {
 
         if died {
             for (_, node) in ctx.scene.graph.traverse_iter_mut(ctx.handle) {
-                let sound = some_or_continue!(node.component_mut::<Sound>());
+                let sound = some_or_continue!(node.self_or_field_mut::<Sound>());
                 sound.set_gain(0.0);
             }
         }

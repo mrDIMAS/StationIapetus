@@ -39,7 +39,7 @@ pub enum ItemAction {
 
 stub_uuid_provider!(ItemAction);
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
 #[visit(optional)]
 pub struct Item {

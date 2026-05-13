@@ -516,11 +516,11 @@
         log_error: true,
     ),
     scene_settings: {
-        "data/models/turret/turret.rgs": (
+        "data/models/agent/item_display.rgs": (
             camera_settings: (
-                position: (-1.6519308, -0.737677, 0.50061214),
-                yaw: 5.2400007,
-                pitch: 0.76,
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
@@ -530,6 +530,162 @@
             node_infos: {
                 (
                     index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/ak47/ak47.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 8,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 7,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 9,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/levels/menu.rgs": (
+            camera_settings: (
+                position: (-4.919643, 3.0115504, -51.781246),
+                yaw: 6.2300043,
+                pitch: 0.4400001,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 52,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/ak47_bullet.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/ak47/ak47_shot_2.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/muzzle_flash_1.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/muzzle_flash_5.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -562,7 +718,7 @@
                 ),
             },
         ),
-        "data/ui/final_screen.ui": (
+        "data/ui/main_menu.ui": (
             camera_settings: (
                 position: (0.0, 1.0, 0.0),
                 yaw: 0.0,
@@ -575,7 +731,7 @@
             ),
             node_infos: {
                 (
-                    index: 6,
+                    index: 7,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -586,28 +742,38 @@
                 ): (
                     is_expanded: true,
                 ),
-            },
-        ),
-        "data/models/agent/agent.rgs": (
-            camera_settings: (
-                position: (3.9770591, -2.4590514, -2.5458717),
-                yaw: 2.2000008,
-                pitch: 0.5200008,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
                 (
-                    index: 8,
+                    index: 20,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 80,
+                    index: 19,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 15,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -619,7 +785,159 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 14,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 23,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 13,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 11,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 17,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 22,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/energy_beam.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
                     index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/muzzle_flash_3.rgs": (
+            camera_settings: (
+                position: (0.0, 1.0, 0.0),
+                yaw: 0.0,
+                pitch: 0.0,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 1,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/turret/turret.rgs": (
+            camera_settings: (
+                position: (-1.6519308, -0.737677, 0.50061214),
+                yaw: 5.2400007,
+                pitch: 0.76,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/agent/agent.rgs": (
+            camera_settings: (
+                position: (-0.74432683, -0.50526893, -1.5589778),
+                yaw: -2.6299982,
+                pitch: 0.34000129,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 83,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 0,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 80,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 8,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -631,7 +949,123 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 9,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+            },
+        ),
+        "data/models/zombie/zombie.rgs": (
+            camera_settings: (
+                position: (1.457681, -0.11837077, -2.1424627),
+                yaw: 2.5399997,
+                pitch: 0.27000117,
+                projection: Perspective((
+                    fov: 1.3089969,
+                    z_near: 0.025,
+                    z_far: 128.0,
+                )),
+            ),
+            node_infos: {
+                (
+                    index: 89,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 122,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 70,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 125,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 121,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 74,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 83,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 117,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 116,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 88,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 115,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 69,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 82,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 120,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 119,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 79,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -658,80 +1092,20 @@
                 ),
             },
         ),
-        "data/ui/main_menu.ui": (
+        "data/levels/testbed.rgs": (
             camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
+                position: (3.2404673, 2.4196649, 3.5411506),
+                yaw: -33.850273,
+                pitch: 0.6107956,
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
-                    z_far: 2048.0,
+                    z_far: 128.0,
                 )),
             ),
             node_infos: {
                 (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 13,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 11,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 19,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 22,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 10,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 9,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 14,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 20,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 16,
+                    index: 25,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -743,103 +1117,37 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 5,
+                    index: 220,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 15,
+                    index: 62,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 12,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/muzzle_flash_5.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/muzzle_flash_3.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 1,
+                    index: 197,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/levels/testbed.rgs": (
-            camera_settings: (
-                position: (-3.0299397, -1.4910727, 2.558264),
-                yaw: -33.160057,
-                pitch: 0.36079758,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 260,
+                    index: 129,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 203,
+                    index: 58,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 171,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 2,
+                    index: 8,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -851,19 +1159,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 408,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 5,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 204,
+                    index: 255,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -875,7 +1171,7 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 197,
+                    index: 408,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -893,73 +1189,61 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 4,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
                     index: 176,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 15,
+                    index: 240,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 147,
+                    index: 204,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 245,
+                    index: 67,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 166,
+                    index: 333,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 1,
+                    index: 23,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 255,
+                    index: 65,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 258,
+                    index: 16,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 129,
+                    index: 361,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 8,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 322,
+                    index: 37,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -971,27 +1255,109 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 240,
+                    index: 24,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
-            },
-        ),
-        "data/models/energy_beam.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
                 (
                     index: 2,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 245,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 171,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 260,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 32,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 29,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 187,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 35,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 6,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 20,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 57,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 346,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 4,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 166,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 11,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 203,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 13,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1003,7 +1369,73 @@
                     is_expanded: true,
                 ),
                 (
-                    index: 0,
+                    index: 21,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 15,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 5,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 322,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 147,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 227,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 18,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 19,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 258,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 355,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 213,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1029,130 +1461,26 @@
                     is_expanded: true,
                 ),
                 (
+                    index: 3,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
                     index: 1,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
                 (
-                    index: 3,
+                    index: 5,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
             },
         ),
-        "data/models/zombie/zombie.rgs": (
-            camera_settings: (
-                position: (1.457681, -0.11837077, -2.1424627),
-                yaw: 2.5399997,
-                pitch: 0.27000117,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 82,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 120,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 74,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 119,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 122,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 115,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 89,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 79,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 70,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 83,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 125,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 69,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 88,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 121,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 117,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 116,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/ak47/ak47_shot_2.rgs": (
+        "data/ui/final_screen.ui": (
             camera_settings: (
                 position: (0.0, 1.0, 0.0),
                 yaw: 0.0,
@@ -1160,32 +1488,18 @@
                 projection: Perspective((
                     fov: 1.3089969,
                     z_near: 0.025,
-                    z_far: 128.0,
+                    z_far: 2048.0,
                 )),
             ),
             node_infos: {
                 (
-                    index: 0,
+                    index: 6,
                     generation: 1,
                 ): (
                     is_expanded: true,
                 ),
-            },
-        ),
-        "data/models/ak47_bullet.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
                 (
-                    index: 0,
+                    index: 16,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1204,18 +1518,6 @@
                 )),
             ),
             node_infos: {
-                (
-                    index: 3,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 10,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
                 (
                     index: 57,
                     generation: 1,
@@ -1242,6 +1544,18 @@
                 ),
                 (
                     index: 12,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 10,
+                    generation: 1,
+                ): (
+                    is_expanded: true,
+                ),
+                (
+                    index: 3,
                     generation: 1,
                 ): (
                     is_expanded: true,
@@ -1274,122 +1588,6 @@
                 ),
             },
         ),
-        "data/models/ak47/ak47.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 9,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 6,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 8,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 7,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/muzzle_flash_1.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-                (
-                    index: 1,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/models/agent/item_display.rgs": (
-            camera_settings: (
-                position: (0.0, 1.0, 0.0),
-                yaw: 0.0,
-                pitch: 0.0,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 0,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
-        "data/levels/menu.rgs": (
-            camera_settings: (
-                position: (-4.919643, 3.0115504, -51.781246),
-                yaw: 6.2300043,
-                pitch: 0.4400001,
-                projection: Perspective((
-                    fov: 1.3089969,
-                    z_near: 0.025,
-                    z_far: 128.0,
-                )),
-            ),
-            node_infos: {
-                (
-                    index: 52,
-                    generation: 1,
-                ): (
-                    is_expanded: true,
-                ),
-            },
-        ),
     },
     recent: (
         scenes: [
@@ -1411,6 +1609,7 @@
             "data/models/turret/turret.rgs",
             "data/models/zombie/zombie.rgs",
             "data/ui/button.ui",
+            "data/ui/checkbox.ui",
             "data/ui/death_screen.ui",
             "data/ui/final_screen.ui",
             "data/ui/main_menu.ui",

@@ -7,6 +7,7 @@ use crate::{
     },
     CollisionGroups, Game, Weapon,
 };
+use fyrox::graph::SceneGraphNode;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
@@ -19,7 +20,7 @@ use fyrox::{
         type_traits::prelude::*,
         visitor::prelude::*,
     },
-    graph::{SceneGraph, SceneGraphNode},
+    graph::SceneGraph,
     rand::seq::SliceRandom,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
@@ -105,7 +106,7 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
 #[visit(optional)]
 pub struct Projectile {
@@ -282,7 +283,9 @@ impl ScriptTrait for Projectile {
         self.collider = ctx
             .scene
             .graph
-            .find(ctx.handle, &mut |n| n.component_ref::<Collider>().is_some())
+            .find(ctx.handle, &mut |n| {
+                n.self_or_field_ref::<Collider>().is_some()
+            })
             .map(|(h, _)| h.transmute())
             .unwrap_or_default();
 

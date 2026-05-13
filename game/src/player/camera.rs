@@ -21,7 +21,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Default, Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "a4681191-0b6f-4398-891d-c5b44019fb31")]
 #[visit(optional)]
 pub struct CameraController {

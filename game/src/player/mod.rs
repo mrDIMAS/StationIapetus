@@ -18,6 +18,7 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
+use fyrox::core::some_or_continue;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -115,11 +116,10 @@ pub struct PlayerPersistentData {
     pub hit_box_health: FxHashMap<Handle<Node>, f32>,
 }
 
-#[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, TypeUuidProvider)]
 #[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
 #[visit(optional)]
 pub struct Player {
-    #[component(include)]
     character: Character,
     pub camera_controller: Handle<Node>,
     model_pivot: Handle<Node>,
@@ -343,7 +343,7 @@ impl Player {
                 continue;
             }
 
-            let item = item_node.try_get_script_component::<Item>().unwrap();
+            let item = some_or_continue!(item_node.try_get_script_component::<Item>());
 
             if !item.enabled {
                 continue;

@@ -82,7 +82,7 @@ pub enum Hostility {
 
 stub_uuid_provider!(Hostility);
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 #[visit(optional)]
 pub struct Turret {

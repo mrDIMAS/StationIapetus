@@ -14,8 +14,8 @@ use fyrox::plugin::error::GameError;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
-        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
-        type_traits::prelude::*, uuid_provider, visitor::prelude::*,
+        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*, uuid_provider,
+        visitor::prelude::*,
     },
     graph::SceneGraph,
     gui::{
@@ -49,7 +49,7 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<ScrollViewer>,
 }
 
-#[derive(Default, Debug, Clone, Reflect, Visit, ComponentProvider)]
+#[derive(Default, Debug, Clone, Reflect, Visit)]
 #[reflect(derived_type = "UiNode")]
 pub struct InventoryItem {
     widget: Widget,

@@ -10,7 +10,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
 #[type_uuid(id = "95cee406-a30e-4ae4-a017-e0ccae1ca23d")]
 pub struct AnimatedLight {
     timer: f32,
