@@ -1,8 +1,8 @@
 use crate::level::hit_box::HitBoxMessage;
 use fyrox::{
     core::{
-        pool::Handle, reflect::prelude::*, type_traits::prelude::*, variable::InheritableVariable,
-        visitor::prelude::*, ImmutableString,
+        pool::Handle, reflect::prelude::*, variable::InheritableVariable, visitor::prelude::*,
+        ImmutableString,
     },
     generic_animation::machine::Event,
     graph::SceneGraph,
@@ -12,8 +12,8 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "1bd90488-7a17-430e-9b35-dc0a9a1a2f58")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "1bd90488-7a17-430e-9b35-dc0a9a1a2f58")]
 #[visit(optional)]
 pub struct ExplosiveBarrel {
     health: InheritableVariable<f32>,

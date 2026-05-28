@@ -1,12 +1,12 @@
 use crate::Game;
 use fyrox::{
-    core::{reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
+    core::{reflect::prelude::*, visitor::prelude::*},
     plugin::error::GameResult,
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "ca1f0da2-a3e3-4fd3-b1c0-68060d212227")]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "ca1f0da2-a3e3-4fd3-b1c0-68060d212227")]
 #[visit(optional)]
 pub struct PointOfInterest;
 

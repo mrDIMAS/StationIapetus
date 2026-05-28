@@ -9,8 +9,6 @@ use fyrox::{
         math::{vector_to_quat, Matrix4Ext},
         pool::Handle,
         reflect::prelude::*,
-        stub_uuid_provider,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -44,16 +42,15 @@ pub enum WeaponMessageData {
 }
 
 #[derive(Eq, PartialEq, Copy, Clone, Debug, Reflect, Visit, AsRefStr, EnumString, VariantNames)]
+#[reflect(type_uuid = "97f6899d-8154-4d0c-a5e1-f82c5752a4b2")]
 #[repr(u32)]
 pub enum CombatWeaponKind {
     Pistol = 0,
     Rifle = 1,
 }
 
-stub_uuid_provider!(CombatWeaponKind);
-
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "bca0083b-b062-4d95-b241-db05bca65da7")]
+#[derive(Visit, Reflect, Debug, Clone, PartialEq)]
+#[reflect(type_uuid = "bca0083b-b062-4d95-b241-db05bca65da7")]
 #[visit(optional)]
 pub struct Weapon {
     item: Item,

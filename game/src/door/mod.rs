@@ -4,8 +4,8 @@ use fyrox::plugin::error::GameResult;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        algebra::Vector3, pool::Handle, reflect::prelude::*, type_traits::prelude::*,
-        variable::InheritableVariable, visitor::prelude::*,
+        algebra::Vector3, pool::Handle, reflect::prelude::*, variable::InheritableVariable,
+        visitor::prelude::*,
     },
     engine::GraphicsContext,
     graph::SceneGraph,
@@ -26,8 +26,8 @@ struct OpenRequest {
     open: bool,
 }
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 #[visit(optional)]
 pub struct Door {
     /// An array of handles to meshes that represents interactive screens.

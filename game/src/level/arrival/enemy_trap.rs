@@ -4,13 +4,14 @@ use fyrox::plugin::error::{GameError, GameResult};
 use fyrox::{
     core::{
         color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
-        type_traits::prelude::*, variable::InheritableVariable, visitor::prelude::*,
+        variable::InheritableVariable, visitor::prelude::*,
     },
     scene::{debug::SceneDrawingContext, graph::Graph, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
 
 #[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "b1ed2ef5-2280-441b-9755-50f5e7c35ced")]
 enum State {
     #[default]
     Inactive,
@@ -18,8 +19,8 @@ enum State {
     Finished,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "845a5364-395a-4228-9394-ee3c43352f01")]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "845a5364-395a-4228-9394-ee3c43352f01")]
 #[visit(optional)]
 pub struct EnemyTrap {
     doors_to_lock: InheritableVariable<Vec<Handle<Node>>>,

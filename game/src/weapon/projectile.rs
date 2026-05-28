@@ -16,8 +16,6 @@ use fyrox::{
         math::{ray::Ray, vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
-        stub_uuid_provider,
-        type_traits::prelude::*,
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -39,13 +37,14 @@ use serde::Deserialize;
 use std::hash::{Hash, Hasher};
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Deserialize, Copy, Clone, Debug, Visit, Reflect, AsRefStr, EnumString, VariantNames)]
+#[derive(
+    Deserialize, Copy, Clone, Debug, Visit, Reflect, PartialEq, AsRefStr, EnumString, VariantNames,
+)]
+#[reflect(type_uuid = "190b9fad-3529-47c3-87fd-a5ae1a3d6a5c")]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
 }
-
-stub_uuid_provider!(Damage);
 
 impl Default for Damage {
     fn default() -> Self {
@@ -106,8 +105,8 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
 #[visit(optional)]
 pub struct Projectile {
     #[reflect(hidden)]

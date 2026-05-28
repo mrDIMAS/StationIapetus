@@ -12,7 +12,6 @@ use fyrox::{
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -32,14 +31,15 @@ use fyrox::{
 };
 
 #[derive(Visit, Reflect, Debug, Default, Clone)]
+#[reflect(type_uuid = "b931fd20-d283-48b0-a0c4-5e558a2de032")]
 struct Target {
     grab_point: Vector3<f32>,
     node: Handle<Node>,
     collider: Handle<Collider>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
 #[visit(optional)]
 pub struct KineticGun {
     weapon: Weapon,

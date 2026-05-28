@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -49,10 +49,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -153,10 +149,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
@@ -317,7 +309,7 @@ __ROOT__[]
 						{
 							Data[TypeUuid<uuid:8b210eff-97a4-494f-ba7a-a581d3f4a442>]
 							{
-								NodeData[SoftBoundarySharpnessFactor<f32:100>]
+								NodeData[]
 								{
 									Base[Name<str:"ParticleSystem">IsResourceInstance<bool:false>InstanceId<uuid:f315217f-ed74-4e44-89f7-3f60b8d4c4d5>]
 									{
@@ -344,10 +336,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -514,10 +502,6 @@ __ROOT__[]
 											{
 												Value[IsSome<u8:0>]{}
 											}
-											Mobility[Flags<u8:1>]
-											{
-												Value[Id<u32:0>]{}
-											}
 											Original[Index<u32:0>Generation<u32:0>]{}
 											Tag[Value<str:"">Flags<u8:1>]{}
 											Properties[Flags<u8:1>]
@@ -577,10 +561,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -690,7 +670,7 @@ __ROOT__[]
 						{
 							Data[TypeUuid<uuid:44d1c94e-354f-4f9a-b918-9d31c28aa16a>]
 							{
-								NodeData[AutoApply<bool:false>]
+								NodeData[AutoApply<bool:true>]
 								{
 									Base[Name<str:"Animation Player">IsResourceInstance<bool:false>InstanceId<uuid:c29dd763-e5c9-4d0c-ba8b-74177de2c891>]
 									{
@@ -717,10 +697,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -758,7 +734,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:e6e834a5-cebe-43c5-97b4-784d83ef45a6>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -782,7 +758,7 @@ __ROOT__[]
 																				}
 																				Item1[Id<uuid:172b8051-5bf9-4882-849b-31177856b1bb>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base_light.base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base_light.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -810,18 +786,18 @@ __ROOT__[]
 																}
 																TrackBindings[Count<u32:2>]
 																{
-																	Item0[Key<uuid:172b8051-5bf9-4882-849b-31177856b1bb>]
-																	{
-																		Value[Enabled<bool:true>]
-																		{
-																			Target[Index<u32:7>Generation<u32:1>]{}
-																		}
-																	}
-																	Item1[Key<uuid:e6e834a5-cebe-43c5-97b4-784d83ef45a6>]
+																	Item0[Key<uuid:e6e834a5-cebe-43c5-97b4-784d83ef45a6>]
 																	{
 																		Value[Enabled<bool:true>]
 																		{
 																			Target[Index<u32:6>Generation<u32:1>]{}
+																		}
+																	}
+																	Item1[Key<uuid:172b8051-5bf9-4882-849b-31177856b1bb>]
+																	{
+																		Value[Enabled<bool:true>]
+																		{
+																			Target[Index<u32:7>Generation<u32:1>]{}
 																		}
 																	}
 																}
@@ -912,7 +888,7 @@ __ROOT__[]
 																				}
 																				Item1[Id<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -936,7 +912,7 @@ __ROOT__[]
 																				}
 																				Item2[Id<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base_light.base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base_light.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -964,25 +940,25 @@ __ROOT__[]
 																}
 																TrackBindings[Count<u32:3>]
 																{
-																	Item0[Key<uuid:478c0a9a-ff93-47c3-92c7-50fb9f90d0b1>]
-																	{
-																		Value[Enabled<bool:true>]
-																		{
-																			Target[Index<u32:6>Generation<u32:1>]{}
-																		}
-																	}
-																	Item1[Key<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
-																	{
-																		Value[Enabled<bool:true>]
-																		{
-																			Target[Index<u32:6>Generation<u32:1>]{}
-																		}
-																	}
-																	Item2[Key<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
+																	Item0[Key<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
 																	{
 																		Value[Enabled<bool:true>]
 																		{
 																			Target[Index<u32:7>Generation<u32:1>]{}
+																		}
+																	}
+																	Item1[Key<uuid:478c0a9a-ff93-47c3-92c7-50fb9f90d0b1>]
+																	{
+																		Value[Enabled<bool:true>]
+																		{
+																			Target[Index<u32:6>Generation<u32:1>]{}
+																		}
+																	}
+																	Item2[Key<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
+																	{
+																		Value[Enabled<bool:true>]
+																		{
+																			Target[Index<u32:6>Generation<u32:1>]{}
 																		}
 																	}
 																}
@@ -1008,7 +984,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:dad7a3da-336a-4b5a-acd5-d45194dd1b69>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -1096,10 +1072,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -1307,7 +1279,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:0.9926168; 0.08701037; 0.08450562; 0; 0.6967062; -0.7173566; 0.12129305; -0.7120602; -0.69156224>Position<vec3f32:-0.03282097; 0.8841436; 0.5519781>]{}
+								Listener[Basis<mat3:-0.75180596; 0.000000014901161; 0.6593846; 0.33901328; 0.85770875; 0.3865304; 0.5655599; -0.5141359; 0.6448305>Position<vec3f32:-0.89056265; 0.97217184; -1.3844752>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}
@@ -1348,7 +1320,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:1>Data<f32:0>]{}
 					}
@@ -1360,7 +1332,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:1>Data<f32:0>]{}
 					}
@@ -1368,11 +1340,12 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		RenderingOptions[Flags<u8:1>]
 		{
-			Value[]
+			Value[EnvironmentLightingBrightness<f32:1>]
 			{
 				RenderTarget[IsSome<u8:0>]{}
 				ClearColor[IsSome<u8:0>]{}

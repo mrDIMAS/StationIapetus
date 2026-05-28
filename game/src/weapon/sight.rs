@@ -15,7 +15,6 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         reflect::Reflect,
-        type_traits::prelude::*,
         visitor::prelude::*,
     },
     scene::{
@@ -27,8 +26,8 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
 #[visit(optional)]
 pub struct LaserSight {
     ray: Handle<Node>,
@@ -41,6 +40,7 @@ pub struct LaserSight {
 }
 
 #[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "485cd9c3-cc09-498c-8ce0-b98cd2cc2ee0")]
 pub enum ReactionState {
     HitDetected {
         time_remaining: f32,

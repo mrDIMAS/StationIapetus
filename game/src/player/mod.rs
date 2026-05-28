@@ -29,7 +29,6 @@ use fyrox::{
         math::{SmoothAngle, Vector2Ext},
         pool::Handle,
         reflect::prelude::*,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -116,8 +115,8 @@ pub struct PlayerPersistentData {
     pub hit_box_health: FxHashMap<Handle<Node>, f32>,
 }
 
-#[derive(Visit, Reflect, Debug, TypeUuidProvider)]
-#[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
+#[derive(Visit, Reflect, Debug)]
+#[reflect(type_uuid = "50a07510-893d-476f-aad2-fcfb0845807f")]
 #[visit(optional)]
 pub struct Player {
     character: Character,

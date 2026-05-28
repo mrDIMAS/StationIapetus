@@ -8,8 +8,6 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
-        stub_uuid_provider,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -29,6 +27,7 @@ use fyrox::{
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 #[derive(Default, Visit, Reflect, PartialEq, Debug, Clone, AsRefStr, EnumString, VariantNames)]
+#[reflect(type_uuid = "9b11580a-f40b-405d-8ec1-5f2c2b16138e")]
 pub enum ItemAction {
     #[default]
     None,
@@ -37,10 +36,8 @@ pub enum ItemAction {
     },
 }
 
-stub_uuid_provider!(ItemAction);
-
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
+#[derive(Visit, Reflect, Debug, Clone, PartialEq)]
+#[reflect(type_uuid = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
 #[visit(optional)]
 pub struct Item {
     pub stack_size: InheritableVariable<u32>,

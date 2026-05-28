@@ -113,7 +113,11 @@ use std::{
 };
 
 #[derive(Visit, Reflect, Debug)]
-#[reflect(hide_all, non_cloneable)]
+#[reflect(
+    hide_all,
+    non_cloneable,
+    type_uuid = "dba407d5-90bd-4874-89ae-edd0ab9b64e2"
+)]
 pub struct Game {
     menu: Option<Menu>,
     level: Option<Level>,
@@ -684,9 +688,8 @@ impl Game {
 }
 
 impl Plugin for Game {
-    fn register(&self, context: PluginRegistrationContext) -> GameResult {
-        context
-            .serialization_context
+    fn register(&self, ctx: PluginRegistrationContext) -> GameResult {
+        ctx.serialization_context
             .script_constructors
             .add::<Door>("Door")
             .add::<Turret>("Turret")
@@ -713,18 +716,43 @@ impl Plugin for Game {
             .add::<ExplosiveBarrel>("ExplosiveBarrel")
             .add::<HitBox>("HitBox");
 
-        context
-            .dyn_type_constructors
+        ctx.dyn_type_constructors
             .add::<MenuData, Self>("Menu Data")
             .add::<DeathScreenData, Self>("Death Screen Data")
             .add::<FinalScreenData, Self>("Final Screen Data");
 
-        context.widget_constructors.add::<InventoryItem>();
+        ctx.widget_constructors.add::<InventoryItem>();
 
         Ok(())
     }
 
     fn register_property_editors(&self, container: Arc<PropertyEditorDefinitionContainer>) {
+        // Scripts.
+        container.register_inspectable::<Door>();
+        container.register_inspectable::<Turret>();
+        container.register_inspectable::<Weapon>();
+        container.register_inspectable::<Item>();
+        container.register_inspectable::<Decal>();
+        container.register_inspectable::<Player>();
+        container.register_inspectable::<Bot>();
+        container.register_inspectable::<CharacterSpawnPoint>();
+        container.register_inspectable::<DeathZone>();
+        container.register_inspectable::<AnimatedLight>();
+        container.register_inspectable::<Elevator>();
+        container.register_inspectable::<CallButton>();
+        container.register_inspectable::<Projectile>();
+        container.register_inspectable::<LaserSight>();
+        container.register_inspectable::<Rail>();
+        container.register_inspectable::<Explosion>();
+        container.register_inspectable::<Beam>();
+        container.register_inspectable::<KineticGun>();
+        container.register_inspectable::<EnemyTrap>();
+        container.register_inspectable::<PointOfInterest>();
+        container.register_inspectable::<Trigger>();
+        container.register_inspectable::<ExplosiveBarrel>();
+        container.register_inspectable::<HitBox>();
+
+        // Other.
         container.register_inheritable_enum::<Hostility, _>();
         container.register_inheritable_enum::<ShootMode, _>();
         container.register_inheritable_enum::<CombatWeaponKind, _>();
@@ -739,8 +767,6 @@ impl Plugin for Game {
         container.register_inheritable_inspectable::<Barrel>();
         container.register_inheritable_inspectable::<Character>();
         container.register_inheritable_inspectable::<CameraController>();
-        container.register_inheritable_inspectable::<Item>();
-        container.register_inheritable_inspectable::<Weapon>();
         container.register_inheritable_inspectable::<BotCounter>();
         container.register_inheritable_vec_collection::<Barrel>();
         container.register_inheritable_vec_collection::<ItemEntry>();

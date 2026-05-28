@@ -1,10 +1,7 @@
 use crate::elevator::{ui::CallButtonUi, Elevator};
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
-    core::{
-        pool::Handle, reflect::prelude::*, stub_uuid_provider, type_traits::prelude::*,
-        variable::InheritableVariable, visitor::prelude::*,
-    },
+    core::{pool::Handle, reflect::prelude::*, variable::InheritableVariable, visitor::prelude::*},
     engine::GraphicsContext,
     graph::SceneGraph,
     gui::UserInterface,
@@ -16,17 +13,16 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Debug, Visit, Reflect, Clone, Default, AsRefStr, EnumString, VariantNames)]
+#[derive(Debug, Visit, Reflect, Clone, Default, AsRefStr, PartialEq, EnumString, VariantNames)]
+#[reflect(type_uuid = "d855e806-19cb-4279-80c1-8631ce585628")]
 pub enum CallButtonKind {
     FloorSelector,
     #[default]
     EndPoint,
 }
 
-stub_uuid_provider!(CallButtonKind);
-
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
 #[visit(optional)]
 pub struct CallButton {
     pub floor: u32,

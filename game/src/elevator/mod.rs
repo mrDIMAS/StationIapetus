@@ -1,7 +1,7 @@
 use crate::Game;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
-    core::{pool::Handle, reflect::prelude::*, type_traits::prelude::*, visitor::prelude::*},
+    core::{pool::Handle, reflect::prelude::*, visitor::prelude::*},
     scene::{node::Node, rigidbody::RigidBody},
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
@@ -9,8 +9,8 @@ use fyrox::{
 pub mod call_button;
 pub mod ui;
 
-#[derive(Visit, Reflect, Default, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "67904c1b-0d12-427c-a92e-e66cb0ec6dae")]
+#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[reflect(type_uuid = "67904c1b-0d12-427c-a92e-e66cb0ec6dae")]
 #[visit(optional)]
 pub struct Elevator {
     pub current_floor: u32,

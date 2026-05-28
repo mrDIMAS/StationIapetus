@@ -83,7 +83,8 @@ pub struct CharacterMessage {
     pub data: CharacterMessageData,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, Reflect, Debug, PartialEq, Clone)]
+#[reflect(type_uuid = "d768f3b4-5deb-4f1b-9539-a2cf3f311f4e")]
 #[visit(optional)]
 pub struct Character {
     pub capsule_collider: Handle<Collider>,
@@ -105,7 +106,7 @@ pub struct Character {
     pub melee_attack_context: Option<MeleeAttackContext>,
 }
 
-#[derive(Default, Clone, Debug)]
+#[derive(Default, Clone, PartialEq, Debug)]
 pub struct MeleeAttackContext {
     pub damaged_hitboxes: FxHashSet<Handle<Collider>>,
     pub damaged_characters: FxHashSet<Handle<Node>>,

@@ -1,15 +1,15 @@
-use fyrox::core::{reflect::prelude::*, stub_uuid_provider, visitor::prelude::*};
+use fyrox::core::{reflect::prelude::*, visitor::prelude::*};
 use fyrox::resource::model::ModelResource;
 
-#[derive(Default, Debug, Clone, Visit, Reflect)]
+#[derive(Default, Debug, Clone, Visit, PartialEq, Reflect)]
+#[reflect(type_uuid = "a78d241e-fae2-4a1d-bb41-60e09d45af55")]
 pub struct ItemEntry {
     pub resource: Option<ModelResource>,
     pub amount: u32,
 }
 
-stub_uuid_provider!(ItemEntry);
-
-#[derive(Default, Clone, Visit, Reflect, Debug)]
+#[derive(Default, Clone, Visit, Reflect, PartialEq, Debug)]
+#[reflect(type_uuid = "1a0e1137-d861-4524-b4d8-2e180ebe262b")]
 pub struct Inventory {
     items: Vec<ItemEntry>,
 }

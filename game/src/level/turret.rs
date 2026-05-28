@@ -9,8 +9,6 @@ use fyrox::{
         pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
         reflect::prelude::*,
-        stub_uuid_provider,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -46,6 +44,7 @@ use strum_macros::{AsRefStr, EnumString, VariantNames};
     Debug,
 )]
 #[repr(u32)]
+#[reflect(type_uuid = "0deea5b2-dad8-418f-be2d-899c4851c76b")]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
     #[default]
@@ -53,8 +52,6 @@ pub enum ShootMode {
     /// Turret will shoot from each point each shot at once.
     Simultaneously = 1,
 }
-
-stub_uuid_provider!(ShootMode);
 
 #[derive(
     Copy,
@@ -73,6 +70,7 @@ stub_uuid_provider!(ShootMode);
     Default,
 )]
 #[repr(u32)]
+#[reflect(type_uuid = "bb2b6799-128a-489f-9d72-e82cc706b228")]
 pub enum Hostility {
     #[default]
     Player,
@@ -80,10 +78,8 @@ pub enum Hostility {
     All,
 }
 
-stub_uuid_provider!(Hostility);
-
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 #[visit(optional)]
 pub struct Turret {
     model: Handle<Node>,
@@ -267,8 +263,9 @@ impl ScriptTrait for Turret {
     }
 }
 
-#[derive(Default, Visit, Reflect, Clone, Debug)]
+#[derive(Default, Visit, Reflect, Clone, PartialEq, Debug)]
 #[visit(optional)]
+#[reflect(type_uuid = "d32845ee-62f3-4073-8675-623aa2ab0644")]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
@@ -278,8 +275,6 @@ pub struct Barrel {
     #[reflect(hidden)]
     offset: Vector3<f32>,
 }
-
-stub_uuid_provider!(Barrel);
 
 impl Barrel {
     fn shoot(

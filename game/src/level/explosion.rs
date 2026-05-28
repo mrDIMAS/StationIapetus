@@ -8,7 +8,6 @@ use fyrox::{
         algebra::{Matrix4, Vector3},
         math::aabb::AxisAlignedBoundingBox,
         reflect::prelude::*,
-        type_traits::prelude::*,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -18,8 +17,8 @@ use fyrox::{
     script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
 #[visit(optional)]
 pub struct Explosion {
     strength: InheritableVariable<f32>,

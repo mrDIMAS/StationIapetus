@@ -27,11 +27,9 @@ use fyrox::{
         math::SmoothAngle,
         pool::Handle,
         reflect::prelude::*,
-        stub_uuid_provider,
-        uuid::{uuid, Uuid},
+        uuid::uuid,
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
-        TypeUuidProvider,
     },
     graph::SceneGraph,
     resource::model::{ModelResource, ModelResourceExtension},
@@ -75,6 +73,7 @@ mod state_machine;
     VariantNames,
 )]
 #[repr(u32)]
+#[reflect(type_uuid = "c5bee376-5f2c-41fc-b307-a71f8e328e0d")]
 pub enum BotHostility {
     Everyone = 0,
     OtherSpecies = 1,
@@ -98,12 +97,11 @@ pub enum BotHostility {
     VariantNames,
 )]
 #[repr(u32)]
+#[reflect(type_uuid = "c5bee376-5f2c-41fc-b307-a71f8e328e0d")]
 pub enum MovementType {
     Default = 0,
     Crawl = 1,
 }
-
-stub_uuid_provider!(BotHostility);
 
 #[derive(Debug, Visit, Default, Clone)]
 pub struct Target {
@@ -111,8 +109,8 @@ pub struct Target {
     handle: Handle<Node>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
 #[visit(optional)]
 pub struct Bot {
     character: Character,

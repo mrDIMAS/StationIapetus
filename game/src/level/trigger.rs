@@ -2,8 +2,7 @@ use crate::{character::Character, message::Message, Game};
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
-        math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*, stub_uuid_provider,
-        type_traits::prelude::*, visitor::prelude::*,
+        math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*, visitor::prelude::*,
     },
     fxhash::FxHashSet,
     graph::SceneGraph,
@@ -13,7 +12,8 @@ use fyrox::{
 use std::path::PathBuf;
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Debug, Clone, Default, Visit, Reflect)]
+#[derive(Debug, Clone, Default, Visit, PartialEq, Reflect)]
+#[reflect(type_uuid = "c8a4985a-f670-4e96-9fc5-39db4b7ebbbb")]
 pub struct BotCounter {
     counter: usize,
     #[reflect(hidden)]
@@ -21,7 +21,8 @@ pub struct BotCounter {
     despawn: bool,
 }
 
-#[derive(Debug, Clone, Default, Visit, Reflect, AsRefStr, EnumString, VariantNames)]
+#[derive(Debug, Clone, Default, Visit, Reflect, AsRefStr, PartialEq, EnumString, VariantNames)]
+#[reflect(type_uuid = "fbc19c97-0000-4471-bda0-32623f626ef0")]
 pub enum TriggerAction {
     #[default]
     None,
@@ -32,10 +33,8 @@ pub enum TriggerAction {
     EndGame,
 }
 
-stub_uuid_provider!(TriggerAction);
-
-#[derive(Visit, Reflect, Debug, Default, Clone, TypeUuidProvider)]
-#[type_uuid(id = "a7e0d266-3f3f-4100-85c5-59811f9bbab3")]
+#[derive(Visit, Reflect, Debug, Default, Clone)]
+#[reflect(type_uuid = "a7e0d266-3f3f-4100-85c5-59811f9bbab3")]
 #[visit(optional)]
 pub struct Trigger {
     kind: TriggerAction,

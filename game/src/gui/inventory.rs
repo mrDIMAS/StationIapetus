@@ -14,7 +14,7 @@ use fyrox::plugin::error::GameError;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
-        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*, uuid_provider,
+        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -50,7 +50,10 @@ pub struct InventoryInterface {
 }
 
 #[derive(Default, Debug, Clone, Reflect, Visit)]
-#[reflect(derived_type = "UiNode")]
+#[reflect(
+    derived_type = "UiNode",
+    type_uuid = "346f2207-0868-4577-89a3-a4b36f3bf45d"
+)]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,
@@ -70,8 +73,6 @@ impl ConstructorProvider<UiNode, UserInterface> for InventoryItem {
             .with_group("Layout")
     }
 }
-
-uuid_provider!(InventoryItem = "346f2207-0868-4577-89a3-a4b36f3bf45d");
 
 impl Control for InventoryItem {
     fn draw(&self, drawing_context: &mut DrawingContext) {

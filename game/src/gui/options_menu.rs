@@ -5,13 +5,13 @@ use crate::{
     message::Message,
     MessageSender,
 };
+use fyrox::core::uuid::uuid;
 use fyrox::gui::UserInterface;
 use fyrox::plugin::error::{GameError, GameResult};
 use fyrox::{
     core::{
         log::{Log, MessageKind},
         pool::{Handle, HandlesVecExtension},
-        uuid,
         visitor::prelude::*,
     },
     engine::{GraphicsContext, InitializedGraphicsContext},

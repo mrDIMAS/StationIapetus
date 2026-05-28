@@ -7,16 +7,15 @@ use fyrox::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
         reflect::prelude::*,
-        type_traits::prelude::*,
-        uuid::{uuid, Uuid},
+        uuid::uuid,
         visitor::prelude::*,
     },
     scene::{collider::InteractionGroups, graph::physics::RayCastOptions},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
-#[type_uuid(id = "5405f6e2-3016-40ef-998a-e4f797e59694")]
+#[derive(Visit, Reflect, Debug, Clone)]
+#[reflect(type_uuid = "5405f6e2-3016-40ef-998a-e4f797e59694")]
 #[visit(optional)]
 pub struct Beam {
     max_length: f32,
