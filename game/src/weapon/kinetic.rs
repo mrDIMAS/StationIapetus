@@ -164,14 +164,12 @@ impl ScriptTrait for KineticGun {
                     let player = ctx
                         .scene
                         .graph
-                        .try_get_script_component_of::<Player>(level.player)?;
+                        .try_get_script_field_of::<Player>(level.player)?;
 
                     let camera_controller = ctx
                         .scene
                         .graph
-                        .try_get_script_component_of::<CameraController>(
-                            player.camera_controller,
-                        )?;
+                        .try_get_script_field_of::<CameraController>(player.camera_controller)?;
 
                     let camera = ctx.scene.graph.try_get(camera_controller.camera)?;
                     if let PhysicalKey::Code(key) = event.physical_key {

@@ -1,11 +1,9 @@
-use crate::level::hit_box::HitBoxMessage;
 use crate::{
     character::{CharacterMessage, CharacterMessageData},
+    level::hit_box::HitBoxMessage,
     weapon::find_parent_character,
     CollisionGroups,
 };
-use fyrox::graph::SceneGraphNode;
-use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
@@ -14,14 +12,17 @@ use fyrox::{
         math::{lerpf, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
-        reflect::Reflect,
         visitor::prelude::*,
     },
+    graph::{NodeWrapper, SceneGraph},
+    plugin::error::GameResult,
     scene::{
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
         light::BaseLight,
+        mesh::Mesh,
         node::Node,
+        sprite::Sprite,
     },
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
@@ -31,8 +32,8 @@ use fyrox::{
 #[visit(optional)]
 pub struct LaserSight {
     ray: Handle<Node>,
-    ray_mesh: Handle<Node>,
-    tip: Handle<Node>,
+    ray_mesh: Handle<Mesh>,
+    tip: Handle<Sprite>,
     light: Handle<Node>,
 
     #[reflect(hidden)]
@@ -93,21 +94,22 @@ impl LaserSight {
         });
     }
 
-    fn set_color(&self, graph: &mut Graph, color: Color) {
-        graph[self.ray_mesh]
-            .as_mesh_mut()
-            .surfaces()
-            .first()
-            .unwrap()
-            .material()
-            .data_ref()
-            .set_property("diffuseColor", color);
+    fn set_color(&self, graph: &mut Graph, color: Color) -> GameResult {
+        if let Some(surface) = graph.try_get(self.ray_mesh)?.surfaces().first() {
+            surface
+                .material()
+                .data_ref()
+                .set_property("diffuseColor", color);
+        }
 
         graph[self.light]
             .self_or_field_mut::<BaseLight>()
             .unwrap()
             .set_color(color);
-        graph[self.tip].as_sprite_mut().set_color(color);
+
+        graph.try_get_mut(self.tip)?.set_color(color);
+
+        Ok(())
     }
 
     fn dilate(&self, graph: &mut Graph, factor: f32) {
@@ -173,7 +175,9 @@ impl ScriptTrait for LaserSight {
                 .local_transform_mut()
                 .set_scale(Vector3::new(1.0, 1.0, result.toi));
 
-            ctx.scene.graph[self.tip]
+            ctx.scene
+                .graph
+                .try_get_mut(self.tip)?
                 .local_transform_mut()
                 .set_position(Vector3::new(0.0, 0.0, result.toi - 0.025));
         }
@@ -191,7 +195,7 @@ impl ScriptTrait for LaserSight {
                     } else {
                         let t = *time_remaining / HIT_DETECTED_TIME;
                         let color = end_color.lerp(*begin_color, t);
-                        self.set_color(&mut ctx.scene.graph, color);
+                        self.set_color(&mut ctx.scene.graph, color)?;
                     }
                 }
                 ReactionState::EnemyKilled {
@@ -207,7 +211,7 @@ impl ScriptTrait for LaserSight {
                         let t = *time_remaining / HIT_DETECTED_TIME;
                         let color = end_color.lerp(*begin_color, t);
                         let dilation_factor = lerpf(1.0, *dilation_factor, t);
-                        self.set_color(&mut ctx.scene.graph, color);
+                        self.set_color(&mut ctx.scene.graph, color)?;
                         self.dilate(&mut ctx.scene.graph, dilation_factor);
                     }
                 }
@@ -240,9 +244,7 @@ impl ScriptTrait for LaserSight {
                     }
                     _ => (),
                 }
-            } else if let Some(HitBoxMessage::Damage(hit_box_damage)) =
-                message.downcast_ref::<HitBoxMessage>()
-            {
+            } else if let Some(HitBoxMessage::Damage(hit_box_damage)) = message.downcast_ref() {
                 if let Some((character_dealer, _)) =
                     hit_box_damage.dealer.as_character(&ctx.scene.graph)
                 {

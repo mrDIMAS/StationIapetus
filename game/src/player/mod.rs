@@ -342,7 +342,7 @@ impl Player {
                 continue;
             }
 
-            let item = some_or_continue!(item_node.try_get_script_component::<Item>());
+            let item = some_or_continue!(item_node.try_get_script_field::<Item>());
 
             if !item.enabled {
                 continue;
@@ -538,7 +538,7 @@ impl Player {
 
                 let camera_controller = scene
                     .graph
-                    .try_get_script_component_of::<CameraController>(self.camera_controller)?;
+                    .try_get_script_field_of::<CameraController>(self.camera_controller)?;
                 let direction = scene
                     .graph
                     .try_get(camera_controller.camera())?
@@ -772,7 +772,7 @@ impl Player {
 
                             scene
                                 .graph
-                                .try_get_script_component_of_mut::<CameraController>(
+                                .try_get_script_field_of_mut::<CameraController>(
                                     self.camera_controller,
                                 )?
                                 .request_shake_camera();

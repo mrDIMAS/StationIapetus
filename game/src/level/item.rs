@@ -140,7 +140,7 @@ impl Item {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(graph.try_get_script_component_of(graph.get_root()).ok())
+        func(graph.try_get_script_field_of(graph.get_root()).ok())
     }
 
     pub fn add_to_scene(
@@ -181,7 +181,7 @@ impl Item {
         let item_ref = &mut scene.graph[item];
         item_ref.local_transform_mut().set_position(position);
 
-        if let Some(item_script) = item_ref.try_get_script_component_mut::<Item>() {
+        if let Some(item_script) = item_ref.try_get_script_field_mut::<Item>() {
             item_script
                 .stack_size
                 .set_value_and_mark_modified(stack_size);

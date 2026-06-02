@@ -52,7 +52,7 @@ impl<'a> Behavior<'a> for FindTarget {
         if let Some(target) = ctx.target {
             for &actor_handle in ctx.actors {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
-                    let character = graph.try_get_script_component_of::<Character>(actor_handle)?;
+                    let character = graph.try_get_script_field_of::<Character>(actor_handle)?;
                     if !character.is_dead(graph) {
                         target.position = character.position(graph);
                         return Ok(Status::Success);
@@ -76,7 +76,7 @@ impl<'a> Behavior<'a> for FindTarget {
 
             let character_position = character_node.global_position();
 
-            let Some(character) = character_node.try_get_script_component::<Character>() else {
+            let Some(character) = character_node.try_get_script_field::<Character>() else {
                 continue;
             };
 

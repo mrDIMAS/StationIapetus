@@ -146,7 +146,7 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            if let Ok(actor) = ctx.scene.graph.try_get_script_component_of::<Character>(*a) {
+            if let Ok(actor) = ctx.scene.graph.try_get_script_field_of::<Character>(*a) {
                 let actor_position = actor.position(&ctx.scene.graph);
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {

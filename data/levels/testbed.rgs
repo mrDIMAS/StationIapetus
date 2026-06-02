@@ -8,7 +8,7 @@ __ROOT__[]
 			Root[Index<u32:0>Generation<u32:1>]{}
 			Pool[]
 			{
-				Records[Length<u32:367>]
+				Records[Length<u32:422>]
 				{
 					Item0[Generation<u32:1>]
 					{
@@ -91,21 +91,21 @@ __ROOT__[]
 										Item54[Index<u32:254>Generation<u32:1>]{}
 										Item55[Index<u32:255>Generation<u32:1>]{}
 										Item56[Index<u32:265>Generation<u32:1>]{}
-										Item57[Index<u32:276>Generation<u32:1>]{}
-										Item58[Index<u32:290>Generation<u32:1>]{}
-										Item59[Index<u32:301>Generation<u32:1>]{}
-										Item60[Index<u32:311>Generation<u32:1>]{}
-										Item61[Index<u32:322>Generation<u32:1>]{}
-										Item62[Index<u32:333>Generation<u32:1>]{}
-										Item63[Index<u32:344>Generation<u32:1>]{}
-										Item64[Index<u32:347>Generation<u32:1>]{}
-										Item65[Index<u32:350>Generation<u32:1>]{}
-										Item66[Index<u32:353>Generation<u32:1>]{}
-										Item67[Index<u32:356>Generation<u32:1>]{}
-										Item68[Index<u32:359>Generation<u32:1>]{}
-										Item69[Index<u32:362>Generation<u32:1>]{}
-										Item70[Index<u32:365>Generation<u32:1>]{}
-										Item71[Index<u32:366>Generation<u32:1>]{}
+										Item57[Index<u32:290>Generation<u32:1>]{}
+										Item58[Index<u32:301>Generation<u32:1>]{}
+										Item59[Index<u32:311>Generation<u32:1>]{}
+										Item60[Index<u32:322>Generation<u32:1>]{}
+										Item61[Index<u32:333>Generation<u32:1>]{}
+										Item62[Index<u32:344>Generation<u32:1>]{}
+										Item63[Index<u32:347>Generation<u32:1>]{}
+										Item64[Index<u32:350>Generation<u32:1>]{}
+										Item65[Index<u32:353>Generation<u32:1>]{}
+										Item66[Index<u32:356>Generation<u32:1>]{}
+										Item67[Index<u32:359>Generation<u32:1>]{}
+										Item68[Index<u32:362>Generation<u32:1>]{}
+										Item69[Index<u32:365>Generation<u32:1>]{}
+										Item70[Index<u32:366>Generation<u32:1>]{}
+										Item71[Index<u32:408>Generation<u32:1>]{}
 									}
 									Resource[IsSome<u8:0>]{}
 									Lifetime[Flags<u8:1>]
@@ -699,7 +699,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -749,27 +749,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -808,7 +788,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1074,7 +1074,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1124,27 +1124,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1183,7 +1163,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1449,7 +1449,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1499,27 +1499,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1558,7 +1538,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1824,7 +1824,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -1874,27 +1874,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -1933,7 +1913,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2363,7 +2363,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2416,27 +2416,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -2475,7 +2455,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2905,7 +2905,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -2958,27 +2958,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -3017,7 +2997,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -3447,7 +3447,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -3500,27 +3500,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -3559,7 +3539,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -3989,7 +3989,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4039,27 +4039,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -4098,7 +4078,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4809,7 +4809,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -4859,27 +4859,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -4918,7 +4898,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5348,7 +5348,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5398,27 +5398,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -5457,7 +5437,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5887,7 +5887,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -5940,27 +5940,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -5999,7 +5979,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12121,7 +12121,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12171,27 +12171,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -12230,7 +12210,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12494,7 +12494,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -12544,27 +12544,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item5[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"properties">]
+																		Item5[Key<str:"properties">]
 																		{
 																			Value[Id<u32:1>]
 																			{
@@ -12603,7 +12583,27 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"roughnessTexture">]
+																		Item6[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"aoTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -13753,388 +13753,59 @@ __ROOT__[]
 					}
 					Item276[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"M4">IsResourceInstance<bool:true>InstanceId<uuid:91ef163d-b906-4693-9be2-48cb6db73e38>]
-								{
-									Transform[]
-									{
-										LocalPosition[Value<vec3f32:-3.9191482; 0.29138568; 3.8517582>Flags<u8:1>]{}
-									}
-									Parent[Index<u32:0>Generation<u32:1>]{}
-									Children[Length<u32:2>]
-									{
-										Item0[Index<u32:277>Generation<u32:1>]{}
-										Item1[Index<u32:286>Generation<u32:1>]{}
-									}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:0>Generation<u32:1>]{}
-									Scripts[Length<u32:1>]
-									{
-										Item0[TypeUuid<uuid:bca0083b-b062-4d95-b241-db05bca65da7>]
-										{
-											ScriptData[Initialized<bool:false>]
-											{
-												Data[LastShotTime<f32:0>]
-												{
-													Item[Enabled<bool:true>SparkSizeChangeDir<f32:1>]
-													{
-														Spark[Index<u32:0>Generation<u32:0>]{}
-													}
-													ShotPoint[Index<u32:280>Generation<u32:1>]{}
-													Projectile[IsSome<u8:1>]
-													{
-														Data[Uuid<uuid:9ebead95-8b9a-48d3-9c0c-3c47a6302c99>]{}
-													}
-													WeaponType[Id<u32:1>]{}
-													Owner[Index<u32:0>Generation<u32:0>]{}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item277[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"m4.FBX">IsResourceInstance<bool:false>InstanceId<uuid:bf474d6a-b955-4fae-a554-0f2511153abb>]
-								{
-									Transform[]{}
-									Parent[Index<u32:276>Generation<u32:1>]{}
-									Children[Length<u32:7>]
-									{
-										Item0[Index<u32:278>Generation<u32:1>]{}
-										Item1[Index<u32:279>Generation<u32:1>]{}
-										Item2[Index<u32:280>Generation<u32:1>]{}
-										Item3[Index<u32:281>Generation<u32:1>]{}
-										Item4[Index<u32:282>Generation<u32:1>]{}
-										Item5[Index<u32:284>Generation<u32:1>]{}
-										Item6[Index<u32:285>Generation<u32:1>]{}
-									}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:1>Generation<u32:1>]{}
-									Scripts[Length<u32:0>]{}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item278[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
-							{
-								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
-								{
-									Common[Name<str:"M4A1_Sopmod_Magazine">IsResourceInstance<bool:false>InstanceId<uuid:0c03f7ea-2e86-41fd-91bb-6b172392976f>]
-									{
-										Transform[]{}
-										Parent[Index<u32:277>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:2>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item279[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
-							{
-								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
-								{
-									Common[Name<str:"M4A1_Sopmod_Iron_Sight">IsResourceInstance<bool:false>InstanceId<uuid:78935ed1-e13f-4766-a29e-b6e25c49bf8f>]
-									{
-										Transform[]{}
-										Parent[Index<u32:277>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:3>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item280[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"Weapon:ShotPoint">IsResourceInstance<bool:false>InstanceId<uuid:06a3930d-c00b-486c-af02-9b5f1fc23455>]
-								{
-									Transform[]{}
-									Parent[Index<u32:277>Generation<u32:1>]{}
-									Children[Length<u32:0>]{}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:5>Generation<u32:1>]{}
-									Scripts[Length<u32:0>]{}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item281[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
-							{
-								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
-								{
-									Common[Name<str:"MuzzleFlash">IsResourceInstance<bool:false>InstanceId<uuid:5fc09d91-91a5-42d6-8ed7-5496195c9808>]
-									{
-										Transform[]{}
-										Parent[Index<u32:277>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:6>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item282[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"FlashLightPoint">IsResourceInstance<bool:false>InstanceId<uuid:418910d9-c09e-42d4-8d94-241a9f677b4b>]
-								{
-									Transform[]{}
-									Parent[Index<u32:277>Generation<u32:1>]{}
-									Children[Length<u32:1>]
-									{
-										Item0[Index<u32:283>Generation<u32:1>]{}
-									}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:7>Generation<u32:1>]{}
-									Scripts[Length<u32:0>]{}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item283[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:44d1c94e-354f-4f9a-b918-9d31c28aa16a>]
-							{
-								NodeData[AutoApply<bool:true>]
-								{
-									Base[Name<str:"FlashLight">IsResourceInstance<bool:false>InstanceId<uuid:4f765a98-c701-4222-991c-7d4b868b3154>]
-									{
-										Transform[]{}
-										Parent[Index<u32:282>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:8>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item284[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"AnimationPlayer">IsResourceInstance<bool:false>InstanceId<uuid:a0c0b068-0027-4e93-b849-150dc33c9513>]
-								{
-									Transform[]{}
-									Parent[Index<u32:277>Generation<u32:1>]{}
-									Children[Length<u32:0>]{}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:9>Generation<u32:1>]{}
-									Scripts[Length<u32:0>]{}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item285[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
-							{
-								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
-								{
-									Common[Name<str:"M4A1_Sopmod_Body">IsResourceInstance<bool:false>InstanceId<uuid:f32f42aa-903f-4e3b-b4a2-2ee621f26301>]
-									{
-										Transform[]{}
-										Parent[Index<u32:277>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:4>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item286[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
-							{
-								NodeData[Name<str:"LaserSight">IsResourceInstance<bool:false>InstanceId<uuid:ddc66c1a-0dc4-4a29-84ce-cdd0a68ba569>]
-								{
-									Transform[]{}
-									Parent[Index<u32:276>Generation<u32:1>]{}
-									Children[Length<u32:2>]
-									{
-										Item0[Index<u32:287>Generation<u32:1>]{}
-										Item1[Index<u32:289>Generation<u32:1>]{}
-									}
-									Resource[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-									}
-									Original[Index<u32:10>Generation<u32:1>]{}
-									Scripts[Length<u32:1>]
-									{
-										Item0[TypeUuid<uuid:f9bcf484-e84a-4de1-9e6d-32913d35f2ef>]
-										{
-											ScriptData[Initialized<bool:false>]
-											{
-												Data[]
-												{
-													Ray[Index<u32:287>Generation<u32:1>]{}
-													RayMesh[Index<u32:288>Generation<u32:1>]{}
-													Tip[Index<u32:289>Generation<u32:1>]{}
-													Light[Index<u32:290>Generation<u32:1>]{}
-													ReactionState[IsSome<u8:0>]{}
-												}
-											}
-										}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item287[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
-							{
-								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
-								{
-									Common[Name<str:"Ray">IsResourceInstance<bool:false>InstanceId<uuid:c891a889-a6ac-4491-bb5c-21dfbb575ae7>]
-									{
-										Transform[]{}
-										Parent[Index<u32:286>Generation<u32:1>]{}
-										Children[Length<u32:1>]
-										{
-											Item0[Index<u32:288>Generation<u32:1>]{}
-										}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:11>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item288[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:60fd7e34-46c1-4ae9-8803-1f5f4c341518>]
-							{
-								NodeData[]
-								{
-									Base[Name<str:"RayMesh">IsResourceInstance<bool:false>InstanceId<uuid:efc26dd9-8df8-46fe-8db4-157fcf1b6220>]
-									{
-										Transform[]{}
-										Parent[Index<u32:287>Generation<u32:1>]{}
-										Children[Length<u32:0>]{}
-										Resource[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-										}
-										Original[Index<u32:12>Generation<u32:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item289[Generation<u32:1>]
 					{
-						Payload[IsSome<u8:1>]
-						{
-							Data[TypeUuid<uuid:c81dcc31-7cb9-465f-abd9-b385ac6f4d37>]
-							{
-								NodeData[]
-								{
-									BaseLight[]
-									{
-										Base[Name<str:"Tip">IsResourceInstance<bool:false>InstanceId<uuid:87c557e4-b9a1-4418-810b-5517e478fd92>]
-										{
-											Transform[]{}
-											Parent[Index<u32:286>Generation<u32:1>]{}
-											Children[Length<u32:0>]{}
-											Resource[IsSome<u8:1>]
-											{
-												Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
-											}
-											Original[Index<u32:13>Generation<u32:1>]{}
-											Scripts[Length<u32:0>]{}
-										}
-									}
-								}
-							}
-						}
+						Payload[IsSome<u8:0>]{}
 					}
 					Item290[Generation<u32:1>]
 					{
@@ -18707,8 +18378,557 @@ __ROOT__[]
 							}
 						}
 					}
+					Item367[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item368[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item369[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item370[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item371[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item372[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item373[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item374[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item375[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item376[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item377[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item378[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item379[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item380[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item381[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item382[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item383[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item384[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item385[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item386[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item387[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item388[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item389[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item390[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item391[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item392[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item393[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item394[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item395[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item396[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item397[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item398[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item399[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item400[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item401[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item402[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item403[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item404[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item405[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item406[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item407[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:0>]{}
+					}
+					Item408[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"M4">IsResourceInstance<bool:true>InstanceId<uuid:91ef163d-b906-4693-9be2-48cb6db73e38>]
+								{
+									Transform[]
+									{
+										LocalPosition[Value<vec3f32:-3.8502169; 0.2120778; 3.8821957>Flags<u8:1>]{}
+									}
+									Parent[Index<u32:0>Generation<u32:1>]{}
+									Children[Length<u32:2>]
+									{
+										Item0[Index<u32:409>Generation<u32:1>]{}
+										Item1[Index<u32:417>Generation<u32:1>]{}
+									}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:0>Generation<u32:1>]{}
+									Scripts[Length<u32:1>]
+									{
+										Item0[TypeUuid<uuid:bca0083b-b062-4d95-b241-db05bca65da7>]
+										{
+											ScriptData[Initialized<bool:false>]
+											{
+												Data[LastShotTime<f32:0>]
+												{
+													Item[Enabled<bool:true>SparkSizeChangeDir<f32:1>]
+													{
+														Spark[Index<u32:0>Generation<u32:0>]{}
+													}
+													ShotPoint[Index<u32:413>Generation<u32:1>]{}
+													Projectile[IsSome<u8:1>]
+													{
+														Data[Uuid<uuid:9ebead95-8b9a-48d3-9c0c-3c47a6302c99>]{}
+													}
+													WeaponType[Id<u32:1>]{}
+													Owner[Index<u32:0>Generation<u32:0>]{}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					Item409[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"m4.FBX">IsResourceInstance<bool:false>InstanceId<uuid:bf474d6a-b955-4fae-a554-0f2511153abb>]
+								{
+									Transform[]{}
+									Parent[Index<u32:408>Generation<u32:1>]{}
+									Children[Length<u32:7>]
+									{
+										Item0[Index<u32:410>Generation<u32:1>]{}
+										Item1[Index<u32:411>Generation<u32:1>]{}
+										Item2[Index<u32:412>Generation<u32:1>]{}
+										Item3[Index<u32:413>Generation<u32:1>]{}
+										Item4[Index<u32:414>Generation<u32:1>]{}
+										Item5[Index<u32:415>Generation<u32:1>]{}
+										Item6[Index<u32:416>Generation<u32:1>]{}
+									}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:1>Generation<u32:1>]{}
+									Scripts[Length<u32:0>]{}
+								}
+							}
+						}
+					}
+					Item410[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
+							{
+								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
+								{
+									Common[Name<str:"M4A1_Sopmod_Magazine">IsResourceInstance<bool:false>InstanceId<uuid:0c03f7ea-2e86-41fd-91bb-6b172392976f>]
+									{
+										Transform[]{}
+										Parent[Index<u32:409>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:2>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item411[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
+							{
+								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
+								{
+									Common[Name<str:"M4A1_Sopmod_Iron_Sight">IsResourceInstance<bool:false>InstanceId<uuid:78935ed1-e13f-4766-a29e-b6e25c49bf8f>]
+									{
+										Transform[]{}
+										Parent[Index<u32:409>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:3>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item412[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
+							{
+								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
+								{
+									Common[Name<str:"M4A1_Sopmod_Body">IsResourceInstance<bool:false>InstanceId<uuid:f32f42aa-903f-4e3b-b4a2-2ee621f26301>]
+									{
+										Transform[]{}
+										Parent[Index<u32:409>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:4>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item413[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"Weapon:ShotPoint">IsResourceInstance<bool:false>InstanceId<uuid:06a3930d-c00b-486c-af02-9b5f1fc23455>]
+								{
+									Transform[]{}
+									Parent[Index<u32:409>Generation<u32:1>]{}
+									Children[Length<u32:0>]{}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:5>Generation<u32:1>]{}
+									Scripts[Length<u32:0>]{}
+								}
+							}
+						}
+					}
+					Item414[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
+							{
+								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
+								{
+									Common[Name<str:"MuzzleFlash">IsResourceInstance<bool:false>InstanceId<uuid:5fc09d91-91a5-42d6-8ed7-5496195c9808>]
+									{
+										Transform[]{}
+										Parent[Index<u32:409>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:6>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item415[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"FlashLightPoint">IsResourceInstance<bool:false>InstanceId<uuid:418910d9-c09e-42d4-8d94-241a9f677b4b>]
+								{
+									Transform[]{}
+									Parent[Index<u32:409>Generation<u32:1>]{}
+									Children[Length<u32:0>]{}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:7>Generation<u32:1>]{}
+									Scripts[Length<u32:0>]{}
+								}
+							}
+						}
+					}
+					Item416[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:44d1c94e-354f-4f9a-b918-9d31c28aa16a>]
+							{
+								NodeData[AutoApply<bool:true>]
+								{
+									Base[Name<str:"AnimationPlayer">IsResourceInstance<bool:false>InstanceId<uuid:a0c0b068-0027-4e93-b849-150dc33c9513>]
+									{
+										Transform[]{}
+										Parent[Index<u32:409>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:8>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item417[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"LaserSight">IsResourceInstance<bool:false>InstanceId<uuid:ddc66c1a-0dc4-4a29-84ce-cdd0a68ba569>]
+								{
+									Transform[]{}
+									Parent[Index<u32:408>Generation<u32:1>]{}
+									Children[Length<u32:2>]
+									{
+										Item0[Index<u32:418>Generation<u32:1>]{}
+										Item1[Index<u32:420>Generation<u32:1>]{}
+									}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:9>Generation<u32:1>]{}
+									Scripts[Length<u32:1>]
+									{
+										Item0[TypeUuid<uuid:f9bcf484-e84a-4de1-9e6d-32913d35f2ef>]
+										{
+											ScriptData[Initialized<bool:false>]
+											{
+												Data[]
+												{
+													Ray[Index<u32:418>Generation<u32:1>]{}
+													RayMesh[Index<u32:419>Generation<u32:1>]{}
+													Tip[Index<u32:420>Generation<u32:1>]{}
+													Light[Index<u32:421>Generation<u32:1>]{}
+													ReactionState[IsSome<u8:0>]{}
+												}
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+					Item418[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:dd2ecb96-b1f4-4ee0-943b-2a4d1844e3bb>]
+							{
+								NodeData[Name<str:"Ray">IsResourceInstance<bool:false>InstanceId<uuid:c891a889-a6ac-4491-bb5c-21dfbb575ae7>]
+								{
+									Transform[]{}
+									Parent[Index<u32:417>Generation<u32:1>]{}
+									Children[Length<u32:1>]
+									{
+										Item0[Index<u32:419>Generation<u32:1>]{}
+									}
+									Resource[IsSome<u8:1>]
+									{
+										Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+									}
+									Original[Index<u32:10>Generation<u32:1>]{}
+									Scripts[Length<u32:0>]{}
+								}
+							}
+						}
+					}
+					Item419[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:caaf9d7b-bd74-48ce-b7cc-57e9dc65c2e6>]
+							{
+								NodeData[BlendShapesPropertyName<str:"blendShapesStorage">]
+								{
+									Common[Name<str:"RayMesh">IsResourceInstance<bool:false>InstanceId<uuid:efc26dd9-8df8-46fe-8db4-157fcf1b6220>]
+									{
+										Transform[]{}
+										Parent[Index<u32:418>Generation<u32:1>]{}
+										Children[Length<u32:0>]{}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:11>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item420[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:60fd7e34-46c1-4ae9-8803-1f5f4c341518>]
+							{
+								NodeData[]
+								{
+									Base[Name<str:"Tip">IsResourceInstance<bool:false>InstanceId<uuid:87c557e4-b9a1-4418-810b-5517e478fd92>]
+									{
+										Transform[]{}
+										Parent[Index<u32:417>Generation<u32:1>]{}
+										Children[Length<u32:1>]
+										{
+											Item0[Index<u32:421>Generation<u32:1>]{}
+										}
+										Resource[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+										}
+										Original[Index<u32:12>Generation<u32:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+								}
+							}
+						}
+					}
+					Item421[Generation<u32:1>]
+					{
+						Payload[IsSome<u8:1>]
+						{
+							Data[TypeUuid<uuid:c81dcc31-7cb9-465f-abd9-b385ac6f4d37>]
+							{
+								NodeData[]
+								{
+									BaseLight[]
+									{
+										Base[Name<str:"TipLight">IsResourceInstance<bool:false>InstanceId<uuid:b7ecedbc-325e-43a8-962f-a52167cf9683>]
+										{
+											Transform[]{}
+											Parent[Index<u32:420>Generation<u32:1>]{}
+											Children[Length<u32:0>]{}
+											Resource[IsSome<u8:1>]
+											{
+												Data[Uuid<uuid:3c5e0078-3953-4771-8551-89048e1fa13a>]{}
+											}
+											Original[Index<u32:13>Generation<u32:1>]{}
+											Scripts[Length<u32:0>]{}
+										}
+									}
+								}
+							}
+						}
+					}
 				}
-				FreeStack[Length<u32:0>]{}
+				FreeStack[Length<u32:55>Item0<u32:276>Item1<u32:277>Item2<u32:278>Item3<u32:279>Item4<u32:280>Item5<u32:281>Item6<u32:282>Item7<u32:283>Item8<u32:284>Item9<u32:285>Item10<u32:286>Item11<u32:287>Item12<u32:288>Item13<u32:289>Item14<u32:367>Item15<u32:368>Item16<u32:369>Item17<u32:370>Item18<u32:371>Item19<u32:372>Item20<u32:373>Item21<u32:374>Item22<u32:375>Item23<u32:376>Item24<u32:377>Item25<u32:378>Item26<u32:379>Item27<u32:380>Item28<u32:381>Item29<u32:382>Item30<u32:383>Item31<u32:384>Item32<u32:385>Item33<u32:386>Item34<u32:387>Item35<u32:388>Item36<u32:389>Item37<u32:390>Item38<u32:391>Item39<u32:392>Item40<u32:393>Item41<u32:394>Item42<u32:395>Item43<u32:396>Item44<u32:397>Item45<u32:398>Item46<u32:399>Item47<u32:400>Item48<u32:401>Item49<u32:402>Item50<u32:403>Item51<u32:404>Item52<u32:405>Item53<u32:406>Item54<u32:407>]{}
 			}
 			SoundContext[]
 			{
@@ -18720,7 +18940,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:0.49129066; 0; -0.87099564; -0.6005496; 0.7242878; -0.3387438; -0.63085157; -0.68949777; -0.35583583>Position<vec3f32:1.1788341; 3.2876477; 2.499074>]{}
+								Listener[Basis<mat3:0.9221362; 0; -0.3868649; -0.37483814; 0.24740495; -0.8934691; -0.09571231; -0.96891207; -0.22814111>Position<vec3f32:-4.0158005; 0.77274466; 4.1103992>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}

@@ -16,7 +16,7 @@ use crate::{
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::graph::SceneGraphNode;
+use fyrox::graph::NodeWrapper;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::some_or_continue,

@@ -120,7 +120,7 @@ __ROOT__[]
 												}
 												Material[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:06a94e4a-ad9c-40e2-ab7e-507e5e3b7c5d>]
+													Value[Uuid<uuid:eb7a8c88-06a8-4560-999a-aa1b392be02f>]
 													{
 														Embedded[Id<u64:1>]
 														{
@@ -131,7 +131,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"roughnessTexture">]
+																		Item0[Key<str:"heightTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -230,7 +230,17 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item7[Key<str:"diffuseTexture">]
+																		Item7[Key<str:"roughnessTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -240,16 +250,6 @@ __ROOT__[]
 																					{
 																						Data[Uuid<uuid:5035156f-585f-4da4-bbda-4b7231232ad9>]{}
 																					}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}
@@ -353,7 +353,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:8970a1ca-35fe-491e-9011-d18833af6acc>]
 																				{
-																					Binding[Id<u32:3>Name<str:"surfaces[0].material.untyped.0.state.Ok@0.resource_bindings[properties].PropertyGroup@0.properties[diffuseColor].Color@0.a">]
+																					Binding[Id<u32:3>Name<str:"0.surfaces.Content[0].material.Content.untyped.0.Content.state.Ok@data.0.resource_bindings[properties].PropertyGroup@0.properties[diffuseColor].Color@0.a">]
 																					{
 																						ValueType[Id<u32:9>]{}
 																					}
@@ -483,7 +483,7 @@ __ROOT__[]
 						{
 							ArcData[Paused<bool:false>]
 							{
-								Listener[Basis<mat3:-1; 0; 0; 0; 1; 0; 0; 0; 1>Position<vec3f32:0; 1; -4.5>]{}
+								Listener[Basis<mat3:-1; 0; 0; 0; 1; 0; 0; 0; 1>Position<vec3f32:0; 1; -3>]{}
 								Sources[]
 								{
 									Records[Length<u32:0>]{}

@@ -11,7 +11,7 @@ use fyrox::{
         variable::InheritableVariable,
         visitor::prelude::*,
     },
-    graph::{SceneGraph, SceneGraphNode},
+    graph::{NodeWrapper, SceneGraph},
     plugin::error::GameResult,
     scene::rigidbody::RigidBody,
     script::{RoutingStrategy, ScriptContext, ScriptTrait},

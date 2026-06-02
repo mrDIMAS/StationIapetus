@@ -7,7 +7,7 @@ use crate::{
     },
     CollisionGroups, Game, Weapon,
 };
-use fyrox::graph::SceneGraphNode;
+use fyrox::graph::NodeWrapper;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
@@ -340,7 +340,7 @@ impl ScriptTrait for Projectile {
                         .map_or(Default::default(), |owner_node| {
                             if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
                                 weapon.owner
-                            } else if owner_node.try_get_script_component::<Character>().is_some() {
+                            } else if owner_node.try_get_script_field::<Character>().is_some() {
                                 self.owner
                             } else {
                                 Default::default()

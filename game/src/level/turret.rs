@@ -165,7 +165,7 @@ impl ScriptTrait for Turret {
         if let Ok(target) = ctx
             .scene
             .graph
-            .try_get_script_component_of::<Character>(self.target)
+            .try_get_script_field_of::<Character>(self.target)
         {
             let target_position = target.most_vulnerable_point(&ctx.scene.graph);
 
@@ -349,14 +349,14 @@ impl Turret {
         let self_position = graph[self.model].global_position();
 
         if graph
-            .try_get_script_component_of::<Character>(self.target)
+            .try_get_script_field_of::<Character>(self.target)
             .ok()
             .is_none_or(|c| !c.is_dead(graph))
         {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
-                let actor = graph.try_get_script_component_of::<Character>(handle)?;
+                let actor = graph.try_get_script_field_of::<Character>(handle)?;
 
                 if actor.is_dead(graph) {
                     continue 'target_loop;

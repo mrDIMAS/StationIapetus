@@ -42,7 +42,7 @@ impl EnemyTrap {
         for actor in actors {
             let actor_node = scene.graph.try_get(*actor)?;
             if this_bounds.is_contains_point(actor_node.global_position())
-                && actor_node.try_get_script_component::<Bot>().is_some()
+                && actor_node.try_get_script_field::<Bot>().is_some()
             {
                 self.enemies.push(*actor);
             }
@@ -53,7 +53,7 @@ impl EnemyTrap {
     fn is_all_enemies_dead(&self, scene: &Scene) -> Result<bool, GameError> {
         for enemy in self.enemies.iter() {
             let actor_node = scene.graph.try_get(*enemy)?;
-            if let Some(bot) = actor_node.try_get_script_component::<Bot>() {
+            if let Some(bot) = actor_node.try_get_script_field::<Bot>() {
                 if !bot.is_dead(&scene.graph) {
                     return Ok(false);
                 }
@@ -64,7 +64,7 @@ impl EnemyTrap {
 
     fn lock_doors(&mut self, scene: &mut Scene, lock: bool) {
         for door in self.doors_to_lock.iter() {
-            if let Some(door) = scene.graph[*door].try_get_script_component_mut::<Door>() {
+            if let Some(door) = scene.graph[*door].try_get_script_field_mut::<Door>() {
                 door.locked.set_value_and_mark_modified(lock);
             }
         }

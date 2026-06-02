@@ -133,7 +133,7 @@ impl Default for Character {
 
 fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Handle<Node>> {
     while let Ok(node) = graph.try_get(node_handle) {
-        if node.try_get_script_component::<Character>().is_some() {
+        if node.try_get_script_field::<Character>().is_some() {
             return Some(node_handle);
         }
         node_handle = node.parent();
@@ -176,7 +176,7 @@ impl Character {
     ) -> impl Iterator<Item = (Handle<Collider>, &'a HitBox)> + use<'a, '_> {
         self.hit_boxes.iter().filter_map(|h| {
             graph
-                .try_get_script_component_of::<HitBox>(*h)
+                .try_get_script_field_of::<HitBox>(*h)
                 .ok()
                 .map(|hitbox| (*h, hitbox))
         })
@@ -440,7 +440,7 @@ impl Character {
             &CharacterMessageData::PickupItem(item_handle) => {
                 let item_node = &scene.graph[item_handle];
                 let item_resource = item_node.root_resource();
-                let item = item_node.try_get_script_component::<Item>().unwrap();
+                let item = item_node.try_get_script_field::<Item>().unwrap();
                 let stack_size = *item.stack_size;
                 let position = item_node.global_position();
 

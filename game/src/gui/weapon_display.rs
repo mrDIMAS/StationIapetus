@@ -109,18 +109,17 @@ impl WeaponDisplay {
     }
 
     pub fn sync_to_model(&self, player: &Player, graph: &Graph) {
-        let ammo = if let Ok(weapon) =
-            graph.try_get_script_component_of::<Weapon>(player.current_weapon())
-        {
-            if let Some(ammo_item) = weapon.ammo_item.as_ref() {
-                let total_ammo = player.inventory().item_count(ammo_item);
-                total_ammo / *weapon.ammo_consumption_per_shot
+        let ammo =
+            if let Ok(weapon) = graph.try_get_script_field_of::<Weapon>(player.current_weapon()) {
+                if let Some(ammo_item) = weapon.ammo_item.as_ref() {
+                    let total_ammo = player.inventory().item_count(ammo_item);
+                    total_ammo / *weapon.ammo_consumption_per_shot
+                } else {
+                    u32::MAX
+                }
             } else {
-                u32::MAX
-            }
-        } else {
-            0
-        };
+                0
+            };
 
         self.ui.send(
             self.ammo,

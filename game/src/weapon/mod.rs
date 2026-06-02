@@ -26,7 +26,7 @@ pub mod projectile;
 pub mod sight;
 
 fn find_parent_character(sight: Handle<Node>, graph: &Graph) -> Option<(Handle<Node>, &Character)> {
-    graph.find_up_map(sight, &mut |n| n.try_get_script_component::<Character>())
+    graph.find_up_map(sight, &mut |n| n.try_get_script_field::<Character>())
 }
 
 #[derive(Debug, ScriptMessagePayload)]
@@ -115,7 +115,7 @@ impl Weapon {
         let graph = &data.get_scene().graph;
         func(
             graph
-                .try_get_script_component_of::<Weapon>(graph.get_root())
+                .try_get_script_field_of::<Weapon>(graph.get_root())
                 .ok(),
         )
     }
@@ -252,11 +252,9 @@ impl ScriptTrait for Weapon {
 }
 
 pub fn weapon_mut(handle: Handle<Node>, graph: &mut Graph) -> &mut Weapon {
-    graph
-        .try_get_script_component_of_mut::<Weapon>(handle)
-        .unwrap()
+    graph.try_get_script_field_of_mut::<Weapon>(handle).unwrap()
 }
 
 pub fn weapon_ref(handle: Handle<Node>, graph: &Graph) -> &Weapon {
-    graph.try_get_script_component_of::<Weapon>(handle).unwrap()
+    graph.try_get_script_field_of::<Weapon>(handle).unwrap()
 }

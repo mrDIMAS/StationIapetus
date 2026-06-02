@@ -51,7 +51,7 @@ impl ScriptTrait for Trigger {
             let contains_player = this_bounds.is_contains_point(
                 ctx.scene
                     .graph
-                    .try_get_script_component_of::<Character>(level.player)?
+                    .try_get_script_field_of::<Character>(level.player)?
                     .position(&ctx.scene.graph),
             );
 
@@ -79,7 +79,7 @@ impl ScriptTrait for Trigger {
                         let actor_ref = ctx
                             .scene
                             .graph
-                            .try_get_script_component_of::<Character>(*actor)?;
+                            .try_get_script_field_of::<Character>(*actor)?;
 
                         let actor_position = ctx.scene.graph[actor_ref.body].global_position();
 
