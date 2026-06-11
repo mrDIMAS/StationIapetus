@@ -24,7 +24,7 @@ use fyrox::{
     scene::{sound::Sound, Scene},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "0226e2fe-799c-4ad9-9e57-6aec808b5af1")]
 #[visit(optional)]
 pub struct MenuData {
@@ -36,7 +36,7 @@ pub struct MenuData {
     container: Handle<Grid>,
 }
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct Menu {
     pub scene: Option<MenuScene>,
     ui: Handle<UserInterface>,
@@ -46,7 +46,7 @@ pub struct Menu {
     font: FontResource,
 }
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct MenuScene {
     pub scene: Handle<Scene>,
     pub music: Handle<Sound>,

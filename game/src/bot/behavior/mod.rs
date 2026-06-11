@@ -108,7 +108,7 @@ pub struct BehaviorContext<'a> {
     pub is_screaming: bool,
 }
 
-#[derive(Default, Debug, Visit, Clone)]
+#[derive(Default, PartialEq, Debug, Visit, Clone)]
 pub struct BotBehavior {
     pub tree: BehaviorTree<Action>,
 }

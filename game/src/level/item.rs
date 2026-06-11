@@ -194,7 +194,7 @@ impl Item {
     }
 }
 
-#[derive(Visit, Debug)]
+#[derive(Visit, PartialEq, Debug)]
 pub struct ItemContainer {
     container: Vec<Handle<Node>>,
 }

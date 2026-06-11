@@ -17,7 +17,7 @@ use fyrox::{
 };
 use std::path::Path;
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct WeaponDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

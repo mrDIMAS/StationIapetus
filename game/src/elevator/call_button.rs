@@ -21,7 +21,7 @@ pub enum CallButtonKind {
     EndPoint,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "215c9f84-a775-4d17-88a0-0e174c06dc4a")]
 #[visit(optional)]
 pub struct CallButton {

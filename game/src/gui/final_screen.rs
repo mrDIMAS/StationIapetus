@@ -9,14 +9,14 @@ use fyrox::{
     plugin::PluginContext,
 };
 
-#[derive(Visit, Default, Debug, Clone, Reflect)]
+#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect)]
 #[reflect(type_uuid = "ddbbaf2f-7519-455a-901e-eaffae3a4849")]
 pub struct FinalScreenData {
     exit_to_menu: Handle<Button>,
     exit_game: Handle<Button>,
 }
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct FinalScreen {
     ui: Handle<UserInterface>,
     data: FinalScreenData,

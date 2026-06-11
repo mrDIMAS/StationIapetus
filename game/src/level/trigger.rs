@@ -33,7 +33,7 @@ pub enum TriggerAction {
     EndGame,
 }
 
-#[derive(Visit, Reflect, Debug, Default, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Default, Clone)]
 #[reflect(type_uuid = "a7e0d266-3f3f-4100-85c5-59811f9bbab3")]
 #[visit(optional)]
 pub struct Trigger {

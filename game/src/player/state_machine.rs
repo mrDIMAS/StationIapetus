@@ -28,7 +28,7 @@ pub struct StateMachineInput<'a> {
     pub hit_something: bool,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct StateMachine {
     pub machine_handle: Handle<AnimationBlendingStateMachine>,
     pub jump_animation: Handle<Animation>,

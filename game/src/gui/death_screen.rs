@@ -9,7 +9,7 @@ use fyrox::{
     plugin::PluginContext,
 };
 
-#[derive(Visit, Default, Debug, Clone, Reflect)]
+#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect)]
 #[reflect(type_uuid = "41a8bf46-132e-426e-8255-67c78b967002")]
 pub struct DeathScreenData {
     load_game: Handle<Button>,
@@ -17,7 +17,7 @@ pub struct DeathScreenData {
     exit_game: Handle<Button>,
 }
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct DeathScreen {
     ui: Handle<UserInterface>,
     data: DeathScreenData,

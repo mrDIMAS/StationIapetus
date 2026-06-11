@@ -12,7 +12,7 @@ use fyrox::{
     },
 };
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct LoadingScreen {
     pub root: Handle<Grid>,
     progress_bar: Handle<ProgressBar>,

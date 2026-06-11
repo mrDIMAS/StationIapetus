@@ -16,7 +16,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")]
 #[visit(optional)]
 pub struct Decal {

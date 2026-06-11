@@ -39,7 +39,7 @@ use fyrox::{
 };
 use std::ops::{Deref, DerefMut};
 
-#[derive(Visit, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Default, Debug, Clone)]
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,
@@ -49,7 +49,7 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<ScrollViewer>,
 }
 
-#[derive(Default, Debug, Clone, Reflect, Visit)]
+#[derive(Default, Debug, Clone, PartialEq, Reflect, Visit)]
 #[reflect(
     derived_type = "UiNode",
     type_uuid = "346f2207-0868-4577-89a3-a4b36f3bf45d"

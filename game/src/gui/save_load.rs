@@ -33,7 +33,7 @@ use std::{
 
 const SAVED_GAME_EXT: &str = "rgs";
 
-#[derive(Visit, Reflect, Clone, Default, Debug)]
+#[derive(Visit, PartialEq, Reflect, Clone, Default, Debug)]
 #[reflect(type_uuid = "bb2b6799-128a-489f-9d72-e82cc706b228")]
 pub enum Mode {
     #[default]
@@ -41,7 +41,7 @@ pub enum Mode {
     Load,
 }
 
-#[derive(Default, Debug, Visit, Clone, Reflect)]
+#[derive(Default, Debug, Visit, Clone, PartialEq, Reflect)]
 #[reflect(type_uuid = "0e1e97dd-7165-48d9-9ee8-8b8b0e81cdcb")]
 pub struct SaveLoadDialog {
     pub window: Handle<Window>,

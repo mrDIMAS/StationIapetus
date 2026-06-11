@@ -18,7 +18,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")]
 #[visit(optional)]
 pub struct Rail {

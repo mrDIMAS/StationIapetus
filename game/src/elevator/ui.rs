@@ -9,7 +9,7 @@ use fyrox::{
     resource::texture::TextureResource,
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct CallButtonUi {
     pub ui: UserInterface,
     pub render_target: TextureResource,

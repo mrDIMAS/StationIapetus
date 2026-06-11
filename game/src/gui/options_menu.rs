@@ -40,7 +40,7 @@ use fyrox::{
     window::Fullscreen,
 };
 
-#[derive(Visit, Default, Debug)]
+#[derive(Visit, PartialEq, Default, Debug)]
 pub struct OptionsMenu {
     ui: Handle<UserInterface>,
     pub window: Handle<Window>,

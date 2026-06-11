@@ -105,7 +105,7 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
 #[visit(optional)]
 pub struct Projectile {

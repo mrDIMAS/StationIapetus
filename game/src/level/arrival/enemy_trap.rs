@@ -10,7 +10,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "b1ed2ef5-2280-441b-9755-50f5e7c35ced")]
 enum State {
     #[default]
@@ -19,7 +19,7 @@ enum State {
     Finished,
 }
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "845a5364-395a-4228-9394-ee3c43352f01")]
 #[visit(optional)]
 pub struct EnemyTrap {

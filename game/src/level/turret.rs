@@ -78,7 +78,7 @@ pub enum Hostility {
     All,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 #[visit(optional)]
 pub struct Turret {

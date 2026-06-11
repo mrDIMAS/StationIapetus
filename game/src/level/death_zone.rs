@@ -5,7 +5,7 @@ use fyrox::{
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "9c258713-e44e-4366-a236-f91e09c6f0aa")]
 #[visit(optional)]
 pub struct DeathZone;

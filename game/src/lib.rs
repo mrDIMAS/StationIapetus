@@ -116,6 +116,7 @@ use std::{
 #[reflect(
     hide_all,
     non_cloneable,
+    non_comparable,
     type_uuid = "dba407d5-90bd-4874-89ae-edd0ab9b64e2"
 )]
 pub struct Game {

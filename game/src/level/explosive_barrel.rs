@@ -12,7 +12,7 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "1bd90488-7a17-430e-9b35-dc0a9a1a2f58")]
 #[visit(optional)]
 pub struct ExplosiveBarrel {

@@ -21,12 +21,12 @@ use fyrox::{
 
 pub mod ui;
 
-#[derive(Debug, Clone, Default)]
+#[derive(Debug, PartialEq, Clone, Default)]
 struct OpenRequest {
     open: bool,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 #[visit(optional)]
 pub struct Door {
@@ -285,7 +285,7 @@ impl Door {
     }
 }
 
-#[derive(Default, Visit, Debug)]
+#[derive(Default, PartialEq, Visit, Debug)]
 pub struct DoorContainer {
     pub doors: Vec<Handle<Node>>,
 }

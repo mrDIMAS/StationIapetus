@@ -61,7 +61,7 @@ impl JournalEntryKind {
     }
 }
 
-#[derive(Default, Visit, Debug)]
+#[derive(Default, PartialEq, Visit, Debug)]
 pub struct Journal {
     messages: Vec<JournalEntryKind>,
 }
@@ -74,7 +74,7 @@ impl Journal {
     }
 }
 
-#[derive(Visit, Debug)]
+#[derive(Visit, PartialEq, Debug)]
 pub struct JournalDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

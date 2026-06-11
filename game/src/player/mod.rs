@@ -62,7 +62,7 @@ use std::ops::{Deref, DerefMut};
 pub mod camera;
 mod state_machine;
 
-#[derive(Default, Debug)]
+#[derive(Default, PartialEq, Debug)]
 pub struct InputController {
     walk_forward: bool,
     walk_backward: bool,
@@ -116,7 +116,7 @@ pub struct PlayerPersistentData {
 }
 
 #[derive(Visit, Reflect, Debug)]
-#[reflect(type_uuid = "50a07510-893d-476f-aad2-fcfb0845807f")]
+#[reflect(type_uuid = "50a07510-893d-476f-aad2-fcfb0845807f", non_comparable)]
 #[visit(optional)]
 pub struct Player {
     character: Character,

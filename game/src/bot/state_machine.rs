@@ -16,7 +16,7 @@ pub struct StateMachineInput {
     pub movement_type: MovementType,
 }
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct StateMachine {
     pub absm: Handle<Node>,
     pub aim_state: Handle<State>,

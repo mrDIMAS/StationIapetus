@@ -78,7 +78,7 @@ impl LimbType {
     }
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "28a107ad-ee88-4a0f-8b32-be348e779115")]
 #[visit(optional)]
 pub struct HitBox {

@@ -27,7 +27,7 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Default, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
 #[reflect(type_uuid = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
 #[visit(optional)]
 pub struct LaserSight {
@@ -40,7 +40,7 @@ pub struct LaserSight {
     reaction_state: Option<ReactionState>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "485cd9c3-cc09-498c-8ce0-b98cd2cc2ee0")]
 pub enum ReactionState {
     HitDetected {

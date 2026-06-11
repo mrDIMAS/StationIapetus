@@ -27,13 +27,13 @@ impl ControlButton {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, PartialEq, Serialize, Clone, Debug)]
 pub struct ControlButtonDefinition {
     pub description: String,
     pub button: ControlButton,
 }
 
-#[derive(Deserialize, Serialize, Clone, Debug)]
+#[derive(Deserialize, PartialEq, Serialize, Clone, Debug)]
 pub struct ControlScheme {
     pub move_forward: ControlButtonDefinition,
     pub move_backward: ControlButtonDefinition,

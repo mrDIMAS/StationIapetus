@@ -17,7 +17,7 @@ use fyrox::{
     resource::texture::{TextureResource, TextureResourceExtension},
 };
 
-#[derive(Default, Debug, Clone)]
+#[derive(Default, PartialEq, Debug, Clone)]
 pub struct DoorUi {
     pub ui: UserInterface,
     pub render_target: TextureResource,

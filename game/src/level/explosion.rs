@@ -17,7 +17,7 @@ use fyrox::{
     script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
 #[visit(optional)]
 pub struct Explosion {

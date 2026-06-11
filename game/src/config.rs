@@ -7,7 +7,7 @@ use std::{
     ops::{Deref, DerefMut},
 };
 
-#[derive(Debug, Clone)]
+#[derive(Debug, PartialEq, Clone)]
 pub struct Config {
     need_save: bool,
     data: ConfigData,
@@ -44,7 +44,7 @@ impl DerefMut for Config {
     }
 }
 
-#[derive(Deserialize, Serialize, Clone, Visit, Debug)]
+#[derive(Deserialize, PartialEq, Serialize, Clone, Visit, Debug)]
 pub struct SoundConfig {
     pub master_volume: f32,
     pub music_volume: f32,
@@ -61,7 +61,7 @@ impl Default for SoundConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, Debug, Default, Clone)]
+#[derive(Deserialize, Serialize, PartialEq, Debug, Default, Clone)]
 pub struct ConfigData {
     pub graphics: QualitySettings,
     pub controls: ControlScheme,

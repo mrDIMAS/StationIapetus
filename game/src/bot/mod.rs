@@ -103,13 +103,13 @@ pub enum MovementType {
     Crawl = 1,
 }
 
-#[derive(Debug, Visit, Default, Clone)]
+#[derive(Debug, PartialEq, Visit, Default, Clone)]
 pub struct Target {
     position: Vector3<f32>,
     handle: Handle<Node>,
 }
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
 #[visit(optional)]
 pub struct Bot {

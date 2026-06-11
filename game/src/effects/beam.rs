@@ -14,7 +14,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "5405f6e2-3016-40ef-998a-e4f797e59694")]
 #[visit(optional)]
 pub struct Beam {

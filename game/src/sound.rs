@@ -23,7 +23,7 @@ use serde::Deserialize;
 use std::fmt::{Debug, Formatter};
 use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf};
 
-#[derive(Debug)]
+#[derive(PartialEq, Debug)]
 pub struct TriangleRange {
     range: Range<u32>,
     material: MaterialType,
@@ -45,7 +45,7 @@ pub enum SoundKind {
     FootStep,
 }
 
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, PartialEq, Debug, Default)]
 pub struct SoundBase {
     material_to_sound: HashMap<MaterialType, HashMap<SoundKind, Vec<PathBuf>>>,
     texture_to_material: HashMap<PathBuf, MaterialType>,
@@ -80,7 +80,7 @@ impl SoundBase {
     }
 }
 
-#[derive(Default)]
+#[derive(PartialEq, Default)]
 pub struct SoundMap {
     sound_map: HashMap<Handle<Collider>, Vec<TriangleRange>>,
 }
@@ -175,7 +175,7 @@ impl SoundMap {
     }
 }
 
-#[derive(Default)]
+#[derive(PartialEq, Default)]
 pub struct SoundManager {
     sound_base: SoundBase,
     sound_map: SoundMap,

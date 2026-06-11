@@ -6,7 +6,7 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, Reflect, Debug, Clone)]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
 #[reflect(type_uuid = "39c47baa-9fc3-4204-92ca-878d621f3656")]
 #[visit(optional)]
 pub struct CharacterSpawnPoint {
