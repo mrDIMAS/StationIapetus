@@ -169,7 +169,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
         if no_head || aimed_horizontally && aimed_vertically {
             Ok(Status::Success)
         } else {
-            ctx.character.stand_still(&mut ctx.scene.graph);
+            ctx.character.stand_still();
 
             Ok(Status::Running)
         }

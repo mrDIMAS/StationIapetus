@@ -18,7 +18,6 @@ use crate::{
     },
     CameraController, Elevator, Game, Item, MessageSender,
 };
-use fyrox::core::some_or_continue;
 use fyrox::{
     asset::manager::ResourceManager,
     core::{
@@ -29,6 +28,7 @@ use fyrox::{
         math::{SmoothAngle, Vector2Ext},
         pool::Handle,
         reflect::prelude::*,
+        some_or_continue,
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -134,7 +134,6 @@ pub struct Player {
     run_factor: f32,
     target_run_factor: f32,
     in_air_time: f32,
-    velocity: Vector3<f32>,
     weapon_display: Handle<Node>,
     inventory_display: Handle<Node>,
     journal_display: Handle<Node>,
@@ -220,7 +219,6 @@ impl Default for Player {
                 speed: 10.00, // rad/s
             },
             in_air_time: Default::default(),
-            velocity: Default::default(),
             run_factor: Default::default(),
             target_run_factor: Default::default(),
             weapon_display: Default::default(),
@@ -278,7 +276,6 @@ impl Clone for Player {
             run_factor: self.run_factor,
             target_run_factor: self.target_run_factor,
             in_air_time: self.in_air_time,
-            velocity: self.velocity,
             weapon_display: self.weapon_display,
             inventory_display: self.inventory_display,
             journal_display: self.journal_display,
@@ -596,33 +593,20 @@ impl Player {
         Ok(())
     }
 
-    fn update_velocity(&mut self, scene: &mut Scene, dt: f32) -> GameResult {
+    fn update_velocity(&mut self, scene: &mut Scene) -> GameResult {
         let transform = &scene.graph.try_get(self.model)?.global_transform();
 
         if let Some(root_motion) = self
             .state_machine
-            .lower_body_layer(&scene.graph)
-            .unwrap()
+            .lower_body_layer(&scene.graph)?
             .pose()
             .root_motion()
         {
-            self.velocity = transform
-                .transform_vector(&root_motion.delta_position)
-                .scale(1.0 / dt);
+            let vel = transform.transform_vector(&root_motion.delta_position);
+            self.velocity.x = vel.x;
+            self.velocity.y += vel.y;
+            self.velocity.z = vel.z;
         }
-
-        let body = &mut scene.graph[self.body];
-
-        body.set_ang_vel(Default::default());
-        body.set_lin_vel(Vector3::new(
-            self.velocity.x,
-            if self.velocity.y > 0.001 {
-                self.velocity.y
-            } else {
-                body.lin_vel().y
-            },
-            self.velocity.z,
-        ));
 
         Ok(())
     }
@@ -653,7 +637,7 @@ impl Player {
         self.state_machine.apply(StateMachineInput {
             is_walking,
             is_jumping,
-            has_ground_contact: self.in_air_time <= 0.3,
+            has_ground_contact: true, // self.in_air_time <= 0.3,
             is_aiming: self.controller.aim && !self.character.weapons.is_empty(),
             run_factor: self.run_factor,
             is_dead: self.is_dead(&scene.graph),
@@ -1212,6 +1196,8 @@ impl ScriptTrait for Player {
         self.inventory_gui.update(ctx.dt, &self.character.inventory);
         self.render_offscreen_ui(ctx);
 
+        self.handle_movement(ctx.scene, ctx.dt);
+
         let game = ctx.plugins.get_mut::<Game>();
         game.weapon_display.sync_to_model(self, &ctx.scene.graph);
         game.journal_display.update(ctx.dt, &self.journal);
@@ -1310,7 +1296,7 @@ impl ScriptTrait for Player {
             self.run_factor += (self.target_run_factor - self.run_factor) * 0.1;
 
             let can_move = self.can_move(&ctx.scene.graph)?;
-            self.update_velocity(ctx.scene, ctx.dt)?;
+            self.update_velocity(ctx.scene)?;
 
             ctx.scene
                 .graph

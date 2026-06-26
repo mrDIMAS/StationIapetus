@@ -11,6 +11,7 @@ use crate::{
 };
 use fyrox::{
     core::{
+        algebra::{Isometry3, Translation3},
         algebra::{Point3, Vector3},
         log::Log,
         math::ray::Ray,
@@ -26,9 +27,12 @@ use fyrox::{
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
-        graph::{physics::RayCastOptions, Graph},
+        graph::{
+            physics::{character::KinematicCharacterController, QueryFilter, RayCastOptions},
+            Graph,
+        },
         node::Node,
-        rigidbody::RigidBody,
+        rigidbody::{RigidBody, RigidBodyType},
         Scene,
     },
     script::{RoutingStrategy, ScriptContext, ScriptMessagePayload, ScriptMessageSender},
@@ -87,6 +91,11 @@ pub struct CharacterMessage {
 #[reflect(type_uuid = "d768f3b4-5deb-4f1b-9539-a2cf3f311f4e")]
 #[visit(optional)]
 pub struct Character {
+    pub character_controller: KinematicCharacterController,
+    #[reflect(hidden)]
+    #[visit(skip)]
+    pub position: Vector3<f32>,
+    pub velocity: Vector3<f32>,
     pub capsule_collider: Handle<Collider>,
     pub body: Handle<RigidBody>,
     pub weapons: Vec<Handle<Node>>,
@@ -115,6 +124,9 @@ pub struct MeleeAttackContext {
 impl Default for Character {
     fn default() -> Self {
         Self {
+            character_controller: Default::default(),
+            position: Default::default(),
+            velocity: Default::default(),
             capsule_collider: Default::default(),
             body: Default::default(),
             weapons: Vec::new(),
@@ -142,9 +154,43 @@ fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Hand
 }
 
 impl Character {
-    pub fn stand_still(&self, graph: &mut Graph) {
-        let body = &mut graph[self.body];
-        body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
+    pub fn stand_still(&mut self) {
+        self.velocity = Vector3::zeros();
+    }
+
+    pub fn handle_movement(&mut self, scene: &mut Scene, dt: f32) {
+        fn isometry_from_pos(v: Vector3<f32>) -> Isometry3<f32> {
+            Isometry3 {
+                translation: Translation3::from(v),
+                rotation: Default::default(),
+            }
+        }
+        let filter = QueryFilter {
+            predicate: Some(&|_, c| {
+                let body_type = scene
+                    .graph
+                    .try_get_of_type::<RigidBody>(c.parent())
+                    .unwrap()
+                    .body_type();
+                body_type == RigidBodyType::Dynamic || body_type == RigidBodyType::Static
+            }),
+            ..Default::default()
+        };
+        if let Some(movement) = self.character_controller.move_collider_shape(
+            dt,
+            self.capsule_collider,
+            isometry_from_pos(self.position),
+            self.velocity,
+            &scene.graph,
+            filter,
+        ) {
+            self.position += movement.translation;
+            if movement.grounded {
+                self.velocity.y = 0.0;
+            }
+            scene.graph[self.body].set_next_kinematic_translation(self.position);
+        }
+        self.velocity.y = (self.velocity.y - dt).max(-0.1);
     }
 
     pub fn has_ground_contact(&self, graph: &Graph) -> Result<bool, GameError> {
@@ -160,6 +206,8 @@ impl Character {
     }
 
     pub fn on_start(&mut self, ctx: &mut ScriptContext) {
+        ctx.scene.graph.update_hierarchical_data();
+        self.position = ctx.scene.graph[self.body].global_position();
         self.hit_boxes = ctx
             .scene
             .graph

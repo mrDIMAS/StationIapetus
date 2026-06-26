@@ -24,7 +24,7 @@ impl<'a> Behavior<'a> for ThreatenTarget {
                 }
 
                 self.in_progress = true;
-                ctx.character.stand_still(&mut ctx.scene.graph);
+                ctx.character.stand_still();
                 Ok(Status::Running)
             } else if self.in_progress {
                 self.in_progress = false;

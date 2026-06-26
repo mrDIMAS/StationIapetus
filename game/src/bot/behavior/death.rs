@@ -58,7 +58,7 @@ impl<'a> Behavior<'a> for StayDead {
             }
         }
 
-        ctx.character.stand_still(&mut ctx.scene.graph);
+        ctx.character.stand_still();
 
         Ok(Status::Success)
     }

@@ -7,7 +7,7 @@ use fyrox::{
     fxhash::FxHashSet,
     graph::SceneGraph,
     plugin::error::GameError,
-    scene::{collider::Collider, navmesh::NavigationalMesh, Scene},
+    scene::{collider::Collider, Scene},
     utils::behavior::{Behavior, Status},
 };
 
@@ -76,11 +76,11 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let mut body = multiborrow_context.try_get_mut(ctx.character.body)?;
+        let body = multiborrow_context.try_get_mut(ctx.character.body)?;
         let position = body.global_position();
 
         ctx.agent.set_speed(ctx.move_speed);
-        let navmesh = multiborrow_context.try_get_or_field_ref::<NavigationalMesh>(ctx.navmesh)?;
+        let navmesh = multiborrow_context.try_get(ctx.navmesh)?;
 
         ctx.agent.set_position(position);
 
@@ -94,14 +94,9 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let y_vel = body.lin_vel().y;
         if has_reached_destination {
-            body.set_lin_vel(Vector3::new(0.0, y_vel, 0.0));
+            ctx.character.velocity = Vector3::new(0.0, y_vel, 0.0);
         } else if let Some(delta_position) = delta_position {
-            let velocity = transform
-                .transform_vector(&delta_position)
-                .scale(1.0 / ctx.dt);
-
-            let velocity = Vector3::new(velocity.x, y_vel, velocity.z);
-            body.set_lin_vel(velocity);
+            ctx.character.velocity = transform.transform_vector(&delta_position);
         }
 
         drop(navmesh);

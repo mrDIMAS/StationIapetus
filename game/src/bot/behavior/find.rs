@@ -165,7 +165,7 @@ impl<'a> Behavior<'a> for FindTarget {
         if ctx.target.is_some() {
             Ok(Status::Success)
         } else {
-            ctx.character.stand_still(&mut ctx.scene.graph);
+            ctx.character.stand_still();
 
             // Keep looking.
             Ok(Status::Running)

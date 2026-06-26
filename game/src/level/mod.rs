@@ -38,7 +38,7 @@ pub struct Level {
     pub items: ItemContainer,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
-    pub navmesh: Handle<Node>,
+    pub navmesh: Handle<NavigationalMesh>,
     pub pois: FxHashSet<Handle<Node>>,
 
     #[visit(skip)]
@@ -77,14 +77,10 @@ impl Level {
             .graph
             .update(Default::default(), 0.0, Default::default());
 
-        let navmesh = scene
-            .graph
-            .find_from_root(&mut |n| n.cast::<NavigationalMesh>().is_some())
-            .map(|t| t.0)
-            .unwrap_or_default();
-
         Self {
-            navmesh,
+            navmesh: scene
+                .graph
+                .find_handle_of_type_from_root::<NavigationalMesh>(),
             player: Default::default(),
             actors: Default::default(),
             death_zones: Default::default(),
@@ -128,7 +124,7 @@ impl Level {
 
         scene
             .graph
-            .try_get_of_type::<NavigationalMesh>(self.navmesh)?
+            .try_get(self.navmesh)?
             .debug_draw(drawing_context);
 
         for actor in self.actors.iter() {

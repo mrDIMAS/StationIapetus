@@ -483,6 +483,8 @@ impl ScriptTrait for Bot {
     }
 
     fn on_update(&mut self, ctx: &mut ScriptContext) -> GameResult {
+        self.handle_movement(ctx.scene, ctx.dt);
+
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
 
