@@ -23,7 +23,7 @@ use fyrox::{
     },
     fxhash::FxHashSet,
     graph::SceneGraph,
-    plugin::error::{GameError, GameResult},
+    plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
         collider::Collider,
@@ -96,6 +96,7 @@ pub struct Character {
     #[visit(skip)]
     pub position: Vector3<f32>,
     pub velocity: Vector3<f32>,
+    pub has_ground_contact: bool,
     pub capsule_collider: Handle<Collider>,
     pub body: Handle<RigidBody>,
     pub weapons: Vec<Handle<Node>>,
@@ -127,6 +128,7 @@ impl Default for Character {
             character_controller: Default::default(),
             position: Default::default(),
             velocity: Default::default(),
+            has_ground_contact: false,
             capsule_collider: Default::default(),
             body: Default::default(),
             weapons: Vec::new(),
@@ -185,24 +187,13 @@ impl Character {
             filter,
         ) {
             self.position += movement.translation;
-            if movement.grounded {
+            self.has_ground_contact = movement.grounded;
+            if self.has_ground_contact {
                 self.velocity.y = 0.0;
             }
             scene.graph[self.body].set_next_kinematic_translation(self.position);
         }
         self.velocity.y = (self.velocity.y - dt).max(-0.1);
-    }
-
-    pub fn has_ground_contact(&self, graph: &Graph) -> Result<bool, GameError> {
-        let collider = graph.try_get(self.capsule_collider)?;
-        for contact in collider.contacts(&graph.physics) {
-            for manifold in contact.manifolds.iter() {
-                if manifold.local_n1.y.abs() > 0.7 || manifold.local_n2.y.abs() > 0.7 {
-                    return Ok(true);
-                }
-            }
-        }
-        Ok(false)
     }
 
     pub fn on_start(&mut self, ctx: &mut ScriptContext) {

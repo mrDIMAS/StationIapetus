@@ -1257,9 +1257,8 @@ impl ScriptTrait for Player {
             }
         }
 
-        let has_ground_contact = self.has_ground_contact(&ctx.scene.graph)?;
         let is_walking = self.is_walking();
-        let is_jumping = has_ground_contact && self.controller.jump;
+        let is_jumping = self.has_ground_contact && self.controller.jump;
 
         self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle)?;
         self.update_animation_machines(ctx.scene, is_walking, is_jumping)?;
@@ -1283,7 +1282,7 @@ impl ScriptTrait for Player {
             ctx.resource_manager,
             self.position(&ctx.scene.graph),
             is_walking,
-            has_ground_contact,
+            self.has_ground_contact,
             &level.sound_manager,
         )?;
 
@@ -1378,7 +1377,7 @@ impl ScriptTrait for Player {
 
             self.apply_weapon_angular_correction(ctx.scene, can_move, ctx.dt);
 
-            if has_ground_contact {
+            if self.has_ground_contact {
                 self.in_air_time = 0.0;
             } else {
                 self.in_air_time += ctx.dt;
