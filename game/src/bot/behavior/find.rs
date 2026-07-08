@@ -44,7 +44,7 @@ impl<'a> Behavior<'a> for FindTarget {
     fn tick(&mut self, ctx: &mut Self::Context) -> Result<Status, GameError> {
         let graph = &ctx.scene.graph;
 
-        let position = ctx.character.position(graph);
+        let position = ctx.character.position;
 
         self.update_frustum(position, graph, ctx.model);
 
@@ -54,7 +54,7 @@ impl<'a> Behavior<'a> for FindTarget {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
                     let character = graph.try_get_script_field_of::<Character>(actor_handle)?;
                     if !character.is_dead(graph) {
-                        target.position = character.position(graph);
+                        target.position = character.position;
                         return Ok(Status::Success);
                     }
                 }

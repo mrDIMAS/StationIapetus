@@ -161,12 +161,6 @@ impl Character {
     }
 
     pub fn handle_movement(&mut self, scene: &mut Scene, dt: f32) {
-        fn isometry_from_pos(v: Vector3<f32>) -> Isometry3<f32> {
-            Isometry3 {
-                translation: Translation3::from(v),
-                rotation: Default::default(),
-            }
-        }
         let filter = QueryFilter {
             predicate: Some(&|_, c| {
                 let body_type = scene
@@ -181,7 +175,10 @@ impl Character {
         if let Some(movement) = self.character_controller.move_collider_shape(
             dt,
             self.capsule_collider,
-            isometry_from_pos(self.position),
+            Isometry3 {
+                translation: Translation3::from(self.position),
+                rotation: Default::default(),
+            },
             self.velocity,
             &scene.graph,
             filter,
@@ -193,7 +190,7 @@ impl Character {
             }
             scene.graph[self.body].set_next_kinematic_translation(self.position);
         }
-        self.velocity.y = (self.velocity.y - dt).max(-0.1);
+        self.velocity.y = (self.velocity.y - dt).max(-9.81 * dt);
     }
 
     pub fn on_start(&mut self, ctx: &mut ScriptContext) {
@@ -229,10 +226,6 @@ impl Character {
         Ok(())
     }
 
-    pub fn position(&self, graph: &Graph) -> Vector3<f32> {
-        graph[self.body].global_position()
-    }
-
     pub fn most_vulnerable_point(&self, graph: &Graph) -> Vector3<f32> {
         if let Some((head_handle, _)) = self
             .hit_box_iter(graph)
@@ -240,7 +233,7 @@ impl Character {
         {
             graph[head_handle].global_position()
         } else {
-            self.position(graph)
+            self.position
         }
     }
 
@@ -524,7 +517,7 @@ impl Character {
                 }
             }
             CharacterMessageData::DropItems { item, count } => {
-                let drop_position = self.position(&scene.graph) + Vector3::new(0.0, 0.5, 0.0);
+                let drop_position = self.position + Vector3::new(0.0, 0.5, 0.0);
                 let weapons = self.weapons().to_vec();
 
                 if self.inventory.try_extract_exact_items(item, *count) == *count {

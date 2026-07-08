@@ -383,7 +383,7 @@ impl Player {
     }
 
     fn check_doors(&mut self, scene: &mut Scene, door_container: &DoorContainer) {
-        let self_position = self.position(&scene.graph);
+        let self_position = self.position;
 
         if self.controller.action {
             for &door_handle in &door_container.doors {
@@ -604,7 +604,6 @@ impl Player {
         {
             let vel = transform.transform_vector(&root_motion.delta_position);
             self.velocity.x = vel.x;
-            self.velocity.y += vel.y;
             self.velocity.z = vel.z;
         }
 
@@ -637,7 +636,7 @@ impl Player {
         self.state_machine.apply(StateMachineInput {
             is_walking,
             is_jumping,
-            has_ground_contact: true, // self.in_air_time <= 0.3,
+            has_ground_contact: self.in_air_time <= 0.25,
             is_aiming: self.controller.aim && !self.character.weapons.is_empty(),
             run_factor: self.run_factor,
             is_dead: self.is_dead(&scene.graph),
@@ -1280,7 +1279,7 @@ impl ScriptTrait for Player {
             ctx.message_sender,
             ctx.handle,
             ctx.resource_manager,
-            self.position(&ctx.scene.graph),
+            self.position,
             is_walking,
             self.has_ground_contact,
             &level.sound_manager,
@@ -1406,10 +1405,7 @@ impl ScriptTrait for Player {
                     * UnitQuaternion::from_axis_angle(&Vector3::y_axis(), self.h_recoil.angle()),
             );
         } else {
-            // Lock player on the place he died.
-            let body = &mut ctx.scene.graph[self.body];
-            body.set_ang_vel(Default::default());
-            body.set_lin_vel(Vector3::new(0.0, body.lin_vel().y, 0.0));
+            self.stand_still();
         }
 
         Ok(())

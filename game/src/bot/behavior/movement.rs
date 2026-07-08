@@ -76,13 +76,10 @@ impl<'a> Behavior<'a> for MoveToTarget {
 
         let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
 
-        let body = multiborrow_context.try_get_mut(ctx.character.body)?;
-        let position = body.global_position();
-
         ctx.agent.set_speed(ctx.move_speed);
         let navmesh = multiborrow_context.try_get(ctx.navmesh)?;
 
-        ctx.agent.set_position(position);
+        ctx.agent.set_position(ctx.character.position);
 
         if let Some(target) = ctx.target.as_ref() {
             ctx.agent.set_target(target.position);
@@ -90,20 +87,21 @@ impl<'a> Behavior<'a> for MoveToTarget {
         }
 
         let has_reached_destination =
-            ctx.agent.target().metric_distance(&position) <= self.min_distance;
+            ctx.agent.target().metric_distance(&ctx.character.position) <= self.min_distance;
 
-        let y_vel = body.lin_vel().y;
         if has_reached_destination {
-            ctx.character.velocity = Vector3::new(0.0, y_vel, 0.0);
+            ctx.character.velocity.x = 0.0;
+            ctx.character.velocity.z = 0.0;
         } else if let Some(delta_position) = delta_position {
-            ctx.character.velocity = transform.transform_vector(&delta_position);
+            let vel = transform.transform_vector(&delta_position);
+            ctx.character.velocity.x = vel.x;
+            ctx.character.velocity.z = vel.z;
         }
 
         drop(navmesh);
-        drop(body);
         drop(multiborrow_context);
 
-        self.check_obstacles(position, ctx);
+        self.check_obstacles(ctx.character.position, ctx);
 
         if has_reached_destination {
             ctx.is_moving = false;

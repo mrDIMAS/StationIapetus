@@ -213,7 +213,7 @@ impl Bot {
         if let Some(target) = self.target.as_ref() {
             let mut query_storage = ArrayVec::<Intersection, 64>::new();
 
-            let position = self.position(&scene.graph);
+            let position = self.position;
             let ray_direction = target.position - position;
 
             scene.graph.physics.cast_ray(
@@ -336,7 +336,7 @@ impl Bot {
 
     fn on_damage(&mut self, damage: &HitBoxDamage, ctx: &mut ScriptMessageContext) -> GameResult {
         if let Some((character_handle, character)) = damage.dealer.as_character(&ctx.scene.graph) {
-            self.set_target(character_handle, character.position(&ctx.scene.graph));
+            self.set_target(character_handle, character.position);
         }
 
         let hit_box = ctx

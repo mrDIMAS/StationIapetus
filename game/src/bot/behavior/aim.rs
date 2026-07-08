@@ -142,7 +142,7 @@ impl<'a> Behavior<'a> for AimOnTarget {
         }
         .unwrap_or_else(|| ctx.agent.target());
 
-        let look_dir = target_pos - ctx.character.position(&ctx.scene.graph);
+        let look_dir = target_pos - ctx.character.position;
         let no_head = ctx
             .character
             .is_limb_sliced_off(&ctx.scene.graph, LimbType::Head);

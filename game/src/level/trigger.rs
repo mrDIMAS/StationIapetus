@@ -52,7 +52,7 @@ impl ScriptTrait for Trigger {
                 ctx.scene
                     .graph
                     .try_get_script_field_of::<Character>(level.player)?
-                    .position(&ctx.scene.graph),
+                    .position,
             );
 
             match self.kind {

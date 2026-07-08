@@ -371,7 +371,7 @@ impl Turret {
 
                 let mut query_buffer = ArrayVec::<_, 128>::new();
 
-                let actor_position = actor.position(&scene.graph);
+                let actor_position = actor.position;
 
                 if !self.frustum.is_contains_point(actor_position) {
                     continue 'target_loop;
