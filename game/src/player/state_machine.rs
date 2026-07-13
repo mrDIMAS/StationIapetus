@@ -47,6 +47,7 @@ impl StateMachine {
     pub const TOSS_GRENADE_SIGNAL: &'static str = "TossGrenade";
     pub const HIT_STARTED_SIGNAL: &'static str = "HitStarted";
     pub const HIT_ENDED_SIGNAL: &'static str = "HitEnded";
+    pub const JUMP_SIGNAL: &'static str = "Jump";
 
     const LOWER_BODY_LAYER_INDEX: usize = 0;
     const UPPER_BODY_LAYER_INDEX: usize = 1;

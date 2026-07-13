@@ -469,6 +469,7 @@ impl Player {
         is_walking: bool,
         has_ground_contact: bool,
         sound_manager: &SoundManager,
+        dt: f32,
     ) -> GameResult {
         let absm = scene.graph.try_get(self.machine)?;
 
@@ -573,6 +574,8 @@ impl Player {
                     self.character
                         .footstep_ray_check(begin, scene, sound_manager);
                 }
+            } else if event.name == StateMachine::JUMP_SIGNAL {
+                self.velocity.y += 9.0 * dt;
             }
         }
 
@@ -627,12 +630,12 @@ impl Player {
 
     fn update_animation_machines(
         &mut self,
+        root: Handle<Node>,
         scene: &mut Scene,
         is_walking: bool,
         is_jumping: bool,
     ) -> GameResult {
         let weapon_kind = self.current_weapon_kind(&scene.graph);
-
         self.state_machine.apply(StateMachineInput {
             is_walking,
             is_jumping,
@@ -1012,9 +1015,6 @@ impl ScriptTrait for Player {
         let animations_container =
             utils::fetch_animation_container_mut(&mut ctx.scene.graph, self.animation_player);
 
-        let jump_anim = animations_container.get(self.state_machine.jump_animation);
-        let can_jump = !jump_anim.is_enabled() || jump_anim.has_ended();
-
         let can_change_weapon = self.weapon_change_direction.is_none()
             && animations_container[self.state_machine.grab_animation].has_ended()
             && self.weapons.len() > 1;
@@ -1044,7 +1044,7 @@ impl ScriptTrait for Player {
             } else if button == control_scheme.move_right.button {
                 self.controller.walk_right = state == ElementState::Pressed;
             } else if button == control_scheme.jump.button {
-                self.controller.jump = state == ElementState::Pressed && can_jump;
+                self.controller.jump = state == ElementState::Pressed;
             } else if button == control_scheme.run.button {
                 self.controller.run = state == ElementState::Pressed;
             } else if button == control_scheme.flash_light.button {
@@ -1256,11 +1256,16 @@ impl ScriptTrait for Player {
             }
         }
 
+        if self.has_ground_contact {
+            self.in_air_time = 0.0;
+        } else {
+            self.in_air_time += ctx.dt;
+        }
+
         let is_walking = self.is_walking();
         let is_jumping = self.has_ground_contact && self.controller.jump;
-
         self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle)?;
-        self.update_animation_machines(ctx.scene, is_walking, is_jumping)?;
+        self.update_animation_machines(ctx.handle, ctx.scene, is_walking, is_jumping)?;
 
         if self
             .melee_attack_context
@@ -1283,6 +1288,7 @@ impl ScriptTrait for Player {
             is_walking,
             self.has_ground_contact,
             &level.sound_manager,
+            ctx.dt,
         )?;
 
         if !self.is_dead(&ctx.scene.graph) {
@@ -1375,12 +1381,6 @@ impl ScriptTrait for Player {
             }
 
             self.apply_weapon_angular_correction(ctx.scene, can_move, ctx.dt);
-
-            if self.has_ground_contact {
-                self.in_air_time = 0.0;
-            } else {
-                self.in_air_time += ctx.dt;
-            }
 
             ctx.scene
                 .graph
