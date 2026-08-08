@@ -16,7 +16,6 @@ use crate::{
     character::Character,
     utils::BodyImpactHandler,
 };
-use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     dispatch_behavior_variants,
