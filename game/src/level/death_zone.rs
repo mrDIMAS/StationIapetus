@@ -1,12 +1,16 @@
 use crate::Game;
 use fyrox::{
-    core::{reflect::prelude::*, visitor::prelude::*},
+    core::{
+        reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     plugin::error::GameResult,
     script::{ScriptContext, ScriptDeinitContext, ScriptTrait},
 };
-
-#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
-#[reflect(type_uuid = "9c258713-e44e-4366-a236-f91e09c6f0aa")]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone, TypeUuidProvider,ComponentProvider)]
+#[type_uuid(id = "9c258713-e44e-4366-a236-f91e09c6f0aa")]
 #[visit(optional)]
 pub struct DeathZone;
 

@@ -1,10 +1,15 @@
 use crate::level::hit_box::HitBoxMessage;
 use fyrox::{
     core::{
-        pool::Handle, reflect::prelude::*, variable::InheritableVariable, visitor::prelude::*,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
+        variable::InheritableVariable,
+        visitor::prelude::*,
         ImmutableString,
     },
-    generic_animation::machine::Event,
+    generic_animation::machine::{Event, Parameter},
     graph::SceneGraph,
     plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
@@ -12,8 +17,8 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "1bd90488-7a17-430e-9b35-dc0a9a1a2f58")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "1bd90488-7a17-430e-9b35-dc0a9a1a2f58")]
 #[visit(optional)]
 pub struct ExplosiveBarrel {
     health: InheritableVariable<f32>,
@@ -50,7 +55,7 @@ impl ScriptTrait for ExplosiveBarrel {
         let absm = graph.try_get_mut(*self.state_machine)?;
 
         let machine = absm.machine_mut();
-        machine.set_rule("IsDamaged", *self.health <= 0.0);
+        machine.set_parameter("IsDamaged", Parameter::Rule(*self.health <= 0.0));
 
         if let Some(layer) = machine.layers_mut().first_mut() {
             while let Some(event) = layer.pop_event() {

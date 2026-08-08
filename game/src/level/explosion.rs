@@ -8,17 +8,19 @@ use fyrox::{
         algebra::{Matrix4, Vector3},
         math::aabb::AxisAlignedBoundingBox,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
-    graph::{NodeWrapper, SceneGraph},
+    graph::SceneGraph,
     plugin::error::GameResult,
     scene::rigidbody::RigidBody,
     script::{RoutingStrategy, ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "d5a6d420-bb6c-4367-ad06-26109880eff8")]
 #[visit(optional)]
 pub struct Explosion {
     strength: InheritableVariable<f32>,
@@ -46,7 +48,7 @@ impl ScriptTrait for Explosion {
             .scene
             .graph
             .linear_iter_mut()
-            .filter_map(|n| n.self_or_field_mut::<RigidBody>())
+            .filter_map(|n| n.cast_mut::<RigidBody>())
         {
             if aabb.is_contains_point(rigid_body.global_position()) {
                 let d = rigid_body.global_position() - center;

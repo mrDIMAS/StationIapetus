@@ -8,7 +8,14 @@ use crate::{
     Game, MessageSender,
 };
 use fyrox::{
-    core::{err, pool::Handle, reflect::prelude::*, visitor::prelude::*},
+    core::{
+        err,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     event::Event,
     graph::SceneGraph,
     gui::{
@@ -24,8 +31,8 @@ use fyrox::{
     scene::{sound::Sound, Scene},
 };
 
-#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
-#[reflect(type_uuid = "0226e2fe-799c-4ad9-9e57-6aec808b5af1")]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone, TypeUuidProvider)]
+#[type_uuid(id = "0226e2fe-799c-4ad9-9e57-6aec808b5af1")]
 #[visit(optional)]
 pub struct MenuData {
     btn_new_game: Handle<Button>,

@@ -12,14 +12,16 @@ use fyrox::{
         math::{lerpf, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
-    graph::{NodeWrapper, SceneGraph},
+    graph::SceneGraph,
     plugin::error::GameResult,
     scene::{
         collider::{BitMask, InteractionGroups},
         graph::{physics::RayCastOptions, Graph},
-        light::BaseLight,
+        light::{directional::DirectionalLight, point::PointLight},
         mesh::Mesh,
         node::Node,
         sprite::Sprite,
@@ -27,8 +29,8 @@ use fyrox::{
     script::{ScriptContext, ScriptMessageContext, ScriptMessagePayload, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
-#[reflect(type_uuid = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "f9bcf484-e84a-4de1-9e6d-32913d35f2ef")]
 #[visit(optional)]
 pub struct LaserSight {
     ray: Handle<Node>,
@@ -40,8 +42,8 @@ pub struct LaserSight {
     reaction_state: Option<ReactionState>,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "485cd9c3-cc09-498c-8ce0-b98cd2cc2ee0")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider)]
+#[type_uuid(id = "485cd9c3-cc09-498c-8ce0-b98cd2cc2ee0")]
 pub enum ReactionState {
     HitDetected {
         time_remaining: f32,
@@ -102,16 +104,14 @@ impl LaserSight {
                 .set_property("diffuseColor", color);
         }
 
-        graph[self.light]
-            .self_or_field_mut::<BaseLight>()
-            .unwrap()
-            .set_color(color);
-
-        graph.try_get_mut(self.tip)?.set_color(color);
+        if let Some(light) = graph[self.light].cast_mut::<PointLight>() {
+            light.base_light_mut().set_color(color);
+        } else if let Some(light) = graph[self.light].cast_mut::<DirectionalLight>() {
+            light.base_light_mut().set_color(color);
+        }
 
         Ok(())
     }
-
     fn dilate(&self, graph: &mut Graph, factor: f32) {
         let transform = graph[self.ray].local_transform_mut();
         let scale = **transform.scale();

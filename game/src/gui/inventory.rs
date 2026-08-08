@@ -14,7 +14,13 @@ use fyrox::plugin::error::GameError;
 use fyrox::script::ScriptMessageSender;
 use fyrox::{
     core::{
-        algebra::Vector2, color::Color, math, pool::Handle, reflect::prelude::*,
+        algebra::Vector2,
+        color::Color,
+        math,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -39,7 +45,7 @@ use fyrox::{
 };
 use std::ops::{Deref, DerefMut};
 
-#[derive(Visit, PartialEq, Default, Debug, Clone)]
+#[derive(Visit, Default, Debug, Clone)]
 pub struct InventoryInterface {
     pub ui: UserInterface,
     pub render_target: TextureResource,
@@ -49,11 +55,9 @@ pub struct InventoryInterface {
     scroll_viewer: Handle<ScrollViewer>,
 }
 
-#[derive(Default, Debug, Clone, PartialEq, Reflect, Visit)]
-#[reflect(
-    derived_type = "UiNode",
-    type_uuid = "346f2207-0868-4577-89a3-a4b36f3bf45d"
-)]
+#[derive(Default, Debug, Clone, Reflect, Visit, TypeUuidProvider, ComponentProvider)]
+#[reflect(derived_type = "UiNode")]
+#[type_uuid(id = "346f2207-0868-4577-89a3-a4b36f3bf45d")]
 pub struct InventoryItem {
     widget: Widget,
     is_selected: bool,

@@ -12,6 +12,8 @@ use fyrox::{
         math::{self, aabb::AxisAlignedBoundingBox, ray::Ray},
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -30,16 +32,16 @@ use fyrox::{
     },
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Default, Clone)]
-#[reflect(type_uuid = "b931fd20-d283-48b0-a0c4-5e558a2de032")]
+#[derive(Visit, PartialEq, Reflect, Debug, Default, Clone, TypeUuidProvider)]
+#[type_uuid(id = "b931fd20-d283-48b0-a0c4-5e558a2de032")]
 struct Target {
     grab_point: Vector3<f32>,
     node: Handle<Node>,
     collider: Handle<Collider>,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "2351b380-de4c-4b8a-a33f-a3e598e2ada4")]
 #[visit(optional)]
 pub struct KineticGun {
     weapon: Weapon,
@@ -164,12 +166,14 @@ impl ScriptTrait for KineticGun {
                     let player = ctx
                         .scene
                         .graph
-                        .try_get_script_field_of::<Player>(level.player)?;
+                        .try_get_script_component_of::<Player>(level.player)?;
 
                     let camera_controller = ctx
                         .scene
                         .graph
-                        .try_get_script_field_of::<CameraController>(player.camera_controller)?;
+                        .try_get_script_component_of::<CameraController>(
+                            player.camera_controller,
+                        )?;
 
                     let camera = ctx.scene.graph.try_get(camera_controller.camera)?;
                     if let PhysicalKey::Code(key) = event.physical_key {

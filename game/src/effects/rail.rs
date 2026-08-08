@@ -1,5 +1,4 @@
 //! Particles generator for rail gun's rail effect.
-
 use fyrox::graph::SceneGraph;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
@@ -7,7 +6,8 @@ use fyrox::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
         reflect::prelude::*,
-        uuid::uuid,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     scene::{
@@ -18,15 +18,14 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "bdefd227-b1eb-4f8e-9ef9-8a8ec4abab1c")]
 #[visit(optional)]
 pub struct Rail {
     radius: f32,
     particles_per_meter: f32,
     max_length: f32,
 }
-
 impl Default for Rail {
     fn default() -> Self {
         Self {

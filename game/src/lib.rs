@@ -73,6 +73,8 @@ use fyrox::{
         log::Log,
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },
     dpi::LogicalSize,
@@ -112,13 +114,9 @@ use std::{
     },
 };
 
-#[derive(Visit, Reflect, Debug)]
-#[reflect(
-    hide_all,
-    non_cloneable,
-    non_comparable,
-    type_uuid = "dba407d5-90bd-4874-89ae-edd0ab9b64e2"
-)]
+#[derive(Visit, Reflect, Debug, TypeUuidProvider)]
+#[reflect(hide_all, non_cloneable)]
+#[type_uuid(id = "dba407d5-90bd-4874-89ae-edd0ab9b64e2")]
 pub struct Game {
     menu: Option<Menu>,
     level: Option<Level>,
@@ -729,29 +727,29 @@ impl Plugin for Game {
 
     fn register_property_editors(&self, container: Arc<PropertyEditorDefinitionContainer>) {
         // Scripts.
-        container.register_inspectable::<Door>();
-        container.register_inspectable::<Turret>();
-        container.register_inspectable::<Weapon>();
-        container.register_inspectable::<Item>();
-        container.register_inspectable::<Decal>();
-        container.register_inspectable::<Player>();
-        container.register_inspectable::<Bot>();
-        container.register_inspectable::<CharacterSpawnPoint>();
-        container.register_inspectable::<DeathZone>();
-        container.register_inspectable::<AnimatedLight>();
-        container.register_inspectable::<Elevator>();
-        container.register_inspectable::<CallButton>();
-        container.register_inspectable::<Projectile>();
-        container.register_inspectable::<LaserSight>();
-        container.register_inspectable::<Rail>();
-        container.register_inspectable::<Explosion>();
-        container.register_inspectable::<Beam>();
-        container.register_inspectable::<KineticGun>();
-        container.register_inspectable::<EnemyTrap>();
-        container.register_inspectable::<PointOfInterest>();
-        container.register_inspectable::<Trigger>();
-        container.register_inspectable::<ExplosiveBarrel>();
-        container.register_inspectable::<HitBox>();
+        container.register_inheritable_inspectable::<Door>();
+        container.register_inheritable_inspectable::<Turret>();
+        container.register_inheritable_inspectable::<Weapon>();
+        container.register_inheritable_inspectable::<Item>();
+        container.register_inheritable_inspectable::<Decal>();
+        container.register_inheritable_inspectable::<Player>();
+        container.register_inheritable_inspectable::<Bot>();
+        container.register_inheritable_inspectable::<CharacterSpawnPoint>();
+        container.register_inheritable_inspectable::<DeathZone>();
+        container.register_inheritable_inspectable::<AnimatedLight>();
+        container.register_inheritable_inspectable::<Elevator>();
+        container.register_inheritable_inspectable::<CallButton>();
+        container.register_inheritable_inspectable::<Projectile>();
+        container.register_inheritable_inspectable::<LaserSight>();
+        container.register_inheritable_inspectable::<Rail>();
+        container.register_inheritable_inspectable::<Explosion>();
+        container.register_inheritable_inspectable::<Beam>();
+        container.register_inheritable_inspectable::<KineticGun>();
+        container.register_inheritable_inspectable::<EnemyTrap>();
+        container.register_inheritable_inspectable::<PointOfInterest>();
+        container.register_inheritable_inspectable::<Trigger>();
+        container.register_inheritable_inspectable::<ExplosiveBarrel>();
+        container.register_inheritable_inspectable::<HitBox>();
 
         // Other.
         container.register_inheritable_enum::<Hostility, _>();

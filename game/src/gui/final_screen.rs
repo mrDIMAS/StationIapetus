@@ -1,6 +1,12 @@
 use crate::{message::Message, MessageSender};
 use fyrox::{
-    core::{pool::Handle, reflect::prelude::*, visitor::prelude::*},
+    core::{
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     gui::{
         button::{Button, ButtonMessage},
         message::UiMessage,
@@ -9,8 +15,8 @@ use fyrox::{
     plugin::PluginContext,
 };
 
-#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect)]
-#[reflect(type_uuid = "ddbbaf2f-7519-455a-901e-eaffae3a4849")]
+#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect, TypeUuidProvider)]
+#[type_uuid(id = "ddbbaf2f-7519-455a-901e-eaffae3a4849")]
 pub struct FinalScreenData {
     exit_to_menu: Handle<Button>,
     exit_game: Handle<Button>,

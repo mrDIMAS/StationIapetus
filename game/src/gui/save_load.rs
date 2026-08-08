@@ -7,7 +7,14 @@ use fyrox::gui::list_view::ListView;
 use fyrox::gui::text_box::TextBox;
 use fyrox::gui::window::{Window, WindowAlignment};
 use fyrox::{
-    core::{log::Log, pool::Handle, reflect::prelude::*, visitor::prelude::*},
+    core::{
+        log::Log,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     gui::{
         border::BorderBuilder,
         button::{ButtonBuilder, ButtonMessage},
@@ -33,16 +40,32 @@ use std::{
 
 const SAVED_GAME_EXT: &str = "rgs";
 
-#[derive(Visit, PartialEq, Reflect, Clone, Default, Debug)]
-#[reflect(type_uuid = "bb2b6799-128a-489f-9d72-e82cc706b228")]
+#[derive(
+    Visit,
+    PartialEq,
+    Reflect,
+    Clone,
+    Default,
+    Debug,
+    TypeUuidProvider,
+)]
+#[type_uuid(id = "bb2b6799-128a-489f-9d72-e82cc706b228")]
 pub enum Mode {
     #[default]
     Save,
     Load,
 }
 
-#[derive(Default, Debug, Visit, Clone, PartialEq, Reflect)]
-#[reflect(type_uuid = "0e1e97dd-7165-48d9-9ee8-8b8b0e81cdcb")]
+#[derive(
+    Default,
+    Debug,
+    Visit,
+    Clone,
+    PartialEq,
+    Reflect,
+    TypeUuidProvider,
+)]
+#[type_uuid(id = "0e1e97dd-7165-48d9-9ee8-8b8b0e81cdcb")]
 pub struct SaveLoadDialog {
     pub window: Handle<Window>,
     confirm: Handle<Button>,

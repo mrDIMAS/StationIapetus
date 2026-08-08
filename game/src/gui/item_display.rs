@@ -17,7 +17,7 @@ use fyrox::{
 };
 use std::ops::Deref;
 
-#[derive(Visit, PartialEq, Default, Debug)]
+#[derive(Visit, Default, Debug)]
 pub struct ItemDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

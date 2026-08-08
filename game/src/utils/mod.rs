@@ -95,7 +95,7 @@ pub async fn use_hrtf(
     context
         .state()
         .set_renderer(fyrox::scene::sound::Renderer::HrtfRenderer(
-            fyrox::scene::sound::HrtfRenderer::new(sample_rate, hrtf_sphere),
+            fyrox::scene::sound::HrtfRenderer::new(hrtf_sphere),
         ));
 }
 

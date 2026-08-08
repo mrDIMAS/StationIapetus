@@ -9,6 +9,8 @@ use fyrox::{
         pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -42,9 +44,10 @@ use strum_macros::{AsRefStr, EnumString, VariantNames};
     VariantNames,
     Default,
     Debug,
+    TypeUuidProvider,
 )]
 #[repr(u32)]
-#[reflect(type_uuid = "0deea5b2-dad8-418f-be2d-899c4851c76b")]
+#[type_uuid(id = "0deea5b2-dad8-418f-be2d-899c4851c76b")]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
     #[default]
@@ -68,9 +71,10 @@ pub enum ShootMode {
     VariantNames,
     Debug,
     Default,
+    TypeUuidProvider,
 )]
 #[repr(u32)]
-#[reflect(type_uuid = "bb2b6799-128a-489f-9d72-e82cc706b228")]
+#[type_uuid(id = "bb2b6799-128a-489f-9d72-e82cc706b228")]
 pub enum Hostility {
     #[default]
     Player,
@@ -78,8 +82,8 @@ pub enum Hostility {
     All,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "7a23ce43-500e-4a49-995d-57f44486ed20")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 #[visit(optional)]
 pub struct Turret {
     model: Handle<Node>,
@@ -165,7 +169,7 @@ impl ScriptTrait for Turret {
         if let Ok(target) = ctx
             .scene
             .graph
-            .try_get_script_field_of::<Character>(self.target)
+            .try_get_script_component_of::<Character>(self.target)
         {
             let target_position = target.most_vulnerable_point(&ctx.scene.graph);
 
@@ -263,9 +267,9 @@ impl ScriptTrait for Turret {
     }
 }
 
-#[derive(Default, Visit, Reflect, Clone, PartialEq, Debug)]
+#[derive(Default, Visit, Reflect, Clone, PartialEq, Debug, TypeUuidProvider)]
 #[visit(optional)]
-#[reflect(type_uuid = "d32845ee-62f3-4073-8675-623aa2ab0644")]
+#[type_uuid(id = "d32845ee-62f3-4073-8675-623aa2ab0644")]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
@@ -349,14 +353,14 @@ impl Turret {
         let self_position = graph[self.model].global_position();
 
         if graph
-            .try_get_script_field_of::<Character>(self.target)
+            .try_get_script_component_of::<Character>(self.target)
             .ok()
             .is_none_or(|c| !c.is_dead(graph))
         {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
             'target_loop: for &handle in actors.iter() {
-                let actor = graph.try_get_script_field_of::<Character>(handle)?;
+                let actor = graph.try_get_script_component_of::<Character>(handle)?;
 
                 if actor.is_dead(graph) {
                     continue 'target_loop;

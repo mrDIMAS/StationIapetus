@@ -175,7 +175,7 @@ impl SoundMap {
     }
 }
 
-#[derive(PartialEq, Default)]
+#[derive(Default)]
 pub struct SoundManager {
     sound_base: SoundBase,
     sound_map: SoundMap,

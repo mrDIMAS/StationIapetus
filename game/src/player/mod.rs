@@ -29,6 +29,8 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         some_or_continue,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -115,8 +117,9 @@ pub struct PlayerPersistentData {
     pub hit_box_health: FxHashMap<Handle<Node>, f32>,
 }
 
-#[derive(Visit, Reflect, Debug)]
-#[reflect(type_uuid = "50a07510-893d-476f-aad2-fcfb0845807f", non_comparable)]
+#[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
+#[reflect(non_cloneable)]
+#[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
 #[visit(optional)]
 pub struct Player {
     character: Character,
@@ -339,7 +342,7 @@ impl Player {
                 continue;
             }
 
-            let item = some_or_continue!(item_node.try_get_script_field::<Item>());
+            let item = some_or_continue!(item_node.try_get_script_component::<Item>());
 
             if !item.enabled {
                 continue;
@@ -536,7 +539,7 @@ impl Player {
 
                 let camera_controller = scene
                     .graph
-                    .try_get_script_field_of::<CameraController>(self.camera_controller)?;
+                    .try_get_script_component_of::<CameraController>(self.camera_controller)?;
                 let direction = scene
                     .graph
                     .try_get(camera_controller.camera())?
@@ -758,7 +761,7 @@ impl Player {
 
                             scene
                                 .graph
-                                .try_get_script_field_of_mut::<CameraController>(
+                                .try_get_script_component_of_mut::<CameraController>(
                                     self.camera_controller,
                                 )?
                                 .request_shake_camera();
