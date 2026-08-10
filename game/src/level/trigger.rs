@@ -1,4 +1,6 @@
-use crate::{character::Character, message::Message, Game};
+use crate::bot::Bot;
+use crate::player::Player;
+use crate::{message::Message, Game};
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
@@ -64,12 +66,13 @@ impl ScriptTrait for Trigger {
             let this_bounds = AxisAlignedBoundingBox::unit()
                 .transform(&ctx.scene.graph[ctx.handle].global_transform());
 
-            let contains_player = this_bounds.is_contains_point(
-                ctx.scene
-                    .graph
-                    .try_get_script_component_of::<Character>(level.player)?
-                    .position,
-            );
+            // Cek posisi player langsung via script component Player
+            let contains_player = ctx
+                .scene
+                .graph
+                .try_get_script_component_of::<Player>(level.player)
+                .map(|player| this_bounds.is_contains_point(player.position))
+                .unwrap_or(false);
 
             match self.kind {
                 TriggerAction::LoadLevel { ref path } => {
@@ -92,22 +95,33 @@ impl ScriptTrait for Trigger {
                             continue;
                         }
 
-                        let actor_ref = ctx
+                        // Dapatkan referensi body dari Player atau Bot
+                        let body_handle = if let Ok(player) = ctx
                             .scene
                             .graph
-                            .try_get_script_component_of::<Character>(*actor)?;
-
-                        let actor_position = ctx.scene.graph[actor_ref.body].global_position();
-
-                        if this_bounds.is_contains_point(actor_position)
-                            && !bot_counter.actors.contains(actor)
+                            .try_get_script_component_of::<Player>(*actor)
                         {
-                            bot_counter.counter += 1;
+                            Some(player.body)
+                        } else if let Ok(bot) =
+                            ctx.scene.graph.try_get_script_component_of::<Bot>(*actor)
+                        {
+                            Some(bot.body)
+                        } else {
+                            None
+                        };
 
-                            bot_counter.actors.insert(*actor);
+                        if let Some(body) = body_handle {
+                            let actor_position = ctx.scene.graph[body].global_position();
 
-                            if bot_counter.despawn {
-                                despawn_list.push(*actor);
+                            if this_bounds.is_contains_point(actor_position)
+                                && !bot_counter.actors.contains(actor)
+                            {
+                                bot_counter.counter += 1;
+                                bot_counter.actors.insert(*actor);
+
+                                if bot_counter.despawn {
+                                    despawn_list.push(*actor);
+                                }
                             }
                         }
                     }

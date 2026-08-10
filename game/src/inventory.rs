@@ -1,6 +1,6 @@
 use fyrox::core::{
     reflect::prelude::*,
-    type_traits::{ComponentProvider, TypeUuidProvider},
+    type_traits::TypeUuidProvider,
     uuid::{uuid, Uuid},
     visitor::prelude::*,
 };

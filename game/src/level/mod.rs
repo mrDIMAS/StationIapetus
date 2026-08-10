@@ -2,7 +2,6 @@ use crate::{
     bot::Bot, config::SoundConfig, door::DoorContainer, level::item::ItemContainer,
     sound::SoundManager, utils::use_hrtf, MessageSender,
 };
-use fyrox::graph::SceneGraphNode;
 use fyrox::scene::collider::Collider;
 use fyrox::{
     asset::manager::ResourceManager,
@@ -10,11 +9,7 @@ use fyrox::{
     fxhash::FxHashSet,
     graph::SceneGraph,
     plugin::{error::GameResult, PluginContext},
-    scene::{
-        navmesh::NavigationalMesh,
-        node::{Node, NodeTrait},
-        Scene,
-    },
+    scene::{node::Node, Scene},
 };
 
 pub mod arrival;

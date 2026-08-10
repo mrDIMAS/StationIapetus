@@ -734,7 +734,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:e6e834a5-cebe-43c5-97b4-784d83ef45a6>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -758,7 +758,7 @@ __ROOT__[]
 																				}
 																				Item1[Id<uuid:172b8051-5bf9-4882-849b-31177856b1bb>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base_light.base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base_light.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -888,7 +888,7 @@ __ROOT__[]
 																				}
 																				Item1[Id<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -912,7 +912,7 @@ __ROOT__[]
 																				}
 																				Item2[Id<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base_light.base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base_light.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}
@@ -984,7 +984,7 @@ __ROOT__[]
 																			{
 																				Item0[Id<uuid:dad7a3da-336a-4b5a-acd5-d45194dd1b69>]
 																				{
-																					Binding[Id<u32:3>Name<str:"base.enabled">]
+																					Binding[Id<u32:3>Name<str:"0.base.enabled.Content">]
 																					{
 																						ValueType[Id<u32:0>]{}
 																					}

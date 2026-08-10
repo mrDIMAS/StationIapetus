@@ -1,4 +1,5 @@
-use crate::character::Character;
+use crate::bot::Bot;
+use crate::player::Player;
 use crate::{door::ui::DoorUi, inventory::Inventory, utils, Game};
 use fyrox::core::ComponentProvider;
 use fyrox::plugin::error::GameResult;
@@ -152,8 +153,17 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            if let Ok(actor) = ctx.scene.graph.try_get_script_component_of::<Character>(*a) {
-                let actor_position = actor.position;
+            // Cek apakah actor merupakan Player atau Bot
+            let actor_position =
+                if let Ok(player) = ctx.scene.graph.try_get_script_component_of::<Player>(*a) {
+                    Some(player.position)
+                } else if let Ok(bot) = ctx.scene.graph.try_get_script_component_of::<Bot>(*a) {
+                    Some(bot.position)
+                } else {
+                    None
+                };
+
+            if let Some(actor_position) = actor_position {
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {
                     closest_actor = Some(a);

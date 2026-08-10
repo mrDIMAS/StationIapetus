@@ -73,7 +73,7 @@ use fyrox::{
         log::Log,
         pool::Handle,
         reflect::prelude::*,
-        type_traits::{ComponentProvider, TypeUuidProvider},
+        type_traits::TypeUuidProvider,
         uuid::{uuid, Uuid},
         visitor::{Visit, VisitResult, Visitor},
     },

@@ -87,6 +87,7 @@ pub async fn use_hrtf(
     context: &mut SoundContext,
     resource_manager: &ResourceManager,
 ) {
+    let _ = sample_rate;
     let hrtf_sphere = resource_manager
         .request::<HrirSphereResourceData>("data/sounds/hrtf.hrir")
         .await

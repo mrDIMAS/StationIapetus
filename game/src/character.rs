@@ -1,9 +1,11 @@
 use crate::{
+    bot::Bot,
     inventory::Inventory,
     level::{
         hit_box::{HitBox, HitBoxDamage, HitBoxHeal, HitBoxMessage, LimbType},
         item::ItemAction,
     },
+    player::Player,
     sound::{SoundKind, SoundManager},
     utils,
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
@@ -18,7 +20,7 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         some_or_return,
-        type_traits::{ComponentProvider, TypeUuidProvider},
+        type_traits::TypeUuidProvider,
         uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
@@ -28,13 +30,13 @@ use fyrox::{
     plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
     scene::{
-        collider::{CapsuleShape, Collider},
+        collider::Collider,
         graph::{
             physics::{QueryFilter, RayCastOptions},
             Graph,
         },
         node::Node,
-        rigidbody::{RigidBody, RigidBodyType},
+        rigidbody::RigidBody,
         Scene,
     },
     script::{RoutingStrategy, ScriptContext, ScriptMessagePayload, ScriptMessageSender},
@@ -48,11 +50,12 @@ pub struct DamageDealer {
 
 impl DamageDealer {
     pub fn as_character<'a>(&self, graph: &'a Graph) -> Option<(Handle<Node>, &'a Character)> {
-        if let Some(character) = graph
-            .try_get_script_component_of::<Character>(self.entity)
-            .ok()
-        {
-            return Some((self.entity, character));
+        if let Ok(player) = graph.try_get_script_component_of::<Player>(self.entity) {
+            return Some((self.entity, &**player));
+        }
+
+        if let Ok(bot) = graph.try_get_script_component_of::<Bot>(self.entity) {
+            return Some((self.entity, &**bot));
         }
 
         let script = graph
@@ -61,12 +64,16 @@ impl DamageDealer {
             .and_then(|node| node.script(0))?;
 
         let weapon = script.cast::<Weapon>()?;
+        let owner_handle = weapon.owner();
 
-        let character = graph
-            .try_get_script_component_of::<Character>(weapon.owner())
-            .ok()?;
+        if let Ok(player) = graph.try_get_script_component_of::<Player>(owner_handle) {
+            return Some((owner_handle, &**player));
+        }
+        if let Ok(bot) = graph.try_get_script_component_of::<Bot>(owner_handle) {
+            return Some((owner_handle, &**bot));
+        }
 
-        Some((weapon.owner(), character))
+        None
     }
 }
 

@@ -638,6 +638,7 @@ impl Player {
         is_walking: bool,
         is_jumping: bool,
     ) -> GameResult {
+        let _ = root;
         let weapon_kind = self.current_weapon_kind(&scene.graph);
         self.state_machine.apply(StateMachineInput {
             is_walking,
