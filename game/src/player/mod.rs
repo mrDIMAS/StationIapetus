@@ -905,6 +905,11 @@ impl ScriptTrait for Player {
 
         let level = ctx.plugins.get_mut::<Game>().level.as_mut().unwrap();
 
+        println!(
+            "[ACTORS ADD] Player handle={:?}, node={:?}",
+            ctx.handle,
+            ctx.scene.graph[ctx.handle].name()
+        );
         level.actors.push(ctx.handle);
         // Also register player in special variable to speed up access.
         level.player = ctx.handle;

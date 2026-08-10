@@ -1,5 +1,7 @@
+use crate::bot::Bot;
 use crate::character::Character;
 use crate::{sound::SoundManager, weapon::projectile::Projectile, Game, Player};
+use fyrox::scene::graph::Graph;
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
@@ -352,25 +354,38 @@ impl Turret {
         let graph = &scene.graph;
         let self_position = graph[self.model].global_position();
 
-        if graph
-            .try_get_script_component_of::<Character>(self.target)
-            .ok()
-            .is_none_or(|c| !c.is_dead(graph))
-        {
+        if get_character(graph, self.target).is_none_or(|c| !c.is_dead(graph)) {
             let mut closest = Handle::NONE;
             let mut closest_distance = f32::MAX;
+
             'target_loop: for &handle in actors.iter() {
-                let actor = graph.try_get_script_component_of::<Character>(handle)?;
+                let node = &graph[handle];
+
+                println!(
+                    "[TURRET TARGET] handle={:?}, name={:?}",
+                    handle,
+                    node.name()
+                );
+
+                let Some(actor) = get_character(graph, handle) else {
+                    println!(
+                        "[TURRET TARGET] SKIP: {:?} ({:?}) has no Player/Bot Character",
+                        handle,
+                        node.name()
+                    );
+                    continue 'target_loop;
+                };
 
                 if actor.is_dead(graph) {
                     continue 'target_loop;
                 }
 
                 let is_player = scene.graph[handle].has_script::<Player>();
+
                 if self.hostility == Hostility::Player && !is_player
                     || self.hostility == Hostility::Monsters && is_player
                 {
-                    continue;
+                    continue 'target_loop;
                 }
 
                 let mut query_buffer = ArrayVec::<_, 128>::new();
@@ -419,4 +434,16 @@ impl Turret {
 
         Ok(())
     }
+}
+
+fn get_character<'a>(graph: &'a Graph, handle: Handle<Node>) -> Option<&'a Character> {
+    if let Ok(player) = graph.try_get_script_component_of::<Player>(handle) {
+        return Some(player);
+    }
+
+    if let Ok(bot) = graph.try_get_script_component_of::<Bot>(handle) {
+        return Some(bot);
+    }
+
+    None
 }

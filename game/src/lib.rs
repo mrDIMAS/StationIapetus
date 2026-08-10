@@ -779,6 +779,14 @@ impl Plugin for Game {
             self.load_level(PathBuf::from(scene_path), &mut ctx)?;
         }
 
+        println!("cwd = {:?}", std::env::current_dir());
+
+        let path = std::path::Path::new("data/ui/SquaresBold.ttf");
+
+        println!("font path = {:?}", path);
+        println!("font exists = {}", path.exists());
+        println!("font absolute = {:?}", std::fs::canonicalize(path));
+
         let font = ctx
             .resource_manager
             .request::<Font>(Path::new("data/ui/SquaresBold.ttf"));

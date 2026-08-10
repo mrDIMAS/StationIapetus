@@ -234,6 +234,14 @@ impl OptionsMenu {
         let spot_shadows_quality;
         let show_debug_info;
 
+        println!("cwd = {:?}", std::env::current_dir());
+
+        let path = std::path::Path::new("data/ui/SquaresBold.ttf");
+
+        println!("font path = {:?}", path);
+        println!("font exists = {}", path.exists());
+        println!("font absolute = {:?}", std::fs::canonicalize(path));
+
         let font = engine
             .resource_manager
             .request::<Font>("data/ui/SquaresBold.ttf");
