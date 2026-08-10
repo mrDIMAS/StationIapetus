@@ -8,6 +8,8 @@ use fyrox::{
         math::ray::Ray,
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -26,8 +28,19 @@ use fyrox::{
 };
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
-#[derive(Default, Visit, Reflect, PartialEq, Debug, Clone, AsRefStr, EnumString, VariantNames)]
-#[reflect(type_uuid = "9b11580a-f40b-405d-8ec1-5f2c2b16138e")]
+#[derive(
+    Default,
+    Visit,
+    Reflect,
+    PartialEq,
+    Debug,
+    Clone,
+    AsRefStr,
+    EnumString,
+    VariantNames,
+    TypeUuidProvider,
+)]
+#[type_uuid(id = "9b11580a-f40b-405d-8ec1-5f2c2b16138e")]
 pub enum ItemAction {
     #[default]
     None,
@@ -36,8 +49,8 @@ pub enum ItemAction {
     },
 }
 
-#[derive(Visit, Reflect, Debug, Clone, PartialEq)]
-#[reflect(type_uuid = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
+#[derive(Visit, Reflect, Debug, Clone, PartialEq, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "b915fa9e-6fd0-420d-8879-33cf76adfb5e")]
 #[visit(optional)]
 pub struct Item {
     pub stack_size: InheritableVariable<u32>,
@@ -140,7 +153,7 @@ impl Item {
     {
         let data = model_resource.data_ref();
         let graph = &data.get_scene().graph;
-        func(graph.try_get_script_field_of(graph.get_root()).ok())
+        func(graph.try_get_script_component_of(graph.get_root()).ok())
     }
 
     pub fn add_to_scene(
@@ -181,7 +194,7 @@ impl Item {
         let item_ref = &mut scene.graph[item];
         item_ref.local_transform_mut().set_position(position);
 
-        if let Some(item_script) = item_ref.try_get_script_field_mut::<Item>() {
+        if let Some(item_script) = item_ref.try_get_script_component_mut::<Item>() {
             item_script
                 .stack_size
                 .set_value_and_mark_modified(stack_size);

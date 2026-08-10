@@ -5,9 +5,9 @@ use crate::{
 use fyrox::{
     core::{algebra::Vector3, pool::Handle, visitor::prelude::*},
     fxhash::FxHashSet,
-    graph::SceneGraph,
+    graph::{SceneGraph, SceneGraphNode},
     plugin::error::GameError,
-    scene::{collider::Collider, Scene},
+    scene::{collider::Collider, navmesh::NavigationalMesh, Scene},
     utils::behavior::{Behavior, Status},
 };
 
@@ -74,18 +74,27 @@ impl<'a> Behavior<'a> for MoveToTarget {
             .lower_body_layer(&ctx.scene.graph)
             .and_then(|layer| layer.pose().root_motion().map(|rm| rm.delta_position));
 
-        let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
-
         ctx.agent.set_speed(ctx.move_speed);
-        let navmesh = multiborrow_context.try_get(ctx.navmesh)?;
-
         ctx.agent.set_position(ctx.character.position);
 
         if let Some(target) = ctx.target.as_ref() {
             ctx.agent.set_target(target.position);
-            let _ = ctx.agent.update(ctx.dt, &navmesh.navmesh_ref());
-        }
 
+            // keep all borrows from MultiBorrowcontext inside this scope
+            {
+                let multiborrow_context = ctx.scene.graph.begin_multi_borrow();
+
+                let navmesh_node = multiborrow_context.try_get(ctx.navmesh)?;
+
+                let navmesh = navmesh_node
+                    .component_ref::<NavigationalMesh>()
+                    .ok_or_else(|| {
+                        GameError::str("Navmesh node has no NavigationalMesh component")
+                    })?;
+
+                let _ = ctx.agent.update(ctx.dt, &navmesh.navmesh_ref());
+            }
+        }
         let has_reached_destination =
             ctx.agent.target().metric_distance(&ctx.character.position) <= self.min_distance;
 
@@ -94,13 +103,12 @@ impl<'a> Behavior<'a> for MoveToTarget {
             ctx.character.velocity.z = 0.0;
         } else if let Some(delta_position) = delta_position {
             let vel = transform.transform_vector(&delta_position);
+
             ctx.character.velocity.x = vel.x;
             ctx.character.velocity.z = vel.z;
         }
 
-        drop(navmesh);
-        drop(multiborrow_context);
-
+        // All MultiBorrowContext/Ref borrows have ended here.
         self.check_obstacles(ctx.character.position, ctx);
 
         if has_reached_destination {

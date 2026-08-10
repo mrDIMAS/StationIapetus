@@ -9,11 +9,7 @@ use fyrox::{
     fxhash::FxHashSet,
     graph::SceneGraph,
     plugin::{error::GameResult, PluginContext},
-    scene::{
-        navmesh::NavigationalMesh,
-        node::{Node, NodeTrait},
-        Scene,
-    },
+    scene::{node::Node, Scene},
 };
 
 pub mod arrival;
@@ -38,7 +34,7 @@ pub struct Level {
     pub items: ItemContainer,
     pub doors_container: DoorContainer,
     pub elevators: Vec<Handle<Node>>,
-    pub navmesh: Handle<NavigationalMesh>,
+    pub navmesh: Handle<Node>,
     pub pois: FxHashSet<Handle<Node>>,
 
     #[visit(skip)]
@@ -77,10 +73,9 @@ impl Level {
             .graph
             .update(Default::default(), 0.0, Default::default());
 
+        let navmesh = scene.graph.find_handle_by_name_from_root("Navmesh");
         Self {
-            navmesh: scene
-                .graph
-                .find_handle_of_type_from_root::<NavigationalMesh>(),
+            navmesh: navmesh,
             player: Default::default(),
             actors: Default::default(),
             death_zones: Default::default(),

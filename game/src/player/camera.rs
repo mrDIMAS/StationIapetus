@@ -7,6 +7,8 @@ use fyrox::{
         pool::Handle,
         rand::Rng,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -20,8 +22,8 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Default, Visit, Reflect, Debug, Clone, PartialEq)]
-#[reflect(type_uuid = "a4681191-0b6f-4398-891d-c5b44019fb31")]
+#[derive(Default, Visit, Reflect, Debug, Clone, PartialEq, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "a4681191-0b6f-4398-891d-c5b44019fb31")]
 #[visit(optional)]
 pub struct CameraController {
     player: Handle<Node>,

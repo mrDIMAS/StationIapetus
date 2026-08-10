@@ -1,21 +1,22 @@
 //! Small helper script that does a ray cast and scales the parent node with the distance
 //! from the position of the node to the intersection point.
-
-use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
         algebra::{Point3, Vector3},
         math::ray::Ray,
         reflect::prelude::*,
-        uuid::uuid,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
+        ComponentProvider,
     },
+    plugin::error::GameResult,
     scene::{collider::InteractionGroups, graph::physics::RayCastOptions},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "5405f6e2-3016-40ef-998a-e4f797e59694")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "5405f6e2-3016-40ef-998a-e4f797e59694")]
 #[visit(optional)]
 pub struct Beam {
     max_length: f32,

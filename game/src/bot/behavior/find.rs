@@ -1,7 +1,5 @@
 use crate::{
-    bot::{behavior::BehaviorContext, Bot, BotHostility, Target},
-    character::Character,
-    Game,
+    Game, bot::{Bot, BotHostility, Target, behavior::BehaviorContext}, character::Character, player::Player,
 };
 use fyrox::graph::SceneGraph;
 use fyrox::plugin::error::GameError;
@@ -49,13 +47,26 @@ impl<'a> Behavior<'a> for FindTarget {
         self.update_frustum(position, graph, ctx.model);
 
         // Check if existing target is valid.
+        // Check if existing target is valid.
         if let Some(target) = ctx.target {
             for &actor_handle in ctx.actors {
                 if actor_handle != ctx.bot_handle && actor_handle == target.handle {
-                    let character = graph.try_get_script_field_of::<Character>(actor_handle)?;
-                    if !character.is_dead(graph) {
-                        target.position = character.position;
-                        return Ok(Status::Success);
+                    let character_opt = graph
+                        .try_get_script_component_of::<Player>(actor_handle)
+                        .ok()
+                        .map(|p| &**p)
+                        .or_else(|| {
+                            graph
+                                .try_get_script_component_of::<Bot>(actor_handle)
+                                .ok()
+                                .map(|b| &**b)
+                        });
+
+                    if let Some(character) = character_opt {
+                        if !character.is_dead(graph) {
+                            target.position = character.position;
+                            return Ok(Status::Success);
+                        }
                     }
                 }
             }
@@ -76,7 +87,7 @@ impl<'a> Behavior<'a> for FindTarget {
 
             let character_position = character_node.global_position();
 
-            let Some(character) = character_node.try_get_script_field::<Character>() else {
+            let Some(character) = character_node.try_get_script_component::<Character>() else {
                 continue;
             };
 

@@ -1,10 +1,17 @@
-use crate::character::Character;
+use crate::bot::Bot;
+use crate::player::Player;
 use crate::{door::ui::DoorUi, inventory::Inventory, utils, Game};
+use fyrox::core::ComponentProvider;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     asset::{manager::ResourceManager, Resource},
     core::{
-        algebra::Vector3, pool::Handle, reflect::prelude::*, variable::InheritableVariable,
+        algebra::Vector3,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
+        variable::InheritableVariable,
         visitor::prelude::*,
     },
     engine::GraphicsContext,
@@ -26,8 +33,8 @@ struct OpenRequest {
     open: bool,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "4b8aa92a-fe10-47d6-91bf-2878b834ff18")]
 #[visit(optional)]
 pub struct Door {
     /// An array of handles to meshes that represents interactive screens.
@@ -146,8 +153,17 @@ impl ScriptTrait for Door {
 
         let mut closest_actor = None;
         let someone_nearby = level.actors.iter().any(|a| {
-            if let Ok(actor) = ctx.scene.graph.try_get_script_field_of::<Character>(*a) {
-                let actor_position = actor.position;
+            // Cek apakah actor merupakan Player atau Bot
+            let actor_position =
+                if let Ok(player) = ctx.scene.graph.try_get_script_component_of::<Player>(*a) {
+                    Some(player.position)
+                } else if let Ok(bot) = ctx.scene.graph.try_get_script_component_of::<Bot>(*a) {
+                    Some(bot.position)
+                } else {
+                    None
+                };
+
+            if let Some(actor_position) = actor_position {
                 let close_enough = actor_position.metric_distance(&self.initial_position) < 1.25;
                 if close_enough {
                     closest_actor = Some(a);
@@ -164,9 +180,12 @@ impl ScriptTrait for Door {
 
         let machine = state_machine.machine_mut().get_value_mut_silent();
         machine
-            .set_rule("Locked", *self.locked)
-            .set_rule("SomeoneNearby", someone_nearby)
-            .set_rule("Open", open_request.as_ref().is_some_and(|r| r.open));
+            .set_parameter("Locked", Parameter::Rule(*self.locked))
+            .set_parameter("SomeoneNearby", Parameter::Rule(someone_nearby))
+            .set_parameter(
+                "Open",
+                Parameter::Rule(open_request.as_ref().is_some_and(|r| r.open)),
+            );
 
         let mut sound = Handle::NONE;
 

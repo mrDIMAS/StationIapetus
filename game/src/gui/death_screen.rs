@@ -1,6 +1,12 @@
 use crate::{message::Message, MessageSender};
 use fyrox::{
-    core::{pool::Handle, reflect::prelude::*, visitor::prelude::*},
+    core::{
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     gui::{
         button::{Button, ButtonMessage},
         message::UiMessage,
@@ -9,8 +15,8 @@ use fyrox::{
     plugin::PluginContext,
 };
 
-#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect)]
-#[reflect(type_uuid = "41a8bf46-132e-426e-8255-67c78b967002")]
+#[derive(Visit, Default, Debug, Clone, PartialEq, Reflect, TypeUuidProvider)]
+#[type_uuid(id = "41a8bf46-132e-426e-8255-67c78b967002")]
 pub struct DeathScreenData {
     load_game: Handle<Button>,
     exit_to_menu: Handle<Button>,

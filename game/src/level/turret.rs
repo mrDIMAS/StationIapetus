@@ -1,28 +1,22 @@
-use crate::character::Character;
+use crate::bot::Bot;
 use crate::{sound::SoundManager, weapon::projectile::Projectile, Game, Player};
 use fyrox::{
     core::{
         algebra::{Matrix4, Point3, Vector3},
-        arrayvec::ArrayVec,
         color::Color,
-        math::{frustum::Frustum, ray::Ray, SmoothAngle, Vector3Ext},
+        math::{frustum::Frustum, SmoothAngle, Vector3Ext},
         pool::Handle,
         rand::{seq::SliceRandom, thread_rng},
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
     graph::SceneGraph,
     plugin::error::GameResult,
     resource::model::ModelResource,
-    scene::{
-        collider::{Collider, ColliderShape, InteractionGroups},
-        debug::SceneDrawingContext,
-        graph::physics::RayCastOptions,
-        light::BaseLight,
-        node::Node,
-        Scene,
-    },
+    scene::{collider::Collider, debug::SceneDrawingContext, light::BaseLight, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
 use strum_macros::{AsRefStr, EnumString, VariantNames};
@@ -42,9 +36,10 @@ use strum_macros::{AsRefStr, EnumString, VariantNames};
     VariantNames,
     Default,
     Debug,
+    TypeUuidProvider,
 )]
 #[repr(u32)]
-#[reflect(type_uuid = "0deea5b2-dad8-418f-be2d-899c4851c76b")]
+#[type_uuid(id = "0deea5b2-dad8-418f-be2d-899c4851c76b")]
 pub enum ShootMode {
     /// Turret will shoot from random point every shot.
     #[default]
@@ -68,9 +63,10 @@ pub enum ShootMode {
     VariantNames,
     Debug,
     Default,
+    TypeUuidProvider,
 )]
 #[repr(u32)]
-#[reflect(type_uuid = "bb2b6799-128a-489f-9d72-e82cc706b228")]
+#[type_uuid(id = "bb2b6799-128a-489f-9d72-e82cc706b228")]
 pub enum Hostility {
     #[default]
     Player,
@@ -78,8 +74,8 @@ pub enum Hostility {
     All,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "7a23ce43-500e-4a49-995d-57f44486ed20")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "7a23ce43-500e-4a49-995d-57f44486ed20")]
 #[visit(optional)]
 pub struct Turret {
     model: Handle<Node>,
@@ -162,13 +158,24 @@ impl ScriptTrait for Turret {
             self.target_check_timer = 0.15;
         }
 
-        if let Ok(target) = ctx
+        // Ambil target_position dari Player atau Bot (karena keduanya Deref ke Character)
+        let target_position = if let Ok(player) = ctx
             .scene
             .graph
-            .try_get_script_field_of::<Character>(self.target)
+            .try_get_script_component_of::<Player>(self.target)
         {
-            let target_position = target.most_vulnerable_point(&ctx.scene.graph);
+            Some(player.most_vulnerable_point(&ctx.scene.graph))
+        } else if let Ok(bot) = ctx
+            .scene
+            .graph
+            .try_get_script_component_of::<Bot>(self.target)
+        {
+            Some(bot.most_vulnerable_point(&ctx.scene.graph))
+        } else {
+            None
+        };
 
+        if let Some(target_position) = target_position {
             let position = ctx.scene.graph.try_get(self.model)?.global_position();
 
             let d = target_position - position;
@@ -237,7 +244,6 @@ impl ScriptTrait for Turret {
             self.yaw
                 .set_target(self.yaw.angle() + 50.0f32.to_radians() * ctx.dt);
         }
-
         ctx.scene
             .graph
             .try_get_mut_of_type::<BaseLight>(self.projector)?
@@ -258,14 +264,13 @@ impl ScriptTrait for Turret {
             .graph
             .try_get_mut(self.barrel_stand)?
             .set_rotation_z(self.pitch.angle() - std::f32::consts::FRAC_PI_2);
-
         Ok(())
     }
 }
 
-#[derive(Default, Visit, Reflect, Clone, PartialEq, Debug)]
+#[derive(Default, Visit, Reflect, Clone, PartialEq, Debug, TypeUuidProvider)]
 #[visit(optional)]
-#[reflect(type_uuid = "d32845ee-62f3-4073-8675-623aa2ab0644")]
+#[type_uuid(id = "d32845ee-62f3-4073-8675-623aa2ab0644")]
 pub struct Barrel {
     handle: Handle<Node>,
     shoot_point: Handle<Node>,
@@ -345,73 +350,66 @@ impl Turret {
     }
 
     fn select_target(&mut self, scene: &Scene, actors: &[Handle<Node>]) -> GameResult {
-        let graph = &scene.graph;
-        let self_position = graph[self.model].global_position();
+        let mut closest_distance = f32::MAX;
+        let mut closest_target = Handle::NONE;
 
-        if graph
-            .try_get_script_field_of::<Character>(self.target)
-            .ok()
-            .is_none_or(|c| !c.is_dead(graph))
-        {
-            let mut closest = Handle::NONE;
-            let mut closest_distance = f32::MAX;
-            'target_loop: for &handle in actors.iter() {
-                let actor = graph.try_get_script_field_of::<Character>(handle)?;
+        let position = scene.graph.try_get(self.model)?.global_position();
 
-                if actor.is_dead(graph) {
-                    continue 'target_loop;
-                }
+        'target_loop: for &handle in actors {
+            // Cek apakah actor adalah Player atau Bot
+            let is_player = scene
+                .graph
+                .try_get_script_component_of::<Player>(handle)
+                .is_ok();
 
-                let is_player = scene.graph[handle].has_script::<Player>();
-                if self.hostility == Hostility::Player && !is_player
-                    || self.hostility == Hostility::Monsters && is_player
-                {
-                    continue;
-                }
+            let is_bot = scene
+                .graph
+                .try_get_script_component_of::<Bot>(handle)
+                .is_ok();
 
-                let mut query_buffer = ArrayVec::<_, 128>::new();
-
-                let actor_position = actor.position;
-
-                if !self.frustum.is_contains_point(actor_position) {
-                    continue 'target_loop;
-                }
-
-                let ray = Ray::from_two_points(actor_position, self_position);
-                scene.graph.physics.cast_ray(
-                    RayCastOptions {
-                        ray_origin: Point3::from(ray.origin),
-                        ray_direction: ray.dir,
-                        groups: InteractionGroups::default(),
-                        max_len: ray.dir.norm(),
-                        sort_results: true,
-                    },
-                    &mut query_buffer,
-                );
-
-                'hit_loop: for hit in query_buffer.iter() {
-                    if *self.collider == hit.collider {
-                        continue 'hit_loop;
-                    }
-
-                    let collider = &scene.graph.try_get(hit.collider)?;
-                    if !matches!(collider.shape(), ColliderShape::Capsule(_)) {
-                        self.target = Default::default();
-                        // Target is behind something.
-                        continue 'target_loop;
-                    }
-                }
-
-                let distance = actor_position.metric_distance(&self_position);
-                if distance < closest_distance {
-                    closest_distance = distance;
-                    closest = handle;
-                }
+            if !is_player && !is_bot {
+                continue 'target_loop;
             }
-            self.target = closest;
-        } else {
-            self.target = Default::default();
+
+            // Filter hostility
+            if (self.hostility == Hostility::Player && !is_player)
+                || (self.hostility == Hostility::Monsters && !is_bot)
+            {
+                continue 'target_loop;
+            }
+
+            // Ambil target_position dan status is_dead dari Player atau Bot
+            let (target_position, is_dead) =
+                if let Ok(player) = scene.graph.try_get_script_component_of::<Player>(handle) {
+                    (
+                        player.most_vulnerable_point(&scene.graph),
+                        player.is_dead(&scene.graph),
+                    )
+                } else if let Ok(bot) = scene.graph.try_get_script_component_of::<Bot>(handle) {
+                    (
+                        bot.most_vulnerable_point(&scene.graph),
+                        bot.is_dead(&scene.graph),
+                    )
+                } else {
+                    continue 'target_loop;
+                };
+
+            if is_dead {
+                continue 'target_loop;
+            }
+
+            if !self.frustum.is_contains_point(target_position) {
+                continue 'target_loop;
+            }
+
+            let distance = position.metric_distance(&target_position);
+            if distance < closest_distance {
+                closest_distance = distance;
+                closest_target = handle;
+            }
         }
+
+        self.target = closest_target;
 
         Ok(())
     }

@@ -16,7 +16,7 @@ use crate::{
     weapon::WeaponMessage,
     Game,
 };
-use fyrox::graph::NodeWrapper;
+use fyrox::core::ComponentProvider;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::some_or_continue,
@@ -27,7 +27,8 @@ use fyrox::{
         math::SmoothAngle,
         pool::Handle,
         reflect::prelude::*,
-        uuid::uuid,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::{Visit, VisitResult, Visitor},
     },
@@ -68,12 +69,13 @@ mod state_machine;
     Debug,
     Visit,
     Reflect,
+    TypeUuidProvider,
     AsRefStr,
     EnumString,
     VariantNames,
 )]
+#[type_uuid(id = "8f9d5c3e-5b3c-4c76-a5c9-9c1e7e4f2a31")]
 #[repr(u32)]
-#[reflect(type_uuid = "c5bee376-5f2c-41fc-b307-a71f8e328e0d")]
 pub enum BotHostility {
     Everyone = 0,
     OtherSpecies = 1,
@@ -97,7 +99,6 @@ pub enum BotHostility {
     VariantNames,
 )]
 #[repr(u32)]
-#[reflect(type_uuid = "c5bee376-5f2c-41fc-b307-a71f8e328e0d")]
 pub enum MovementType {
     Default = 0,
     Crawl = 1,
@@ -109,8 +110,8 @@ pub struct Target {
     handle: Handle<Node>,
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "15a8ecd6-a09f-4c5d-b9f9-b7f0e8a44ac9")]
 #[visit(optional)]
 pub struct Bot {
     character: Character,
@@ -396,7 +397,7 @@ impl ScriptTrait for Bot {
         if !ctx
             .scene
             .graph
-            .is_or_has_field::<Weapon>(self.character.current_weapon())
+            .is_valid_handle(self.character.current_weapon())
         {
             for item in self.inventory.items() {
                 let resource = some_or_continue!(item.resource.as_ref());
@@ -611,9 +612,17 @@ impl ScriptTrait for Bot {
         self.last_position = node.global_position();
 
         if died {
-            for (_, node) in ctx.scene.graph.traverse_iter_mut(ctx.handle) {
-                let sound = some_or_continue!(node.self_or_field_mut::<Sound>());
-                sound.set_gain(0.0);
+            let handles: Vec<_> = ctx
+                .scene
+                .graph
+                .traverse_iter(ctx.handle)
+                .map(|(handle, _)| handle)
+                .collect();
+
+            for handle in handles {
+                if let Some(sound) = ctx.scene.graph[handle].cast_mut::<Sound>() {
+                    sound.set_gain(0.0);
+                }
             }
         }
 

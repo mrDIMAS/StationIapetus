@@ -7,6 +7,8 @@ use fyrox::{
         math::vector_to_quat,
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -16,8 +18,8 @@ use fyrox::{
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider,ComponentProvider)]
+#[type_uuid(id = "e7710ced-9c3f-4ea6-9874-a6d35a7a86f3")]
 #[visit(optional)]
 pub struct Decal {
     lifetime: f32,

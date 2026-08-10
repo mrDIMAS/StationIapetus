@@ -7,7 +7,6 @@ use crate::{
     },
     CollisionGroups, Game, Weapon,
 };
-use fyrox::graph::NodeWrapper;
 use fyrox::plugin::error::GameResult;
 use fyrox::{
     core::{
@@ -16,6 +15,8 @@ use fyrox::{
         math::{ray::Ray, vector_to_quat, Vector3Ext},
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         visitor::prelude::*,
     },
     graph::SceneGraph,
@@ -38,9 +39,19 @@ use std::hash::{Hash, Hasher};
 use strum_macros::{AsRefStr, EnumString, VariantNames};
 
 #[derive(
-    Deserialize, Copy, Clone, Debug, Visit, Reflect, PartialEq, AsRefStr, EnumString, VariantNames,
+    Deserialize,
+    Copy,
+    Clone,
+    Debug,
+    Visit,
+    Reflect,
+    PartialEq,
+    AsRefStr,
+    EnumString,
+    VariantNames,
+    TypeUuidProvider,
 )]
-#[reflect(type_uuid = "190b9fad-3529-47c3-87fd-a5ae1a3d6a5c")]
+#[type_uuid(id = "190b9fad-3529-47c3-87fd-a5ae1a3d6a5c")]
 pub enum Damage {
     Splash { radius: f32, amount: f32 },
     Point(f32),
@@ -105,8 +116,8 @@ impl Hash for Hit {
 
 impl Eq for Hit {}
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "6b60c75e-83cf-406b-8106-e87d5ab98132")]
 #[visit(optional)]
 pub struct Projectile {
     #[reflect(hidden)]
@@ -282,9 +293,7 @@ impl ScriptTrait for Projectile {
         self.collider = ctx
             .scene
             .graph
-            .find(ctx.handle, &mut |n| {
-                n.self_or_field_ref::<Collider>().is_some()
-            })
+            .find(ctx.handle, &mut |n| n.cast::<Collider>().is_some())
             .map(|(h, _)| h.transmute())
             .unwrap_or_default();
 
@@ -340,7 +349,7 @@ impl ScriptTrait for Projectile {
                         .map_or(Default::default(), |owner_node| {
                             if let Some(weapon) = owner_node.try_get_script::<Weapon>() {
                                 weapon.owner
-                            } else if owner_node.try_get_script_field::<Character>().is_some() {
+                            } else if owner_node.try_get_script_component::<Character>().is_some() {
                                 self.owner
                             } else {
                                 Default::default()

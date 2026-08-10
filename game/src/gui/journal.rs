@@ -74,7 +74,7 @@ impl Journal {
     }
 }
 
-#[derive(Visit, PartialEq, Debug)]
+#[derive(Visit, Debug)]
 pub struct JournalDisplay {
     pub ui: UserInterface,
     pub render_target: TextureResource,

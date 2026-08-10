@@ -1,17 +1,24 @@
 use crate::{bot::Bot, door::Door, Game};
+
 use fyrox::graph::SceneGraph;
 use fyrox::plugin::error::{GameError, GameResult};
 use fyrox::{
     core::{
-        color::Color, math::aabb::AxisAlignedBoundingBox, pool::Handle, reflect::prelude::*,
-        variable::InheritableVariable, visitor::prelude::*,
+        color::Color,
+        math::aabb::AxisAlignedBoundingBox,
+        pool::Handle,
+        reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
+        variable::InheritableVariable,
+        visitor::prelude::*,
     },
     scene::{debug::SceneDrawingContext, graph::Graph, node::Node, Scene},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
-#[reflect(type_uuid = "b1ed2ef5-2280-441b-9755-50f5e7c35ced")]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone, TypeUuidProvider)]
+#[type_uuid(id = "b1ed2ef5-2280-441b-9755-50f5e7c35ced")]
 enum State {
     #[default]
     Inactive,
@@ -19,8 +26,8 @@ enum State {
     Finished,
 }
 
-#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone)]
-#[reflect(type_uuid = "845a5364-395a-4228-9394-ee3c43352f01")]
+#[derive(Visit, PartialEq, Reflect, Default, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "845a5364-395a-4228-9394-ee3c43352f01")]
 #[visit(optional)]
 pub struct EnemyTrap {
     doors_to_lock: InheritableVariable<Vec<Handle<Node>>>,
@@ -42,7 +49,7 @@ impl EnemyTrap {
         for actor in actors {
             let actor_node = scene.graph.try_get(*actor)?;
             if this_bounds.is_contains_point(actor_node.global_position())
-                && actor_node.try_get_script_field::<Bot>().is_some()
+                && actor_node.try_get_script_component::<Bot>().is_some()
             {
                 self.enemies.push(*actor);
             }
@@ -53,7 +60,7 @@ impl EnemyTrap {
     fn is_all_enemies_dead(&self, scene: &Scene) -> Result<bool, GameError> {
         for enemy in self.enemies.iter() {
             let actor_node = scene.graph.try_get(*enemy)?;
-            if let Some(bot) = actor_node.try_get_script_field::<Bot>() {
+            if let Some(bot) = actor_node.try_get_script_component::<Bot>() {
                 if !bot.is_dead(&scene.graph) {
                     return Ok(false);
                 }
@@ -64,7 +71,7 @@ impl EnemyTrap {
 
     fn lock_doors(&mut self, scene: &mut Scene, lock: bool) {
         for door in self.doors_to_lock.iter() {
-            if let Some(door) = scene.graph[*door].try_get_script_field_mut::<Door>() {
+            if let Some(door) = scene.graph[*door].try_get_script_component_mut::<Door>() {
                 door.locked.set_value_and_mark_modified(lock);
             }
         }

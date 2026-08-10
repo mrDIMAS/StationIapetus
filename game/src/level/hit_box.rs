@@ -9,6 +9,8 @@ use fyrox::{
         math::vector_to_quat,
         pool::Handle,
         reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -62,8 +64,9 @@ pub enum HitBoxMessage {
     AsRefStr,
     EnumString,
     VariantNames,
+    TypeUuidProvider,
 )]
-#[reflect(type_uuid = "009bccb6-42e4-4dc6-bb26-6a8a70b3fab9")]
+#[type_uuid(id = "009bccb6-42e4-4dc6-bb26-6a8a70b3fab9")]
 pub enum LimbType {
     Leg,
     Arm,
@@ -78,8 +81,8 @@ impl LimbType {
     }
 }
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "28a107ad-ee88-4a0f-8b32-be348e779115")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider,ComponentProvider)]
+#[type_uuid(id = "28a107ad-ee88-4a0f-8b32-be348e779115")]
 #[visit(optional)]
 pub struct HitBox {
     pub bone: InheritableVariable<Handle<Node>>,

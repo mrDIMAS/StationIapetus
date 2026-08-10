@@ -5,6 +5,7 @@ edition = "2021"
 
 [dependencies]
 fyrox = { workspace = true }
+rapier3d = "0.32.0"
 ron = "0.8.1"
 serde = "^1.0.0"
 strum = "0.27"

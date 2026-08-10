@@ -1,13 +1,19 @@
 use crate::character::{CharacterMessage, CharacterMessageData};
 use fyrox::{
-    core::{log::Log, reflect::prelude::*, visitor::prelude::*},
+    core::{
+        log::Log,
+        reflect::prelude::*,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
+        visitor::prelude::*,
+    },
     plugin::error::GameResult,
     resource::model::{ModelResource, ModelResourceExtension},
     script::{ScriptContext, ScriptTrait},
 };
 
-#[derive(Visit, PartialEq, Reflect, Debug, Clone)]
-#[reflect(type_uuid = "39c47baa-9fc3-4204-92ca-878d621f3656")]
+#[derive(Visit, PartialEq, Reflect, Debug, Clone, TypeUuidProvider, ComponentProvider)]
+#[type_uuid(id = "39c47baa-9fc3-4204-92ca-878d621f3656")]
 #[visit(optional)]
 pub struct CharacterSpawnPoint {
     default_weapons: Vec<Option<ModelResource>>,

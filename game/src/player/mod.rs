@@ -29,6 +29,8 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         some_or_continue,
+        type_traits::{ComponentProvider, TypeUuidProvider},
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -115,8 +117,9 @@ pub struct PlayerPersistentData {
     pub hit_box_health: FxHashMap<Handle<Node>, f32>,
 }
 
-#[derive(Visit, Reflect, Debug)]
-#[reflect(type_uuid = "50a07510-893d-476f-aad2-fcfb0845807f", non_comparable)]
+#[derive(Visit, Reflect, Debug, TypeUuidProvider, ComponentProvider)]
+#[reflect(non_cloneable)]
+#[type_uuid(id = "50a07510-893d-476f-aad2-fcfb0845807f")]
 #[visit(optional)]
 pub struct Player {
     character: Character,
@@ -339,7 +342,7 @@ impl Player {
                 continue;
             }
 
-            let item = some_or_continue!(item_node.try_get_script_field::<Item>());
+            let item = some_or_continue!(item_node.try_get_script_component::<Item>());
 
             if !item.enabled {
                 continue;
@@ -536,7 +539,7 @@ impl Player {
 
                 let camera_controller = scene
                     .graph
-                    .try_get_script_field_of::<CameraController>(self.camera_controller)?;
+                    .try_get_script_component_of::<CameraController>(self.camera_controller)?;
                 let direction = scene
                     .graph
                     .try_get(camera_controller.camera())?
@@ -599,15 +602,36 @@ impl Player {
     fn update_velocity(&mut self, scene: &mut Scene) -> GameResult {
         let transform = &scene.graph.try_get(self.model)?.global_transform();
 
-        if let Some(root_motion) = self
-            .state_machine
-            .lower_body_layer(&scene.graph)?
-            .pose()
-            .root_motion()
-        {
-            let vel = transform.transform_vector(&root_motion.delta_position);
-            self.velocity.x = vel.x;
-            self.velocity.z = vel.z;
+        // 1. Coba dapatkan velocity dari root motion animasi
+        let mut root_motion_applied = false;
+        if let Ok(layer) = self.state_machine.lower_body_layer(&scene.graph) {
+            if let Some(root_motion) = layer.pose().root_motion() {
+                let vel = transform.transform_vector(&root_motion.delta_position);
+                if vel.norm_squared() > 0.00001 {
+                    self.velocity.x = vel.x;
+                    self.velocity.z = vel.z;
+                    root_motion_applied = true;
+                }
+            }
+        }
+
+        // 2. Fallback: Jika root motion bernilai 0 (animasi tidak membawa translasi),
+        // gunakan velocity yang dihitung langsung dari input WASD (local_velocity).
+        if !root_motion_applied {
+            let move_speed = if self.controller.run && !self.controller.aim {
+                5.0 // Kecepatan Lari (units/s)
+            } else {
+                2.5 // Kecepatan Jalan (units/s)
+            };
+
+            // Konversi local_velocity (WASD) ke arah orientasi model
+            let forward = transform.look_vector();
+            let side = transform.side_vector();
+
+            let move_dir = forward.scale(self.local_velocity.y) + side.scale(self.local_velocity.x);
+
+            self.velocity.x = move_dir.x * move_speed;
+            self.velocity.z = move_dir.z * move_speed;
         }
 
         Ok(())
@@ -635,6 +659,7 @@ impl Player {
         is_walking: bool,
         is_jumping: bool,
     ) -> GameResult {
+        let _ = root;
         let weapon_kind = self.current_weapon_kind(&scene.graph);
         self.state_machine.apply(StateMachineInput {
             is_walking,
@@ -758,7 +783,7 @@ impl Player {
 
                             scene
                                 .graph
-                                .try_get_script_field_of_mut::<CameraController>(
+                                .try_get_script_component_of_mut::<CameraController>(
                                     self.camera_controller,
                                 )?
                                 .request_shake_camera();
@@ -902,6 +927,11 @@ impl ScriptTrait for Player {
 
         let level = ctx.plugins.get_mut::<Game>().level.as_mut().unwrap();
 
+        println!(
+            "[ACTORS ADD] Player handle={:?}, node={:?}",
+            ctx.handle,
+            ctx.scene.graph[ctx.handle].name()
+        );
         level.actors.push(ctx.handle);
         // Also register player in special variable to speed up access.
         level.player = ctx.handle;
@@ -1204,35 +1234,39 @@ impl ScriptTrait for Player {
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
 
+        // --- PERBAIKAN INPUT VELOCITY KALKULASI WASD ---
         self.target_local_velocity = Vector2::default();
-        if self.controller.walk_forward
-            || (!self.controller.aim && (self.controller.walk_left || self.controller.walk_right))
-        {
-            self.target_local_velocity.y = if self.controller.run && !self.controller.aim {
-                1.0
-            } else {
-                0.5
-            };
+
+        let move_speed_factor = if self.controller.run && !self.controller.aim {
+            1.0
+        } else {
+            0.5
+        };
+
+        // Forward / Backward
+        if self.controller.walk_forward {
+            self.target_local_velocity.y += move_speed_factor;
         }
         if self.controller.walk_backward {
-            self.target_local_velocity.y = if self.controller.aim {
-                -1.0
-            } else if self.controller.run {
-                1.0
+            self.target_local_velocity.y -= if self.controller.aim {
+                move_speed_factor
             } else {
-                0.5
+                // Jika tidak aim tapi mundur, beri nilai positif untuk run/walk backward blend
+                move_speed_factor
             };
         }
-        if self.controller.aim {
-            if self.controller.walk_left {
-                self.target_local_velocity.x = -1.0;
-            }
-            if self.controller.walk_right {
-                self.target_local_velocity.x = 1.0;
-            }
+
+        // Strafe Left / Right (Diberikan nilai X penuh baik Aiming maupun Tidak)
+        if self.controller.walk_left {
+            self.target_local_velocity.x -= move_speed_factor;
+        }
+        if self.controller.walk_right {
+            self.target_local_velocity.x += move_speed_factor;
         }
 
-        self.local_velocity.follow(&self.target_local_velocity, 0.1);
+        // Lerp/Follow kecepatan lokal agar transisi gerakan halus
+        self.local_velocity.follow(&self.target_local_velocity, 0.2);
+        // -------------
 
         let upper_body_layer = self
             .state_machine

@@ -1,9 +1,11 @@
 use crate::{
+    bot::Bot,
     inventory::Inventory,
     level::{
         hit_box::{HitBox, HitBoxDamage, HitBoxHeal, HitBoxMessage, LimbType},
         item::ItemAction,
     },
+    player::Player,
     sound::{SoundKind, SoundManager},
     utils,
     weapon::{weapon_mut, WeaponMessage, WeaponMessageData},
@@ -18,6 +20,8 @@ use fyrox::{
         pool::Handle,
         reflect::prelude::*,
         some_or_return,
+        type_traits::TypeUuidProvider,
+        uuid::{uuid, Uuid},
         variable::InheritableVariable,
         visitor::prelude::*,
     },
@@ -28,15 +32,16 @@ use fyrox::{
     scene::{
         collider::Collider,
         graph::{
-            physics::{character::KinematicCharacterController, QueryFilter, RayCastOptions},
+            physics::{QueryFilter, RayCastOptions},
             Graph,
         },
         node::Node,
-        rigidbody::{RigidBody, RigidBodyType},
+        rigidbody::RigidBody,
         Scene,
     },
     script::{RoutingStrategy, ScriptContext, ScriptMessagePayload, ScriptMessageSender},
 };
+use rapier3d::geometry::Capsule;
 
 #[derive(Copy, Clone, Debug, Default, Eq, PartialEq)]
 pub struct DamageDealer {
@@ -45,21 +50,29 @@ pub struct DamageDealer {
 
 impl DamageDealer {
     pub fn as_character<'a>(&self, graph: &'a Graph) -> Option<(Handle<Node>, &'a Character)> {
-        if let Some(dealer_script) = graph.try_get(self.entity).ok().and_then(|n| n.script(0)) {
-            if let Some(character) = dealer_script.self_or_field_ref::<Character>() {
-                return Some((self.entity, character));
-            } else if let Some(weapon) = dealer_script.self_or_field_ref::<Weapon>() {
-                if let Some(weapon_owner_script) =
-                    graph.try_get(weapon.owner()).ok().and_then(|n| n.script(0))
-                {
-                    if let Some(character_owner) =
-                        weapon_owner_script.self_or_field_ref::<Character>()
-                    {
-                        return Some((weapon.owner(), character_owner));
-                    }
-                }
-            }
+        if let Ok(player) = graph.try_get_script_component_of::<Player>(self.entity) {
+            return Some((self.entity, &**player));
         }
+
+        if let Ok(bot) = graph.try_get_script_component_of::<Bot>(self.entity) {
+            return Some((self.entity, &**bot));
+        }
+
+        let script = graph
+            .try_get(self.entity)
+            .ok()
+            .and_then(|node| node.script(0))?;
+
+        let weapon = script.cast::<Weapon>()?;
+        let owner_handle = weapon.owner();
+
+        if let Ok(player) = graph.try_get_script_component_of::<Player>(owner_handle) {
+            return Some((owner_handle, &**player));
+        }
+        if let Ok(bot) = graph.try_get_script_component_of::<Bot>(owner_handle) {
+            return Some((owner_handle, &**bot));
+        }
+
         None
     }
 }
@@ -87,30 +100,40 @@ pub struct CharacterMessage {
     pub data: CharacterMessageData,
 }
 
-#[derive(Visit, Reflect, Debug, PartialEq, Clone)]
-#[reflect(type_uuid = "d768f3b4-5deb-4f1b-9539-a2cf3f311f4e")]
+#[derive(Debug, Copy, Clone, Default)]
+struct CharacterMovement {
+    translation: Vector3<f32>,
+    grounded: bool,
+}
+
+#[derive(Visit, Reflect, Debug, Clone, TypeUuidProvider)]
+#[type_uuid(id = "d768f3b4-5deb-4f1b-9539-a2cf3f311f4e")]
 #[visit(optional)]
 pub struct Character {
-    pub character_controller: KinematicCharacterController,
-    #[reflect(hidden)]
-    #[visit(skip)]
     pub position: Vector3<f32>,
     pub velocity: Vector3<f32>,
     pub has_ground_contact: bool,
+
     pub capsule_collider: Handle<Collider>,
     pub body: Handle<RigidBody>,
+
     pub weapons: Vec<Handle<Node>>,
     pub current_weapon: usize,
     pub weapon_pivot: Handle<Node>,
+
     pub inventory: Inventory,
+
     pub melee_hit_boxes: InheritableVariable<Vec<Handle<Collider>>>,
     pub attack_sounds: InheritableVariable<Vec<Handle<Node>>>,
     pub punch_sounds: InheritableVariable<Vec<Handle<Node>>>,
+
     #[reflect(min_value = 0.0, max_value = 20.0)]
     melee_attack_damage: InheritableVariable<f32>,
+
     #[visit(skip)]
     #[reflect(hidden)]
     pub hit_boxes: FxHashSet<Handle<Collider>>,
+
     #[reflect(hidden)]
     #[visit(skip)]
     pub melee_attack_context: Option<MeleeAttackContext>,
@@ -125,7 +148,6 @@ pub struct MeleeAttackContext {
 impl Default for Character {
     fn default() -> Self {
         Self {
-            character_controller: Default::default(),
             position: Default::default(),
             velocity: Default::default(),
             has_ground_contact: false,
@@ -147,7 +169,7 @@ impl Default for Character {
 
 fn parent_character(mut node_handle: Handle<Node>, graph: &Graph) -> Option<Handle<Node>> {
     while let Ok(node) = graph.try_get(node_handle) {
-        if node.try_get_script_field::<Character>().is_some() {
+        if node.try_get_script_component::<Character>().is_some() {
             return Some(node_handle);
         }
         node_handle = node.parent();
@@ -161,36 +183,135 @@ impl Character {
     }
 
     pub fn handle_movement(&mut self, scene: &mut Scene, dt: f32) {
+        // Gravity.
+        self.velocity.y -= 9.81 * dt;
+
+        // Prevent unlimited falling speed
+        self.velocity.y = self.velocity.y.max(-20.0);
+
+        // Desire movement for this frame.
+        let desired_translation = self.velocity * dt;
+
+        // Todo : collision detection
+        let movement = self.move_character(scene, desired_translation, dt);
+
+        // Apply movement.
+        self.position += movement.translation;
+
+        // Store ground state.
+        self.has_ground_contact = movement.grounded;
+
+        // Stop downward movement when standing on ground.
+        if self.has_ground_contact && self.velocity.y < 0.0 {
+            self.velocity.y = 0.0;
+        }
+
+        // Move Fyrox kinematic body.
+        scene.graph[self.body].set_next_kinematic_translation(self.position);
+    }
+
+    fn move_character(
+        &mut self,
+        scene: &Scene,
+        desired_translation: Vector3<f32>,
+        dt: f32,
+    ) -> CharacterMovement {
+        let mut result = CharacterMovement {
+            translation: Vector3::default(),
+            grounded: false,
+        };
+
+        if dt <= 0.0 {
+            return result;
+        }
+
+        if desired_translation.norm_squared() <= f32::EPSILON {
+            return result;
+        }
+
+        let shape = Capsule::new_y(0.5, 0.4);
+
+        let position = Isometry3 {
+            translation: Translation3::from(self.position),
+            rotation: Default::default(),
+        };
+
         let filter = QueryFilter {
-            predicate: Some(&|_, c| {
-                let body_type = scene
-                    .graph
-                    .try_get_of_type::<RigidBody>(c.parent())
-                    .unwrap()
-                    .body_type();
-                body_type == RigidBodyType::Dynamic || body_type == RigidBodyType::Static
-            }),
+            exclude_collider: Some(self.capsule_collider.transmute()),
+            predicate: Some(&|_, collider| !collider.is_sensor()),
             ..Default::default()
         };
-        if let Some(movement) = self.character_controller.move_collider_shape(
-            dt,
-            self.capsule_collider,
-            Isometry3 {
-                translation: Translation3::from(self.position),
-                rotation: Default::default(),
-            },
-            self.velocity,
+
+        let physics = &scene.graph.physics;
+
+        // ============================================================
+        // 1. MOVEMENT / WALL COLLISION
+        // ============================================================
+
+        if desired_translation.norm_squared() > f32::EPSILON {
+            let velocity = desired_translation / dt;
+
+            if let Some((_hit, toi)) =
+                physics.cast_shape(&scene.graph, &shape, &position, &velocity, dt, true, filter)
+            {
+                let movement_length = desired_translation.norm();
+
+                let allowed_distance = movement_length * toi.toi;
+
+                if movement_length > f32::EPSILON {
+                    result.translation = desired_translation.normalize() * allowed_distance;
+                }
+                // Fyrox returns the collision normal in world space.
+                let normal = Vector3::new(toi.normal1.x, toi.normal1.y, toi.normal1.z);
+
+                // Ground detection.
+                //
+                // A normal pointing mostly upward means
+                // that we hit the floor.
+                if normal.y > 0.7 {
+                    result.grounded = true;
+                }
+
+                // Remove movement going into the wall/floor.
+                let remaining = desired_translation - result.translation;
+
+                // Remove the part of the movement going into
+                // the collision surface.
+                let into_surface = remaining.dot(&normal);
+
+                if into_surface < 0.0 {
+                    result.translation += remaining - normal * into_surface;
+                }
+            } else {
+                result.translation = desired_translation;
+            }
+        }
+
+        let ground_position = Isometry3 {
+            translation: Translation3::from(self.position + result.translation),
+            rotation: Default::default(),
+        };
+
+        let ground_velocity = Vector3::new(0.0, -1.0, 0.0);
+
+        let ground_distance = 0.1;
+
+        if let Some((_hit, toi)) = physics.cast_shape(
             &scene.graph,
+            &shape,
+            &ground_position,
+            &ground_velocity,
+            ground_distance,
+            true,
             filter,
         ) {
-            self.position += movement.translation;
-            self.has_ground_contact = movement.grounded;
-            if self.has_ground_contact {
-                self.velocity.y = 0.0;
+            let normal = Vector3::new(toi.normal1.x, toi.normal1.y, toi.normal1.z);
+
+            if normal.y > 0.7 {
+                result.grounded = true
             }
-            scene.graph[self.body].set_next_kinematic_translation(self.position);
         }
-        self.velocity.y = (self.velocity.y - dt).max(-9.81 * dt);
+        result
     }
 
     pub fn on_start(&mut self, ctx: &mut ScriptContext) {
@@ -212,7 +333,7 @@ impl Character {
     ) -> impl Iterator<Item = (Handle<Collider>, &'a HitBox)> + use<'a, '_> {
         self.hit_boxes.iter().filter_map(|h| {
             graph
-                .try_get_script_field_of::<HitBox>(*h)
+                .try_get_script_component_of::<HitBox>(*h)
                 .ok()
                 .map(|hitbox| (*h, hitbox))
         })
@@ -472,7 +593,7 @@ impl Character {
             &CharacterMessageData::PickupItem(item_handle) => {
                 let item_node = &scene.graph[item_handle];
                 let item_resource = item_node.root_resource();
-                let item = item_node.try_get_script_field::<Item>().unwrap();
+                let item = item_node.try_get_script_component::<Item>().unwrap();
                 let stack_size = *item.stack_size;
                 let position = item_node.global_position();
 

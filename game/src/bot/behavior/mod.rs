@@ -16,7 +16,6 @@ use crate::{
     character::Character,
     utils::BodyImpactHandler,
 };
-use fyrox::scene::navmesh::NavigationalMesh;
 use fyrox::{
     core::{math::SmoothAngle, pool::Handle, visitor::prelude::*},
     dispatch_behavior_variants,
@@ -91,7 +90,7 @@ pub struct BehaviorContext<'a> {
     pub move_speed: f32,
     pub threaten_timeout: &'a mut f32,
     pub script_message_sender: &'a ScriptMessageSender,
-    pub navmesh: Handle<NavigationalMesh>,
+    pub navmesh: Handle<Node>,
     pub hostility: BotHostility,
     pub h_aim_angle_hack: f32,
     pub v_aim_angle_hack: f32,
