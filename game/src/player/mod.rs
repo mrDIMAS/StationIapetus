@@ -602,15 +602,36 @@ impl Player {
     fn update_velocity(&mut self, scene: &mut Scene) -> GameResult {
         let transform = &scene.graph.try_get(self.model)?.global_transform();
 
-        if let Some(root_motion) = self
-            .state_machine
-            .lower_body_layer(&scene.graph)?
-            .pose()
-            .root_motion()
-        {
-            let vel = transform.transform_vector(&root_motion.delta_position);
-            self.velocity.x = vel.x;
-            self.velocity.z = vel.z;
+        // 1. Coba dapatkan velocity dari root motion animasi
+        let mut root_motion_applied = false;
+        if let Ok(layer) = self.state_machine.lower_body_layer(&scene.graph) {
+            if let Some(root_motion) = layer.pose().root_motion() {
+                let vel = transform.transform_vector(&root_motion.delta_position);
+                if vel.norm_squared() > 0.00001 {
+                    self.velocity.x = vel.x;
+                    self.velocity.z = vel.z;
+                    root_motion_applied = true;
+                }
+            }
+        }
+
+        // 2. Fallback: Jika root motion bernilai 0 (animasi tidak membawa translasi),
+        // gunakan velocity yang dihitung langsung dari input WASD (local_velocity).
+        if !root_motion_applied {
+            let move_speed = if self.controller.run && !self.controller.aim {
+                5.0 // Kecepatan Lari (units/s)
+            } else {
+                2.5 // Kecepatan Jalan (units/s)
+            };
+
+            // Konversi local_velocity (WASD) ke arah orientasi model
+            let forward = transform.look_vector();
+            let side = transform.side_vector();
+
+            let move_dir = forward.scale(self.local_velocity.y) + side.scale(self.local_velocity.x);
+
+            self.velocity.x = move_dir.x * move_speed;
+            self.velocity.z = move_dir.z * move_speed;
         }
 
         Ok(())
