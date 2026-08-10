@@ -1213,35 +1213,39 @@ impl ScriptTrait for Player {
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
 
+        // --- PERBAIKAN INPUT VELOCITY KALKULASI WASD ---
         self.target_local_velocity = Vector2::default();
-        if self.controller.walk_forward
-            || (!self.controller.aim && (self.controller.walk_left || self.controller.walk_right))
-        {
-            self.target_local_velocity.y = if self.controller.run && !self.controller.aim {
-                1.0
-            } else {
-                0.5
-            };
+
+        let move_speed_factor = if self.controller.run && !self.controller.aim {
+            1.0
+        } else {
+            0.5
+        };
+
+        // Forward / Backward
+        if self.controller.walk_forward {
+            self.target_local_velocity.y += move_speed_factor;
         }
         if self.controller.walk_backward {
-            self.target_local_velocity.y = if self.controller.aim {
-                -1.0
-            } else if self.controller.run {
-                1.0
+            self.target_local_velocity.y -= if self.controller.aim {
+                move_speed_factor
             } else {
-                0.5
+                // Jika tidak aim tapi mundur, beri nilai positif untuk run/walk backward blend
+                move_speed_factor
             };
         }
-        if self.controller.aim {
-            if self.controller.walk_left {
-                self.target_local_velocity.x = -1.0;
-            }
-            if self.controller.walk_right {
-                self.target_local_velocity.x = 1.0;
-            }
+
+        // Strafe Left / Right (Diberikan nilai X penuh baik Aiming maupun Tidak)
+        if self.controller.walk_left {
+            self.target_local_velocity.x -= move_speed_factor;
+        }
+        if self.controller.walk_right {
+            self.target_local_velocity.x += move_speed_factor;
         }
 
-        self.local_velocity.follow(&self.target_local_velocity, 0.1);
+        // Lerp/Follow kecepatan lokal agar transisi gerakan halus
+        self.local_velocity.follow(&self.target_local_velocity, 0.2);
+        // -------------
 
         let upper_body_layer = self
             .state_machine
