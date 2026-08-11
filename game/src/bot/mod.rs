@@ -29,7 +29,7 @@ use fyrox::{
         reflect::prelude::*,
         uuid::uuid,
         variable::InheritableVariable,
-        visitor::{Visit, VisitResult, Visitor},
+        visitor::prelude::*,
     },
     graph::SceneGraph,
     resource::model::{ModelResource, ModelResourceExtension},

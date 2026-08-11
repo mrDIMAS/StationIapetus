@@ -10,7 +10,7 @@ use fyrox::{
         rand::{seq::SliceRandom, thread_rng},
         reflect::prelude::*,
         variable::InheritableVariable,
-        visitor::{Visit, VisitResult, Visitor},
+        visitor::prelude::*,
     },
     graph::SceneGraph,
     plugin::error::GameResult,

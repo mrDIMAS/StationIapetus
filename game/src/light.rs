@@ -1,10 +1,6 @@
 use fyrox::plugin::error::GameResult;
 use fyrox::{
-    core::{
-        rand::Rng,
-        reflect::prelude::*,
-        visitor::{Visit, VisitResult, Visitor},
-    },
+    core::{rand::Rng, reflect::prelude::*, visitor::prelude::*},
     rand::thread_rng,
     script::{ScriptContext, ScriptTrait},
 };

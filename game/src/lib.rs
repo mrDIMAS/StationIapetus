@@ -67,13 +67,8 @@ use crate::{
 };
 use fyrox::{
     core::{
-        algebra::Vector2,
-        color::Color,
-        futures::executor::block_on,
-        log::Log,
-        pool::Handle,
-        reflect::prelude::*,
-        visitor::{Visit, VisitResult, Visitor},
+        algebra::Vector2, color::Color, futures::executor::block_on, log::Log, pool::Handle,
+        reflect::prelude::*, visitor::prelude::*,
     },
     dpi::LogicalSize,
     engine::GraphicsContext,
