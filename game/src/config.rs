@@ -1,11 +1,7 @@
 use crate::control_scheme::ControlScheme;
+use fyrox::core::futures::executor::block_on;
 use fyrox::{core::log::Log, core::visitor::prelude::*, renderer::QualitySettings};
-use ron::ser::PrettyConfig;
-use serde::{Deserialize, Serialize};
-use std::{
-    fs::File,
-    ops::{Deref, DerefMut},
-};
+use std::ops::{Deref, DerefMut};
 
 #[derive(Debug, PartialEq, Clone)]
 pub struct Config {
@@ -44,7 +40,7 @@ impl DerefMut for Config {
     }
 }
 
-#[derive(Deserialize, PartialEq, Serialize, Clone, Visit, Debug)]
+#[derive(PartialEq, Clone, Visit, Debug)]
 pub struct SoundConfig {
     pub master_volume: f32,
     pub music_volume: f32,
@@ -61,7 +57,7 @@ impl Default for SoundConfig {
     }
 }
 
-#[derive(Deserialize, Serialize, PartialEq, Debug, Default, Clone)]
+#[derive(Visit, PartialEq, Debug, Default, Clone)]
 pub struct ConfigData {
     pub graphics: QualitySettings,
     pub controls: ControlScheme,
@@ -73,22 +69,20 @@ impl ConfigData {
     const PATH: &'static str = "data/configs/settings.ron";
 
     fn load() -> Self {
-        File::open(Self::PATH)
-            .ok()
-            .and_then(|file| ron::de::from_reader(file).ok())
+        block_on(Visitor::load_ascii_from_file(Self::PATH))
+            .map(|mut v| {
+                let mut data = ConfigData::default();
+                if data.visit("Data", &mut v).is_err() {
+                    data = ConfigData::default();
+                }
+                data
+            })
             .unwrap_or_default()
     }
 
-    fn save(&self) {
-        let Ok(file) = File::create(Self::PATH) else {
-            Log::err("Unable to save config!");
-            return;
-        };
-
-        Log::verify(ron::ser::to_writer_pretty(
-            file,
-            self,
-            PrettyConfig::default(),
-        ));
+    fn save(&mut self) {
+        let mut visitor = Visitor::new();
+        Log::verify(self.visit("Data", &mut visitor));
+        Log::verify(visitor.save_ascii_to_file(Self::PATH));
     }
 }

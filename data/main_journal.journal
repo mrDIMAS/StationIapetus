@@ -1,0 +1,14 @@
+FTAX:0;
+__ROOT__[]
+{
+	Root[]
+	{
+		Entries[Count<u32:1>]
+		{
+			Item0[Key<str:"Arrival">]
+			{
+				Value[Title<str:"Arrival">Text<str:"Investigate the surroundings.">]{}
+			}
+		}
+	}
+}

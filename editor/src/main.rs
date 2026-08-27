@@ -1,6 +1,9 @@
 //! Editor with your game connected to it as a plugin.
 use fyrox::event_loop::EventLoop;
+use fyrox::gui::inspector::editors::inherit::InheritablePropertyEditorDefinition;
+use fyroxed_base::plugins::inspector::editors::resource::ResourceFieldPropertyEditorDefinition;
 use fyroxed_base::{Editor, StartupData};
+use station_iapetus::gui::journal::JournalEntryDefinitionContainer;
 
 #[cfg(not(feature = "dylib"))]
 mod editor_plugin {
@@ -39,6 +42,20 @@ fn main() {
         scenes: vec!["data/levels/testbed.rgs".into()],
         named_objects: true,
     }));
+
+    editor
+        .property_editors
+        .insert(ResourceFieldPropertyEditorDefinition::<
+            JournalEntryDefinitionContainer,
+        >::new(editor.message_sender.clone()));
+    editor
+        .property_editors
+        .insert(InheritablePropertyEditorDefinition::<
+            Option<JournalEntryDefinitionContainer>,
+        >::new());
+    editor
+        .property_editors
+        .register_inheritable_vec_collection::<Option<JournalEntryDefinitionContainer>>();
 
     #[cfg(not(feature = "dylib"))]
     editor.add_editor_plugin(editor_plugin::EditorExtension {});

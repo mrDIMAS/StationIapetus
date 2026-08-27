@@ -167,7 +167,6 @@ pub struct Player {
     #[reflect(hidden)]
     weapon_change_direction: RequiredWeapon,
 
-    #[reflect(hidden)]
     pub journal: Journal,
 
     #[visit(skip)]
@@ -234,7 +233,7 @@ impl Default for Player {
                 speed: 1.5, // rad/s
             },
             journal_display: Default::default(),
-            journal: Journal::new(),
+            journal: Journal::default(),
             model_pivot: Default::default(),
             model_sub_pivot: Default::default(),
             animation_player: Default::default(),
@@ -283,7 +282,7 @@ impl Clone for Player {
             v_recoil: self.v_recoil.clone(),
             h_recoil: self.h_recoil.clone(),
             weapon_change_direction: self.weapon_change_direction.clone(),
-            journal: Default::default(),
+            journal: self.journal.clone(),
             controller: Default::default(),
             animation_player: self.animation_player,
             target_yaw: self.target_yaw,
@@ -630,7 +629,6 @@ impl Player {
 
     fn update_animation_machines(
         &mut self,
-        root: Handle<Node>,
         scene: &mut Scene,
         is_walking: bool,
         is_jumping: bool,
@@ -966,7 +964,7 @@ impl ScriptTrait for Player {
 
                 if let WindowEvent::KeyboardInput { event: input, .. } = event {
                     if let PhysicalKey::Code(key) = input.physical_key {
-                        Some((ControlButton::Key(key), input.state))
+                        Some((ControlButton::key(key), input.state))
                     } else {
                         None
                     }
@@ -1265,7 +1263,7 @@ impl ScriptTrait for Player {
         let is_walking = self.is_walking();
         let is_jumping = self.has_ground_contact && self.controller.jump;
         self.update_melee_attack(ctx.scene, ctx.message_sender, ctx.handle)?;
-        self.update_animation_machines(ctx.handle, ctx.scene, is_walking, is_jumping)?;
+        self.update_animation_machines(ctx.scene, is_walking, is_jumping)?;
 
         if self
             .melee_attack_context

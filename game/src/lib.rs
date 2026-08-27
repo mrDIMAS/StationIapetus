@@ -21,6 +21,10 @@ pub mod weapon;
 pub use fyrox;
 
 use crate::gui::final_screen::FinalScreenData;
+use crate::gui::journal::{
+    Journal, JournalEntryDefinition, JournalEntryDefinitionContainer,
+    JournalEntryDefinitionContainerLoader, JournalEntryId,
+};
 use crate::{
     bot::{Bot, BotHostility},
     character::Character,
@@ -65,6 +69,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::gui::inspector::editors::hashmap::HashMapPropertyEditorDefinition;
 use fyrox::{
     core::{
         algebra::Vector2, color::Color, futures::executor::block_on, log::Log, pool::Handle,
@@ -97,6 +102,7 @@ use fyrox::{
     window::CursorGrabMode,
 };
 use gui::death_screen::DeathScreen;
+use std::hash::RandomState;
 use std::{
     cell::RefCell,
     path::{Path, PathBuf},
@@ -719,6 +725,11 @@ impl Plugin for Game {
 
         ctx.widget_constructors.add::<InventoryItem>();
 
+        ctx.resource_manager
+            .register_resource_type::<JournalEntryDefinitionContainer, _>(
+                JournalEntryDefinitionContainerLoader::default(),
+            );
+
         Ok(())
     }
 
@@ -764,8 +775,15 @@ impl Plugin for Game {
         container.register_inheritable_inspectable::<Character>();
         container.register_inheritable_inspectable::<CameraController>();
         container.register_inheritable_inspectable::<BotCounter>();
+        container.register_inheritable_inspectable::<Journal>();
+        container.register_inheritable_inspectable::<JournalEntryDefinition>();
         container.register_inheritable_vec_collection::<Barrel>();
         container.register_inheritable_vec_collection::<ItemEntry>();
+        container.insert(HashMapPropertyEditorDefinition::<
+            JournalEntryId,
+            JournalEntryDefinition,
+            RandomState,
+        >::new());
     }
 
     fn init(&mut self, scene_path: Option<&str>, mut ctx: PluginContext) -> GameResult {

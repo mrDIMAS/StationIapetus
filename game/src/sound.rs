@@ -21,7 +21,7 @@ use fyrox::{
 };
 use serde::Deserialize;
 use std::fmt::{Debug, Formatter};
-use std::{collections::HashMap, fs::File, ops::Range, path::Path, path::PathBuf};
+use std::{collections::HashMap, ops::Range, path::Path, path::PathBuf};
 
 #[derive(PartialEq, Debug)]
 pub struct TriangleRange {
@@ -53,8 +53,11 @@ pub struct SoundBase {
 
 impl SoundBase {
     pub fn load() -> Self {
-        let file = File::open("data/sounds/sound_map.ron").unwrap();
-        let mut base: Self = ron::de::from_reader(file).unwrap();
+        // TODO: Turn into a resource + refactor to use resources instead of file paths and custom
+        //       config.
+        //let file = File::open("data/sounds/sound_map.ron").unwrap();
+        let mut base: Self = Self::default(); // ron::de::from_reader(file).unwrap();
+
         // Canonicalize paths to remove \ and / differences and remove prefixes like ./ etc.
         base.texture_to_material = base
             .texture_to_material

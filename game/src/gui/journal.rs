@@ -4,74 +4,57 @@ use crate::{
     control_scheme::{ControlButton, ControlScheme},
     gui,
 };
-use fyrox::core::pool::HandlesVecExtension;
-use fyrox::gui::list_view::ListView;
-use fyrox::gui::text::Text;
+use fyrox::asset::{impl_simple_resource, Resource};
+use fyrox::core::{some_or_continue, some_or_return};
 use fyrox::{
-    core::{algebra::Vector2, pool::Handle, visitor::prelude::*},
+    core::{
+        algebra::Vector2, pool::Handle, pool::HandlesVecExtension, reflect::prelude::*,
+        visitor::prelude::*,
+    },
     gui::{
         border::BorderBuilder,
         decorator::DecoratorBuilder,
         formatted_text::WrapMode,
         grid::{Column, GridBuilder, Row},
+        list_view::ListView,
         list_view::{ListViewBuilder, ListViewMessage},
         message::{ButtonState, MessageDirection, OsEvent},
         scroll_viewer::ScrollViewerBuilder,
+        text::Text,
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
         UserInterface,
     },
     resource::texture::TextureResource,
 };
-use serde::Deserialize;
-use std::sync::LazyLock;
-use std::{collections::HashMap, fs::File};
+use std::collections::HashMap;
 
-#[derive(Deserialize, Copy, Clone, PartialOrd, Default, PartialEq, Ord, Eq, Hash, Visit, Debug)]
-#[repr(u32)]
-pub enum JournalEntryKind {
-    #[default]
-    CurrentSituation,
-}
+pub type JournalEntryId = String;
 
-#[derive(Deserialize)]
+#[derive(Reflect, Visit, Debug, Clone, PartialEq, Default)]
+#[reflect(type_uuid = "94fee590-fa6f-4dd2-817e-4b69490e0dfe")]
 pub struct JournalEntryDefinition {
     pub title: String,
     pub text: String,
 }
 
-#[derive(Deserialize, Default)]
+#[derive(Reflect, Visit, Debug, Clone, PartialEq, Default)]
+#[reflect(type_uuid = "c583f54c-4458-421b-968f-4f1a7b6ca50c")]
 pub struct JournalEntryDefinitionContainer {
-    map: HashMap<JournalEntryKind, JournalEntryDefinition>,
+    entries: HashMap<JournalEntryId, JournalEntryDefinition>,
 }
 
-impl JournalEntryDefinitionContainer {
-    pub fn new() -> Self {
-        let file = File::open("data/configs/journal.ron").unwrap();
-        ron::de::from_reader(file).unwrap()
-    }
-}
+impl_simple_resource!(
+    JournalEntryDefinitionContainer,
+    JournalEntryDefinitionContainerLoader,
+    "journal"
+);
 
-static DEFINITIONS: LazyLock<JournalEntryDefinitionContainer> =
-    LazyLock::new(JournalEntryDefinitionContainer::new);
-
-impl JournalEntryKind {
-    pub fn get_definition(self) -> &'static JournalEntryDefinition {
-        DEFINITIONS.map.get(&self).unwrap()
-    }
-}
-
-#[derive(Default, PartialEq, Visit, Debug)]
+#[derive(Default, PartialEq, Visit, Clone, Debug, Reflect)]
+#[reflect(type_uuid = "fcc8459a-5944-42e4-a22f-24babd497053")]
 pub struct Journal {
-    messages: Vec<JournalEntryKind>,
-}
-
-impl Journal {
-    pub fn new() -> Self {
-        Self {
-            messages: vec![JournalEntryKind::CurrentSituation],
-        }
-    }
+    messages: Vec<JournalEntryId>,
+    resource: Option<Resource<JournalEntryDefinitionContainer>>,
 }
 
 #[derive(Visit, PartialEq, Debug)]
@@ -112,7 +95,6 @@ impl JournalDisplay {
                             .with_child({
                                 objective =
                                     TextBuilder::new(WidgetBuilder::new().on_row(0).on_column(0))
-                                        .with_text("Investigate the reasons why connection with the station was lost.")
                                         .with_wrap(WrapMode::Word)
                                         .build(&mut ui.build_ctx());
                                 objective
@@ -168,21 +150,29 @@ impl JournalDisplay {
     }
 
     pub fn sync_to_model(&mut self, journal: &Journal) {
+        dbg!(journal.resource.is_some());
+        let resource = some_or_return!(journal.resource.as_ref()).data_ref();
+        dbg!();
+        let resource = some_or_return!(resource.as_loaded_ref());
+        dbg!();
         let items = journal
             .messages
             .iter()
-            .map(|i| {
-                let definition = i.get_definition();
-                DecoratorBuilder::new(BorderBuilder::new(
-                    WidgetBuilder::new().with_child(
-                        TextBuilder::new(WidgetBuilder::new())
-                            .with_text(&definition.title)
-                            .build(&mut self.ui.build_ctx()),
-                    ),
-                ))
-                .build(&mut self.ui.build_ctx())
+            .filter_map(|i| {
+                let definition = resource.entries.get(i)?;
+                Some(
+                    DecoratorBuilder::new(BorderBuilder::new(
+                        WidgetBuilder::new().with_child(
+                            TextBuilder::new(WidgetBuilder::new())
+                                .with_text(&definition.title)
+                                .build(&mut self.ui.build_ctx()),
+                        ),
+                    ))
+                    .build(&mut self.ui.build_ctx()),
+                )
             })
             .collect::<Vec<_>>();
+        dbg!(items.len());
         self.ui
             .send(self.messages, ListViewMessage::Items(items.to_base()));
     }
@@ -193,7 +183,7 @@ impl JournalDisplay {
         if let OsEvent::KeyboardInput { button, state, .. } = *os_event {
             if state == ButtonState::Pressed {
                 if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                    if fyrox::utils::translate_key_to_ui(key) == button {
+                    if fyrox::utils::translate_key_to_ui(*key) == button {
                         self.current_message = match self.current_message {
                             None => Some(0),
                             Some(n) => Some(n.saturating_sub(1)),
@@ -207,7 +197,7 @@ impl JournalDisplay {
                     }
                 }
                 if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                    if fyrox::utils::translate_key_to_ui(key) == button {
+                    if fyrox::utils::translate_key_to_ui(*key) == button {
                         self.current_message = match self.current_message {
                             None => Some(0),
                             Some(n) => Some(n + 1),
@@ -237,10 +227,14 @@ impl JournalDisplay {
                     if let Some(entry) =
                         value.first().cloned().and_then(|n| journal.messages.get(n))
                     {
-                        self.ui.send(
-                            self.message_text,
-                            TextMessage::Text(entry.get_definition().text.clone()),
-                        );
+                        let resource = some_or_continue!(journal.resource.as_ref()).data_ref();
+                        let resource = some_or_continue!(resource.as_loaded_ref());
+                        if let Some(definition) = resource.entries.get(entry) {
+                            self.ui.send(
+                                self.message_text,
+                                TextMessage::Text(definition.text.clone()),
+                            );
+                        }
                     }
                 }
             }

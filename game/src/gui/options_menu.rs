@@ -736,7 +736,7 @@ impl OptionsMenu {
                 }
                 WindowEvent::KeyboardInput { event: input, .. } => {
                     if let PhysicalKey::Code(key) = input.physical_key {
-                        control_button = Some(ControlButton::Key(key));
+                        control_button = Some(ControlButton::key(key));
                     }
                 }
                 WindowEvent::MouseInput { button, .. } => {
