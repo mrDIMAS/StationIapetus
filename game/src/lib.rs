@@ -21,8 +21,9 @@ pub mod weapon;
 pub use fyrox;
 
 use crate::gui::final_screen::FinalScreenData;
+use crate::gui::journal::entry::JournalEntry;
 use crate::gui::journal::{
-    Journal, JournalEntryDefinition, JournalEntryDefinitionContainer,
+    Journal, JournalDisplayData, JournalEntryDefinition, JournalEntryDefinitionContainer,
     JournalEntryDefinitionContainerLoader, JournalEntryId,
 };
 use crate::{
@@ -69,6 +70,7 @@ use crate::{
         CombatWeaponKind, Weapon,
     },
 };
+use fyrox::graph::SceneGraph;
 use fyrox::gui::inspector::editors::hashmap::HashMapPropertyEditorDefinition;
 use fyrox::{
     core::{
@@ -138,7 +140,7 @@ pub struct Game {
     final_screen: Option<FinalScreen>,
     weapon_display: WeaponDisplay,
     item_display: ItemDisplay,
-    journal_display: JournalDisplay,
+    journal_display: Option<JournalDisplay>,
     #[visit(skip)]
     highlighter: Option<Rc<RefCell<HighlightRenderPass>>>,
     font: FontResource,
@@ -212,6 +214,25 @@ impl Game {
                 final_screen.handle_ui_message(ctx, ui_handle, message, &self.message_sender);
         }
 
+        if let Some(journal_display) = self.journal_display.as_mut() {
+            if let Some(ref mut level) = self.level {
+                if let Some(player_ref) = ctx
+                    .scenes
+                    .try_get(level.scene)
+                    .ok()
+                    .and_then(|s| s.graph.try_get(level.player).ok())
+                    .and_then(|p| p.try_get_script::<Player>())
+                {
+                    journal_display.handle_ui_message(
+                        ctx.user_interfaces,
+                        ui_handle,
+                        message,
+                        &player_ref.journal,
+                    )?;
+                }
+            }
+        }
+
         let play_sound = if message.direction() == MessageDirection::FromWidget {
             if let Some(ButtonMessage::Click) = message.data() {
                 true
@@ -232,8 +253,8 @@ impl Game {
         Ok(())
     }
 
-    fn render_offscreen(&mut self, context: &mut PluginContext) {
-        if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
+    fn render_offscreen(&mut self, ctx: &mut PluginContext) {
+        if let GraphicsContext::Initialized(ref mut graphics_context) = ctx.graphics_context {
             let renderer = &mut graphics_context.renderer;
 
             for (rt, ui) in [
@@ -245,16 +266,12 @@ impl Game {
                     self.item_display.render_target.clone(),
                     &mut self.item_display.ui,
                 ),
-                (
-                    self.journal_display.render_target.clone(),
-                    &mut self.journal_display.ui,
-                ),
             ] {
                 Log::verify(renderer.render_ui(UiRenderInfo {
                     ui,
                     render_target: Some(rt),
                     clear_color: Color::TRANSPARENT,
-                    resource_manager: context.resource_manager,
+                    resource_manager: ctx.resource_manager,
                 }));
             }
         }
@@ -542,11 +559,14 @@ impl Game {
                     self.try_destroy_final_screen(context);
                 }
                 Message::SyncJournal => {
-                    if let Some(ref mut level) = self.level {
-                        let player_ref = context.scenes[level.scene].graph[level.player]
-                            .try_get_script::<Player>()
-                            .unwrap();
-                        self.journal_display.sync_to_model(&player_ref.journal);
+                    if let Some(journal_display) = self.journal_display.as_mut() {
+                        if let Some(ref mut level) = self.level {
+                            let player_ref = context.scenes[level.scene].graph[level.player]
+                                .try_get_script::<Player>()
+                                .unwrap();
+                            journal_display
+                                .sync_to_model(context.user_interfaces, &player_ref.journal)?;
+                        }
                     }
                 }
                 Message::Play2DSound { path, gain } => {
@@ -614,13 +634,23 @@ impl Game {
         );
     }
 
-    fn process_dispatched_event(&mut self, event: &Event<()>) {
-        if let Event::WindowEvent { event, .. } = event {
-            if let Some(event) = translate_event(event) {
-                self.journal_display
-                    .process_os_event(&event, &self.config.controls);
+    fn process_dispatched_event(
+        &mut self,
+        ctx: &mut PluginContext,
+        event: &Event<()>,
+    ) -> GameResult {
+        if let Some(journal_display) = self.journal_display.as_mut() {
+            if let Event::WindowEvent { event, .. } = event {
+                if let Some(event) = translate_event(event) {
+                    journal_display.process_os_event(
+                        ctx.user_interfaces,
+                        &event,
+                        &self.config.controls,
+                    )?;
+                }
             }
         }
+        Ok(())
     }
 
     pub fn on_window_resized(
@@ -665,9 +695,9 @@ impl Game {
     pub fn process_input_event(
         &mut self,
         event: &Event<()>,
-        context: &mut PluginContext,
+        ctx: &mut PluginContext,
     ) -> GameResult {
-        self.process_dispatched_event(event);
+        self.process_dispatched_event(ctx, event)?;
 
         if let Event::WindowEvent {
             event: WindowEvent::KeyboardInput { event: input, .. },
@@ -676,13 +706,13 @@ impl Game {
         {
             if let ElementState::Pressed = input.state {
                 if input.physical_key == KeyCode::Escape && self.level.is_some() {
-                    self.set_menu_visible(!self.is_any_menu_visible(context), context)?;
+                    self.set_menu_visible(!self.is_any_menu_visible(ctx), ctx)?;
                 }
             }
         }
 
         if let Some(menu) = self.menu.as_mut() {
-            menu.process_input_event(context, event, &mut self.config)?;
+            menu.process_input_event(ctx, event, &mut self.config)?;
         }
 
         Ok(())
@@ -720,10 +750,12 @@ impl Plugin for Game {
 
         ctx.dyn_type_constructors
             .add::<MenuData, Self>("Menu Data")
+            .add::<JournalDisplayData, Self>("Journal Display Data")
             .add::<DeathScreenData, Self>("Death Screen Data")
             .add::<FinalScreenData, Self>("Final Screen Data");
 
         ctx.widget_constructors.add::<InventoryItem>();
+        ctx.widget_constructors.add::<JournalEntry>();
 
         ctx.resource_manager
             .register_resource_type::<JournalEntryDefinitionContainer, _>(
@@ -758,6 +790,9 @@ impl Plugin for Game {
         container.register_inspectable::<Trigger>();
         container.register_inspectable::<ExplosiveBarrel>();
         container.register_inspectable::<HitBox>();
+
+        // UI.
+        container.register_inspectable::<JournalEntry>();
 
         // Other.
         container.register_inheritable_enum::<Hostility, _>();
@@ -804,8 +839,11 @@ impl Plugin for Game {
         let weapon_display = WeaponDisplay::new(font.clone(), ctx.resource_manager.clone());
 
         let item_display = ItemDisplay::new(font.clone());
-        let journal_display = JournalDisplay::new();
 
+        ctx.load_ui("data/ui/journal.ui", |result, game: &mut Game, ctx| {
+            game.journal_display = Some(JournalDisplay::new(result?.payload, ctx));
+            Ok(())
+        });
         ctx.load_ui("data/ui/main_menu.ui", |result, game: &mut Game, ctx| {
             game.menu = Some(Menu::new(result?.payload, ctx, game.font.clone()));
             Ok(())
@@ -821,7 +859,7 @@ impl Plugin for Game {
             debug_text: Handle::NONE,
             weapon_display,
             item_display,
-            journal_display,
+            journal_display: None,
             level: None,
             debug_string: String::new(),
             message_receiver: rx,

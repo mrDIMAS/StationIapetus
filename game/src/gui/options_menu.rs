@@ -427,6 +427,7 @@ impl OptionsMenu {
                     .build(ctx)
                     .to_base()
             },
+            context_menu: None,
         };
 
         let sound_content = GridBuilder::new(
@@ -502,6 +503,7 @@ impl OptionsMenu {
                     .build(ctx)
                     .to_base()
             },
+            context_menu: None,
         };
 
         let controls_content = {
@@ -598,6 +600,7 @@ impl OptionsMenu {
                     .build(ctx)
                     .to_base()
             },
+            context_menu: None,
         };
 
         let tab_control = TabControlBuilder::new(WidgetBuilder::new())

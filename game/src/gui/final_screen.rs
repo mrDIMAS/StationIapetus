@@ -24,11 +24,7 @@ pub struct FinalScreen {
 
 impl FinalScreen {
     pub fn new(mut ui: UserInterface, ctx: &mut PluginContext) -> Self {
-        let data = ui
-            .user_data
-            .try_take::<FinalScreenData>()
-            .unwrap_or_default();
-
+        let data = ui.user_data.try_take_or_default::<FinalScreenData>();
         Self {
             ui: ctx.user_interfaces.add(ui),
             data,

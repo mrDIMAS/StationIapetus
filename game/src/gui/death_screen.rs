@@ -25,11 +25,7 @@ pub struct DeathScreen {
 
 impl DeathScreen {
     pub fn new(mut ui: UserInterface, ctx: &mut PluginContext) -> Self {
-        let data = ui
-            .user_data
-            .try_take::<DeathScreenData>()
-            .unwrap_or_default();
-
+        let data = ui.user_data.try_take_or_default::<DeathScreenData>();
         Self {
             ui: ctx.user_interfaces.add(ui),
             data,

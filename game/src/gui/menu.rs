@@ -8,7 +8,7 @@ use crate::{
     Game, MessageSender,
 };
 use fyrox::{
-    core::{err, pool::Handle, reflect::prelude::*, visitor::prelude::*},
+    core::{pool::Handle, reflect::prelude::*, visitor::prelude::*},
     event::Event,
     graph::SceneGraph,
     gui::{
@@ -91,14 +91,7 @@ impl Menu {
             },
         );
 
-        let data = user_interface
-            .user_data
-            .try_take::<MenuData>()
-            .ok()
-            .unwrap_or_else(|| {
-                err!("There's no menu data in the main menu ui! Fallback to default.");
-                MenuData::default()
-            });
+        let data = user_interface.user_data.try_take_or_default::<MenuData>();
         let ui = context.user_interfaces.add(user_interface);
 
         Self {

@@ -5,7 +5,7 @@ use crate::{
     inventory::Inventory,
     level::item::Item,
 };
-use fyrox::graph::constructor::{ConstructorProvider, GraphNodeConstructor};
+use fyrox::gui::define_widget_constructor;
 use fyrox::gui::message::MessageData;
 use fyrox::gui::scroll_viewer::ScrollViewer;
 use fyrox::gui::text::Text;
@@ -62,17 +62,7 @@ pub struct InventoryItem {
     count: Handle<Text>,
 }
 
-impl ConstructorProvider<UiNode, UserInterface> for InventoryItem {
-    fn constructor() -> GraphNodeConstructor<UiNode, UserInterface> {
-        GraphNodeConstructor::new::<Self>()
-            .with_variant("Canvas", |ui| {
-                InventoryItemBuilder::new(WidgetBuilder::new().with_name("InventoryItem"))
-                    .build(&Default::default(), &mut ui.build_ctx())
-                    .into()
-            })
-            .with_group("Layout")
-    }
-}
+define_widget_constructor!(InventoryItem, "Inventory Item", "Inventory");
 
 impl Control for InventoryItem {
     fn draw(&self, drawing_context: &mut DrawingContext) {

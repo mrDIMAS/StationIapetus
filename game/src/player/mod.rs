@@ -928,7 +928,10 @@ impl ScriptTrait for Player {
             game.weapon_display.render_target.clone(),
             self.inventory_gui.render_target.clone(),
             game.item_display.render_target.clone(),
-            game.journal_display.render_target.clone(),
+            game.journal_display
+                .as_ref()
+                .map(|d| d.render_target(ctx.user_interfaces))
+                .unwrap_or_default(),
         )?;
 
         Ok(())
@@ -1197,7 +1200,6 @@ impl ScriptTrait for Player {
 
         let game = ctx.plugins.get_mut::<Game>();
         game.weapon_display.sync_to_model(self, &ctx.scene.graph);
-        game.journal_display.update(ctx.dt, &self.journal);
 
         let game = ctx.plugins.get::<Game>();
         let level = game.level.as_ref().unwrap();
