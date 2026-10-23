@@ -264,7 +264,7 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"roughnessTexture">]
+																		Item0[Key<str:"metallicTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -363,7 +363,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item7[Key<str:"heightTexture">]
+																		Item7[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -373,7 +373,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"metallicTexture">]
+																		Item8[Key<str:"heightTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{

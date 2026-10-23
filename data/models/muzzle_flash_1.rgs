@@ -131,13 +131,16 @@ __ROOT__[]
 																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
 																	ResourceBindings[Count<u32:9>]
 																	{
-																		Item0[Key<str:"heightTexture">]
+																		Item0[Key<str:"diffuseTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
 																				0[]
 																				{
-																					Value[IsSome<u8:0>]{}
+																					Value[IsSome<u8:1>]
+																					{
+																						Data[Uuid<uuid:3d4834c2-a9c8-42f7-8c68-c230711b01a4>]{}
+																					}
 																				}
 																			}
 																		}
@@ -230,7 +233,7 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item7[Key<str:"roughnessTexture">]
+																		Item7[Key<str:"heightTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
@@ -240,16 +243,13 @@ __ROOT__[]
 																				}
 																			}
 																		}
-																		Item8[Key<str:"diffuseTexture">]
+																		Item8[Key<str:"roughnessTexture">]
 																		{
 																			Value[Id<u32:0>]
 																			{
 																				0[]
 																				{
-																					Value[IsSome<u8:1>]
-																					{
-																						Data[Uuid<uuid:3d4834c2-a9c8-42f7-8c68-c230711b01a4>]{}
-																					}
+																					Value[IsSome<u8:0>]{}
 																				}
 																			}
 																		}

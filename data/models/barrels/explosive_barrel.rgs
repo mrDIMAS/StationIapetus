@@ -940,11 +940,11 @@ __ROOT__[]
 																}
 																TrackBindings[Count<u32:3>]
 																{
-																	Item0[Key<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
+																	Item0[Key<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
 																	{
 																		Value[Enabled<bool:true>]
 																		{
-																			Target[Index<u32:7>Generation<u32:1>]{}
+																			Target[Index<u32:6>Generation<u32:1>]{}
 																		}
 																	}
 																	Item1[Key<uuid:478c0a9a-ff93-47c3-92c7-50fb9f90d0b1>]
@@ -954,11 +954,11 @@ __ROOT__[]
 																			Target[Index<u32:6>Generation<u32:1>]{}
 																		}
 																	}
-																	Item2[Key<uuid:b92a2e02-229a-484b-97a1-9ebc85269768>]
+																	Item2[Key<uuid:dfbbb340-42e4-442a-8f22-b3d5e723876f>]
 																	{
 																		Value[Enabled<bool:true>]
 																		{
-																			Target[Index<u32:6>Generation<u32:1>]{}
+																			Target[Index<u32:7>Generation<u32:1>]{}
 																		}
 																	}
 																}

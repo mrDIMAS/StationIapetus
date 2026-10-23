@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -48,10 +48,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -70,10 +66,17 @@ __ROOT__[]
 												{
 													Data[RestorationTime<f32:0>ThreatenTimeout<f32:0>WalkSpeed<f32:1.2>VAimAngleHack<f32:0>HAimAngleHack<f32:0>CloseCombatDistance<f32:1.2>PrevIsDead<bool:false>DespawnTimeout<f32:30>LastPosition<vec3f32:0; 0; 0>]
 													{
-														Target[IsSome<u8:0>]{}
-														Model[Index<u32:1>Generation<u32:1>]{}
-														Character[CurrentWeapon<u64:0>]
+														Character[Velocity<vec3f32:0; 0; 0>HasGroundContact<bool:false>CurrentWeapon<u64:0>]
 														{
+															CharacterController[Up<vec3f32:0; 1; 0>Slide<bool:true>MaxSlopeClimbAngle<f32:0.7853982>MinSlopeSlideAngle<f32:0.7853982>NormalNudgeFactor<f32:0.0001>]
+															{
+																Offset[Id<u32:0>0<f32:0.01>]{}
+																Autostep[IsSome<u8:0>]{}
+																SnapToGround[IsSome<u8:1>]
+																{
+																	Data[Id<u32:0>0<f32:0.2>]{}
+																}
+															}
 															CapsuleCollider[Index<u32:90>Generation<u32:1>]{}
 															Body[Index<u32:0>Generation<u32:1>]{}
 															Weapons[Length<u32:0>]{}
@@ -96,6 +99,8 @@ __ROOT__[]
 															}
 															MeleeAttackDamage[Value<f32:20>Flags<u8:1>]{}
 														}
+														Target[IsSome<u8:0>]{}
+														Model[Index<u32:1>Generation<u32:1>]{}
 														Ragdoll[Flags<u8:1>]
 														{
 															Value[Index<u32:0>Generation<u32:0>]{}
@@ -393,10 +398,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -467,10 +468,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -555,10 +552,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -629,10 +622,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -836,10 +825,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -910,10 +895,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -998,10 +979,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -1072,10 +1049,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -1802,10 +1775,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -1876,10 +1845,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -1964,10 +1929,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -2038,10 +1999,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -2196,10 +2153,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -2270,10 +2223,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -2925,10 +2874,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -2999,10 +2944,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -3087,10 +3028,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -3161,10 +3098,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -3249,10 +3182,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -3323,10 +3252,6 @@ __ROOT__[]
 										LodGroup[Flags<u8:1>]
 										{
 											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
 										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
@@ -3456,10 +3381,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -3560,7 +3481,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -3572,7 +3493,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -3580,6 +3501,7 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		SkyBox[Flags<u8:1>]

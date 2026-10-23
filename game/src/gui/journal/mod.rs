@@ -2,26 +2,25 @@ pub mod entry;
 
 use crate::{
     control_scheme::{ControlButton, ControlScheme},
+    fyrox::{
+        asset::{impl_simple_resource, Resource},
+        core::{
+            algebra::Vector2, pool::Handle, pool::HandlesVecExtension, reflect::prelude::*,
+            some_or_return, visitor::prelude::*,
+        },
+        gui::{
+            list_view::{ListView, ListViewMessage},
+            message::{ButtonState, MessageDirection, OsEvent, UiMessage},
+            text::{Text, TextMessage},
+            texture::{TexturePixelKind, TextureResource},
+            UiContainer, UserInterface, UserInterfaceResourceExtension,
+        },
+        plugin::{error::GameResult, PluginContext},
+        resource::texture::TextureResourceExtension,
+    },
     gui::journal::entry::JournalEntryMessage,
 };
-use fyrox::core::algebra::Vector2;
-use fyrox::gui::texture::TexturePixelKind;
-use fyrox::resource::texture::TextureResourceExtension;
-use fyrox::{
-    asset::{impl_simple_resource, Resource},
-    core::{
-        pool::Handle, pool::HandlesVecExtension, reflect::prelude::*, some_or_return,
-        visitor::prelude::*,
-    },
-    gui::{
-        list_view::{ListView, ListViewMessage},
-        message::{ButtonState, MessageDirection, OsEvent, UiMessage},
-        text::{Text, TextMessage},
-        texture::TextureResource,
-        UiContainer, UserInterface, UserInterfaceResourceExtension,
-    },
-    plugin::{error::GameResult, PluginContext},
-};
+use fyrox::plugin::error::GameError;
 use std::collections::HashMap;
 
 pub type JournalEntryId = String;
@@ -88,18 +87,24 @@ impl JournalDisplay {
         }
     }
 
-    pub fn render_target(&self, ui_container: &UiContainer) -> TextureResource {
+    pub fn render_target(&self, ui_container: &UiContainer) -> Option<TextureResource> {
         ui_container
             .try_get(self.ui)
             .ok()
             .and_then(|ui| ui.render_target.clone())
-            .unwrap_or_default()
     }
 
     pub fn sync_to_model(&mut self, uis: &mut UiContainer, journal: &Journal) -> GameResult {
         let ui = uis.try_get_mut(self.ui)?;
-        let resource = some_or_return!(journal.resource.as_ref(), Ok(())).data_ref();
-        let resource = some_or_return!(resource.as_loaded_ref(), Ok(()));
+        let resource = some_or_return!(
+            journal.resource.as_ref(),
+            Err(GameError::str("there's no journal resource"))
+        )
+        .data_ref();
+        let resource = some_or_return!(
+            resource.as_loaded_ref(),
+            Err(GameError::str("journal resource isn't loaded"))
+        );
         if let Some(data) = self.data.entry_prefab.as_ref() {
             let items = journal
                 .messages
@@ -134,20 +139,24 @@ impl JournalDisplay {
         control_scheme: &ControlScheme,
     ) -> GameResult {
         let ui = uis.try_get_mut(self.ui)?;
-        if let OsEvent::KeyboardInput { button, state, .. } = *os_event {
-            if state == ButtonState::Pressed {
-                if let ControlButton::Key(key) = control_scheme.cursor_up.button {
-                    if fyrox::utils::translate_key_to_ui(*key) == button {
-                        self.move_selection(ui, -1);
-                    }
+
+        let OsEvent::KeyboardInput { button, state, .. } = *os_event else {
+            return Ok(());
+        };
+
+        if state == ButtonState::Pressed {
+            if let ControlButton::Key(key) = control_scheme.cursor_up.button {
+                if fyrox::utils::translate_key_to_ui(*key) == button {
+                    self.move_selection(ui, -1);
                 }
-                if let ControlButton::Key(key) = control_scheme.cursor_down.button {
-                    if fyrox::utils::translate_key_to_ui(*key) == button {
-                        self.move_selection(ui, 1);
-                    }
+            }
+            if let ControlButton::Key(key) = control_scheme.cursor_down.button {
+                if fyrox::utils::translate_key_to_ui(*key) == button {
+                    self.move_selection(ui, 1);
                 }
             }
         }
+
         Ok(())
     }
 
@@ -161,12 +170,19 @@ impl JournalDisplay {
         if self.ui != ui_handle {
             return Ok(());
         }
+        let resource = some_or_return!(
+            journal.resource.as_ref(),
+            Err(GameError::str("there's no journal resource"))
+        )
+        .data_ref();
+        let resource = some_or_return!(
+            resource.as_loaded_ref(),
+            Err(GameError::str("journal resource isn't loaded"))
+        );
         let ui = uis.try_get_mut(self.ui)?;
         if let Some(ListViewMessage::Selection(value)) = message.data() {
             if message.direction() == MessageDirection::FromWidget {
                 if let Some(entry) = value.first().cloned().and_then(|n| journal.messages.get(n)) {
-                    let resource = some_or_return!(journal.resource.as_ref(), Ok(())).data_ref();
-                    let resource = some_or_return!(resource.as_loaded_ref(), Ok(()));
                     if let Some(definition) = resource.entries.get(entry) {
                         ui.send(
                             self.data.message_text,

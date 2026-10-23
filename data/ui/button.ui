@@ -29,16 +29,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -62,9 +68,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}
@@ -141,7 +150,10 @@ __ROOT__[]
 									{
 										Value[IsSome<u8:0>]{}
 									}
-									Height[Value<f32:32>Flags<u8:1>]{}
+									Height[Flags<u8:1>]
+									{
+										Value[Id<u32:1>0<f32:32>]{}
+									}
 									Shadow[Value<bool:true>Flags<u8:1>]{}
 									ShadowBrush[Flags<u8:1>]
 									{
@@ -185,27 +197,11 @@ __ROOT__[]
 										MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 										Background[Flags<u8:1>]
 										{
-											Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-											{
-												Stops[Length<u32:2>]
-												{
-													Item0[Stop<f32:0>]
-													{
-														Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-													}
-													Item1[Stop<f32:1>]
-													{
-														Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
-													}
-												}
-											}
+											Value[Id<u32:0>Name<str:"Button.Background">]{}
 										}
 										Foreground[Flags<u8:1>]
 										{
-											Value[Id<u32:0>]
-											{
-												0[R<u8:0>G<u8:5>B<u8:107>A<u8:255>]{}
-											}
+											Value[Id<u32:0>Name<str:"Button.Foreground">]{}
 										}
 										Row[Value<u64:0>Flags<u8:1>]{}
 										Column[Value<u64:0>Flags<u8:1>]{}
@@ -231,9 +227,12 @@ __ROOT__[]
 										ZIndex[Value<u64:0>Flags<u8:1>]{}
 										AllowDrag[Value<bool:false>Flags<u8:1>]{}
 										AllowDrop[Value<bool:false>Flags<u8:1>]{}
-										Style[IsSome<u8:1>]
+										Style[Flags<u8:1>]
 										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+											Value[IsSome<u8:1>]
+											{
+												Data[Uuid<uuid:ea413b5c-068d-4e7a-bc4d-7f57a90b4ed3>]{}
+											}
 										}
 										DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 										Enabled[Value<bool:true>Flags<u8:1>]{}
@@ -275,67 +274,37 @@ __ROOT__[]
 									}
 									StrokeThickness[Flags<u8:1>]
 									{
-										Value[Left<f32:4>Top<f32:4>Right<f32:4>Bottom<f32:4>]{}
+										Value[Id<u32:1>]
+										{
+											0[Left<f32:4>Top<f32:4>Right<f32:4>Bottom<f32:4>]{}
+										}
 									}
-									CornerRadius[Value<f32:4>Flags<u8:1>]{}
+									CornerRadius[Flags<u8:1>]
+									{
+										Value[Id<u32:1>0<f32:4>]{}
+									}
 									PadByCornerRadius[Value<bool:false>Flags<u8:1>]{}
 								}
 								NormalBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-									{
-										Stops[Length<u32:2>]
-										{
-											Item0[Stop<f32:0>]
-											{
-												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-											}
-											Item1[Stop<f32:1>]
-											{
-												Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
-											}
-										}
-									}
+									Value[Id<u32:0>Name<str:"Button.Background">]{}
 								}
 								HoverBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-									{
-										Stops[Length<u32:2>]
-										{
-											Item0[Stop<f32:0>]
-											{
-												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-											}
-											Item1[Stop<f32:1>]
-											{
-												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-											}
-										}
-									}
+									Value[Id<u32:0>Name<str:"Button.HoverBrush">]{}
 								}
 								PressedBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-									{
-										Stops[Length<u32:2>]
-										{
-											Item0[Stop<f32:0>]
-											{
-												Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-											}
-											Item1[Stop<f32:1>]
-											{
-												Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
-											}
-										}
-									}
+									Value[Id<u32:0>Name<str:"Button.PressedBrush">]{}
 								}
 								SelectedBrush[Flags<u8:1>]
 								{
-									Value[Id<u32:0>]
+									Value[Id<u32:1>]
 									{
-										0[R<u8:130>G<u8:130>B<u8:130>A<u8:255>]{}
+										0[Id<u32:0>]
+										{
+											0[R<u8:130>G<u8:130>B<u8:130>A<u8:255>]{}
+										}
 									}
 								}
 								IsSelected[Value<bool:false>Flags<u8:1>]{}
@@ -362,16 +331,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -398,9 +373,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}

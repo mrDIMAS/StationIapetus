@@ -45,16 +45,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -82,9 +88,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}
@@ -146,16 +155,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:190>G<u8:190>B<u8:190>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:190>G<u8:190>B<u8:190>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -179,9 +194,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}
@@ -258,7 +276,10 @@ __ROOT__[]
 									{
 										Value[IsSome<u8:0>]{}
 									}
-									Height[Value<f32:50>Flags<u8:1>]{}
+									Height[Flags<u8:1>]
+									{
+										Value[Id<u32:1>0<f32:50>]{}
+									}
 									Shadow[Value<bool:false>Flags<u8:1>]{}
 									ShadowBrush[Flags<u8:1>]
 									{
@@ -299,10 +320,6 @@ __ROOT__[]
 										Item0[Index<u32:8>Generation<u32:1>]{}
 									}
 									Parent[Index<u32:10>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -334,10 +351,6 @@ __ROOT__[]
 											Item0[Index<u32:9>Generation<u32:1>]{}
 										}
 										Parent[Index<u32:7>Generation<u32:1>]{}
-										Style[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-										}
 										Tooltip[IsSome<u8:0>]{}
 										ContextMenu[IsSome<u8:0>]{}
 										Resource[IsSome<u8:1>]
@@ -364,10 +377,6 @@ __ROOT__[]
 									Handle[Index<u32:9>Generation<u32:1>]{}
 									Children[Length<u32:0>]{}
 									Parent[Index<u32:8>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -414,16 +423,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -454,9 +469,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}
@@ -549,7 +567,6 @@ __ROOT__[]
 								Widget[Name<str:"SaveGame">GlobalVisibility<bool:true>IsMouseDirectlyOver<bool:false>TooltipTime<f32:0.1>LayoutTransform<mat3:1; 0; 0; 0; 1; 0; 0; 0; 1>RenderTransform<mat3:1; 0; 0; 0; 1; 0; 0; 0; 1>VisualTransform<mat3:1; 0; 0; 0; 1; 0; 20; 228; 1>PreviewMessages<bool:false>HandleOsEvents<bool:false>NeedUpdate<bool:true>IgnoreLayoutRounding<bool:false>AcceptsInput<bool:true>Id<uuid:13c831fe-919c-4508-a747-452c106a5246>IsResourceInstanceRoot<bool:true>]
 								{
 									Handle[Index<u32:11>Generation<u32:1>]{}
-									DesiredLocalPosition[Value<vec2f32:238; 247>Flags<u8:1>]{}
 									Row[Value<u64:1>Flags<u8:1>]{}
 									Margin[Flags<u8:1>]
 									{
@@ -560,10 +577,6 @@ __ROOT__[]
 										Item0[Index<u32:12>Generation<u32:1>]{}
 									}
 									Parent[Index<u32:10>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -595,10 +608,6 @@ __ROOT__[]
 											Item0[Index<u32:13>Generation<u32:1>]{}
 										}
 										Parent[Index<u32:11>Generation<u32:1>]{}
-										Style[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-										}
 										Tooltip[IsSome<u8:0>]{}
 										ContextMenu[IsSome<u8:0>]{}
 										Resource[IsSome<u8:1>]
@@ -629,10 +638,6 @@ __ROOT__[]
 									}
 									Children[Length<u32:0>]{}
 									Parent[Index<u32:12>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -683,10 +688,6 @@ __ROOT__[]
 										Item0[Index<u32:15>Generation<u32:1>]{}
 									}
 									Parent[Index<u32:10>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -718,10 +719,6 @@ __ROOT__[]
 											Item0[Index<u32:16>Generation<u32:1>]{}
 										}
 										Parent[Index<u32:14>Generation<u32:1>]{}
-										Style[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-										}
 										Tooltip[IsSome<u8:0>]{}
 										ContextMenu[IsSome<u8:0>]{}
 										Resource[IsSome<u8:1>]
@@ -752,10 +749,6 @@ __ROOT__[]
 									}
 									Children[Length<u32:0>]{}
 									Parent[Index<u32:15>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -806,10 +799,6 @@ __ROOT__[]
 										Item0[Index<u32:18>Generation<u32:1>]{}
 									}
 									Parent[Index<u32:10>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -841,10 +830,6 @@ __ROOT__[]
 											Item0[Index<u32:19>Generation<u32:1>]{}
 										}
 										Parent[Index<u32:17>Generation<u32:1>]{}
-										Style[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-										}
 										Tooltip[IsSome<u8:0>]{}
 										ContextMenu[IsSome<u8:0>]{}
 										Resource[IsSome<u8:1>]
@@ -875,10 +860,6 @@ __ROOT__[]
 									}
 									Children[Length<u32:0>]{}
 									Parent[Index<u32:18>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -929,10 +910,6 @@ __ROOT__[]
 										Item0[Index<u32:21>Generation<u32:1>]{}
 									}
 									Parent[Index<u32:10>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -964,10 +941,6 @@ __ROOT__[]
 											Item0[Index<u32:22>Generation<u32:1>]{}
 										}
 										Parent[Index<u32:20>Generation<u32:1>]{}
-										Style[IsSome<u8:1>]
-										{
-											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-										}
 										Tooltip[IsSome<u8:0>]{}
 										ContextMenu[IsSome<u8:0>]{}
 										Resource[IsSome<u8:1>]
@@ -998,10 +971,6 @@ __ROOT__[]
 									}
 									Children[Length<u32:0>]{}
 									Parent[Index<u32:21>Generation<u32:1>]{}
-									Style[IsSome<u8:1>]
-									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
-									}
 									Tooltip[IsSome<u8:0>]{}
 									ContextMenu[IsSome<u8:0>]{}
 									Resource[IsSome<u8:1>]
@@ -1048,16 +1017,22 @@ __ROOT__[]
 									MaxSize[Value<vec2f32:inf; inf>Flags<u8:1>]{}
 									Background[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:50>G<u8:50>B<u8:50>A<u8:255>]{}
+											}
 										}
 									}
 									Foreground[Flags<u8:1>]
 									{
-										Value[Id<u32:0>]
+										Value[Id<u32:1>]
 										{
-											0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											0[Id<u32:0>]
+											{
+												0[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
+											}
 										}
 									}
 									Row[Value<u64:0>Flags<u8:1>]{}
@@ -1084,9 +1059,12 @@ __ROOT__[]
 									ZIndex[Value<u64:0>Flags<u8:1>]{}
 									AllowDrag[Value<bool:false>Flags<u8:1>]{}
 									AllowDrop[Value<bool:false>Flags<u8:1>]{}
-									Style[IsSome<u8:1>]
+									Style[Flags<u8:1>]
 									{
-										Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										Value[IsSome<u8:1>]
+										{
+											Data[Uuid<uuid:1e0716e8-e728-491c-a65b-ca11b15048be>]{}
+										}
 									}
 									DrawOnTop[Value<bool:false>Flags<u8:1>]{}
 									Enabled[Value<bool:true>Flags<u8:1>]{}

@@ -1,7 +1,8 @@
 use crate::{
+    CameraController, Elevator, Game, Item, MessageSender,
     character::{Character, CharacterMessage, CharacterMessageData},
     control_scheme::ControlButton,
-    door::{door_mut, DoorContainer},
+    door::{DoorContainer, door_mut},
     elevator::call_button::{CallButton, CallButtonKind},
     gui::inventory::InventoryInterface,
     gui::journal::Journal,
@@ -13,10 +14,9 @@ use crate::{
     sound::SoundManager,
     utils::{self},
     weapon::{
-        projectile::Projectile, weapon_ref, CombatWeaponKind, Weapon, WeaponMessage,
-        WeaponMessageData,
+        CombatWeaponKind, Weapon, WeaponMessage, WeaponMessageData, projectile::Projectile,
+        weapon_ref,
     },
-    CameraController, Elevator, Game, Item, MessageSender,
 };
 use fyrox::{
     asset::manager::ResourceManager,
@@ -44,12 +44,12 @@ use fyrox::{
         texture::TextureResource,
     },
     scene::{
+        Scene,
         animation::{absm, absm::prelude::*, prelude::*},
         graph::Graph,
         mesh::Mesh,
         node::Node,
         sprite::Sprite,
-        Scene,
     },
     script::{
         ScriptContext, ScriptDeinitContext, ScriptMessageContext, ScriptMessagePayload,
@@ -869,7 +869,7 @@ impl Player {
     }
 
     fn render_offscreen_ui(&mut self, context: &mut ScriptContext) {
-        if let GraphicsContext::Initialized(ref mut graphics_context) = context.graphics_context {
+        if let GraphicsContext::Initialized(graphics_context) = context.graphics_context {
             let renderer = &mut graphics_context.renderer;
 
             #[allow(clippy::single_element_loop)]
@@ -930,7 +930,7 @@ impl ScriptTrait for Player {
             game.item_display.render_target.clone(),
             game.journal_display
                 .as_ref()
-                .map(|d| d.render_target(ctx.user_interfaces))
+                .and_then(|d| d.render_target(ctx.user_interfaces))
                 .unwrap_or_default(),
         )?;
 

@@ -33,8 +33,8 @@ use crate::{
     door::Door,
     effects::{beam::Beam, rail::Rail},
     elevator::{
-        call_button::{CallButton, CallButtonKind},
         Elevator,
+        call_button::{CallButton, CallButtonKind},
     },
     gui::death_screen::DeathScreenData,
     gui::final_screen::FinalScreen,
@@ -45,6 +45,7 @@ use crate::{
     highlight::HighlightRenderPass,
     inventory::{Inventory, ItemEntry},
     level::{
+        Level,
         arrival::enemy_trap::EnemyTrap,
         death_zone::DeathZone,
         decal::Decal,
@@ -56,18 +57,17 @@ use crate::{
         spawn::CharacterSpawnPoint,
         trigger::{BotCounter, Trigger, TriggerAction},
         turret::{Barrel, Hostility, ShootMode, Turret},
-        Level,
     },
     light::AnimatedLight,
     message::Message,
-    player::{camera::CameraController, Player},
+    player::{Player, camera::CameraController},
     sound::SoundManager,
     utils::use_hrtf,
     weapon::{
+        CombatWeaponKind, Weapon,
         kinetic::KineticGun,
         projectile::{Damage, Projectile},
         sight::LaserSight,
-        CombatWeaponKind, Weapon,
     },
 };
 use fyrox::graph::SceneGraph;
@@ -81,6 +81,7 @@ use fyrox::{
     engine::GraphicsContext,
     event::{ElementState, Event, WindowEvent},
     gui::{
+        UiNode, UserInterface,
         button::ButtonMessage,
         check_box::CheckBoxMessage,
         font::{Font, FontResource},
@@ -88,12 +89,11 @@ use fyrox::{
         message::{MessageDirection, UiMessage},
         text::{Text, TextBuilder, TextMessage},
         widget::{WidgetBuilder, WidgetMessage},
-        UiNode, UserInterface,
     },
     keyboard::KeyCode,
     plugin::{
-        error::GameResult, Plugin, PluginContext, PluginRegistrationContext, SceneLoaderOutput,
-        SceneLoaderResult,
+        Plugin, PluginContext, PluginRegistrationContext, SceneLoaderOutput, SceneLoaderResult,
+        error::GameResult,
     },
     renderer::ui_renderer::UiRenderInfo,
     scene::{
@@ -110,8 +110,8 @@ use std::{
     path::{Path, PathBuf},
     rc::Rc,
     sync::{
-        mpsc::{self, Receiver, Sender},
         Arc,
+        mpsc::{self, Receiver, Sender},
     },
 };
 
@@ -254,7 +254,7 @@ impl Game {
     }
 
     fn render_offscreen(&mut self, ctx: &mut PluginContext) {
-        if let GraphicsContext::Initialized(ref mut graphics_context) = ctx.graphics_context {
+        if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
             let renderer = &mut graphics_context.renderer;
 
             for (rt, ui) in [
@@ -423,7 +423,7 @@ impl Game {
 
         self.config.save_if_needed();
 
-        if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+        if let GraphicsContext::Initialized(graphics_context) = &*ctx.graphics_context {
             let window = &graphics_context.window;
             window.set_cursor_visible(self.is_any_menu_visible(ctx));
 
@@ -595,7 +595,7 @@ impl Game {
         let ui = ctx.user_interfaces.first_mut();
 
         if self.config.show_debug_info {
-            if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
                 self.debug_string.clear();
                 use std::fmt::Write;
                 write!(
@@ -826,7 +826,16 @@ impl Plugin for Game {
             .add(UserInterface::new(Vector2::repeat(100.0)));
 
         if let Some(scene_path) = scene_path {
-            self.load_level(PathBuf::from(scene_path), &mut ctx)?;
+            if let Some(ext) = Path::new(scene_path).extension() {
+                if ext == "ui" {
+                    ctx.load_ui(scene_path, |result, game: &mut Game, ctx| {
+                        ctx.user_interfaces.add(result?.payload);
+                        Ok(())
+                    });
+                } else {
+                    self.load_level(PathBuf::from(scene_path), &mut ctx)?;
+                }
+            }
         }
 
         let font = ctx
@@ -906,7 +915,7 @@ impl Plugin for Game {
     }
 
     fn on_loaded(&mut self, context: PluginContext) -> GameResult {
-        if let GraphicsContext::Initialized(ref graphics_context) = context.graphics_context {
+        if let GraphicsContext::Initialized(graphics_context) = context.graphics_context {
             let inner_size = graphics_context.window.inner_size();
 
             self.create_highlighter(

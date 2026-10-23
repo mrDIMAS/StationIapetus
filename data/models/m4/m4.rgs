@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -45,10 +45,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
@@ -529,7 +525,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:1>Data<f32:0>]{}
 					}
@@ -541,7 +537,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.002>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:4>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:1>Data<f32:0>]{}
 					}
@@ -549,11 +545,12 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		RenderingOptions[Flags<u8:1>]
 		{
-			Value[]
+			Value[EnvironmentLightingBrightness<f32:1>]
 			{
 				RenderTarget[IsSome<u8:0>]{}
 				ClearColor[IsSome<u8:0>]{}

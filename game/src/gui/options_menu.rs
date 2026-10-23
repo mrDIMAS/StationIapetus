@@ -1,9 +1,9 @@
 use crate::{
+    MessageSender,
     config::Config,
     control_scheme::ControlButton,
-    gui::{create_check_box, create_scroll_bar, ScrollBarData},
+    gui::{ScrollBarData, create_check_box, create_scroll_bar},
     message::Message,
-    MessageSender,
 };
 use fyrox::core::uuid::uuid;
 use fyrox::gui::UserInterface;
@@ -17,6 +17,7 @@ use fyrox::{
     engine::{GraphicsContext, InitializedGraphicsContext},
     event::{Event, MouseButton, MouseScrollDelta, WindowEvent},
     gui::{
+        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
         border::BorderBuilder,
         button::{Button, ButtonBuilder, ButtonMessage},
         check_box::{CheckBox, CheckBoxMessage},
@@ -31,7 +32,6 @@ use fyrox::{
         text::{Text, TextBuilder, TextMessage},
         widget::WidgetBuilder,
         window::{Window, WindowAlignment, WindowBuilder, WindowMessage, WindowTitle},
-        BuildContext, HorizontalAlignment, Orientation, Thickness, UiNode, VerticalAlignment,
     },
     keyboard::PhysicalKey,
     monitor::VideoModeHandle,
@@ -667,7 +667,7 @@ impl OptionsMenu {
             ui.send(handle, ScrollBarMessage::Value(value));
         };
 
-        if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+        if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
             let settings = graphics_context.renderer.get_quality_settings();
 
             sync_check_box(self.spot_shadows, settings.spot_shadows_enabled);
@@ -785,7 +785,7 @@ impl OptionsMenu {
         sender: &MessageSender,
     ) -> Result<Option<Self>, GameError> {
         let old_graphics_settings =
-            if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
                 graphics_context.renderer.get_quality_settings()
             } else {
                 Default::default()
@@ -809,7 +809,7 @@ impl OptionsMenu {
             }
         } else if let Some(DropdownListMessage::Selection(Some(index))) = message.data() {
             if message.destination() == self.video_mode {
-                if let GraphicsContext::Initialized(ref graphics_context) = ctx.graphics_context {
+                if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
                     let window = &graphics_context.window;
                     // -1 here because we have Windowed item in the list.
                     if let Some(video_mode) =
@@ -881,7 +881,7 @@ impl OptionsMenu {
         }
 
         if graphics_settings != old_graphics_settings {
-            if let GraphicsContext::Initialized(ref mut graphics_context) = ctx.graphics_context {
+            if let GraphicsContext::Initialized(graphics_context) = ctx.graphics_context {
                 if let Err(err) = graphics_context
                     .renderer
                     .set_quality_settings(&graphics_settings)

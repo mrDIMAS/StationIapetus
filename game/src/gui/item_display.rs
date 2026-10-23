@@ -4,6 +4,7 @@ use fyrox::gui::text::Text;
 use fyrox::{
     core::{algebra::Vector2, color::Color, pool::Handle, visitor::prelude::*},
     gui::{
+        HorizontalAlignment, UserInterface, VerticalAlignment,
         border::BorderBuilder,
         brush::Brush,
         font::FontResource,
@@ -11,7 +12,6 @@ use fyrox::{
         image::{ImageBuilder, ImageMessage},
         text::{TextBuilder, TextMessage},
         widget::WidgetBuilder,
-        HorizontalAlignment, UserInterface, VerticalAlignment,
     },
     resource::{model::ModelResource, texture::TextureResource},
 };
@@ -126,7 +126,7 @@ impl ItemDisplay {
                     );
                     self.ui.send(
                         self.item_image,
-                        ImageMessage::Texture(item_script.preview.deref().clone()),
+                        ImageMessage::Texture(item_script.preview.deref().clone().into()),
                     );
                 }
             });

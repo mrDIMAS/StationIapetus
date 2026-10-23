@@ -19,6 +19,8 @@ use fyrox::{
     },
     graph::SceneGraph,
     gui::{
+        BuildContext, Control, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
+        VerticalAlignment,
         border::BorderBuilder,
         brush::Brush,
         draw::{CommandTexture, Draw, DrawingContext},
@@ -31,8 +33,6 @@ use fyrox::{
         text::{TextBuilder, TextMessage},
         widget::{Widget, WidgetBuilder, WidgetMessage},
         wrap_panel::WrapPanelBuilder,
-        BuildContext, Control, HorizontalAlignment, Orientation, Thickness, UiNode, UserInterface,
-        VerticalAlignment,
     },
     resource::{model::ModelResource, texture::TextureResource},
     scene::node::Node,
@@ -157,7 +157,7 @@ impl InventoryItemBuilder {
                                                 .with_margin(Thickness::uniform(1.0))
                                                 .on_row(0),
                                         )
-                                        .with_opt_texture(item.preview.deref().clone())
+                                        .with_opt_texture(item.preview.deref().clone().into())
                                         .build(ctx),
                                     )
                                     .with_child(

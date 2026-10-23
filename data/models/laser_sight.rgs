@@ -1,4 +1,4 @@
-FTAX:2;
+FTAX:0;
 __ROOT__[]
 {
 	Scene[]
@@ -45,10 +45,6 @@ __ROOT__[]
 									LodGroup[Flags<u8:1>]
 									{
 										Value[IsSome<u8:0>]{}
-									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
 									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
@@ -116,10 +112,6 @@ __ROOT__[]
 									{
 										Value[IsSome<u8:0>]{}
 									}
-									Mobility[Flags<u8:1>]
-									{
-										Value[Id<u32:0>]{}
-									}
 									Original[Index<u32:0>Generation<u32:0>]{}
 									Tag[Value<str:"">Flags<u8:1>]{}
 									Properties[Flags<u8:1>]
@@ -169,10 +161,6 @@ __ROOT__[]
 										{
 											Value[IsSome<u8:0>]{}
 										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
 										Original[Index<u32:0>Generation<u32:0>]{}
 										Tag[Value<str:"">Flags<u8:1>]{}
 										Properties[Flags<u8:1>]
@@ -191,141 +179,11 @@ __ROOT__[]
 										{
 											Item0[]
 											{
-												Material[Flags<u8:1>]
-												{
-													Value[Uuid<uuid:a6180154-f2de-435b-b2c0-a6ecb7de6fef>]
-													{
-														Embedded[Id<u64:1>]
-														{
-															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
-															{
-																Data[]
-																{
-																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
-																	ResourceBindings[Count<u32:9>]
-																	{
-																		Item0[Key<str:"heightTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item1[Key<str:"lightmapTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item2[Key<str:"emissionTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item3[Key<str:"normalTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item4[Key<str:"metallicTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item5[Key<str:"properties">]
-																		{
-																			Value[Id<u32:1>]
-																			{
-																				0[]
-																				{
-																					Properties[Count<u32:4>]
-																					{
-																						Item0[Key<str:"diffuseColor">]
-																						{
-																							Value[Id<u32:19>]
-																							{
-																								0[R<u8:0>G<u8:162>B<u8:232>A<u8:200>]{}
-																							}
-																						}
-																						Item1[Key<str:"texCoordScale">]
-																						{
-																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
-																						}
-																						Item2[Key<str:"layerIndex">]
-																						{
-																							Value[Id<u32:4>0<u32:0>]{}
-																						}
-																						Item3[Key<str:"emissionStrength">]
-																						{
-																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
-																						}
-																					}
-																				}
-																			}
-																		}
-																		Item6[Key<str:"diffuseTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item7[Key<str:"aoTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																		Item8[Key<str:"roughnessTexture">]
-																		{
-																			Value[Id<u32:0>]
-																			{
-																				0[]
-																				{
-																					Value[IsSome<u8:0>]{}
-																				}
-																			}
-																		}
-																	}
-																}
-															}
-														}
-													}
-												}
 												Data[Flags<u8:1>]
 												{
-													Value[Uuid<uuid:9b6c2c37-c14e-4b42-ba14-47d1313af8f8>]
+													Value[Uuid<uuid:c5729c9e-5dbd-4697-9aaf-07a844488720>]
 													{
-														Embedded[Id<u64:2>]
+														Embedded[Id<u64:1>]
 														{
 															ArcData[TypeUuid<uuid:8a23a414-e66d-4e12-9628-92c6ab49c2f0>]
 															{
@@ -476,22 +334,135 @@ __ROOT__[]
 																			}
 																		}
 																	}
-																	GeometryBuffer[ModificationsCounter<u64:0>]
+																	GeometryBuffer[Data<data:AgAAAAEAAAAAAAAAAwAAAAIAAAAAAAAABAAAAAUAAAAGAAAABAAAAAYAAAAHAAAACgAAAAkAAAAIAAAACwAAAAoAAAAIAAAADAAAAA0AAAAOAAAADAAAAA4AAAAPAAAAEgAAABEAAAAQAAAAEwAAABIAAAAQAAAAFAAAABUAAAAWAAAAFAAAABYAAAAXAAAA>]{}
+																}
+															}
+														}
+													}
+												}
+												Material[Flags<u8:1>]
+												{
+													Value[Uuid<uuid:a6180154-f2de-435b-b2c0-a6ecb7de6fef>]
+													{
+														Embedded[Id<u64:2>]
+														{
+															ArcData[TypeUuid<uuid:0e54fe44-0c58-4108-a681-d6eefc88c234>]
+															{
+																Data[]
+																{
+																	Shader[Uuid<uuid:87195f6e-cba4-4c27-9f89-d0bf726db965>]{}
+																	ResourceBindings[Count<u32:9>]
 																	{
-																		Triangles[Length<u32:12>]
+																		Item0[Key<str:"roughnessTexture">]
 																		{
-																			Item0[A<u32:2>B<u32:1>C<u32:0>]{}
-																			Item1[A<u32:3>B<u32:2>C<u32:0>]{}
-																			Item2[A<u32:4>B<u32:5>C<u32:6>]{}
-																			Item3[A<u32:4>B<u32:6>C<u32:7>]{}
-																			Item4[A<u32:10>B<u32:9>C<u32:8>]{}
-																			Item5[A<u32:11>B<u32:10>C<u32:8>]{}
-																			Item6[A<u32:12>B<u32:13>C<u32:14>]{}
-																			Item7[A<u32:12>B<u32:14>C<u32:15>]{}
-																			Item8[A<u32:18>B<u32:17>C<u32:16>]{}
-																			Item9[A<u32:19>B<u32:18>C<u32:16>]{}
-																			Item10[A<u32:20>B<u32:21>C<u32:22>]{}
-																			Item11[A<u32:20>B<u32:22>C<u32:23>]{}
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item1[Key<str:"lightmapTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item2[Key<str:"emissionTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item3[Key<str:"normalTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item4[Key<str:"metallicTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item5[Key<str:"properties">]
+																		{
+																			Value[Id<u32:1>]
+																			{
+																				0[]
+																				{
+																					Properties[Count<u32:4>]
+																					{
+																						Item0[Key<str:"diffuseColor">]
+																						{
+																							Value[Id<u32:19>]
+																							{
+																								0[R<u8:0>G<u8:162>B<u8:232>A<u8:200>]{}
+																							}
+																						}
+																						Item1[Key<str:"texCoordScale">]
+																						{
+																							Value[Id<u32:6>0<vec2f32:1; 1>]{}
+																						}
+																						Item2[Key<str:"layerIndex">]
+																						{
+																							Value[Id<u32:4>0<u32:0>]{}
+																						}
+																						Item3[Key<str:"emissionStrength">]
+																						{
+																							Value[Id<u32:8>0<vec3f32:2; 2; 2>]{}
+																						}
+																					}
+																				}
+																			}
+																		}
+																		Item6[Key<str:"diffuseTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item7[Key<str:"heightTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
+																		}
+																		Item8[Key<str:"aoTexture">]
+																		{
+																			Value[Id<u32:0>]
+																			{
+																				0[]
+																				{
+																					Value[IsSome<u8:0>]{}
+																				}
+																			}
 																		}
 																	}
 																}
@@ -531,6 +502,51 @@ __ROOT__[]
 							{
 								NodeData[]
 								{
+									Base[Name<str:"Tip">IsResourceInstance<bool:false>InstanceId<uuid:87c557e4-b9a1-4418-810b-5517e478fd92>]
+									{
+										Transform[]
+										{
+											LocalScale[Value<vec3f32:1; 1; 1>Flags<u8:1>]{}
+											LocalPosition[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											LocalRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PreRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											PostRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
+											RotationOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											RotationPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+											ScalingPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
+										}
+										Visibility[Value<bool:true>Flags<u8:1>]{}
+										Parent[Index<u32:0>Generation<u32:1>]{}
+										Children[Length<u32:1>]
+										{
+											Item0[Index<u32:4>Generation<u32:1>]{}
+										}
+										Resource[IsSome<u8:0>]{}
+										Lifetime[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										LodGroup[Flags<u8:1>]
+										{
+											Value[IsSome<u8:0>]{}
+										}
+										Original[Index<u32:0>Generation<u32:0>]{}
+										Tag[Value<str:"">Flags<u8:1>]{}
+										Properties[Flags<u8:1>]
+										{
+											Value[Length<u32:0>]{}
+										}
+										FrustumCulling[Value<bool:true>Flags<u8:1>]{}
+										CastShadows[Value<bool:true>Flags<u8:1>]{}
+										Enabled[Value<bool:true>Flags<u8:1>]{}
+										RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
+										Scripts[Length<u32:0>]{}
+									}
+									UvRect[Flags<u8:1>]
+									{
+										Value[X<f32:0>Y<f32:0>W<f32:1>H<f32:1>]{}
+									}
 									Material[Flags<u8:1>]
 									{
 										Value[Uuid<uuid:dde5fc3a-03df-4063-9d82-1e1c79ffb2b8>]
@@ -563,51 +579,6 @@ __ROOT__[]
 											}
 										}
 									}
-									Base[Name<str:"Tip">IsResourceInstance<bool:false>InstanceId<uuid:87c557e4-b9a1-4418-810b-5517e478fd92>]
-									{
-										Transform[]
-										{
-											LocalScale[Value<vec3f32:1; 1; 1>Flags<u8:1>]{}
-											LocalPosition[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
-											LocalRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
-											PreRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
-											PostRotation[Value<quat:0; 0; 0; 1>Flags<u8:1>]{}
-											RotationOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
-											RotationPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
-											ScalingOffset[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
-											ScalingPivot[Value<vec3f32:0; 0; 0>Flags<u8:1>]{}
-										}
-										Visibility[Value<bool:true>Flags<u8:1>]{}
-										Parent[Index<u32:0>Generation<u32:1>]{}
-										Children[Length<u32:1>]
-										{
-											Item0[Index<u32:4>Generation<u32:1>]{}
-										}
-										Resource[IsSome<u8:0>]{}
-										Lifetime[Flags<u8:1>]
-										{
-											Value[IsSome<u8:0>]{}
-										}
-										LodGroup[Flags<u8:1>]
-										{
-											Value[IsSome<u8:0>]{}
-										}
-										Mobility[Flags<u8:1>]
-										{
-											Value[Id<u32:0>]{}
-										}
-										Original[Index<u32:0>Generation<u32:0>]{}
-										Tag[Value<str:"">Flags<u8:1>]{}
-										Properties[Flags<u8:1>]
-										{
-											Value[Length<u32:0>]{}
-										}
-										FrustumCulling[Value<bool:true>Flags<u8:1>]{}
-										CastShadows[Value<bool:true>Flags<u8:1>]{}
-										Enabled[Value<bool:true>Flags<u8:1>]{}
-										RenderMask[Value<u32:4294967295>Flags<u8:1>]{}
-										Scripts[Length<u32:0>]{}
-									}
 									Color[Flags<u8:1>]
 									{
 										Value[R<u8:0>G<u8:162>B<u8:232>A<u8:200>]{}
@@ -616,10 +587,6 @@ __ROOT__[]
 									Rotation[Value<f32:0>Flags<u8:1>]{}
 									FlipX[Value<bool:false>Flags<u8:1>]{}
 									FlipY[Value<bool:false>Flags<u8:1>]{}
-									UvRect[Flags<u8:1>]
-									{
-										Value[X<f32:0>Y<f32:0>W<f32:1>H<f32:1>]{}
-									}
 								}
 							}
 						}
@@ -659,10 +626,6 @@ __ROOT__[]
 											LodGroup[Flags<u8:1>]
 											{
 												Value[IsSome<u8:0>]{}
-											}
-											Mobility[Flags<u8:1>]
-											{
-												Value[Id<u32:0>]{}
 											}
 											Original[Index<u32:0>Generation<u32:0>]{}
 											Tag[Value<str:"">Flags<u8:1>]{}
@@ -744,7 +707,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -756,7 +719,7 @@ __ROOT__[]
 				Enabled[Value<bool:true>Flags<u8:1>]{}
 				IntegrationParameters[Flags<u8:1>]
 				{
-					Value[MinCcdDt<f32:0.00016666668>ContactDampingRatio<f32:5>ContactNaturalFrequency<f32:30>JointNaturalFrequency<f32:1000000>JointDampingRatio<f32:1>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
+					Value[MinCcdDt<f32:0.00016666668>AllowedLinearError<f32:0.001>NormalizedMaxCorrectiveVelocity<f32:10>PredictionDistance<f32:0.002>NumSolverIterations<u64:4>NumInternalPgsIterations<u64:1>MinIslandSize<u32:128>MaxCcdSubsteps<u32:1>WarmstartCoefficient<f32:1>LengthUnit<f32:1>NumInternalStabilizationIterations<u64:4>]
 					{
 						Dt[IsSome<u8:0>]{}
 					}
@@ -764,6 +727,7 @@ __ROOT__[]
 				Gravity[Value<vec2f32:0; -9.81>Flags<u8:1>]{}
 			}
 			Lightmap[IsSome<u8:0>]{}
+			UserData[TypeUuid<uuid:00000000-0000-0000-0000-000000000000>]{}
 		}
 		Enabled[Value<bool:true>Flags<u8:1>]{}
 		SkyBox[Flags<u8:1>]
