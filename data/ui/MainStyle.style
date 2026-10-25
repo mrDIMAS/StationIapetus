@@ -4,7 +4,7 @@ __ROOT__[]
 	Style[]
 	{
 		Parent[IsSome<u8:0>]{}
-		Properties[Length<u32:39>]
+		Properties[Length<u32:35>]
 		{
 			Item0[Name<str:"Global.Font.Size">]
 			{
@@ -81,31 +81,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item9[Name<str:"Button.PressedBrush">]
-			{
-				Value[Id<u32:3>]
-				{
-					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-					{
-						Stops[Length<u32:3>]
-						{
-							Item0[Stop<f32:0>]
-							{
-								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-							}
-							Item1[Stop<f32:1>]
-							{
-								Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
-							}
-							Item2[Stop<f32:0>]
-							{
-								Color[R<u8:255>G<u8:255>B<u8:255>A<u8:255>]{}
-							}
-						}
-					}
-				}
-			}
-			Item10[Name<str:"Global.Brush.Text">]
+			Item9[Name<str:"Global.Brush.Text">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -115,11 +91,11 @@ __ROOT__[]
 					}
 				}
 			}
-			Item11[Name<str:"CheckBox.CornerRadius">]
+			Item10[Name<str:"CheckBox.CornerRadius">]
 			{
 				Value[Id<u32:0>0<f32:4>]{}
 			}
-			Item12[Name<str:"Global.Brush.Light">]
+			Item11[Name<str:"Global.Brush.Light">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -129,7 +105,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item13[Name<str:"Global.Brush.Ok.Hover">]
+			Item12[Name<str:"Global.Brush.Ok.Hover">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -139,27 +115,17 @@ __ROOT__[]
 					}
 				}
 			}
-			Item14[Name<str:"Button.Background">]
+			Item13[Name<str:"RightArrow">]
 			{
-				Value[Id<u32:3>]
+				Value[Id<u32:4>]
 				{
-					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
+					0[IsSome<u8:1>]
 					{
-						Stops[Length<u32:2>]
-						{
-							Item0[Stop<f32:0>]
-							{
-								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-							}
-							Item1[Stop<f32:1>]
-							{
-								Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
-							}
-						}
+						Data[Uuid<uuid:e3f58e38-5032-4202-876a-c4dbf8c7fd6d>]{}
 					}
 				}
 			}
-			Item15[Name<str:"Global.Brush.Cancel.Hover">]
+			Item14[Name<str:"Global.Brush.Cancel.Hover">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -169,14 +135,14 @@ __ROOT__[]
 					}
 				}
 			}
-			Item16[Name<str:"ToggleButton.BorderThickness">]
+			Item15[Name<str:"ToggleButton.BorderThickness">]
 			{
 				Value[Id<u32:1>]
 				{
 					0[Left<f32:1>Top<f32:1>Right<f32:1>Bottom<f32:1>]{}
 				}
 			}
-			Item17[Name<str:"Global.Brush.Lightest">]
+			Item16[Name<str:"Global.Brush.Lightest">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -186,7 +152,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item18[Name<str:"Global.Brush.Ok.Pressed">]
+			Item17[Name<str:"Global.Brush.Ok.Pressed">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -196,14 +162,14 @@ __ROOT__[]
 					}
 				}
 			}
-			Item19[Name<str:"CheckBox.BorderThickness">]
+			Item18[Name<str:"CheckBox.BorderThickness">]
 			{
 				Value[Id<u32:1>]
 				{
 					0[Left<f32:1>Top<f32:1>Right<f32:1>Bottom<f32:1>]{}
 				}
 			}
-			Item20[Name<str:"Global.Brush.Primary">]
+			Item19[Name<str:"Global.Brush.Primary">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -213,11 +179,11 @@ __ROOT__[]
 					}
 				}
 			}
-			Item21[Name<str:"DropdownList.CornerRadius">]
+			Item20[Name<str:"DropdownList.CornerRadius">]
 			{
 				Value[Id<u32:0>0<f32:4>]{}
 			}
-			Item22[Name<str:"Global.Brush.Bright">]
+			Item21[Name<str:"Global.Brush.Bright">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -227,17 +193,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item23[Name<str:"Button.Foreground">]
-			{
-				Value[Id<u32:3>]
-				{
-					0[Id<u32:0>]
-					{
-						0[R<u8:0>G<u8:5>B<u8:107>A<u8:255>]{}
-					}
-				}
-			}
-			Item24[Name<str:"Global.Brush.Lighter">]
+			Item22[Name<str:"Global.Brush.Lighter">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -247,7 +203,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item25[Name<str:"Global.Brush.Darker">]
+			Item23[Name<str:"Global.Brush.Darker">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -257,7 +213,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item26[Name<str:"Global.Brush.Cancel.Pressed">]
+			Item24[Name<str:"Global.Brush.Cancel.Pressed">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -267,7 +223,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item27[Name<str:"Global.Brush.LighterPrimary">]
+			Item25[Name<str:"Global.Brush.LighterPrimary">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -277,7 +233,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item28[Name<str:"Global.Brush.Dark">]
+			Item26[Name<str:"Global.Brush.Dark">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -287,11 +243,11 @@ __ROOT__[]
 					}
 				}
 			}
-			Item29[Name<str:"Button.CornerRadius">]
+			Item27[Name<str:"Button.CornerRadius">]
 			{
 				Value[Id<u32:0>0<f32:4>]{}
 			}
-			Item30[Name<str:"Global.Brush.Warning">]
+			Item28[Name<str:"Global.Brush.Warning">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -301,7 +257,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item31[Name<str:"Global.Brush.Darkest">]
+			Item29[Name<str:"Global.Brush.Darkest">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -311,7 +267,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item32[Name<str:"LeftArrow">]
+			Item30[Name<str:"LeftArrow">]
 			{
 				Value[Id<u32:4>]
 				{
@@ -321,7 +277,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item33[Name<str:"Global.Brush.Error">]
+			Item31[Name<str:"Global.Brush.Error">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -331,7 +287,7 @@ __ROOT__[]
 					}
 				}
 			}
-			Item34[Name<str:"Global.Brush.Ok">]
+			Item32[Name<str:"Global.Brush.Ok">]
 			{
 				Value[Id<u32:3>]
 				{
@@ -341,47 +297,17 @@ __ROOT__[]
 					}
 				}
 			}
-			Item35[Name<str:"CheckBox.CheckMarkSize">]
+			Item33[Name<str:"CheckBox.CheckMarkSize">]
 			{
 				Value[Id<u32:0>0<f32:12>]{}
 			}
-			Item36[Name<str:"Button.HoverBrush">]
-			{
-				Value[Id<u32:3>]
-				{
-					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
-					{
-						Stops[Length<u32:2>]
-						{
-							Item0[Stop<f32:0>]
-							{
-								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-							}
-							Item1[Stop<f32:1>]
-							{
-								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
-							}
-						}
-					}
-				}
-			}
-			Item37[Name<str:"Global.Brush.DimBlue">]
+			Item34[Name<str:"Global.Brush.DimBlue">]
 			{
 				Value[Id<u32:3>]
 				{
 					0[Id<u32:0>]
 					{
 						0[R<u8:66>G<u8:99>B<u8:149>A<u8:255>]{}
-					}
-				}
-			}
-			Item38[Name<str:"RightArrow">]
-			{
-				Value[Id<u32:4>]
-				{
-					0[IsSome<u8:1>]
-					{
-						Data[Uuid<uuid:e3f58e38-5032-4202-876a-c4dbf8c7fd6d>]{}
 					}
 				}
 			}

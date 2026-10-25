@@ -1,0 +1,84 @@
+FTAX:0;
+__ROOT__[]
+{
+	Style[]
+	{
+		Parent[IsSome<u8:1>]
+		{
+			Data[Uuid<uuid:ea413b5c-068d-4e7a-bc4d-7f57a90b4ed3>]{}
+		}
+		Properties[Length<u32:4>]
+		{
+			Item0[Name<str:"Button.PressedBrush">]
+			{
+				Value[Id<u32:3>]
+				{
+					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
+					{
+						Stops[Length<u32:2>]
+						{
+							Item0[Stop<f32:0>]
+							{
+								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+							}
+							Item1[Stop<f32:1>]
+							{
+								Color[R<u8:0>G<u8:67>B<u8:153>A<u8:255>]{}
+							}
+						}
+					}
+				}
+			}
+			Item1[Name<str:"Button.Background">]
+			{
+				Value[Id<u32:3>]
+				{
+					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
+					{
+						Stops[Length<u32:2>]
+						{
+							Item0[Stop<f32:0>]
+							{
+								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+							}
+							Item1[Stop<f32:1>]
+							{
+								Color[R<u8:0>G<u8:91>B<u8:207>A<u8:255>]{}
+							}
+						}
+					}
+				}
+			}
+			Item2[Name<str:"Button.Foreground">]
+			{
+				Value[Id<u32:3>]
+				{
+					0[Id<u32:0>]
+					{
+						0[R<u8:0>G<u8:5>B<u8:107>A<u8:255>]{}
+					}
+				}
+			}
+			Item3[Name<str:"Button.HoverBrush">]
+			{
+				Value[Id<u32:3>]
+				{
+					0[Id<u32:1>From<vec2f32:0; 0>To<vec2f32:0; 1>]
+					{
+						Stops[Length<u32:2>]
+						{
+							Item0[Stop<f32:0>]
+							{
+								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+							}
+							Item1[Stop<f32:1>]
+							{
+								Color[R<u8:0>G<u8:161>B<u8:255>A<u8:255>]{}
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+}
